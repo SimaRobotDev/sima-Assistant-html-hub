@@ -434,11 +434,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   flex-direction: column;
 }
 
-.map-view.hidden {
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateX(100vw);
-}
+.map-view.hidden { display: none; }
 
 .map-view-header {
   display: flex;
@@ -963,7 +959,6 @@ const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
 let lastServicesPayload = null;
-let mapVxWarmupPromise = null;
 
 const MOBILITY_I18N = {
   es: {
@@ -1272,7 +1267,6 @@ document.addEventListener("DOMContentLoaded", () => {
   SimaBridge.ready("mobility");
   SimaBridge.log("mobility DOM ready " + MOBILITY_UI_VERSION + " locale=" + mobilityLocale);
   logMapVxConfig("DOMContentLoaded");
-  warmupMobilityMapVx();
   renderEntrySurvey();
   document.getElementById("btnSpeak").onclick = startVoiceInput;
 });
@@ -2067,30 +2061,6 @@ function ensureMobilityMapVxDefaults() {
   return cfg;
 }
 
-async function warmupMobilityMapVx() {
-  ensureMobilityMapVxDefaults();
-  if (mapVxWarmupPromise) return mapVxWarmupPromise;
-  const container = document.getElementById("mapvx-container");
-  if (!container || typeof MapVxBridge === "undefined" || !MapVxBridge.isConfigured()) {
-    return null;
-  }
-  mapVxWarmupPromise = (async () => {
-    try {
-      container.classList.remove("hidden");
-      await MapVxBridge.ensureReady();
-      await MapVxBridge.ensureMap(container);
-      logMap("info", "warmupMobilityMapVx ready", {
-        width: container.clientWidth,
-        height: container.clientHeight
-      });
-    } catch (e) {
-      logMap("warn", "warmupMobilityMapVx failed", { message: e.message || String(e) });
-    }
-    return true;
-  })();
-  return mapVxWarmupPromise;
-}
-
 function useMapVxSdk() {
   const ok = typeof MapVxBridge !== "undefined" && MapVxBridge.isConfigured();
   if (!ok) {
@@ -2197,16 +2167,18 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
   const container = document.getElementById("mapvx-container");
   const iframe = document.getElementById("map-iframe");
   const placeholder = document.getElementById("map-placeholder");
-  const mapOptions = { poiType, id, floor, mall, name, local, mode };
 
-  logMap("info", "openPoiMapViaMapVx start", mapOptions);
+  logMap("info", "openPoiMapViaMapVx start", { poiType, id, floor, mall, name, local, mode });
   logMapVxConfig("openPoiMapViaMapVx");
-  await warmupMobilityMapVx();
 
   iframe.classList.add("hidden");
   iframe.src = "";
   placeholder.classList.add("hidden");
   container.classList.remove("hidden");
+  if (typeof MapVxBridge !== "undefined" && MapVxBridge.destroyMap) {
+    MapVxBridge.destroyMap();
+  }
+  container.innerHTML = "";
   resetMapControls();
   setMapStatus(t("mapLoading") || "Cargando mapa…");
 
@@ -2230,40 +2202,6 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
     logMap("info", "openPoiMapViaMapVx success", result);
     window.__mapVxLastLog = { ts: Date.now(), phase: "success", result: result };
   } catch (e) {
-    const message = e && (e.message || String(e));
-    if (!openPoiMapViaMapVx._retried && message && message.indexOf("getLayer") >= 0) {
-      openPoiMapViaMapVx._retried = true;
-      logMap("warn", "openPoiMapViaMapVx retry after getLayer error", { message });
-      try {
-        if (typeof MapVxBridge !== "undefined" && MapVxBridge.destroyMap) {
-          MapVxBridge.destroyMap();
-        }
-        mapVxWarmupPromise = null;
-        await warmupMobilityMapVx();
-        const retryShowFn = mode === "navigation" && MapVxBridge.showRouteTo
-          ? MapVxBridge.showRouteTo
-          : MapVxBridge.showPlace;
-        const retryResult = await retryShowFn(container, { id, name, floor, local, mall, poiType });
-        const retryDetail = retryResult.clientId
-          ? "clientId=" + retryResult.clientId
-          : "mapvxId=" + retryResult.mapvxId;
-        let retryStatusLine = (retryResult.title || name || "") + " · " + retryResult.resolvedBy + " · " + retryDetail;
-        if (retryResult.routeSkipped) {
-          retryStatusLine += " · " + t("routeNeedsTotem");
-        } else if (retryResult.routeActive || retryResult.routeStarted) {
-          retryStatusLine += " · " + t("routeActive");
-        }
-        setMapStatus(retryStatusLine);
-        setupMapControls(retryResult);
-        logMap("info", "openPoiMapViaMapVx retry success", retryResult);
-        window.__mapVxLastLog = { ts: Date.now(), phase: "retry-success", result: retryResult };
-        openPoiMapViaMapVx._retried = false;
-        return retryResult;
-      } catch (retryError) {
-        openPoiMapViaMapVx._retried = false;
-        e = retryError;
-      }
-    }
     logMap("error", "openPoiMapViaMapVx failed", {
       message: e.message || String(e),
       attempts: e.attempts || null
@@ -2480,12 +2418,15 @@ function openServiceMap(idx) {
 function closeMapView() {
   if (typeof MapVxBridge !== "undefined") {
     if (MapVxBridge.clearActiveRoute) MapVxBridge.clearActiveRoute();
+    MapVxBridge.destroyMap();
   }
   resetMapControls();
   hideStoreDetailPanel();
   document.getElementById("map-view").classList.add("hidden");
   document.getElementById("map-iframe").src = "";
   document.getElementById("map-iframe").classList.add("hidden");
+  document.getElementById("mapvx-container").classList.add("hidden");
+  document.getElementById("mapvx-container").innerHTML = "";
   document.getElementById("map-placeholder").classList.add("hidden");
   setMapStatus("");
   document.querySelector(".cm-body").style.display = "";
