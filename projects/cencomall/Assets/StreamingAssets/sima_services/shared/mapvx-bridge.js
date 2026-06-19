@@ -8,9 +8,6 @@ window.MapVxBridge = (function () {
   var mapContainer = null;
   var initPromise = null;
   var stylesLoaded = false;
-  var indoorLabelMarkerIds = [];
-  var lastIndoorContext = null;
-  var lastIndoorContextKey = "";
   var LOG_PREFIX = "[MapVxBridge]";
 
   function log(level, message, data) {
@@ -235,230 +232,6 @@ window.MapVxBridge = (function () {
     return (def || floors[0]).key;
   }
 
-  function getPlacePosition(place) {
-    if (!place || !place.position) return null;
-    if (place.position.lat == null || place.position.lng == null) return null;
-    return {
-      lat: Number(place.position.lat),
-      lng: Number(place.position.lng),
-    };
-  }
-
-  function getPlaceFloorId(place) {
-    if (!place) return null;
-    if (place.floorId) return String(place.floorId);
-    if (place.currentFloorId) return String(place.currentFloorId);
-    if (place.inFloors && place.inFloors.length) return String(place.inFloors[0]);
-    return null;
-  }
-
-  function indoorContextKey(config) {
-    config = config || getConfig();
-    return [
-      config.parentPlace || "",
-      config.institutionId || "",
-      config.lang || "",
-      config.showStoreLabels === false ? "no-labels" : "labels",
-    ].join("|");
-  }
-
-  function collectIndoorCoordinates(parentPlace, subPlaces) {
-    var coords = [];
-    var seen = {};
-    function addPoint(place) {
-      var pos = getPlacePosition(place);
-      if (!pos) return;
-      var key = pos.lat.toFixed(6) + "," + pos.lng.toFixed(6);
-      if (seen[key]) return;
-      seen[key] = true;
-      coords.push(pos);
-    }
-
-    addPoint(parentPlace);
-    (subPlaces || []).forEach(addPoint);
-    return coords;
-  }
-
-  function computeIndoorView(coords) {
-    if (!coords || coords.length === 0) {
-      return {};
-    }
-    if (coords.length === 1) {
-      return {
-        center: coords[0],
-        zoom: 18,
-        minZoom: 16,
-      };
-    }
-
-    var minLat = coords[0].lat;
-    var maxLat = coords[0].lat;
-    var minLng = coords[0].lng;
-    var maxLng = coords[0].lng;
-    for (var i = 1; i < coords.length; i++) {
-      minLat = Math.min(minLat, coords[i].lat);
-      maxLat = Math.max(maxLat, coords[i].lat);
-      minLng = Math.min(minLng, coords[i].lng);
-      maxLng = Math.max(maxLng, coords[i].lng);
-    }
-
-    var latPad = Math.max((maxLat - minLat) * 0.18, 0.00018);
-    var lngPad = Math.max((maxLng - minLng) * 0.18, 0.00018);
-    var bounds = [
-      { lat: minLat - latPad, lng: minLng - lngPad },
-      { lat: maxLat + latPad, lng: maxLng + lngPad },
-    ];
-
-    return {
-      center: {
-        lat: (minLat + maxLat) / 2,
-        lng: (minLng + maxLng) / 2,
-      },
-      maxBounds: bounds,
-      zoom: 18,
-      minZoom: 16,
-    };
-  }
-
-  async function getIndoorContext(config, refresh) {
-    config = config || getConfig();
-    var key = indoorContextKey(config);
-    if (!refresh && lastIndoorContext && lastIndoorContextKey === key) {
-      return lastIndoorContext;
-    }
-
-    if (!config || !config.parentPlace) {
-      return null;
-    }
-
-    await ensureReady(config);
-
-    var parentPlace = null;
-    var subPlaces = [];
-
-    try {
-      parentPlace = await sdk.getPlaceDetail(config.parentPlace);
-    } catch (e) {
-      log("warn", "getIndoorContext getPlaceDetail failed", {
-        error: String(e.message || e),
-        parentPlace: config.parentPlace,
-      });
-    }
-
-    try {
-      subPlaces = await sdk.getSubPlaces(config.parentPlace);
-    } catch (e) {
-      log("warn", "getIndoorContext getSubPlaces failed", {
-        error: String(e.message || e),
-        parentPlace: config.parentPlace,
-      });
-    }
-
-    var coords = collectIndoorCoordinates(parentPlace, subPlaces);
-    var view = computeIndoorView(coords);
-    lastIndoorContext = {
-      parentPlace: parentPlace,
-      subPlaces: subPlaces || [],
-      coordinates: coords,
-      view: view,
-      configKey: key,
-    };
-    lastIndoorContextKey = key;
-    return lastIndoorContext;
-  }
-
-  function clearIndoorLabelMarkers() {
-    if (!map || !indoorLabelMarkerIds.length || typeof map.removeMarker !== "function") {
-      indoorLabelMarkerIds = [];
-      return;
-    }
-    indoorLabelMarkerIds.forEach(function (markerId) {
-      try { map.removeMarker(markerId); } catch (e) { /* noop */ }
-    });
-    indoorLabelMarkerIds = [];
-  }
-
-  function formatIndoorLabelText(place) {
-    if (!place) return "";
-    return place.title || place.name || place.clientId || place.mapvxId || "";
-  }
-
-  function addIndoorLabelMarker(place, options) {
-    options = options || {};
-    if (!map || typeof map.addMarker !== "function") return;
-    var position = getPlacePosition(place);
-    if (!position) return;
-
-    var markerId = options.markerId || ("indoor-label-" + String(place.mapvxId || place.clientId || formatIndoorLabelText(place) || Math.random()).replace(/[^a-zA-Z0-9_-]/g, "_"));
-    var text = formatIndoorLabelText(place);
-    var selected = !!options.selected;
-    var markerConfig = {
-      id: markerId,
-      coordinate: position,
-      floorId: options.floorId || getPlaceFloorId(place) || "",
-      text: text,
-      textPosition: 3,
-      iconProperties: {
-        width: selected ? 18 : 12,
-        height: selected ? 18 : 12,
-      },
-      textProperties: {
-        fontSize: selected ? "14px" : "12px",
-        color: selected ? "#3D1D5C" : "#1E1630",
-        fontWeight: selected ? "800" : "700",
-        textShadow: "0 1px 2px rgba(255,255,255,0.95)",
-      },
-    };
-
-    if (typeof options.onClick === "function") {
-      markerConfig.onClick = function () {
-        options.onClick(place);
-      };
-    }
-
-    try {
-      map.addMarker(markerConfig);
-      indoorLabelMarkerIds.push(markerId);
-    } catch (e) {
-      log("warn", "addIndoorLabelMarker failed", {
-        error: String(e.message || e),
-        title: text,
-      });
-    }
-  }
-
-  function renderIndoorLabelMarkers(places, options) {
-    options = options || {};
-    clearIndoorLabelMarkers();
-    if (!options.enabled) {
-      return;
-    }
-    if (!map || typeof map.addMarker !== "function") {
-      return;
-    }
-
-    var selectedId = options.selectedPlaceId ? String(options.selectedPlaceId) : "";
-    var currentFloorId = options.currentFloorId ? String(options.currentFloorId) : "";
-    var visiblePlaces = (places || []).filter(function (place) {
-      var position = getPlacePosition(place);
-      if (!position) return false;
-      if (!currentFloorId) return true;
-      var placeFloorId = getPlaceFloorId(place);
-      return !placeFloorId || String(placeFloorId) === currentFloorId;
-    });
-
-    visiblePlaces.forEach(function (place) {
-      var placeId = String(place.mapvxId || place.clientId || formatIndoorLabelText(place) || "");
-      var selected = selectedId && (placeId === selectedId || String(place.clientId || "") === selectedId);
-      addIndoorLabelMarker(place, {
-        markerId: "indoor-label-" + placeId.replace(/[^a-zA-Z0-9_-]/g, "_"),
-        selected: selected,
-        floorId: currentFloorId || getPlaceFloorId(place) || "",
-        onClick: options.onClick,
-      });
-    });
-  }
-
   function fitMapToPlace(mapInstance, position) {
     if (!position || typeof mapInstance.fitCoordinates !== "function") {
       return;
@@ -561,12 +334,23 @@ window.MapVxBridge = (function () {
       return null;
     }
 
-    var indoorContext = await getIndoorContext(config);
-    if (!indoorContext || !indoorContext.parentPlace) {
+    await ensureReady(config);
+
+    var parentPlace = null;
+    try {
+      parentPlace = await sdk.getPlaceDetail(config.parentPlace);
+    } catch (e) {
+      log("warn", "ensureIndoorMapReady getPlaceDetail failed", {
+        error: String(e.message || e),
+        parentPlace: config.parentPlace,
+      });
       return null;
     }
 
-    var parentPlace = indoorContext.parentPlace;
+    if (!parentPlace) {
+      return null;
+    }
+
     registerParentPlace(mapInstance, parentPlace);
 
     var floorKey = pickDefaultFloorKey(parentPlace);
@@ -616,27 +400,6 @@ window.MapVxBridge = (function () {
     } catch (e) {
       log("warn", "ensureIndoorMapReady apply floor failed", {
         error: String(e.message || e),
-      });
-    }
-
-    try {
-      if (indoorContext.view && indoorContext.view.maxBounds && typeof mapInstance.setMaxBounds === "function") {
-        mapInstance.setMaxBounds(indoorContext.view.maxBounds);
-        log("info", "ensureIndoorMapReady setMaxBounds", { points: indoorContext.coordinates.length });
-      }
-      if (indoorContext.view && indoorContext.view.minZoom != null && typeof mapInstance.setMinZoom === "function") {
-        mapInstance.setMinZoom(indoorContext.view.minZoom);
-      }
-    } catch (e) {
-      log("warn", "ensureIndoorMapReady bounds failed", {
-        error: String(e.message || e),
-      });
-    }
-
-    if (config.showStoreLabels !== false) {
-      renderIndoorLabelMarkers(indoorContext.subPlaces, {
-        enabled: true,
-        currentFloorId: floorKey,
       });
     }
 
@@ -711,13 +474,6 @@ window.MapVxBridge = (function () {
     await ensureReady(config);
     config = config || getConfig();
 
-    var indoorContext = null;
-    try {
-      indoorContext = await getIndoorContext(config);
-    } catch (e) {
-      log("warn", "ensureMap indoor context failed", { error: String(e.message || e) });
-    }
-
     if (map && mapContainer === containerEl) {
       if (!containerEl.firstChild) {
         log("warn", "ensureMap: container vacío con map ref — recreando");
@@ -755,12 +511,7 @@ window.MapVxBridge = (function () {
       try {
         map = sdk.createMap(containerEl, {
           parentPlaceId: config.parentPlace,
-          center: indoorContext && indoorContext.view ? indoorContext.view.center : undefined,
-          zoom: indoorContext && indoorContext.view ? indoorContext.view.zoom : undefined,
-          minZoom: indoorContext && indoorContext.view ? indoorContext.view.minZoom : undefined,
-          maxBounds: indoorContext && indoorContext.view ? indoorContext.view.maxBounds : undefined,
           lang: (config.lang || window.MALL_LOCALE || "es").toLowerCase().startsWith("en") ? "en" : "es",
-          enableHover: true,
           showCompass: true,
           showZoom: true,
           navigationPosition: "top-right",
@@ -967,29 +718,6 @@ window.MapVxBridge = (function () {
     if (typeof map.setPlacesAsSelected === "function") {
       map.setPlacesAsSelected([mapvxId], "#5B2D8E");
       log("info", "setPlacesAsSelected", { mapvxId: mapvxId });
-    }
-
-    try {
-      var context = await getIndoorContext(config);
-      if (context && config.showStoreLabels !== false) {
-        renderIndoorLabelMarkers(context.subPlaces, {
-          enabled: true,
-          selectedPlaceId: mapvxId,
-          currentFloorId: floorId,
-          onClick: function (place) {
-            showPlace(containerEl, {
-              local: place.clientId || "",
-              id: place.mapvxId || place.clientId || "",
-              name: place.title || "",
-              floor: getPlaceFloorId(place) || "",
-            }).catch(function (e) {
-              log("warn", "label click failed", { error: String(e.message || e) });
-            });
-          },
-        });
-      }
-    } catch (e) {
-      log("warn", "showPlace render labels failed", { error: String(e.message || e) });
     }
 
     await waitForMapContainerLayout(containerEl);
@@ -1232,7 +960,6 @@ window.MapVxBridge = (function () {
   function destroyMap() {
     log("info", "destroyMap");
     lastMapSession = null;
-    clearIndoorLabelMarkers();
     if (map && typeof map.destroyMap === "function") {
       try { map.destroyMap(); } catch (e) { log("warn", "destroyMap error", { error: String(e.message || e) }); }
     }
@@ -1245,8 +972,6 @@ window.MapVxBridge = (function () {
     destroyMap();
     sdk = null;
     initPromise = null;
-    lastIndoorContext = null;
-    lastIndoorContextKey = "";
   }
 
   return {
@@ -1255,7 +980,6 @@ window.MapVxBridge = (function () {
     log: log,
     ensureReady: ensureReady,
     ensureMap: ensureMap,
-    getIndoorContext: getIndoorContext,
     resolvePlace: resolvePlace,
     showPlace: showPlace,
     showRouteTo: showRouteTo,

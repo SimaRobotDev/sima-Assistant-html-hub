@@ -1263,7 +1263,6 @@ if (typeof SimaBridge === "undefined") {
 document.addEventListener("DOMContentLoaded", () => {
   applyMobilityLocale();
   initStoreSearchLanding();
-  ensureMobilityMapVxDefaults();
   SimaBridge.ready("mobility");
   SimaBridge.log("mobility DOM ready " + MOBILITY_UI_VERSION + " locale=" + mobilityLocale);
   logMapVxConfig("DOMContentLoaded");
@@ -2053,14 +2052,6 @@ function logMapVxConfig(context) {
   });
 }
 
-function ensureMobilityMapVxDefaults() {
-  const cfg = window.MAPVX_CONFIG || (window.MAPVX_CONFIG = {});
-  if (cfg.showStoreLabels == null) {
-    cfg.showStoreLabels = true;
-  }
-  return cfg;
-}
-
 function useMapVxSdk() {
   const ok = typeof MapVxBridge !== "undefined" && MapVxBridge.isConfigured();
   if (!ok) {
@@ -2163,7 +2154,6 @@ function setupMapControls(result) {
 }
 
 async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode }) {
-  ensureMobilityMapVxDefaults();
   const container = document.getElementById("mapvx-container");
   const iframe = document.getElementById("map-iframe");
   const placeholder = document.getElementById("map-placeholder");
