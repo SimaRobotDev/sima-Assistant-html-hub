@@ -24,6 +24,11 @@ projects/
   hub-providencia/Assets/StreamingAssets/sima_services/
   colina/Assets/StreamingAssets/sima_services/
   onstar/Assets/StreamingAssets/sima_services/
+
+deploy/
+  cencomall/
+  demo-main/
+  hub-providencia/
 ```
 
 ## Proyectos incluidos
@@ -48,6 +53,7 @@ projects/
 - `scripts/export-project.sh`: copia el espejo del repo de vuelta al proyecto Unity fuente
 - `scripts/sync-common.sh`: propaga los archivos comunes del directorio `shared/` a cada proyecto espejo
 - `scripts/build-runtime-manifest.mjs`: genera el manifest runtime por proyecto
+- `scripts/build-deploy.mjs`: construye la carpeta `deploy/` lista para Vercel
 - `scripts/validate-runtime-manifest.mjs`: valida un manifest generado contra el espejo local
 
 ## Lecturas útiles
@@ -59,6 +65,7 @@ projects/
 - `docs/pre-push-checklist.md`
 - `docs/html-authoring-note.md`
 - `docs/runtime-html-sync.md`
+- `docs/vercel-deploy.md`
 - `runtime-sync/`
 - `unity-runtime-sync/`
 - `unity-runtime-sync/README.md`

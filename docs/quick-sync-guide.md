@@ -50,7 +50,21 @@ Flujo corto:
 2. Hacer commit.
 3. Hacer push al repo remoto.
 
-## 5. Actualización en runtime
+## 5. Preparar deploy para Vercel
+
+Genera la carpeta que Vercel va a publicar:
+
+```bash
+npm run build:deploy
+```
+
+Si ya tienes dominio final, puedes fijar la base URL al construir:
+
+```bash
+DEPLOY_BASE_URL=https://sima-html.tu-dominio.com npm run build:deploy
+```
+
+## 6. Actualización en runtime
 
 Esto pasa cuando el dispositivo ya está en producción y debe tomar cambios sin reinstalar la app:
 

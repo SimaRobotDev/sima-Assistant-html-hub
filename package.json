@@ -1,0 +1,9 @@
+{
+  "name": "sima-assistant-html-hub",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:manifests": "node scripts/build-runtime-manifest.mjs",
+    "build:deploy": "node scripts/build-deploy.mjs"
+  }
+}
