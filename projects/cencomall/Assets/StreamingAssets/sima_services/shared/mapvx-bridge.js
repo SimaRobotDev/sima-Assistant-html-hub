@@ -963,6 +963,12 @@ window.MapVxBridge = (function () {
     }
     await applyPlaceFloorAndWait(map, config, floorId, parentPlace);
 
+    if (typeof map.clearColoredPlaces === "function") map.clearColoredPlaces();
+    if (typeof map.setPlacesAsSelected === "function") {
+      map.setPlacesAsSelected([mapvxId], "#5B2D8E");
+      log("info", "setPlacesAsSelected", { mapvxId: mapvxId });
+    }
+
     try {
       var context = await getIndoorContext(config);
       if (context && config.showStoreLabels !== false) {
@@ -1100,6 +1106,13 @@ window.MapVxBridge = (function () {
     if (!map || !floorKey) return false;
     var config = getConfig();
     applyPlaceFloor(map, config, floorKey, null);
+
+    if (lastMapSession && lastMapSession.result && lastMapSession.result.mapvxId) {
+      if (typeof map.clearColoredPlaces === "function") map.clearColoredPlaces();
+      if (typeof map.setPlacesAsSelected === "function") {
+        map.setPlacesAsSelected([lastMapSession.result.mapvxId], "#5B2D8E");
+      }
+    }
 
     if (lastMapSession) {
       lastMapSession.floorId = floorKey;
