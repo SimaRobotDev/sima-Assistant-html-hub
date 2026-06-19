@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>SIMA Taxi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+      background: #f4f5f7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .modal {
+      width: 420px;
+      background: white;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      border: 2px solid #2d1f5e;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .back {
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #2d1f5e;
+    }
+
+    .subtitle {
+      margin: 12px 0;
+      color: #666;
+      font-size: 16px;
+    }
+
+    .progress-bar {
+      height: 10px;
+      background: #e6e6e6;
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00a8e8, #0091d5);
+      transition: width 0.4s ease;
+    }
+
+    .driver-card {
+      background: #f2f2f2;
+      border-radius: 16px;
+      padding: 16px;
+      margin-top: 10px;
+    }
+
+    .driver-name {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .driver-info {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .location {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+      color: #2d1f5e;
+    }
+
+    .btn-primary {
+      margin-top: 24px;
+      width: 100%;
+      background: #2d1f5e;
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 16px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+
+  <script src="../shared/bridge.js"></script>
+</head>
+
+<body>
+
+  <div class="modal">
+    <div class="header">
+      <div class="back" onclick="closeView()">←</div>
+      <div class="title">Reserva de taxi</div>
+    </div>
+
+    <div class="subtitle">Buscando disponibilidad</div>
+
+    <div class="progress-bar">
+      <div id="progressFill" class="progress-fill"></div>
+    </div>
+
+ <div id="driverCard" class="driver-card hidden">
+  <div id="driverName" class="driver-name">Camila S.</div>
+  <div id="etaInfo" class="driver-info">Tiempo estimado: 4 minutos</div>
+  <div id="plateInfo" class="driver-info">Patente: CJXL52</div>
+
+  <div class="location">
+    <span id="locationText">Dirígete al PISO -2</span>
+  </div>
+</div>
+
+
+
+<div id="successPanel" class="driver-card hidden" style="text-align:center">
+  <div style="font-size:22px; font-weight:700; color:#2d1f5e; margin-bottom:10px;">
+    ✅ Taxi solicitado
+  </div>
+
+  <div style="font-size:16px; color:#555; margin-bottom:12px;">
+    📱 Escanea el QR para continuar en tu teléfono
+  </div>
+
+  <div id="ticketIdText" style="font-size:14px; color:#888;">
+  </div>
+</div>
+
+
+    <button id="confirmBtn" class="btn-primary hidden" onclick="confirmTaxi()">
+      Listo
+    </button>
+  </div>
+
+  <script>
+    let ticketId = "";
+
+    function handleUnityData(data) {
+      simulate();
+    }
+
+    function setProgress(v) {
+      document.getElementById("progressFill").style.width = v + "%";
+    }
+
+    function simulate() {
+      SimaBridge.speak("Estoy buscando taxis disponibles.");
+
+      document.getElementById("driverCard").classList.add("hidden");
+      document.getElementById("confirmBtn").classList.add("hidden");
+
+      setProgress(20);
+
+      setTimeout(() => setProgress(50), 600);
+      setTimeout(() => setProgress(80), 1200);
+
+      setTimeout(() => {
+        setProgress(100);
+
+        const eta = Math.floor(Math.random() * 5) + 3;
+
+        const drivers = ["Camila S.", "Luis P.", "Andrea R.", "Carlos M."];
+        const driver = drivers[Math.floor(Math.random() * drivers.length)];
+
+        const plate = randomPlate();
+
+        document.getElementById("driverName").innerText = driver;
+        document.getElementById("etaInfo").innerText =
+          "Tiempo estimado: " + eta + " minutos";
+        document.getElementById("plateInfo").innerText =
+          "Patente: " + plate;
+
+        document.getElementById("driverCard").classList.remove("hidden");
+        document.getElementById("confirmBtn").classList.remove("hidden");
+
+        SimaBridge.speak(
+          "Taxi encontrado. Llega en aproximadamente " + eta + " minutos."
+        );
+      }, 1800);
+    }
+
+    function randomPlate() {
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      const numbers = "0123456789";
+
+      return (
+        letters[Math.floor(Math.random() * 26)] +
+        letters[Math.floor(Math.random() * 26)] +
+        letters[Math.floor(Math.random() * 26)] +
+        letters[Math.floor(Math.random() * 26)] +
+        numbers[Math.floor(Math.random() * 10)] +
+        numbers[Math.floor(Math.random() * 10)]
+      );
+    }
+
+  function confirmTaxi() {
+  const ticketId = "TAXI-" + Math.floor(1000 + Math.random() * 9000);
+const sessionId = "usuario_" + Date.now();
+  const link = `https://wa.me/56975416648?text=Reserva%20completada%20con%20éxito.%20Tu%20reserva%20del%20taxi%20es%20Taxi%20ID%20${ticketId}%20soy_${sessionId}`;
+
+  // 🔵 UI: ocultar resultados
+  document.getElementById("driverCard").classList.add("hidden");
+  document.getElementById("confirmBtn").classList.add("hidden");
+
+  // 🟢 UI: mostrar éxito
+  document.getElementById("successPanel").classList.remove("hidden");
+  document.getElementById("ticketIdText").innerText = "ID: " + ticketId;
+
+  // 🔊 voz
+  SimaBridge.speak("Taxi solicitado correctamente. Escanea el código QR para continuar.");
+
+  // 📤 enviar a Unity (QR + evento)
+  SimaBridge.send("generate_qr", {
+    url: link,
+    id: ticketId,
+  });
+
+  SimaBridge.send("taxi_reserved", {
+    eta: "4 minutos",
+    reservationId: ticketId,
+  });
+
+  // ⏳ cerrar automático
+  setTimeout(() => {
+    SimaBridge.requestClose();
+  }, 2500);
+}
+
+
+
+    function closeView() {
+      SimaBridge.requestClose();
+    }
+
+    window.onload = () => {
+      SimaBridge.ready("taxi");
+      // simulate();
+    };
+  </script>
+
+</body>
+</html>

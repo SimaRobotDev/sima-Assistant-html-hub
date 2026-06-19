@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SIMA Tienda</title>
+
+<link rel="stylesheet" href="../shared/app.css" />
+<script src="../shared/bridge.js"></script>
+
+<style>
+.result-block {
+  scroll-margin-top: 20px;
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px);}
+  to { opacity: 1; transform: translateY(0);}
+}
+
+.stars {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.star {
+  font-size: 36px;
+  cursor: pointer;
+  color: #ccc;
+}
+
+.star.active {
+  color: #FFD700;
+}
+
+.btn-promo {
+  background: linear-gradient(90deg, #0071ce, #0055a5);
+  color: white;
+  font-weight: 700;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="app-shell">
+
+  <div class="header">
+    <div class="brand">SIMA Asistente</div>
+    <div class="status-chip">En tienda</div>
+  </div>
+
+  <div class="card">
+    <div class="title">¿Qué estás buscando?</div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="buscar('Leche')">🥛 Leche</button>
+      <button class="btn btn-primary" onclick="buscar('Pan')">🍞 Pan</button>
+      <button class="btn btn-primary" onclick="buscar('Aseo')">🧼 Aseo</button>
+      <button class="btn btn-primary" onclick="buscar('Carne')">🥩 Carne</button>
+
+      <button class="btn btn-promo" id="btnPromo">🔥 Promociones</button>
+    </div>
+  </div>
+
+  <div id="resultado" class="result-block"></div>
+
+</div>
+
+<script>
+
+// 🔧 FALLBACK
+if (typeof SimaBridge === "undefined") {
+  window.SimaBridge = {
+    send: (t,p) => console.log(t,p),
+    speak: (t) => console.log("TTS:", t),
+    requestClose: () => console.log("CLOSE")
+  };
+}
+
+// 📦 DATA LOCAL
+const data = {
+  "Leche": { pasillo: 5, sugerencias: ["Cereal", "Café"] },
+  "Pan": { pasillo: 2, sugerencias: ["Mantequilla", "Mermelada"] },
+  "Aseo": { pasillo: 8, sugerencias: ["Detergente", "Cloro"] },
+  "Carne": { pasillo: 10, sugerencias: ["Salsas", "Carbón"] }
+};
+
+// 🎲 STOCK
+function randomStock() {
+  return Math.floor(Math.random() * 20) + 1;
+}
+
+// 🔍 BÚSQUEDA LOCAL
+function buscar(producto) {
+
+  const info = data[producto];
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="card fade-in">
+      <div class="title">${producto}</div>
+
+      <div class="info-list">
+        <div class="info-item">📍 Pasillo <b>${info.pasillo}</b></div>
+        <div class="info-item">💡 ${info.sugerencias.join(", ")}</div>
+        <div class="info-item">📦 Stock: ${randomStock()}</div>
+      </div>
+
+      <hr>
+
+      <div class="subtitle">¿Te sirvió esta información?</div>
+
+      <div class="actions">
+        <button id="btnYes" class="btn btn-primary">👍 Sí</button>
+        <button id="btnNo" class="btn btn-danger">👎 No</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("resultado").scrollIntoView({ behavior: "smooth" });
+
+  SimaBridge.speak(`El producto ${producto} está en el pasillo ${info.pasillo}`);
+
+  document.getElementById("btnYes").onclick = () => feedback(true);
+  document.getElementById("btnNo").onclick = () => feedback(false);
+}
+
+// 🧠 ENTRADA DESDE UNITY (HÍBRIDO)
+function buscarDesdeVoz(raw) {
+
+  console.log("INPUT:", raw);
+
+  // intento JSON
+  try {
+    const dataJson = JSON.parse(raw);
+
+    if (dataJson.product) {
+      renderProductoDinamico(dataJson);
+      return;
+    }
+  } catch (e) {}
+
+  // fallback local
+  if (data[raw]) {
+    buscar(raw);
+    return;
+  }
+
+  // fallback total
+  renderProductoFallback(raw);
+}
+
+// 🔵 DINÁMICO IA
+function renderProductoDinamico(dataJson) {
+
+  const stock = randomStock();
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="card fade-in">
+      <div class="title">${dataJson.product}</div>
+
+      <div class="info-list">
+        <div class="info-item">📍 Pasillo <b>${dataJson.pasillo || "?"}</b></div>
+        ${dataJson.categoria ? `<div class="info-item">🧭 ${dataJson.categoria}</div>` : ""}
+        ${dataJson.sugerencias ? `<div class="info-item">💡 ${dataJson.sugerencias.join(", ")}</div>` : ""}
+        <div class="info-item">📦 Stock: ${stock}</div>
+      </div>
+
+      <hr>
+
+      <div class="subtitle">¿Te sirvió esta información?</div>
+
+      <div class="actions">
+        <button id="btnYes" class="btn btn-primary">👍 Sí</button>
+        <button id="btnNo" class="btn btn-danger">👎 No</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("resultado").scrollIntoView({ behavior: "smooth" });
+
+  SimaBridge.speak(`El producto ${dataJson.product} está en el pasillo ${dataJson.pasillo}`);
+
+  document.getElementById("btnYes").onclick = () => feedback(true);
+  document.getElementById("btnNo").onclick = () => feedback(false);
+}
+
+// 🔴 FALLBACK TOTAL
+function renderProductoFallback(producto) {
+
+  const stock = randomStock();
+  const pasillo = Math.floor(Math.random() * 10) + 1;
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="card fade-in">
+      <div class="title">${producto}</div>
+
+      <div class="info-list">
+        <div class="info-item">📍 Podría estar en el pasillo <b>${pasillo}</b></div>
+        <div class="info-item">📦 Stock estimado: ${stock}</div>
+      </div>
+
+      <hr>
+
+      <div class="subtitle">¿Te sirvió esta información?</div>
+
+      <div class="actions">
+        <button id="btnYes" class="btn btn-primary">👍 Sí</button>
+        <button id="btnNo" class="btn btn-danger">👎 No</button>
+      </div>
+    </div>
+  `;
+
+  SimaBridge.speak(`Estoy buscando ${producto} en tienda`);
+
+  document.getElementById("btnYes").onclick = () => feedback(true);
+  document.getElementById("btnNo").onclick = () => feedback(false);
+}
+
+// ⭐ FEEDBACK
+function feedback(ok) {
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="card fade-in">
+      <div class="title">¡Gracias!</div>
+      <div class="stars">
+        ${[1,2,3,4,5].map(n => `<span class="star" data-value="${n}">★</span>`).join("")}
+      </div>
+    </div>
+  `;
+
+  document.querySelectorAll(".star").forEach(star => {
+    star.onclick = () => {
+      SimaBridge.speak("Gracias por tu evaluación");
+      setTimeout(() => SimaBridge.requestClose(), 1500);
+    };
+  });
+}
+
+// 🔥 PROMOS
+document.getElementById("btnPromo").onclick = () => {
+
+  SimaBridge.speak("Te muestro promociones disponibles");
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="card fade-in">
+      <div class="title">🔥 Promociones</div>
+
+      <div class="info-list">
+        <div class="info-item">🥛 Leche 2x1 - Stock ${randomStock()}</div>
+        <div class="info-item">🍞 Pan 30% - Stock ${randomStock()}</div>
+        <div class="info-item">🧼 Detergente oferta - Stock ${randomStock()}</div>
+      </div>
+    </div>
+  `;
+}
+
+</script>
+
+</body>
+</html>
+<!-- <!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SIMA Tienda</title>
+
+<link rel="stylesheet" href="../shared/app.css" />
+<script src="../shared/bridge.js"></script>
+
+<style>
+.result-block {
+  scroll-margin-top: 20px;
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px);}
+  to { opacity: 1; transform: translateY(0);}
+}
+
+/* ⭐ ESTRELLAS PRO */
+.stars {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.star {
+  font-size: 36px;
+  cursor: pointer;
+  color: #ccc; /* gris base */
+  transition: transform 0.15s, color 0.2s;
+}
+
+.star.active {
+  color: #FFD700; /* dorado */
+}
+
+.star.hovered {
+  color: #FFD700;
+  transform: scale(1.2);
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="app-shell">
+
+  <div class="header">
+    <div class="brand">SIMA Asistente</div>
+    <div class="status-chip">En tienda</div>
+  </div>
+
+  <div class="card">
+    <div class="title">¿Qué estás buscando?</div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="buscar('Leche')">🥛 Leche</button>
+      <button class="btn btn-primary" onclick="buscar('Pan')">🍞 Pan</button>
+      <button class="btn btn-primary" onclick="buscar('Aseo')">🧼 Aseo</button>
+      <button class="btn btn-primary" onclick="buscar('Carne')">🥩 Carne</button>
+    </div>
+  </div>
+
+  <div id="resultado" class="result-block"></div>
+
+</div>
+
+<script>
+
+// 🔧 FALLBACK
+if (typeof SimaBridge === "undefined") {
+  window.SimaBridge = {
+    send: (t,p) => console.log(t,p),
+    speak: (t) => console.log("TTS:", t),
+    requestClose: () => console.log("CLOSE")
+  };
+}
+
+const data = {
+  "Leche": { pasillo: 5, sugerencias: ["Cereal", "Café"] },
+  "Pan": { pasillo: 2, sugerencias: ["Mantequilla", "Mermelada"] },
+  "Aseo": { pasillo: 8, sugerencias: ["Detergente", "Cloro"] },
+  "Carne": { pasillo: 10, sugerencias: ["Salsas", "Carbón"] }
+};
+
+let selectedRating = 0;
+
+// 🔽 BÚSQUEDA
+function buscar(producto) {
+
+  const info = data[producto];
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="card fade-in">
+      <div class="title">${producto}</div>
+
+      <div class="info-list">
+        <div class="info-item">
+          📍 Lo encuentras en el <b>pasillo ${info.pasillo}</b>
+        </div>
+
+        <div class="info-item">
+          💡 También te puede interesar: ${info.sugerencias.join(", ")}
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="subtitle">¿Te sirvió esta información?</div>
+
+      <div class="actions">
+        <button id="btnYes" class="btn btn-primary">👍 Sí</button>
+        <button id="btnNo" class="btn btn-danger">👎 No</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("resultado").scrollIntoView({ behavior: "smooth" });
+
+  SimaBridge.speak(`El producto ${producto} está en el pasillo ${info.pasillo}`);
+
+  SimaBridge.send("search", { product: producto, pasillo: info.pasillo });
+
+  document.getElementById("btnYes").addEventListener("click", () => feedback(true));
+  document.getElementById("btnNo").addEventListener("click", () => feedback(false));
+}
+
+// 🔽 VOZ
+function buscarDesdeVoz1(producto) {
+  buscar(producto);
+}
+
+function buscarDesdeVoz(jsonString) {
+  const data = JSON.parse(jsonString);
+
+  renderProducto(
+    data.product,
+    data.pasillo,
+    data.sugerencias,
+    data.categoria
+  );
+}
+
+function renderProducto(producto, pasillo, sugerencias, categoria) {
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="card fade-in">
+      <div class="title">${producto}</div>
+
+      <div class="info-list">
+        <div class="info-item">
+          📍 Pasillo <b>${pasillo}</b>
+        </div>
+
+        <div class="info-item">
+          🧭 Categoría: ${categoria}
+        </div>
+
+        <div class="info-item">
+          💡 Te puede interesar: ${sugerencias.join(", ")}
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="subtitle">¿Te sirvió esta información?</div>
+
+      <div class="actions">
+        <button id="btnYes" class="btn btn-primary">👍 Sí</button>
+        <button id="btnNo" class="btn btn-danger">👎 No</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("resultado").scrollIntoView({ behavior: "smooth" });
+
+  document.getElementById("btnYes").onclick = () => feedback(true);
+  document.getElementById("btnNo").onclick = () => feedback(false);
+}
+
+
+// 🔽 FEEDBACK
+function feedback(ok) {
+
+  SimaBridge.send("feedback", { success: ok });
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="card fade-in">
+      <div class="title">¡Gracias!</div>
+      <div class="subtitle">Evalúa tu experiencia</div>
+
+      <div class="stars" id="stars">
+        ${[1,2,3,4,5].map(n => `
+          <span class="star" data-value="${n}">★</span>
+        `).join("")}
+      </div>
+    </div>
+  `;
+
+  document.getElementById("resultado").scrollIntoView({ behavior: "smooth" });
+
+  setupStars();
+}
+
+// ⭐ CONFIGURACIÓN INTERACTIVA
+function setupStars() {
+  const stars = document.querySelectorAll(".star");
+
+  stars.forEach(star => {
+
+    const value = parseInt(star.getAttribute("data-value"));
+
+    // hover
+    star.addEventListener("mouseover", () => highlightStars(value));
+
+    // click
+    star.addEventListener("click", () => {
+      selectedRating = value;
+      highlightStars(value, true);
+      rate(value);
+    });
+  });
+
+  document.getElementById("stars").addEventListener("mouseleave", () => {
+    highlightStars(selectedRating);
+  });
+}
+
+// ⭐ pintar estrellas
+function highlightStars(value, lock = false) {
+  const stars = document.querySelectorAll(".star");
+
+  stars.forEach(star => {
+    const v = parseInt(star.getAttribute("data-value"));
+
+    if (v <= value) {
+      star.classList.add("active");
+    } else {
+      star.classList.remove("active");
+    }
+  });
+}
+
+// 🔽 RATING FINAL
+function rate(value) {
+
+  SimaBridge.send("rating", { value });
+
+  SimaBridge.speak(`Gracias por tu evaluación de ${value} estrellas`);
+
+  setTimeout(() => {
+    SimaBridge.requestClose();
+  }, 2000);
+}
+
+</script>
+
+</body>
+</html> -->

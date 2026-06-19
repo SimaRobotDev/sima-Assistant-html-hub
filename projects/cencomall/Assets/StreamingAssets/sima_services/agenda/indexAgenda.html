@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>SIMA Agenda</title>
+
+<link rel="stylesheet" href="../shared/app.css" />
+<script src="../shared/bridge.js"></script>
+
+<style>
+
+/* 🔥 timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.timeline-item {
+  padding: 14px;
+  border-radius: 14px;
+  background: #f4f7fb;
+  border-left: 4px solid #cbd7e6;
+  transition: 0.3s;
+}
+
+.timeline-item.active {
+  background: #e8f2ff;
+  border-left: 6px solid #1769ff;
+  transform: scale(1.02);
+}
+
+.timeline-item.sima {
+  border-left: 6px solid #7b2cff;
+}
+
+.time {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.title-item {
+  font-size: 16px;
+}
+
+</style>
+
+</head>
+
+<body>
+<div class="app-shell">
+
+<div class="header">
+  <div class="brand">SIMA Agenda</div>
+  <div class="status-chip">Evento en vivo</div>
+</div>
+
+<div class="card">
+
+<div class="title">Demo Day CosmoLab</div>
+<div class="subtitle">Sky Costanera · Piso 62</div>
+
+<div class="timeline" id="timeline">
+
+<div class="timeline-item" data-time="17:00">
+  <div class="time">17:00</div>
+  <div class="title-item">Recepción invitados</div>
+</div>
+
+<div class="timeline-item" data-time="17:30">
+  <div class="time">17:30</div>
+  <div class="title-item">Inicio Demo Day</div>
+</div>
+
+<div class="timeline-item" data-time="18:00">
+  <div class="time">18:00</div>
+  <div class="title-item">Ocular</div>
+</div>
+
+<div class="timeline-item" data-time="18:12">
+  <div class="time">18:12</div>
+  <div class="title-item">Bumerania</div>
+</div>
+
+<div class="timeline-item sima" data-time="18:24">
+  <div class="time">18:24</div>
+  <div class="title-item">⭐ SIMA</div>
+</div>
+
+<div class="timeline-item" data-time="18:36">
+  <div class="time">18:36</div>
+  <div class="title-item">Clu</div>
+</div>
+
+<div class="timeline-item" data-time="18:48">
+  <div class="time">18:48</div>
+  <div class="title-item">Break</div>
+</div>
+
+<div class="timeline-item" data-time="19:08">
+  <div class="time">19:08</div>
+  <div class="title-item">Midda</div>
+</div>
+
+<div class="timeline-item" data-time="19:25">
+  <div class="time">19:25</div>
+  <div class="title-item">e-Smart</div>
+</div>
+
+<div class="timeline-item" data-time="19:37">
+  <div class="time">19:37</div>
+  <div class="title-item">Emma</div>
+</div>
+
+<div class="timeline-item" data-time="20:15">
+  <div class="time">20:15</div>
+  <div class="title-item">Networking</div>
+</div>
+
+</div>
+
+<div class="actions">
+  <button class="btn btn-primary" onclick="modoVivo()">Modo en vivo</button>
+  <button class="btn btn-secondary" onclick="focusSima()">Ver SIMA</button>
+  <button class="btn btn-secondary" onclick="closeView()">Cerrar</button>
+</div>
+
+</div>
+</div>
+
+<script>
+
+function handleUnityData(data){
+  SimaBridge.speak("Te mostraré la agenda del evento y lo que está ocurriendo en tiempo real.");
+  setTimeout(updateTimeline, 500);
+}
+
+
+// 🔥 DETECTA EVENTO ACTUAL
+function updateTimeline(){
+
+  const now = new Date();
+  const currentMinutes = now.getHours()*60 + now.getMinutes();
+
+  const items = document.querySelectorAll(".timeline-item");
+
+  let closest = null;
+  let minDiff = 9999;
+
+  items.forEach(el => {
+    const time = el.getAttribute("data-time").split(":");
+    const minutes = parseInt(time[0])*60 + parseInt(time[1]);
+
+    const diff = currentMinutes - minutes;
+
+    if(diff >= 0 && diff < minDiff){
+      minDiff = diff;
+      closest = el;
+    }
+  });
+
+  items.forEach(el => el.classList.remove("active"));
+
+  if(closest){
+    closest.classList.add("active");
+
+    // 🔥 scroll automático
+    closest.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // 🔥 avatar habla
+    const text = closest.innerText;
+    SimaBridge.speak("Actualmente está ocurriendo: " + text);
+  }
+}
+
+
+// 🔥 BOTÓN MODO VIVO
+function modoVivo(){
+  updateTimeline();
+}
+
+
+// 🔥 BOTÓN SIMA
+function focusSima(){
+  const sima = document.querySelector(".timeline-item.sima");
+
+  sima.classList.add("active");
+  sima.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  SimaBridge.speak("La presentación de SIMA está programada para las 18:24 dentro del primer bloque.");
+}
+
+
+// 🔥 auto update cada 10 seg
+setInterval(updateTimeline, 10000);
+
+
+function closeView(){
+  SimaBridge.requestClose();
+}
+
+window.onload = () => {
+  SimaBridge.ready("agenda");
+};
+
+</script>
+
+</body>
+</html>

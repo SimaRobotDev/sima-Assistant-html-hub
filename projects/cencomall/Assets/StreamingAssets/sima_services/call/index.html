@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SIMA Llamada</title>
+    <link rel="stylesheet" href="../shared/app.css" />
+    <script src="../shared/locale.js"></script>
+    <script src="../shared/bridge.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="header">
+        <div class="brand" id="brand">SIMA Comunicación</div>
+        <div class="status-chip" id="status-chip">Llamada asistida</div>
+      </div>
+
+      <div class="card">
+        <div class="title" id="title">Función de llamada</div>
+        <div class="subtitle" id="subtitle">
+          Simulación avanzada de conexión con soporte o asistencia.
+        </div>
+
+        <div class="info-list" id="callState"></div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="btnStart" type="button">Iniciar llamada</button>
+          <button class="btn btn-danger hidden" id="endBtn" type="button">Finalizar llamada</button>
+          <button class="btn btn-secondary" id="btnClose" type="button">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const I18N = {
+        es: {
+          brand: "SIMA Comunicación",
+          statusChip: "Llamada asistida",
+          title: "Función de llamada",
+          subtitle: "Simulación avanzada de conexión con soporte o asistencia.",
+          ready: "Estado: lista para iniciar llamada",
+          ended: "Estado: llamada finalizada",
+          summary: "Resumen: atención completada correctamente.",
+          start: "Iniciar llamada",
+          end: "Finalizar llamada",
+          close: "Cerrar",
+          speakIntro: "Puedo iniciar una llamada de asistencia desde este punto.",
+          speakConnecting: "Conectando llamada con soporte.",
+          speakConnected: "Ya estás en línea con un ejecutivo.",
+          speakEnded: "La llamada ha finalizado."
+        },
+        en: {
+          brand: "SIMA Communication",
+          statusChip: "Assisted call",
+          title: "Call feature",
+          subtitle: "Advanced simulation of support connection.",
+          ready: "Status: ready to start call",
+          ended: "Status: call ended",
+          summary: "Summary: assistance completed successfully.",
+          start: "Start call",
+          end: "End call",
+          close: "Close",
+          speakIntro: "I can start an assistance call from here.",
+          speakConnecting: "Connecting call with support.",
+          speakConnected: "You are now connected with an agent.",
+          speakEnded: "The call has ended."
+        },
+        pt: {
+          brand: "SIMA Comunicação",
+          statusChip: "Chamada assistida",
+          title: "Função de chamada",
+          subtitle: "Simulação avançada de conexão com suporte ou assistência.",
+          ready: "Status: pronto para iniciar chamada",
+          ended: "Status: chamada finalizada",
+          summary: "Resumo: atendimento concluído com sucesso.",
+          start: "Iniciar chamada",
+          end: "Finalizar chamada",
+          close: "Fechar",
+          speakIntro: "Posso iniciar uma chamada de assistência deste ponto.",
+          speakConnecting: "Conectando chamada com suporte.",
+          speakConnected: "Você já está em linha com um atendente.",
+          speakEnded: "A chamada foi finalizada."
+        }
+      };
+
+      let locale = "es";
+
+      function applyLocale() {
+        locale = SimaLocale.readLocaleFromPage();
+        document.documentElement.lang = locale;
+        document.getElementById("brand").textContent = SimaLocale.t(I18N, "brand", locale);
+        document.getElementById("status-chip").textContent = SimaLocale.t(I18N, "statusChip", locale);
+        document.getElementById("title").textContent = SimaLocale.t(I18N, "title", locale);
+        document.getElementById("subtitle").textContent = SimaLocale.t(I18N, "subtitle", locale);
+        document.getElementById("btnStart").textContent = SimaLocale.t(I18N, "start", locale);
+        document.getElementById("endBtn").textContent = SimaLocale.t(I18N, "end", locale);
+        document.getElementById("btnClose").textContent = SimaLocale.t(I18N, "close", locale);
+        document.getElementById("callState").innerHTML =
+          '<div class="info-item">' + SimaLocale.t(I18N, "ready", locale) + "</div>";
+      }
+
+      function handleUnityData(data) {
+        if (data && data.language) window.MALL_LOCALE = data.language;
+        applyLocale();
+        SimaBridge.speak(SimaLocale.t(I18N, "speakIntro", locale));
+      }
+
+      function startCall() {
+        SimaBridge.speak(SimaLocale.t(I18N, "speakConnecting", locale));
+        setTimeout(() => {
+          SimaBridge.send("call_requested", {});
+          SimaBridge.speak(SimaLocale.t(I18N, "speakConnected", locale));
+        }, 1500);
+      }
+
+      function endCall() {
+        document.getElementById("callState").innerHTML =
+          '<div class="info-item">' + SimaLocale.t(I18N, "ended", locale) + '</div>' +
+          '<div class="info-item">' + SimaLocale.t(I18N, "summary", locale) + '</div>';
+        document.getElementById("endBtn").classList.add("hidden");
+        SimaBridge.speak(SimaLocale.t(I18N, "speakEnded", locale));
+      }
+
+      document.getElementById("btnStart").onclick = startCall;
+      document.getElementById("endBtn").onclick = endCall;
+      document.getElementById("btnClose").onclick = () => SimaBridge.requestClose();
+
+      window.addEventListener("load", () => {
+        applyLocale();
+        SimaBridge.ready("call");
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Servicios Aeropuerto 300</title>
+
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --primary: #0b4ea2;
+      --primary-soft: #e8f1ff;
+      --text: #101828;
+      --muted: #667085;
+      --border: #d0d5dd;
+      --danger-soft: #fff1f3;
+      --voice-soft: #f4ebff;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+      background: transparent;
+      color: var(--text);
+    }
+
+    .app {
+      width: 100vw;
+      height: 100vh;
+      background: var(--card);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .home,
+    .screen {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .home.hidden,
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    .header {
+      flex: 0 0 auto;
+      height: 58px;
+      margin-bottom: 7px;
+      overflow: hidden;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      height: 17px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 9.5px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 19px;
+      font-weight: 900;
+      letter-spacing: -0.4px;
+    }
+
+    .subtitle {
+      margin: 2px 0 0;
+      font-size: 11.5px;
+      line-height: 13px;
+      color: var(--muted);
+    }
+
+    .category-grid {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+      overflow: hidden;
+    }
+
+    .category-button {
+      min-width: 0;
+      min-height: 0;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      border-radius: 12px;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .category-button:active,
+    .service-item:active,
+    .small-action:active {
+      transform: scale(0.97);
+    }
+
+    .category-button.security {
+      border-color: #fecdd3;
+      background: var(--danger-soft);
+    }
+
+    .category-button.voice {
+      border-color: #ddd6fe;
+      background: var(--voice-soft);
+    }
+
+    .icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      background: var(--primary-soft);
+      margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+
+    .category-button.security .icon {
+      background: #fee4e2;
+    }
+
+    .category-button.voice .icon {
+      background: #ede9fe;
+    }
+
+    .button-title {
+      max-width: 100%;
+      font-size: 15px;
+      line-height: 15.5px;
+      font-weight: 900;
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .top-actions {
+      flex: 0 0 auto;
+      height: 29px;
+      display: flex;
+      gap: 5px;
+      margin-bottom: 6px;
+    }
+
+    .back-button,
+    .close-button {
+      border: none;
+      border-radius: 999px;
+      padding: 0 9px;
+      font-size: 11.5px;
+      font-weight: 900;
+      cursor: pointer;
+      line-height: 1;
+      height: 27px;
+    }
+
+    .back-button {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    .close-button {
+      background: #f2f4f7;
+      color: #344054;
+      margin-left: auto;
+    }
+
+    .detail-card {
+      flex: 1 1 auto;
+      min-height: 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .detail-title {
+      font-size: 17px;
+      line-height: 18px;
+      font-weight: 900;
+      margin: 0 0 3px;
+      flex: 0 0 auto;
+    }
+
+    .detail-text {
+      font-size: 11.5px;
+      line-height: 13px;
+      color: var(--muted);
+      margin: 0 0 7px;
+      flex: 0 0 auto;
+    }
+
+    .service-list {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      overflow-y: auto;
+      padding-right: 1px;
+    }
+
+    .service-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 7px;
+      background: #f9fafb;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      text-align: left;
+      min-height: 42px;
+    }
+
+    .service-icon {
+      width: 22px;
+      font-size: 17px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .service-name {
+      font-size: 12.5px;
+      line-height: 13px;
+      font-weight: 900;
+      margin: 0;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      background: rgba(16, 24, 40, 0.38);
+      z-index: 100;
+      padding: 7px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 286px;
+      max-height: 286px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 9px;
+      box-shadow: 0 12px 34px rgba(16, 24, 40, 0.26);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      margin-bottom: 6px;
+      flex: 0 0 auto;
+    }
+
+    .modal-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--primary-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      flex-shrink: 0;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 15px;
+      line-height: 16px;
+      font-weight: 900;
+    }
+
+    .modal-location {
+      margin: 2px 0 0;
+      color: var(--primary);
+      font-size: 10.5px;
+      line-height: 11px;
+      font-weight: 900;
+    }
+
+    .modal-text {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 14.5px;
+      margin: 4px 0 8px;
+    }
+
+    .modal-actions {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .small-action {
+      width: 100%;
+      border: none;
+      border-radius: 9px;
+      padding: 8px 5px;
+      font-size: 10.5px;
+      line-height: 11px;
+      font-weight: 900;
+      cursor: pointer;
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    .small-action.primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .small-action.full {
+      grid-column: 1 / -1;
+      background: #f2f4f7;
+      color: #344054;
+    }
+
+    @media (max-height: 285px) {
+      .header {
+        height: 48px;
+        margin-bottom: 5px;
+      }
+
+      .subtitle {
+        display: none;
+      }
+
+      .icon {
+        width: 48px;
+        height: 48px;
+        font-size: 31px;
+        margin-bottom: 10px;
+      }
+
+      .button-title {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+
+    <section id="home" class="home">
+      <div class="header">
+        <div class="eyebrow">Aeropuerto</div>
+        <h1>Servicios</h1>
+        <p class="subtitle">Elige una opción.</p>
+      </div>
+
+      <div class="category-grid">
+        <button class="category-button" onclick="openScreen('food')">
+          <div class="icon">☕</div>
+          <div class="button-title">Comida</div>
+        </button>
+
+        <button class="category-button" onclick="openScreen('shops')">
+          <div class="icon">🛍️</div>
+          <div class="button-title">Tiendas</div>
+        </button>
+
+        <button class="category-button" onclick="openScreen('finance')">
+          <div class="icon">🏧</div>
+          <div class="button-title">Cajero</div>
+        </button>
+
+        <button class="category-button" onclick="openScreen('support')">
+          <div class="icon">🧭</div>
+          <div class="button-title">Apoyo</div>
+        </button>
+
+        <button class="category-button security" onclick="openScreen('safety')">
+          <div class="icon">🛟</div>
+          <div class="button-title">Seguridad</div>
+        </button>
+
+        <button class="category-button voice" onclick="startSTT()">
+          <div class="icon">🎙️</div>
+          <div class="button-title">Voz</div>
+        </button>
+      </div>
+    </section>
+
+    <section id="food" class="screen">
+      <div class="top-actions">
+        <button class="back-button" onclick="goHome()">← Volver</button>
+        <button class="close-button" onclick="closeWebview()">Cerrar</button>
+      </div>
+      <div class="detail-card">
+        <h2 class="detail-title">Comida</h2>
+        <p class="detail-text">Café y alimentos.</p>
+        <div class="service-list">
+          <button class="service-item" onclick="openService('cafeteria_first_floor')"><span class="service-icon">☕</span><div class="service-name">Cafetería 1° nivel</div></button>
+          <button class="service-item" onclick="openService('cafeteria_second_floor')"><span class="service-icon">☕</span><div class="service-name">Cafetería 2° nivel</div></button>
+          <button class="service-item" onclick="openService('restobar_boarding')"><span class="service-icon">🍽️</span><div class="service-name">Restobar embarque</div></button>
+        </div>
+      </div>
+    </section>
+
+    <section id="shops" class="screen">
+      <div class="top-actions">
+        <button class="back-button" onclick="goHome()">← Volver</button>
+        <button class="close-button" onclick="closeWebview()">Cerrar</button>
+      </div>
+      <div class="detail-card">
+        <h2 class="detail-title">Tiendas</h2>
+        <p class="detail-text">Compras rápidas.</p>
+        <div class="service-list">
+          <button class="service-item" onclick="openService('snack_souvenir')"><span class="service-icon">🎁</span><div class="service-name">Snacks / Souvenirs</div></button>
+        </div>
+      </div>
+    </section>
+
+    <section id="finance" class="screen">
+      <div class="top-actions">
+        <button class="back-button" onclick="goHome()">← Volver</button>
+        <button class="close-button" onclick="closeWebview()">Cerrar</button>
+      </div>
+      <div class="detail-card">
+        <h2 class="detail-title">Cajero</h2>
+        <p class="detail-text">Retiro de dinero.</p>
+        <div class="service-list">
+          <button class="service-item" onclick="openService('atm')"><span class="service-icon">🏧</span><div class="service-name">Cajero automático</div></button>
+        </div>
+      </div>
+    </section>
+
+    <section id="support" class="screen">
+      <div class="top-actions">
+        <button class="back-button" onclick="goHome()">← Volver</button>
+        <button class="close-button" onclick="closeWebview()">Cerrar</button>
+      </div>
+      <div class="detail-card">
+        <h2 class="detail-title">Apoyo</h2>
+        <p class="detail-text">Servicios útiles.</p>
+        <div class="service-list">
+          <button class="service-item" onclick="openService('bathrooms')"><span class="service-icon">🚻</span><div class="service-name">Baños</div></button>
+          <button class="service-item" onclick="openService('wifi')"><span class="service-icon">📶</span><div class="service-name">WiFi</div></button>
+          <button class="service-item" onclick="openService('phone_charging')"><span class="service-icon">🔋</span><div class="service-name">Carga celular</div></button>
+          <button class="service-item" onclick="openService('lost_objects')"><span class="service-icon">🔎</span><div class="service-name">Objetos perdidos</div></button>
+          <button class="service-item" onclick="openService('pmr')"><span class="service-icon">♿</span><div class="service-name">Asistencia PMR</div></button>
+        </div>
+      </div>
+    </section>
+
+    <section id="safety" class="screen">
+      <div class="top-actions">
+        <button class="back-button" onclick="goHome()">← Volver</button>
+        <button class="close-button" onclick="closeWebview()">Cerrar</button>
+      </div>
+      <div class="detail-card">
+        <h2 class="detail-title">Seguridad</h2>
+        <p class="detail-text">Ayuda y evacuación.</p>
+        <div class="service-list">
+          <button class="service-item" onclick="openService('evacuation_maps')"><span class="service-icon">🗺️</span><div class="service-name">Plano evacuación</div></button>
+          <button class="service-item" onclick="openService('safety_assistance')"><span class="service-icon">🛡️</span><div class="service-name">Pedir orientación</div></button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="serviceModal" class="modal-overlay" onclick="closeModalFromOverlay(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div id="modalIcon" class="modal-icon">ℹ️</div>
+        <div>
+          <h2 id="modalTitle" class="modal-title">Servicio</h2>
+          <p id="modalLocation" class="modal-location">Ubicación</p>
+        </div>
+      </div>
+
+      <p id="modalText" class="modal-text"></p>
+
+      <div class="modal-actions">
+        <button class="small-action primary" onclick="speakCurrentService()">Escuchar</button>
+        <button id="modalActionButton" class="small-action" onclick="runCurrentServiceAction()">Acción</button>
+        <button class="small-action full" onclick="closeModal()">Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (!window.SimaBridge) {
+      window.SimaBridge = {
+        send: function(type, payload) {
+          var encoded = encodeURIComponent(JSON.stringify({
+            type: type,
+            payload: payload || {}
+          }));
+          window.location.href = "uniwebview://message?data=" + encoded;
+        },
+        ready: function(screenName) { this.send("web_ready", { screen: screenName }); },
+        log: function(text) { this.send("web_log", { message: text }); },
+        requestClose: function() { this.send("close_webview", {}); },
+        speak: function(text) { this.send("avatar_speak", { text: text }); },
+        animate: function(state) { this.send("avatar_anim", { state: state }); },
+        onUnityData: function(raw) {
+          try {
+            var data = typeof raw === "string" ? JSON.parse(raw) : raw;
+            if (window.handleUnityData) window.handleUnityData(data);
+          } catch (e) {
+            console.error("Error parsing Unity data", e);
+          }
+        }
+      };
+    }
+
+    const screens = ["food", "shops", "finance", "support", "safety"];
+    let currentServiceKey = null;
+
+    const services = {
+      cafeteria_first_floor: {
+        icon: "☕",
+        title: "Cafetería 1° nivel",
+        location: "Primer nivel",
+        text: "Café, bebidas y alimentos rápidos en el primer nivel.",
+        actionLabel: "Ver mapa",
+        actionType: "open_map",
+        payload: { mapIndex: "cafeteria_first_floor", destination: "Cafetería primer nivel" }
+      },
+      cafeteria_second_floor: {
+        icon: "☕",
+        title: "Cafetería 2° nivel",
+        location: "Segundo nivel",
+        text: "Café y snacks en el segundo nivel.",
+        actionLabel: "Ver mapa",
+        actionType: "open_map",
+        payload: { mapIndex: "cafeteria_second_floor", destination: "Cafetería segundo nivel" }
+      },
+      restobar_boarding: {
+        icon: "🍽️",
+        title: "Restobar embarque",
+        location: "Sala de embarque",
+        text: "Restaurante bar en sala de embarque.",
+        actionLabel: "Ver mapa",
+        actionType: "open_map",
+        payload: { mapIndex: "boarding_restobar", destination: "Restobar sala de embarque" }
+      },
+      snack_souvenir: {
+        icon: "🎁",
+        title: "Snacks / Souvenirs",
+        location: "Zona comercial",
+        text: "Snacks, recuerdos y compras rápidas.",
+        actionLabel: "Ver mapa",
+        actionType: "open_map",
+        payload: { mapIndex: "snack_souvenir", destination: "Snacks y souvenirs" }
+      },
+      atm: {
+        icon: "🏧",
+        title: "Cajero automático",
+        location: "Terminal",
+        text: "Cajero automático para retiro de dinero.",
+        actionLabel: "Ver mapa",
+        actionType: "open_map",
+        payload: { mapIndex: "atm", destination: "Cajero automático" }
+      },
+      bathrooms: {
+        icon: "🚻",
+        title: "Baños",
+        location: "Por completar",
+        text: "Baños disponibles. Ubicación por completar.",
+        actionLabel: "Indicaciones",
+        actionType: "request_directions",
+        payload: { destination: "Baños", mapIndex: "bathrooms" }
+      },
+      wifi: {
+        icon: "📶",
+        title: "WiFi",
+        location: "Por completar",
+        text: "Información WiFi pendiente de completar.",
+        actionLabel: "Explicar",
+        actionType: "avatar_speak",
+        payload: { text: "La información de WiFi está pendiente de completar." }
+      },
+      phone_charging: {
+        icon: "🔋",
+        title: "Carga celular",
+        location: "Por completar",
+        text: "Puntos de carga por completar.",
+        actionLabel: "Buscar",
+        actionType: "request_directions",
+        payload: { destination: "Punto de carga celular", mapIndex: "phone_charging" }
+      },
+      lost_objects: {
+        icon: "🔎",
+        title: "Objetos perdidos",
+        location: "Atención",
+        text: "Derivación a atención o formulario.",
+        actionLabel: "Derivar",
+        actionType: "open_customer_service",
+        payload: { reason: "lost_objects" }
+      },
+      pmr: {
+        icon: "♿",
+        title: "Asistencia PMR",
+        location: "Terminal",
+        text: "Apoyo para pasajeros con movilidad reducida.",
+        actionLabel: "Solicitar",
+        actionType: "request_pmr_assistance",
+        payload: { service: "pmr" }
+      },
+      evacuation_maps: {
+        icon: "🗺️",
+        title: "Plano evacuación",
+        location: "Terminal",
+        text: "Rutas de salida y zonas seguras.",
+        actionLabel: "Abrir plano",
+        actionType: "open_evacuation_map",
+        payload: { mapIndex: "evacuation_maps" }
+      },
+      safety_assistance: {
+        icon: "🛡️",
+        title: "Orientación",
+        location: "Personal aeropuerto",
+        text: "Derivar solicitud a seguridad.",
+        actionLabel: "Solicitar",
+        actionType: "request_safety_assistance",
+        payload: { service: "security_orientation" }
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", function() {
+      window.SimaBridge.ready("airport_services_300_cards_big_inner");
+      window.SimaBridge.log("airport_services_300_cards_big_inner_loaded");
+    });
+
+    function openScreen(screenId) {
+      document.getElementById("home").classList.add("hidden");
+      screens.forEach(function(id) {
+        document.getElementById(id).classList.remove("active");
+      });
+      document.getElementById(screenId).classList.add("active");
+      window.SimaBridge.log("open_screen:" + screenId);
+    }
+
+    function goHome() {
+      screens.forEach(function(id) {
+        document.getElementById(id).classList.remove("active");
+      });
+      document.getElementById("home").classList.remove("hidden");
+      closeModal();
+      window.SimaBridge.log("go_home");
+    }
+
+    function closeWebview() {
+      window.SimaBridge.requestClose();
+    }
+
+    function startSTT() {
+      window.SimaBridge.speak("Dime qué servicio necesitas.");
+      window.SimaBridge.animate("listen");
+      window.SimaBridge.send("start_stt", { source: "airport_services" });
+    }
+
+    function openService(serviceKey) {
+      var service = services[serviceKey];
+      if (!service) return;
+
+      currentServiceKey = serviceKey;
+
+      document.getElementById("modalIcon").textContent = service.icon;
+      document.getElementById("modalTitle").textContent = service.title;
+      document.getElementById("modalLocation").textContent = service.location;
+      document.getElementById("modalText").textContent = service.text;
+      document.getElementById("modalActionButton").textContent = service.actionLabel;
+      document.getElementById("serviceModal").classList.add("show");
+
+      window.SimaBridge.speak(service.text);
+      window.SimaBridge.animate("talk");
+      window.SimaBridge.log("service_opened:" + serviceKey);
+    }
+
+    function speakCurrentService() {
+      var service = services[currentServiceKey];
+      if (!service) return;
+
+      window.SimaBridge.speak(service.text);
+      window.SimaBridge.animate("talk");
+    }
+
+    function runCurrentServiceAction() {
+      var service = services[currentServiceKey];
+      if (!service) return;
+
+      if (service.actionType === "avatar_speak") {
+        window.SimaBridge.speak(service.payload.text);
+        window.SimaBridge.animate("talk");
+        return;
+      }
+
+      window.SimaBridge.send(service.actionType, service.payload || {});
+
+      if (service.actionType === "request_safety_assistance") {
+        window.SimaBridge.animate("alert");
+        window.SimaBridge.speak("Solicitaré orientación de seguridad.");
+      } else if (service.actionType === "request_pmr_assistance") {
+        window.SimaBridge.animate("assist");
+        window.SimaBridge.speak("Solicitaré asistencia PMR.");
+      } else if (service.actionType === "open_evacuation_map") {
+        window.SimaBridge.speak("Abriré el plano de evacuación.");
+      } else if (service.actionType === "open_map" || service.actionType === "request_directions") {
+        window.SimaBridge.speak("Te mostraré la ubicación.");
+      } else if (service.actionType === "open_customer_service") {
+        window.SimaBridge.speak("Te derivaré a atención al cliente.");
+      }
+    }
+
+    function closeModal() {
+      document.getElementById("serviceModal").classList.remove("show");
+    }
+
+    function closeModalFromOverlay(event) {
+      if (event.target.id === "serviceModal") closeModal();
+    }
+
+    function handleUnityData(data) {
+      if (!data || !data.command) return;
+
+      switch (data.command) {
+        case "open_food": openScreen("food"); break;
+        case "open_shops": openScreen("shops"); break;
+        case "open_finance": openScreen("finance"); break;
+        case "open_support": openScreen("support"); break;
+        case "open_safety": openScreen("safety"); break;
+        case "start_stt": startSTT(); break;
+        case "close": closeWebview(); break;
+      }
+    }
+  </script>
+</body>
+</html>

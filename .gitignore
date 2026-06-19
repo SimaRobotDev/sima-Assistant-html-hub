@@ -1,0 +1,12 @@
+.DS_Store
+Thumbs.db
+
+# Unity build caches that should not live in this HTML hub repo
+Library/
+Temp/
+Obj/
+Logs/
+UserSettings/
+Build/
+Builds/
+

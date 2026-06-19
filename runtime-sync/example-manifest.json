@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "project": "demo-main",
+  "version": "2026.06.19-1",
+  "baseUrl": "https://cdn.example.com/sima/demo-main",
+  "generatedAt": "2026-06-19T18:00:00.000Z",
+  "hashAlgorithm": "sha256",
+  "rollbackTo": null,
+  "entryPoints": [
+    {
+      "service": "call",
+      "entry": "call/index.html"
+    },
+    {
+      "service": "mobility",
+      "entry": "mobility/index.html"
+    }
+  ],
+  "files": [
+    {
+      "path": "shared/bridge.js",
+      "size": 0,
+      "sha256": ""
+    }
+  ]
+}
+

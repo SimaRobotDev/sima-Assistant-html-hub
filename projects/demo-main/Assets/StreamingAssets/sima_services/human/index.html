@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Emergencias</title>
+
+    <link rel="stylesheet" href="../shared/app.css" />
+    <script src="../shared/bridge.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        background: #f5f5f7;
+        font-family: "AvenirLTStd", sans-serif;
+      }
+
+      .container {
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+
+      /* ICONO */
+      .icon-wrap {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        border: 4px solid #2e1a57;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+
+        animation: pulse 2s infinite;
+      }
+
+      .icon {
+        font-size: 42px;
+        color: #1da1db;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.04);
+          opacity: 0.85;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* TEXTO */
+      .text {
+        font-size: 20px;
+        line-height: 1.4;
+        color: #2e1a57;
+        max-width: 650px;
+      }
+
+      .highlight {
+        font-weight: 700;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div>
+        <div class="icon-wrap">
+          <div class="icon">✱</div>
+        </div>
+
+        <div class="text">
+          El equipo de Asistencia del local ya está en camino a esta
+          ubicación. Te recomendamos hacer una videollamada en
+          <span class="highlight">Asistente Sima</span>
+          y mantener la calma
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function handleUnityData(data) {}
+
+      window.addEventListener("load", () => {
+        SimaBridge.ready("emergency");
+
+        SimaBridge.speak(
+          "El equipo ya está en camino. Te recomendamos mantener la calma."
+        );
+      });
+    </script>
+  </body>
+</html>

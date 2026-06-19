@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Providencia - Información</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="../shared/app.css" />
+  <script src="../shared/bridge.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="header">
+      <div class="brand" id="brandTitle">Municipalidad de Providencia</div>
+      <div class="status-chip">Asistente SIMA</div>
+    </div>
+
+    <div class="card">
+      <div class="title" id="pageTitle">Información</div>
+      <div class="subtitle" id="pageBody">
+        Selecciona una opción o espera instrucciones del asistente.
+      </div>
+      <iframe id="contentFrame" class="content-frame hidden" title="Contenido"></iframe>
+
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="SimaBridge.requestClose()">Cerrar</button>
+        <button class="btn talk-bar talk-bar-inline" type="button" onclick="SimaBridge.start_stt()">
+          <span class="talk-bar-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></span>
+          <span class="talk-bar-label">Haz tu consulta aquí</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function handleUnityData(data) {
+      if (!data) return;
+
+      if (data.title) {
+        document.getElementById("pageTitle").textContent = data.title;
+      }
+
+      if (data.body) {
+        document.getElementById("pageBody").textContent = data.body;
+      }
+
+      if (data.extra && !data.url) {
+        document.getElementById("pageBody").textContent = data.extra;
+      }
+
+      const url = data.url || (data.extra && data.extra.startsWith("http") ? data.extra : null);
+      const frame = document.getElementById("contentFrame");
+
+      if (url) {
+        frame.src = url;
+        frame.classList.remove("hidden");
+        document.getElementById("pageBody").classList.add("hidden");
+      } else {
+        frame.classList.add("hidden");
+        document.getElementById("pageBody").classList.remove("hidden");
+      }
+    }
+
+    window.handleUnityCommand = function(command) {
+      SimaBridge.log("Command: " + command);
+    };
+
+    document.addEventListener("DOMContentLoaded", function() {
+      SimaBridge.ready("viewer");
+    });
+  </script>
+</body>
+</html>

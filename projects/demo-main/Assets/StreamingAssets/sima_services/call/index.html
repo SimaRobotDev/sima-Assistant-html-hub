@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SIMA Llamada</title>
+    <link rel="stylesheet" href="../shared/app.css" />
+    <script src="../shared/bridge.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="header">
+        <div class="brand">SIMA Comunicación</div>
+        <div class="status-chip">Llamada asistida</div>
+      </div>
+
+      <div class="card">
+        <div class="title">Función de llamada</div>
+        <div class="subtitle">
+          Simulación avanzada de conexión con soporte o asistencia.
+        </div>
+
+        <div class="info-list" id="callState">
+          <div class="info-item">Estado: lista para iniciar llamada</div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" onclick="startCall()">
+            Iniciar llamada
+          </button>
+          <button class="btn btn-danger hidden" id="endBtn" onclick="endCall()">
+            Finalizar llamada
+          </button>
+          <button class="btn btn-secondary" onclick="closeView()">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let callActive = false;
+
+      function handleUnityData(data) {
+        SimaBridge.speak(
+          "Puedo iniciar una llamada de asistencia desde este punto."
+        );
+      }
+
+      function startCall() {
+        SimaBridge.speak("Conectando llamada con soporte.");
+
+        setTimeout(() => {
+          SimaBridge.send("call_requested", {});
+          SimaBridge.speak("Ya estás en línea con un ejecutivo.");
+        }, 1500);
+      }
+
+      function endCall() {
+        callActive = false;
+        document.getElementById("callState").innerHTML = `
+        <div class="info-item">Estado: llamada finalizada</div>
+        <div class="info-item">Resumen: atención completada correctamente.</div>
+      `;
+        document.getElementById("endBtn").classList.add("hidden");
+        SimaBridge.speak("La llamada ha finalizado.");
+      }
+
+      function closeView() {
+        SimaBridge.requestClose();
+      }
+
+      window.addEventListener("load", () => {
+        SimaBridge.ready("call");
+      });
+    </script>
+  </body>
+</html>

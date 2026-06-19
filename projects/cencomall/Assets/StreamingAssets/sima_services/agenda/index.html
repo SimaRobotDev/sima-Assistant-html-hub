@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>SIMA Vuelos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+
+<link rel="stylesheet" href="../shared/app.css" />
+<script src="../shared/bridge.js"></script>
+
+<style>
+  :root {
+    --sima-blue: #1769ff;
+    --sima-purple: #7b2cff;
+    --sima-bg: #f4f7fb;
+    --sima-border: #d8e0ec;
+    --sima-text: #0f172a;
+    --sima-muted: #64748b;
+  }
+
+  .search-box {
+    width: 100%;
+    border: 1px solid var(--sima-border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    background: #fff;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    border: none;
+    border-radius: 12px;
+    padding: 9px 8px;
+    font-size: 13px;
+    font-weight: 800;
+    background: #eef3fa;
+    color: #26364a;
+  }
+
+  .tab-btn.active {
+    background: var(--sima-blue);
+    color: white;
+  }
+
+  .summary {
+    font-size: 12px;
+    color: var(--sima-muted);
+    margin-bottom: 8px;
+    line-height: 1.35;
+  }
+
+  .flights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    max-height: 54vh;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .flight-card {
+    padding: 11px;
+    border-radius: 14px;
+    background: var(--sima-bg);
+    border-left: 5px solid #cbd7e6;
+    box-sizing: border-box;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .flight-card.departure { border-left-color: var(--sima-blue); }
+  .flight-card.arrival { border-left-color: var(--sima-purple); }
+  .flight-card.highlight { background: #e8f2ff; transform: scale(1.01); }
+
+  .flight-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .flight-code {
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--sima-text);
+  }
+
+  .flight-time {
+    font-size: 17px;
+    font-weight: 900;
+    color: #111827;
+    white-space: nowrap;
+  }
+
+  .flight-route {
+    font-size: 14px;
+    margin-top: 3px;
+    color: #334155;
+    font-weight: 700;
+  }
+
+  .flight-meta {
+    margin-top: 7px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .pill {
+    font-size: 11px;
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: #e8edf5;
+    color: #334155;
+    font-weight: 800;
+  }
+
+  .pill.status { background: #e8f2ff; color: var(--sima-blue); }
+  .pill.arrival-status { background: #f0e9ff; color: var(--sima-purple); }
+
+  .empty {
+    padding: 16px;
+    border-radius: 14px;
+    background: #f8fafc;
+    text-align: center;
+    font-size: 14px;
+    color: var(--sima-muted);
+  }
+
+  .actions { margin-top: 10px; }
+
+  @media (max-width: 360px) {
+    .title { font-size: 18px; }
+    .subtitle, .summary { font-size: 12px; }
+    .flight-card { padding: 10px; }
+    .flight-code { font-size: 14px; }
+    .flight-time { font-size: 16px; }
+    .flight-route { font-size: 13px; }
+    .btn { font-size: 12px; padding: 8px; }
+  }
+</style>
+</head>
+
+<body>
+<div class="app-shell">
+  <div class="header">
+    <div class="brand">SIMA Vuelos</div>
+    <div class="status-chip" id="statusChip">Demo local</div>
+  </div>
+
+  <div class="card">
+    <div class="title">Busca tu vuelo</div>
+    <div class="subtitle">Aeropuerto La Serena · LSC</div>
+
+    <input id="searchInput" class="search-box" type="text" placeholder="Buscar vuelo, ciudad, hora o aerolínea" oninput="onSearchInput()" />
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tabAll" onclick="setType('all')">Todos</button>
+      <button class="tab-btn" id="tabDepartures" onclick="setType('departure')">Salidas</button>
+      <button class="tab-btn" id="tabArrivals" onclick="setType('arrival')">Llegadas</button>
+    </div>
+
+    <div class="summary" id="summary">Cargando información de vuelos...</div>
+    <div class="flights-list" id="flightsList"></div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="speakCurrentSummary()">Resumen</button>
+      <button class="btn btn-secondary" onclick="clearFilters()">Limpiar</button>
+      <button class="btn btn-secondary" onclick="closeView()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LOCAL_FLIGHTS_DATA = {"ok":true,"airport":{"name":"Aeropuerto La Serena","iata":"LSC","icao":"SCSE"},"source":"local_demo","updatedAt":"2026-04-29T03:19:09.006Z","counts":{"arrivals":21,"departures":21,"total":42},"cache":{"used":true,"fresh":false,"source":"memory_scrape","updatedAt":"2026-04-29T03:19:09.617Z","lastError":null},"warning":"Datos embebidos localmente para demo.","arrivals":[{"id":"arrival-100-29/04/2026-09:15","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"100","vuelo":"100","flightCode":"LATAM 100","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"09:15","arrivalTime":"09:15","llegada":"09:15","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-149-29/04/2026-10:00","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"149","vuelo":"149","flightCode":"JetSmart 149","origin":"ANTOFAGASTA","origen":"ANTOFAGASTA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"10:00","arrivalTime":"10:00","llegada":"10:00","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-1721-29/04/2026-10:00","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"1721","vuelo":"1721","flightCode":"SKY 1721","origin":"IQUIQUE","origen":"IQUIQUE","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"10:00","arrivalTime":"10:00","llegada":"10:00","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-1714-29/04/2026-10:21","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"1714","vuelo":"1714","flightCode":"SKY 1714","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"10:21","arrivalTime":"10:21","llegada":"10:21","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-611-29/04/2026-10:31","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"611","vuelo":"611","flightCode":"JetSmart 611","origin":"IQUIQUE","origen":"IQUIQUE","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"10:31","arrivalTime":"10:31","llegada":"10:31","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-135-29/04/2026-11:09","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"135","vuelo":"135","flightCode":"JetSmart 135","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"11:09","arrivalTime":"11:09","llegada":"11:09","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-106-29/04/2026-12:21","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"106","vuelo":"106","flightCode":"LATAM 106","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"12:21","arrivalTime":"12:21","llegada":"12:21","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-1741-29/04/2026-13:23","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"1741","vuelo":"1741","flightCode":"SKY 1741","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"13:23","arrivalTime":"13:23","llegada":"13:23","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-610-29/04/2026-14:18","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"610","vuelo":"610","flightCode":"JetSmart 610","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"14:18","arrivalTime":"14:18","llegada":"14:18","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-3010-29/04/2026-14:24","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"3010","vuelo":"3010","flightCode":"SKY 3010","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"14:24","arrivalTime":"14:24","llegada":"14:24","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-3012-29/04/2026-14:44","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"3012","vuelo":"3012","flightCode":"SKY 3012","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"14:44","arrivalTime":"14:44","llegada":"14:44","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-1270-29/04/2026-15:09","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"1270","vuelo":"1270","flightCode":"LATAM 1270","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"15:09","arrivalTime":"15:09","llegada":"15:09","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-1722-29/04/2026-15:54","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"1722","vuelo":"1722","flightCode":"SKY 1722","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"15:54","arrivalTime":"15:54","llegada":"15:54","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-395-29/04/2026-16:32","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"395","vuelo":"395","flightCode":"LATAM 395","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"16:32","arrivalTime":"16:32","llegada":"16:32","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-367-29/04/2026-16:47","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"367","vuelo":"367","flightCode":"LATAM 367","origin":"ANTOFAGASTA","origen":"ANTOFAGASTA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"16:47","arrivalTime":"16:47","llegada":"16:47","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-102-29/04/2026-18:07","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"102","vuelo":"102","flightCode":"LATAM 102","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"18:07","arrivalTime":"18:07","llegada":"18:07","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-137-29/04/2026-18:25","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"137","vuelo":"137","flightCode":"JetSmart 137","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"18:25","arrivalTime":"18:25","llegada":"18:25","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-3011-29/04/2026-19:07","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"3011","vuelo":"3011","flightCode":"SKY 3011","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"19:07","arrivalTime":"19:07","llegada":"19:07","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-145-29/04/2026-19:24","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"145","vuelo":"145","flightCode":"JetSmart 145","origin":"ANTOFAGASTA","origen":"ANTOFAGASTA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"19:24","arrivalTime":"19:24","llegada":"19:24","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-3013-29/04/2026-19:30","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"3013","vuelo":"3013","flightCode":"SKY 3013","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"19:30","arrivalTime":"19:30","llegada":"19:30","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-108-29/04/2026-20:37","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"108","vuelo":"108","flightCode":"LATAM 108","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"20:37","arrivalTime":"20:37","llegada":"20:37","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"}],"departures":[{"id":"departure-101-29/04/2026-10:00","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"101","vuelo":"101","flightCode":"LATAM 101","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"10:00","departureTime":"10:00","salida":"10:00","boardingTime":"09:15","embarque":"09:15","gate":"1","puerta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-150-29/04/2026-10:38","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"150","vuelo":"150","flightCode":"JetSmart 150","origin":"LA SERENA","origen":"LA SERENA","destination":"ANTOFAGASTA","destino":"ANTOFAGASTA","date":"2026-04-29","fecha":"2026-04-29","time":"10:38","departureTime":"10:38","salida":"10:38","boardingTime":"10:00","embarque":"10:00","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-1721-29/04/2026-10:44","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"1721","vuelo":"1721","flightCode":"SKY 1721","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"10:44","departureTime":"10:44","salida":"10:44","boardingTime":"10:00","embarque":"10:00","gate":"3","puerta":"3","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-1714-29/04/2026-11:09","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"1714","vuelo":"1714","flightCode":"SKY 1714","origin":"LA SERENA","origen":"LA SERENA","destination":"ANTOFAGASTA","destino":"ANTOFAGASTA","date":"2026-04-29","fecha":"2026-04-29","time":"11:09","departureTime":"11:09","salida":"11:09","boardingTime":"10:21","embarque":"10:21","gate":"3B","puerta":"3B","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-611-29/04/2026-11:16","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"611","vuelo":"611","flightCode":"JetSmart 611","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"11:16","departureTime":"11:16","salida":"11:16","boardingTime":"10:31","embarque":"10:31","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-134-29/04/2026-11:47","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"134","vuelo":"134","flightCode":"JetSmart 134","origin":"LA SERENA","origen":"LA SERENA","destination":"CALAMA","destino":"CALAMA","date":"2026-04-29","fecha":"2026-04-29","time":"11:47","departureTime":"11:47","salida":"11:47","boardingTime":"11:09","embarque":"11:09","gate":"2B","puerta":"2B","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-105-29/04/2026-13:09","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"105","vuelo":"105","flightCode":"LATAM 105","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"13:09","departureTime":"13:09","salida":"13:09","boardingTime":"12:21","embarque":"12:21","gate":"1","puerta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-1741-29/04/2026-14:01","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"1741","vuelo":"1741","flightCode":"SKY 1741","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"14:01","departureTime":"14:01","salida":"14:01","boardingTime":"13:23","embarque":"13:23","gate":"3","puerta":"3","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-610-29/04/2026-15:03","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"610","vuelo":"610","flightCode":"JetSmart 610","origin":"LA SERENA","origen":"LA SERENA","destination":"IQUIQUE","destino":"IQUIQUE","date":"2026-04-29","fecha":"2026-04-29","time":"15:03","departureTime":"15:03","salida":"15:03","boardingTime":"14:18","embarque":"14:18","gate":"1","puerta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-3010-29/04/2026-15:12","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"3010","vuelo":"3010","flightCode":"SKY 3010","origin":"LA SERENA","origen":"LA SERENA","destination":"CALAMA","destino":"CALAMA","date":"2026-04-29","fecha":"2026-04-29","time":"15:12","departureTime":"15:12","salida":"15:12","boardingTime":"14:24","embarque":"14:24","gate":"3","puerta":"3","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-3012-29/04/2026-15:32","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"3012","vuelo":"3012","flightCode":"SKY 3012","origin":"LA SERENA","origen":"LA SERENA","destination":"CALAMA","destino":"CALAMA","date":"2026-04-29","fecha":"2026-04-29","time":"15:32","departureTime":"15:32","salida":"15:32","boardingTime":"14:44","embarque":"14:44","gate":"3B","puerta":"3B","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-1270-29/04/2026-16:30","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"1270","vuelo":"1270","flightCode":"LATAM 1270","origin":"LA SERENA","origen":"LA SERENA","destination":"ANTOFAGASTA","destino":"ANTOFAGASTA","date":"2026-04-29","fecha":"2026-04-29","time":"16:30","departureTime":"16:30","salida":"16:30","boardingTime":"15:09","embarque":"15:09","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-1722-29/04/2026-16:32","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"1722","vuelo":"1722","flightCode":"SKY 1722","origin":"LA SERENA","origen":"LA SERENA","destination":"IQUIQUE","destino":"IQUIQUE","date":"2026-04-29","fecha":"2026-04-29","time":"16:32","departureTime":"16:32","salida":"16:32","boardingTime":"15:54","embarque":"15:54","gate":"3","puerta":"3","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-394-29/04/2026-17:17","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"394","vuelo":"394","flightCode":"LATAM 394","origin":"LA SERENA","origen":"LA SERENA","destination":"CALAMA","destino":"CALAMA","date":"2026-04-29","fecha":"2026-04-29","time":"17:17","departureTime":"17:17","salida":"17:17","boardingTime":"16:32","embarque":"16:32","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-368-29/04/2026-17:33","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"368","vuelo":"368","flightCode":"LATAM 368","origin":"LA SERENA","origen":"LA SERENA","destination":"ANTOFAGASTA","destino":"ANTOFAGASTA","date":"2026-04-29","fecha":"2026-04-29","time":"17:33","departureTime":"17:33","salida":"17:33","boardingTime":"16:47","embarque":"16:47","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-103-29/04/2026-18:53","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"103","vuelo":"103","flightCode":"LATAM 103","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"18:53","departureTime":"18:53","salida":"18:53","boardingTime":"18:07","embarque":"18:07","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-136-29/04/2026-19:10","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"136","vuelo":"136","flightCode":"JetSmart 136","origin":"LA SERENA","origen":"LA SERENA","destination":"CALAMA","destino":"CALAMA","date":"2026-04-29","fecha":"2026-04-29","time":"19:10","departureTime":"19:10","salida":"19:10","boardingTime":"18:25","embarque":"18:25","gate":"1","puerta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-3011-29/04/2026-19:58","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"3011","vuelo":"3011","flightCode":"SKY 3011","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"19:58","departureTime":"19:58","salida":"19:58","boardingTime":"19:07","embarque":"19:07","gate":"3","puerta":"3","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-146-29/04/2026-20:02","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"146","vuelo":"146","flightCode":"JetSmart 146","origin":"LA SERENA","origen":"LA SERENA","destination":"ANTOFAGASTA","destino":"ANTOFAGASTA","date":"2026-04-29","fecha":"2026-04-29","time":"20:02","departureTime":"20:02","salida":"20:02","boardingTime":"19:24","embarque":"19:24","gate":"1","puerta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-3013-29/04/2026-20:25","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"3013","vuelo":"3013","flightCode":"SKY 3013","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"20:25","departureTime":"20:25","salida":"20:25","boardingTime":"19:30","embarque":"19:30","gate":"3B","puerta":"3B","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-109-29/04/2026-21:25","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"109","vuelo":"109","flightCode":"LATAM 109","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"21:25","departureTime":"21:25","salida":"21:25","boardingTime":"20:37","embarque":"20:37","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"}],"results":[{"id":"departure-101-29/04/2026-10:00","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"101","vuelo":"101","flightCode":"LATAM 101","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"10:00","departureTime":"10:00","salida":"10:00","boardingTime":"09:15","embarque":"09:15","gate":"1","puerta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-150-29/04/2026-10:38","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"150","vuelo":"150","flightCode":"JetSmart 150","origin":"LA SERENA","origen":"LA SERENA","destination":"ANTOFAGASTA","destino":"ANTOFAGASTA","date":"2026-04-29","fecha":"2026-04-29","time":"10:38","departureTime":"10:38","salida":"10:38","boardingTime":"10:00","embarque":"10:00","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-1721-29/04/2026-10:44","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"1721","vuelo":"1721","flightCode":"SKY 1721","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"10:44","departureTime":"10:44","salida":"10:44","boardingTime":"10:00","embarque":"10:00","gate":"3","puerta":"3","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-1714-29/04/2026-11:09","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"1714","vuelo":"1714","flightCode":"SKY 1714","origin":"LA SERENA","origen":"LA SERENA","destination":"ANTOFAGASTA","destino":"ANTOFAGASTA","date":"2026-04-29","fecha":"2026-04-29","time":"11:09","departureTime":"11:09","salida":"11:09","boardingTime":"10:21","embarque":"10:21","gate":"3B","puerta":"3B","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-611-29/04/2026-11:16","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"611","vuelo":"611","flightCode":"JetSmart 611","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"11:16","departureTime":"11:16","salida":"11:16","boardingTime":"10:31","embarque":"10:31","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-134-29/04/2026-11:47","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"134","vuelo":"134","flightCode":"JetSmart 134","origin":"LA SERENA","origen":"LA SERENA","destination":"CALAMA","destino":"CALAMA","date":"2026-04-29","fecha":"2026-04-29","time":"11:47","departureTime":"11:47","salida":"11:47","boardingTime":"11:09","embarque":"11:09","gate":"2B","puerta":"2B","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-105-29/04/2026-13:09","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"105","vuelo":"105","flightCode":"LATAM 105","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"13:09","departureTime":"13:09","salida":"13:09","boardingTime":"12:21","embarque":"12:21","gate":"1","puerta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-1741-29/04/2026-14:01","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"1741","vuelo":"1741","flightCode":"SKY 1741","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"14:01","departureTime":"14:01","salida":"14:01","boardingTime":"13:23","embarque":"13:23","gate":"3","puerta":"3","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-610-29/04/2026-15:03","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"610","vuelo":"610","flightCode":"JetSmart 610","origin":"LA SERENA","origen":"LA SERENA","destination":"IQUIQUE","destino":"IQUIQUE","date":"2026-04-29","fecha":"2026-04-29","time":"15:03","departureTime":"15:03","salida":"15:03","boardingTime":"14:18","embarque":"14:18","gate":"1","puerta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-3010-29/04/2026-15:12","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"3010","vuelo":"3010","flightCode":"SKY 3010","origin":"LA SERENA","origen":"LA SERENA","destination":"CALAMA","destino":"CALAMA","date":"2026-04-29","fecha":"2026-04-29","time":"15:12","departureTime":"15:12","salida":"15:12","boardingTime":"14:24","embarque":"14:24","gate":"3","puerta":"3","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-3012-29/04/2026-15:32","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"3012","vuelo":"3012","flightCode":"SKY 3012","origin":"LA SERENA","origen":"LA SERENA","destination":"CALAMA","destino":"CALAMA","date":"2026-04-29","fecha":"2026-04-29","time":"15:32","departureTime":"15:32","salida":"15:32","boardingTime":"14:44","embarque":"14:44","gate":"3B","puerta":"3B","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-1270-29/04/2026-16:30","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"1270","vuelo":"1270","flightCode":"LATAM 1270","origin":"LA SERENA","origen":"LA SERENA","destination":"ANTOFAGASTA","destino":"ANTOFAGASTA","date":"2026-04-29","fecha":"2026-04-29","time":"16:30","departureTime":"16:30","salida":"16:30","boardingTime":"15:09","embarque":"15:09","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-1722-29/04/2026-16:32","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"1722","vuelo":"1722","flightCode":"SKY 1722","origin":"LA SERENA","origen":"LA SERENA","destination":"IQUIQUE","destino":"IQUIQUE","date":"2026-04-29","fecha":"2026-04-29","time":"16:32","departureTime":"16:32","salida":"16:32","boardingTime":"15:54","embarque":"15:54","gate":"3","puerta":"3","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-394-29/04/2026-17:17","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"394","vuelo":"394","flightCode":"LATAM 394","origin":"LA SERENA","origen":"LA SERENA","destination":"CALAMA","destino":"CALAMA","date":"2026-04-29","fecha":"2026-04-29","time":"17:17","departureTime":"17:17","salida":"17:17","boardingTime":"16:32","embarque":"16:32","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-368-29/04/2026-17:33","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"368","vuelo":"368","flightCode":"LATAM 368","origin":"LA SERENA","origen":"LA SERENA","destination":"ANTOFAGASTA","destino":"ANTOFAGASTA","date":"2026-04-29","fecha":"2026-04-29","time":"17:33","departureTime":"17:33","salida":"17:33","boardingTime":"16:47","embarque":"16:47","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-103-29/04/2026-18:53","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"103","vuelo":"103","flightCode":"LATAM 103","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"18:53","departureTime":"18:53","salida":"18:53","boardingTime":"18:07","embarque":"18:07","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-136-29/04/2026-19:10","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"136","vuelo":"136","flightCode":"JetSmart 136","origin":"LA SERENA","origen":"LA SERENA","destination":"CALAMA","destino":"CALAMA","date":"2026-04-29","fecha":"2026-04-29","time":"19:10","departureTime":"19:10","salida":"19:10","boardingTime":"18:25","embarque":"18:25","gate":"1","puerta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-3011-29/04/2026-19:58","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"3011","vuelo":"3011","flightCode":"SKY 3011","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"19:58","departureTime":"19:58","salida":"19:58","boardingTime":"19:07","embarque":"19:07","gate":"3","puerta":"3","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-146-29/04/2026-20:02","type":"departure","tipo":"salidas","airline":"JetSmart","aerolinea":"JetSmart","flight":"146","vuelo":"146","flightCode":"JetSmart 146","origin":"LA SERENA","origen":"LA SERENA","destination":"ANTOFAGASTA","destino":"ANTOFAGASTA","date":"2026-04-29","fecha":"2026-04-29","time":"20:02","departureTime":"20:02","salida":"20:02","boardingTime":"19:24","embarque":"19:24","gate":"1","puerta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-3013-29/04/2026-20:25","type":"departure","tipo":"salidas","airline":"SKY","aerolinea":"SKY","flight":"3013","vuelo":"3013","flightCode":"SKY 3013","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"20:25","departureTime":"20:25","salida":"20:25","boardingTime":"19:30","embarque":"19:30","gate":"3B","puerta":"3B","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"departure-109-29/04/2026-21:25","type":"departure","tipo":"salidas","airline":"LATAM","aerolinea":"LATAM","flight":"109","vuelo":"109","flightCode":"LATAM 109","origin":"LA SERENA","origen":"LA SERENA","destination":"SANTIAGO","destino":"SANTIAGO","date":"2026-04-29","fecha":"2026-04-29","time":"21:25","departureTime":"21:25","salida":"21:25","boardingTime":"20:37","embarque":"20:37","gate":"2","puerta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-100-29/04/2026-09:15","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"100","vuelo":"100","flightCode":"LATAM 100","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"09:15","arrivalTime":"09:15","llegada":"09:15","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-149-29/04/2026-10:00","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"149","vuelo":"149","flightCode":"JetSmart 149","origin":"ANTOFAGASTA","origen":"ANTOFAGASTA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"10:00","arrivalTime":"10:00","llegada":"10:00","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-1721-29/04/2026-10:00","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"1721","vuelo":"1721","flightCode":"SKY 1721","origin":"IQUIQUE","origen":"IQUIQUE","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"10:00","arrivalTime":"10:00","llegada":"10:00","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-1714-29/04/2026-10:21","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"1714","vuelo":"1714","flightCode":"SKY 1714","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"10:21","arrivalTime":"10:21","llegada":"10:21","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-611-29/04/2026-10:31","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"611","vuelo":"611","flightCode":"JetSmart 611","origin":"IQUIQUE","origen":"IQUIQUE","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"10:31","arrivalTime":"10:31","llegada":"10:31","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-135-29/04/2026-11:09","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"135","vuelo":"135","flightCode":"JetSmart 135","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"11:09","arrivalTime":"11:09","llegada":"11:09","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-106-29/04/2026-12:21","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"106","vuelo":"106","flightCode":"LATAM 106","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"12:21","arrivalTime":"12:21","llegada":"12:21","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-1741-29/04/2026-13:23","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"1741","vuelo":"1741","flightCode":"SKY 1741","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"13:23","arrivalTime":"13:23","llegada":"13:23","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-610-29/04/2026-14:18","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"610","vuelo":"610","flightCode":"JetSmart 610","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"14:18","arrivalTime":"14:18","llegada":"14:18","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-3010-29/04/2026-14:24","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"3010","vuelo":"3010","flightCode":"SKY 3010","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"14:24","arrivalTime":"14:24","llegada":"14:24","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-3012-29/04/2026-14:44","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"3012","vuelo":"3012","flightCode":"SKY 3012","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"14:44","arrivalTime":"14:44","llegada":"14:44","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-1270-29/04/2026-15:09","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"1270","vuelo":"1270","flightCode":"LATAM 1270","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"15:09","arrivalTime":"15:09","llegada":"15:09","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-1722-29/04/2026-15:54","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"1722","vuelo":"1722","flightCode":"SKY 1722","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"15:54","arrivalTime":"15:54","llegada":"15:54","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-395-29/04/2026-16:32","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"395","vuelo":"395","flightCode":"LATAM 395","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"16:32","arrivalTime":"16:32","llegada":"16:32","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-367-29/04/2026-16:47","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"367","vuelo":"367","flightCode":"LATAM 367","origin":"ANTOFAGASTA","origen":"ANTOFAGASTA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"16:47","arrivalTime":"16:47","llegada":"16:47","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-102-29/04/2026-18:07","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"102","vuelo":"102","flightCode":"LATAM 102","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"18:07","arrivalTime":"18:07","llegada":"18:07","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-137-29/04/2026-18:25","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"137","vuelo":"137","flightCode":"JetSmart 137","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"18:25","arrivalTime":"18:25","llegada":"18:25","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-3011-29/04/2026-19:07","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"3011","vuelo":"3011","flightCode":"SKY 3011","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"19:07","arrivalTime":"19:07","llegada":"19:07","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-145-29/04/2026-19:24","type":"arrival","tipo":"llegadas","airline":"JetSmart","aerolinea":"JetSmart","flight":"145","vuelo":"145","flightCode":"JetSmart 145","origin":"ANTOFAGASTA","origen":"ANTOFAGASTA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"19:24","arrivalTime":"19:24","llegada":"19:24","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-3013-29/04/2026-19:30","type":"arrival","tipo":"llegadas","airline":"SKY","aerolinea":"SKY","flight":"3013","vuelo":"3013","flightCode":"SKY 3013","origin":"CALAMA","origen":"CALAMA","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"19:30","arrivalTime":"19:30","llegada":"19:30","baggageBelt":"1","cinta":"1","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"},{"id":"arrival-108-29/04/2026-20:37","type":"arrival","tipo":"llegadas","airline":"LATAM","aerolinea":"LATAM","flight":"108","vuelo":"108","flightCode":"LATAM 108","origin":"SANTIAGO","origen":"SANTIAGO","destination":"LA SERENA","destino":"LA SERENA","date":"2026-04-29","fecha":"2026-04-29","time":"20:37","arrivalTime":"20:37","llegada":"20:37","baggageBelt":"2","cinta":"2","status":"PROGRAMADO","estado":"PROGRAMADO","source":"scrape"}],"count":42};
+
+let allFlightsData = { arrivals: [], departures: [], results: [] };
+let currentType = "all";
+let currentQuery = "";
+
+function safeBridgeSpeak(text) {
+  try { if (window.SimaBridge && typeof SimaBridge.speak === "function") SimaBridge.speak(text); } catch (e) { console.log(e); }
+}
+function safeBridgeReady(service) {
+  try { if (window.SimaBridge && typeof SimaBridge.ready === "function") SimaBridge.ready(service); } catch (e) { console.log(e); }
+}
+function safeBridgeClose() {
+  try { if (window.SimaBridge && typeof SimaBridge.requestClose === "function") { SimaBridge.requestClose(); return; } } catch (e) { console.log(e); }
+}
+function getQueryParam(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name) || "";
+}
+function normalizeText(value) {
+  return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+function setType(type) {
+  currentType = type;
+  document.getElementById("tabAll").classList.toggle("active", type === "all");
+  document.getElementById("tabDepartures").classList.toggle("active", type === "departure");
+  document.getElementById("tabArrivals").classList.toggle("active", type === "arrival");
+  renderFlights();
+}
+function onSearchInput() {
+  currentQuery = document.getElementById("searchInput").value;
+  renderFlights();
+}
+function loadLocalFlights(speak = false) {
+  allFlightsData = {
+    ...LOCAL_FLIGHTS_DATA,
+    arrivals: LOCAL_FLIGHTS_DATA.arrivals || [],
+    departures: LOCAL_FLIGHTS_DATA.departures || [],
+    results: [...(LOCAL_FLIGHTS_DATA.departures || []), ...(LOCAL_FLIGHTS_DATA.arrivals || [])]
+  };
+  document.getElementById("statusChip").innerText = "Demo local";
+  renderFlights();
+  if (speak) safeBridgeSpeak("Información de vuelos cargada.");
+}
+function getVisibleFlights() {
+  let flights = [];
+  if (currentType === "departure") flights = allFlightsData.departures || [];
+  else if (currentType === "arrival") flights = allFlightsData.arrivals || [];
+  else flights = [...(allFlightsData.departures || []), ...(allFlightsData.arrivals || [])];
+
+  const q = normalizeText(currentQuery);
+  if (q) {
+    flights = flights.filter(f => {
+      const searchable = normalizeText([
+        f.airline, f.aerolinea, f.flight, f.vuelo, f.flightCode,
+        f.origin, f.origen, f.destination, f.destino, f.date, f.fecha,
+        f.time, f.departureTime, f.salida, f.arrivalTime, f.llegada,
+        f.boardingTime, f.embarque, f.gate, f.puerta,
+        f.baggageBelt, f.cinta, f.status, f.estado
+      ].join(" "));
+      return searchable.includes(q);
+    });
+  }
+  return flights.sort((a, b) => {
+    const aKey = `${a.date || a.fecha || ""} ${a.time || a.salida || a.llegada || ""}`;
+    const bKey = `${b.date || b.fecha || ""} ${b.time || b.salida || b.llegada || ""}`;
+    return aKey.localeCompare(bKey);
+  });
+}
+function renderFlights() {
+  const flights = getVisibleFlights();
+  const list = document.getElementById("flightsList");
+  const summary = document.getElementById("summary");
+  const updated = allFlightsData.updatedAt ? new Date(allFlightsData.updatedAt).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+  const depCount = allFlightsData.departures?.length || 0;
+  const arrCount = allFlightsData.arrivals?.length || 0;
+  summary.innerText = `${flights.length} resultados · ${depCount} salidas · ${arrCount} llegadas · Demo ${updated}`;
+  if (!flights.length) { list.innerHTML = `<div class="empty">No encontré vuelos con ese filtro.</div>`; return; }
+  list.innerHTML = flights.map((flight, idx) => renderFlightCard(flight, idx === 0 && currentQuery)).join("");
+  if (currentQuery && flights.length) {
+    setTimeout(() => {
+      const first = document.querySelector(".flight-card");
+      if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+  }
+}
+function renderFlightCard(f, shouldHighlight) {
+  const isDeparture = f.type === "departure";
+  const typeLabel = isDeparture ? "Salida" : "Llegada";
+  const airline = f.airline || f.aerolinea || "";
+  const flight = f.flight || f.vuelo || "";
+  const destination = f.destination || f.destino || "";
+  const origin = f.origin || f.origen || "";
+  const route = isDeparture ? `Destino: ${destination || "-"}` : `Origen: ${origin || "-"}`;
+  const mainTime = isDeparture ? (f.departureTime || f.salida || f.time || "-") : (f.arrivalTime || f.llegada || f.time || "-");
+  const gateOrBelt = isDeparture ? `Puerta ${f.gate || f.puerta || "-"}` : `Cinta ${f.baggageBelt || f.cinta || "-"}`;
+  const boarding = isDeparture && (f.boardingTime || f.embarque) ? `<span class="pill">Embarque ${escapeHtml(f.boardingTime || f.embarque)}</span>` : "";
+  const statusClass = isDeparture ? "status" : "status arrival-status";
+  return `
+    <div class="flight-card ${isDeparture ? "departure" : "arrival"} ${shouldHighlight ? "highlight" : ""}">
+      <div class="flight-top">
+        <div>
+          <div class="flight-code">${escapeHtml(airline)} ${escapeHtml(flight)}</div>
+          <div class="flight-route">${escapeHtml(route)}</div>
+        </div>
+        <div class="flight-time">${escapeHtml(mainTime)}</div>
+      </div>
+      <div class="flight-meta">
+        <span class="pill">${typeLabel}</span>
+        <span class="pill">${escapeHtml(gateOrBelt)}</span>
+        ${boarding}
+        <span class="pill ${statusClass}">${escapeHtml(f.status || f.estado || "Sin estado")}</span>
+      </div>
+    </div>`;
+}
+function speakCurrentSummary() {
+  const flights = getVisibleFlights();
+  if (!flights.length) { safeBridgeSpeak("No encontré vuelos con ese filtro."); return; }
+  const first = flights[0];
+  if (flights.length === 1) {
+    if (first.type === "departure") safeBridgeSpeak(`Encontré un vuelo. ${first.airline} ${first.flight} sale hacia ${first.destination} a las ${first.departureTime || first.time}. Estado ${first.status}.`);
+    else safeBridgeSpeak(`Encontré un vuelo. ${first.airline} ${first.flight} llega desde ${first.origin} a las ${first.arrivalTime || first.time}. Estado ${first.status}.`);
+    return;
+  }
+  const sample = flights.slice(0, 3).map(f => {
+    if (f.type === "departure") return `${f.airline} ${f.flight} hacia ${f.destination} a las ${f.departureTime || f.time}`;
+    return `${f.airline} ${f.flight} desde ${f.origin} a las ${f.arrivalTime || f.time}`;
+  }).join("; ");
+  // safeBridgeSpeak(`Encontré ${flights.length} vuelos. Los primeros son: ${sample}.`);
+}
+function clearFilters() {
+  currentQuery = "";
+  currentType = "all";
+  document.getElementById("searchInput").value = "";
+  setType("all");
+  safeBridgeSpeak("Filtros limpiados. Te muestro todos los vuelos disponibles.");
+}
+function applyInitialParams() {
+  const q = getQueryParam("q") || getQueryParam("query");
+  const type = getQueryParam("type");
+  if (q) { currentQuery = q; document.getElementById("searchInput").value = q; }
+  if (type === "departure" || type === "departures" || type === "salidas") setType("departure");
+  else if (type === "arrival" || type === "arrivals" || type === "llegadas") setType("arrival");
+  else setType("all");
+}
+function handleUnityData(data) {
+  try {
+    if (typeof data === "string") data = JSON.parse(data);
+    if (data.extra && typeof data.extra === "string") {
+      try { data = { ...data, ...JSON.parse(data.extra) }; } catch (_) {}
+    }
+    if (data.query) { currentQuery = data.query; document.getElementById("searchInput").value = data.query; }
+    if (data.destination && !currentQuery) { currentQuery = data.destination; document.getElementById("searchInput").value = data.destination; }
+    if (data.type) {
+      if (data.type === "departure" || data.type === "departures") currentType = "departure";
+      else if (data.type === "arrival" || data.type === "arrivals") currentType = "arrival";
+      else currentType = "all";
+    }
+    setType(currentType);
+    renderFlights();
+    setTimeout(() => speakCurrentSummary(), 300);
+  } catch (e) { console.error("handleUnityData error", e); }
+}
+function closeView() { safeBridgeClose(); }
+window.onload = () => {
+  safeBridgeReady("flights");
+  applyInitialParams();
+  loadLocalFlights(false);
+  // if (currentQuery) setTimeout(() => speakCurrentSummary(), 500);
+};
+</script>
+</body>
+</html>

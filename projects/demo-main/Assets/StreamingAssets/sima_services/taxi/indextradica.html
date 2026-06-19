@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Micropilotes vs Jet Grouting</title>
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+      :root {
+        --sky: #dff3ff;
+        --ground1: #8b5a3c;
+        --ground2: #a9714d;
+        --ground3: #c58a5e;
+        --rock: #6e6258;
+        --cement: #cfd6dc;
+        --steel: #59636f;
+        --jet: #39a7ff;
+        --soilmix: #7f9c8f;
+        --good: #167c3a;
+        --bad: #a12b2b;
+        --panel: #ffffff;
+        --text: #1d2630;
+        --accent: #0b6cff;
+        --warning: #ffb100;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        color: var(--text);
+        background: linear-gradient(180deg, #eef8ff 0%, #f6fbff 100%);
+      }
+
+      .app {
+        display: grid;
+        /* grid-template-columns: 160px 1fr; */
+        min-height: 10vh;
+        gap: 0;
+      }
+
+      .sidebar {
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        border-right: 1px solid #d9e7f2;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow: auto;
+      }
+
+      .title h1 {
+        font-size: 0.75rem;
+        margin: 0 0 6px;
+        line-height: 1;
+      }
+
+      .title p {
+        margin: 0;
+        color: #506070;
+        font-size: 0.48rem;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid #d8e4ef;
+        border-radius: 18px;
+        padding: 10px;
+        box-shadow: 0 8px 30px rgba(32, 66, 102, 0.08);
+      }
+
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 0.5rem;
+      }
+
+      .button-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+      }
+
+      button {
+        appearance: none;
+        border: none;
+        border-radius: 7px;
+        padding: 6px 7px;
+        font-weight: 350;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease,
+          opacity 0.2s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+      button:active {
+        transform: translateY(0);
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .primary {
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 8px 18px rgba(11, 108, 255, 0.25);
+      }
+      .secondary {
+        background: #edf4fb;
+        color: #21405f;
+      }
+      .warn {
+        background: #fff6d8;
+        color: #7f5b00;
+      }
+
+      .steps {
+        display: grid;
+        gap: 8px;
+      }
+
+      .step {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 10px;
+        border-radius: 12px;
+        background: #f6faff;
+        border: 1px solid #e0edf7;
+        font-size: 0.43rem;
+      }
+
+      .dot {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #dbe9f6;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.78rem;
+        font-weight: 800;
+        flex: 0 0 auto;
+        margin-top: 1px;
+      }
+
+      .step.active {
+        border-color: #98c0ff;
+        background: #eef5ff;
+      }
+      .step.done .dot {
+        background: #d5f2df;
+        color: var(--good);
+      }
+
+      .question h3 {
+        margin: 0 0 8px;
+        font-size: 1rem;
+      }
+
+      .options {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .option {
+        text-align: left;
+        background: #f8fbff;
+        color: #203547;
+        border: 1px solid #d7e5f3;
+        font-weight: 200;
+      }
+
+      .feedback {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 0.92rem;
+        display: none;
+      }
+
+      .feedback.good {
+        display: block;
+        background: #eaf8ef;
+        color: #175c31;
+        border: 1px solid #bfe6cb;
+      }
+      .feedback.bad {
+        display: block;
+        background: #fff0f0;
+        color: #872525;
+        border: 1px solid #f0c1c1;
+      }
+
+      .legend {
+        display: grid;
+        gap: 0px;
+        font-size: 0.3rem;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0px;
+      }
+      .swatch {
+        width: 16px;
+        height: 16px;
+        border-radius: 5px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+
+      .scene-wrap {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .hud {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .hud .pillbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .pill {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid #d7e4f0;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-weight: 300;
+        font-size: 0.45rem;
+        box-shadow: 0 5px 16px rgba(32, 66, 102, 0.06);
+      }
+
+      .scene {
+        position: relative;
+        background: #fff;
+        border-radius: 24px;
+        overflow: hidden;
+        border: 1px solid #d9e6f2;
+        box-shadow: 0 18px 50px rgba(20, 40, 70, 0.1);
+        flex: 1;
+        min-height: 620px;
+      }
+
+      .sky {
+        height: 180px;
+        background: linear-gradient(180deg, #dff3ff 0%, #eefaff 100%);
+        position: relative;
+        border-bottom: 2px solid #b7d6e8;
+      }
+
+      .cloud {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 999px;
+        filter: blur(0.2px);
+      }
+      .cloud::before,
+      .cloud::after {
+        content: "";
+        position: absolute;
+        background: inherit;
+        border-radius: inherit;
+      }
+      .cloud.c1 {
+        width: 110px;
+        height: 34px;
+        top: 30px;
+        left: 40px;
+      }
+      .cloud.c1::before {
+        width: 40px;
+        height: 40px;
+        left: 14px;
+        top: -16px;
+      }
+      .cloud.c1::after {
+        width: 54px;
+        height: 54px;
+        right: 16px;
+        top: -24px;
+      }
+      .cloud.c2 {
+        width: 130px;
+        height: 36px;
+        top: 70px;
+        right: 90px;
+      }
+      .cloud.c2::before {
+        width: 46px;
+        height: 46px;
+        left: 20px;
+        top: -18px;
+      }
+      .cloud.c2::after {
+        width: 56px;
+        height: 56px;
+        right: 22px;
+        top: -24px;
+      }
+
+      .surface {
+        position: absolute;
+        top: 150px;
+        left: 0;
+        width: 100%;
+        height: 40px;
+        background: linear-gradient(180deg, #c7e48c 0%, #95bf52 100%);
+        border-top: 2px solid #7ea43e;
+      }
+
+      .soil {
+        position: absolute;
+        top: 180px;
+        left: 0;
+        width: 100%;
+        height: calc(100% - 180px);
+        background: linear-gradient(
+          180deg,
+          var(--ground3) 0 32%,
+          var(--ground2) 32% 67%,
+          var(--ground1) 67% 85%,
+          var(--rock) 85% 100%
+        );
+      }
+
+      .soil::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(
+            circle at 10% 14%,
+            rgba(255, 255, 255, 0.09) 0 2px,
+            transparent 2px
+          ),
+          radial-gradient(
+            circle at 32% 28%,
+            rgba(0, 0, 0, 0.08) 0 2px,
+            transparent 2px
+          ),
+          radial-gradient(
+            circle at 56% 18%,
+            rgba(255, 255, 255, 0.07) 0 3px,
+            transparent 3px
+          ),
+          radial-gradient(
+            circle at 76% 38%,
+            rgba(0, 0, 0, 0.06) 0 2px,
+            transparent 2px
+          ),
+          radial-gradient(
+            circle at 20% 62%,
+            rgba(255, 255, 255, 0.05) 0 3px,
+            transparent 3px
+          ),
+          radial-gradient(
+            circle at 82% 76%,
+            rgba(255, 255, 255, 0.05) 0 2px,
+            transparent 2px
+          ),
+          radial-gradient(
+            circle at 42% 82%,
+            rgba(0, 0, 0, 0.07) 0 3px,
+            transparent 3px
+          );
+        opacity: 0.65;
+        pointer-events: none;
+      }
+
+      .layer-label {
+        position: absolute;
+        right: 16px;
+        font-size: 0.4rem;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.12);
+        padding: 4px 8px;
+        border-radius: 999px;
+      }
+
+      .ll1 {
+        top: 210px;
+      }
+      .ll2 {
+        top: 330px;
+      }
+      .ll3 {
+        top: 470px;
+      }
+      .ll4 {
+        top: 570px;
+      }
+
+      .machine {
+        position: absolute;
+        left: 0px;
+        top: 62px;
+        width: 210px;
+        height: 190px;
+        z-index: 4;
+        transition: left 0.7s ease;
+      }
+
+      .track {
+        position: absolute;
+        bottom: 18px;
+        left: 8px;
+        width: 120px;
+        height: 26px;
+        background: #2a3440;
+        border-radius: 999px;
+        box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.08);
+      }
+
+      .track::before {
+        content: "";
+        position: absolute;
+        inset: 5px 10px;
+        border-radius: 999px;
+        border: 2px dashed rgba(255, 255, 255, 0.18);
+      }
+
+      .body {
+        position: absolute;
+        bottom: 40px;
+        left: 24px;
+        width: 118px;
+        height: 54px;
+        background: #f2ba1f;
+        border-radius: 16px 18px 12px 12px;
+        border: 2px solid rgba(0, 0, 0, 0.08);
+      }
+
+      .cab {
+        position: absolute;
+        bottom: 79px;
+        left: 70px;
+        width: 56px;
+        height: 48px;
+        background: #ffd868;
+        border-radius: 12px 12px 6px 6px;
+        border: 2px solid rgba(0, 0, 0, 0.08);
+      }
+
+      .cab::before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        background: rgba(50, 90, 130, 0.32);
+        border-radius: 6px;
+      }
+
+      .mast {
+        position: absolute;
+        left: 138px;
+        top: 12px;
+        width: 22px;
+        height: 150px;
+        background: linear-gradient(180deg, #47535e 0%, #64727e 100%);
+        border-radius: 10px;
+        border: 2px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .drill {
+        position: absolute;
+        left: 144px;
+        top: 25px;
+        width: 10px;
+        height: 220px;
+        background: repeating-linear-gradient(
+          180deg,
+          #384450 0 8px,
+          #5a6671 8px 16px
+        );
+        border-radius: 999px;
+        transform-origin: top center;
+        animation: idleSpin 2s linear infinite;
+        z-index: 5;
+      }
+
+      .drill.active {
+        animation: drilling 0.25s linear infinite;
+      }
+
+      .drill-tip {
+        position: absolute;
+        bottom: -10px;
+        left: -4px;
+        width: 18px;
+        height: 18px;
+        background: #55636f;
+        clip-path: polygon(50% 100%, 0 0, 100% 0);
+      }
+
+      @keyframes idleSpin {
+        0% {
+          transform: translateX(0);
+        }
+        50% {
+          transform: translateX(0.5px);
+        }
+        100% {
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes drilling {
+        0% {
+          transform: translateY(0px) rotate(0deg);
+        }
+        50% {
+          transform: translateY(1px) rotate(180deg);
+        }
+        100% {
+          transform: translateY(0px) rotate(360deg);
+        }
+      }
+
+      .hole,
+      .micropile,
+      .bar,
+      .groutbulb,
+      .jet-column,
+      .jet-stream,
+      .dust {
+        position: absolute;
+        z-index: 3;
+        transition: all 0.5s ease;
+      }
+
+      .hole {
+        width: 34px;
+        left: 212px;
+        top: 175px;
+        height: 0;
+        border-radius: 16px 16px 12px 12px;
+        background: linear-gradient(
+          180deg,
+          rgba(52, 31, 20, 0.88) 0%,
+          rgba(35, 22, 15, 0.95) 100%
+        );
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        z-index: 2;
+      }
+
+      .hole::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -4px;
+        width: 42px;
+        height: 8px;
+        background: rgba(0, 0, 0, 0.18);
+        border-radius: 999px;
+      }
+
+      .micropile {
+        width: 42px;
+        left: 208px;
+        top: 176px;
+        height: 0;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #dfe5e9 0%, #c4cdd5 100%);
+        opacity: 0;
+        z-index: 3;
+      }
+
+      .bar {
+        width: 10px;
+        left: 224px;
+        top: 176px;
+        height: 0;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #5f6b76 0%, #434d56 100%);
+        opacity: 0;
+        z-index: 4;
+      }
+
+      .groutbulb {
+        width: 72px;
+        left: 193px;
+        top: 520px;
+        height: 0;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 50% 30%,
+          #eef3f7 0%,
+          #d7dee4 40%,
+          #c0c8cf 100%
+        );
+        opacity: 0;
+        filter: blur(0.2px);
+        z-index: 2;
+      }
+
+      .jet-column {
+        width: 86px;
+        left: 186px;
+        top: 176px;
+        height: 0;
+        border-radius: 42px;
+        background: linear-gradient(
+          180deg,
+          #90aa9f 0%,
+          #7f9c8f 50%,
+          #70897d 100%
+        );
+        opacity: 0;
+        box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.08);
+      }
+
+      .jet-column::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(
+            circle at 30% 18%,
+            rgba(255, 255, 255, 0.18) 0 4px,
+            transparent 4px
+          ),
+          radial-gradient(
+            circle at 63% 34%,
+            rgba(0, 0, 0, 0.08) 0 4px,
+            transparent 4px
+          ),
+          radial-gradient(
+            circle at 42% 62%,
+            rgba(255, 255, 255, 0.12) 0 3px,
+            transparent 3px
+          ),
+          radial-gradient(
+            circle at 56% 79%,
+            rgba(0, 0, 0, 0.07) 0 4px,
+            transparent 4px
+          );
+        border-radius: inherit;
+        opacity: 0.75;
+      }
+
+      .jet-stream {
+        width: 110px;
+        height: 110px;
+        left: 174px;
+        top: 310px;
+        border-radius: 50%;
+        opacity: 0;
+        background: radial-gradient(
+          circle,
+          rgba(57, 167, 255, 0.75) 0%,
+          rgba(57, 167, 255, 0.35) 30%,
+          rgba(57, 167, 255, 0.05) 70%,
+          transparent 72%
+        );
+        z-index: 4;
+        animation: pulse 1s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(0.85);
+        }
+        50% {
+          transform: scale(1.06);
+        }
+      }
+
+      .soil-particles {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 4;
+      }
+
+      .particle {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(129, 91, 60, 0.85);
+        opacity: 0;
+      }
+
+      .labels-area {
+        position: absolute;
+        left: 20px;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        z-index: 8;
+      }
+
+      .floating-label {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid #d8e5ef;
+        border-radius: 14px;
+        padding: 9px 12px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        box-shadow: 0 10px 24px rgba(24, 48, 80, 0.1);
+        display: none;
+      }
+
+      .floating-label.show {
+        display: inline-flex;
+      }
+
+      .explain {
+        font-size: 0.92rem;
+        color: #476075;
+        line-height: 1.45;
+      }
+
+      .score strong {
+        font-size: 1.15rem;
+      }
+
+      .tiny {
+        font-size: 0.82rem;
+        color: #607284;
+      }
+
+      @media (max-width: 1100px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          border-right: none;
+          border-bottom: 1px solid #d9e7f2;
+          max-height: none;
+        }
+        .scene {
+          min-height: 560px;
+        }
+      }
+      /* 👇 NUEVO: flecha scroll */
+      .scroll-hint {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        color: #1d2630;
+        font-size: 0.7rem;
+        font-weight: 500;
+        opacity: 0.85;
+        pointer-events: none;
+        animation: fadeIn 0.6s ease;
+      }
+
+      .arrow {
+        width: 16px;
+        height: 16px;
+        border-right: 3px solid #0b6cff;
+        border-bottom: 3px solid #0b6cff;
+        transform: rotate(45deg);
+        animation: bounce 1.2s infinite;
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: rotate(45deg) translateY(0);
+        }
+        50% {
+          transform: rotate(45deg) translateY(6px);
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -10px);
+        }
+        to {
+          opacity: 0.85;
+          transform: translate(-50%, 0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="scene-wrap">
+        <div class="hud">
+          <div class="pillbar">
+            <div class="pill">
+              Técnica: <span id="hudTechnique">Micropilotes</span>
+            </div>
+            <div class="pill" hidden>
+              Paso: <span id="hudStep">1</span>/<span id="hudTotal">5</span>
+            </div>
+            <div class="pill score" hidden>
+              Puntaje: <strong id="score">0</strong>
+            </div>
+          </div>
+          <div class="pill" id="hudGoal">
+            Objetivo: crear un elemento estructural que transmita carga
+          </div>
+        </div>
+
+        <section class="scene">
+          <!-- 👇 NUEVO -->
+          <div class="scroll-hint" id="scrollHint">
+            <div class="arrow"></div>
+            <span>Desliza hacia abajo</span>
+          </div>
+
+          <!-- TODO TU CONTENIDO ORIGINAL SIGUE IGUAL -->
+          <div class="sky">
+            <div class="cloud c1"></div>
+            <div class="cloud c2"></div>
+          </div>
+          <div class="surface"></div>
+          <div class="soil"></div>
+
+          <div class="layer-label ll1">Relleno / capa superficial</div>
+          <div class="layer-label ll2">Suelo intermedio</div>
+          <div class="layer-label ll3">Suelo más denso</div>
+          <div class="layer-label ll4">Estrato competente / roca</div>
+
+          <div class="machine" id="machine">
+            <div class="mast"></div>
+            <div class="drill" id="drill">
+              <div class="drill-tip"></div>
+            </div>
+            <div class="cab"></div>
+            <div class="body"></div>
+            <div class="track"></div>
+          </div>
+
+          <div class="hole" id="hole"></div>
+          <div class="micropile" id="micropile"></div>
+          <div class="bar" id="bar"></div>
+          <div class="groutbulb" id="groutbulb"></div>
+          <div class="jet-column" id="jetColumn"></div>
+          <div class="jet-stream" id="jetStream"></div>
+
+          <div class="soil-particles" id="particles"></div>
+
+          <div class="labels-area">
+            <div class="floating-label" id="labelHole">
+              Perforación ejecutada
+            </div>
+            <div class="floating-label" id="labelSteel">
+              Barra de acero dentro del micropilote
+            </div>
+            <div class="floating-label" id="labelMicropile">
+              Micropilote: perforación + acero + lechada
+            </div>
+            <div class="floating-label" id="labelJet">
+              Jet grouting: mezcla suelo + cemento
+            </div>
+            <div class="floating-label" id="labelJetAction">
+              La inyección a alta presión rompe y mezcla el suelo
+            </div>
+          </div>
+        </section>
+      </main>
+      <aside class="sidebar">
+        <!-- <div class="title">
+          <h1>Juego: Micropilotes y Jet Grouting</h1>
+          <p>
+            Aprende viendo qué ocurre bajo tierra y responde preguntas para
+            avanzar.
+          </p>
+        </div> -->
+
+        <div class="card">
+          <h2>Selecciona una técnica</h2>
+          <div class="button-row">
+            <button id="btnMicropile" class="primary">Micropilotes</button>
+            <button id="btnJet" class="secondary">Jet Grouting</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Controles</h2>
+          <div class="button-row" style="grid-template-columns: 1fr 1fr 1fr">
+            <button id="btnPrev" class="secondary">◀ Paso</button>
+            <button id="btnNext" class="primary">Paso ▶</button>
+            <button id="btnReset" class="warn">Reiniciar</button>
+          </div>
+          <p class="tiny" style="margin: 10px 0 0">
+            Avanza paso a paso y detente en las preguntas para comprobar si
+            entendiste.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2>Secuencia</h2>
+          <div class="steps" id="steps"></div>
+        </div>
+
+        <div class="card question" id="questionCard" style="display: none">
+          <h3 id="questionTitle"></h3>
+          <div class="explain" id="questionPrompt"></div>
+          <div class="options" id="options"></div>
+          <div id="feedback" class="feedback"></div>
+        </div>
+
+        <div class="card">
+          <h2>Resumen didáctico</h2>
+          <div class="explain" id="summaryText">
+            Los <strong>micropilotes</strong> son elementos de cimentación:
+            perforas, colocas acero y llenas con lechada para transferir carga.
+            <br /><br />
+            El <strong>jet grouting</strong> mejora el terreno: inyecta a alta
+            presión para romper y mezclar el suelo con cemento, formando una
+            columna de suelo-cemento.
+          </div>
+        </div>
+
+        <!-- <div class="card">
+          <h2>Leyenda</h2>
+          <div class="legend">
+            <div class="legend-item">
+              <span class="swatch" style="background: var(--cement)"></span>
+              Lechada / cemento
+            </div>
+            <div class="legend-item">
+              <span class="swatch" style="background: var(--steel)"></span>
+              Barra o acero
+            </div>
+            <div class="legend-item">
+              <span class="swatch" style="background: var(--soilmix)"></span>
+              Suelo-cemento
+            </div>
+            <div class="legend-item">
+              <span class="swatch" style="background: var(--jet)"></span>
+              Inyección de alta presión
+            </div>
+            <div class="legend-item">
+              <span class="swatch" style="background: #3a2318"></span>
+              Perforación
+            </div>
+          </div>
+        </div> -->
+      </aside>
+    </div>
+
+    <script>
+      const techniques = {
+        micropilote: {
+          name: "Micropilotes",
+          goal: "crear un elemento estructural que transmita carga",
+          summary:
+            "Los micropilotes son una solución de cimentación profunda. Primero se perfora, luego se coloca una barra o tubo de acero y finalmente se inyecta lechada de cemento para formar un elemento resistente que transfiere cargas a capas más competentes.",
+          steps: [
+            {
+              title: "Posicionar la perforadora",
+              desc: "La máquina se ubica sobre el punto donde se necesita reforzar o fundar.",
+              apply: () => {
+                setMachine(70);
+                resetVisuals();
+                drillActive(false);
+              },
+            },
+            {
+              title: "Perforar el terreno",
+              desc: "Se hace una perforación de pequeño diámetro hasta alcanzar la profundidad requerida.",
+              apply: () => {
+                setMachine(70);
+                drillActive(true);
+                showHole(360);
+                showLabel("labelHole");
+              },
+            },
+            {
+              title: "Pregunta: ¿qué debe ir dentro?",
+              desc: "Antes de completar el elemento, piensa qué componente estructural se instala en el interior.",
+              question: {
+                prompt:
+                  "¿Qué se introduce dentro de la perforación para que el sistema trabaje estructuralmente?",
+                options: [
+                  {
+                    text: "Solo aire a presión",
+                    correct: false,
+                    feedback:
+                      "Eso corresponde más al proceso de inyección o limpieza, pero no crea el refuerzo estructural principal.",
+                  },
+                  {
+                    text: "Una barra o tubo de acero",
+                    correct: true,
+                    feedback:
+                      "Correcto. El acero aporta capacidad estructural y trabaja junto con la lechada.",
+                  },
+                  {
+                    text: "Tierra suelta del mismo terreno",
+                    correct: false,
+                    feedback:
+                      "No. El objetivo es reforzar, no volver a llenar con el mismo material sin control.",
+                  },
+                ],
+                onCorrect: () => {
+                  showBar(325);
+                  showLabel("labelSteel");
+                },
+              },
+              apply: () => {
+                setMachine(70);
+                drillActive(false);
+                showHole(360);
+              },
+            },
+            {
+              title: "Inyectar lechada de cemento",
+              desc: "Se rellena el espacio anular para formar el micropilote y mejorar la adherencia al terreno.",
+              apply: () => {
+                showHole(360);
+                showBar(325);
+                showMicropile(350);
+                showBulb(70);
+                showLabel("labelMicropile");
+              },
+            },
+            {
+              title: "Resultado final",
+              desc: "El micropilote queda como un elemento delgado pero resistente que transmite cargas a profundidad.",
+              apply: () => {
+                showHole(360);
+                showBar(325);
+                showMicropile(350);
+                showBulb(70);
+                drillActive(false);
+                showLabel("labelMicropile");
+                showLabel("labelSteel");
+              },
+            },
+          ],
+        },
+        jet: {
+          name: "Jet Grouting",
+          goal: "mejorar el suelo formando una columna de suelo-cemento",
+          summary:
+            "El jet grouting no instala un pilote convencional: mejora el terreno. Se perfora y luego se inyecta lechada, a veces con agua o aire, a muy alta presión. Ese chorro rompe y mezcla el suelo, formando una columna de suelo-cemento más resistente y menos permeable.",
+          steps: [
+            {
+              title: "Posicionar la perforadora",
+              desc: "La máquina se ubica en el punto donde se necesita mejorar el terreno.",
+              apply: () => {
+                setMachine(70);
+                resetVisuals();
+                drillActive(false);
+              },
+            },
+            {
+              title: "Perforar hasta la cota de trabajo",
+              desc: "Se baja la herramienta hasta la profundidad donde comenzará la inyección.",
+              apply: () => {
+                drillActive(true);
+                showHole(360);
+                showLabel("labelHole");
+              },
+            },
+            {
+              title: "Pregunta: ¿qué hace el chorro?",
+              desc: "Aquí está la diferencia clave con los micropilotes.",
+              question: {
+                prompt:
+                  "Cuando comienza el jet grouting, ¿qué ocurre principalmente en el terreno?",
+                options: [
+                  {
+                    text: "Se coloca una barra de acero central",
+                    correct: false,
+                    feedback:
+                      "No necesariamente. Eso es típico de un micropilote, pero no es la esencia del jet grouting.",
+                  },
+                  {
+                    text: "El chorro rompe y mezcla el suelo con cemento",
+                    correct: true,
+                    feedback:
+                      "Exacto. El jet grouting mejora el terreno mezclándolo con la lechada a alta presión.",
+                  },
+                  {
+                    text: "Se vacía hormigón masivo sin mezclar el suelo",
+                    correct: false,
+                    feedback:
+                      "No. La clave es la mezcla controlada del terreno in situ.",
+                  },
+                ],
+                onCorrect: () => {
+                  showJetAction();
+                },
+              },
+              apply: () => {
+                drillActive(false);
+                showHole(360);
+              },
+            },
+            {
+              title: "Inyección y mezcla del terreno",
+              desc: "El chorro a alta presión erosiona el suelo y lo mezcla con la lechada para formar una columna tratada.",
+              apply: () => {
+                showHole(360);
+                showJetAction();
+                showJetColumn(350);
+                showLabel("labelJet");
+                showLabel("labelJetAction");
+              },
+            },
+            {
+              title: "Resultado final",
+              desc: "Queda una columna de suelo-cemento que mejora resistencia y reduce permeabilidad.",
+              apply: () => {
+                showHole(360);
+                showJetColumn(350);
+                showLabel("labelJet");
+                drillActive(false);
+              },
+            },
+          ],
+        },
+      };
+
+      let currentTechnique = "micropilote";
+      let currentStep = 0;
+      let score = 0;
+      let questionAnswered = false;
+
+      const els = {
+        btnMicropile: document.getElementById("btnMicropile"),
+        btnJet: document.getElementById("btnJet"),
+        btnPrev: document.getElementById("btnPrev"),
+        btnNext: document.getElementById("btnNext"),
+        btnReset: document.getElementById("btnReset"),
+        steps: document.getElementById("steps"),
+        questionCard: document.getElementById("questionCard"),
+        questionTitle: document.getElementById("questionTitle"),
+        questionPrompt: document.getElementById("questionPrompt"),
+        options: document.getElementById("options"),
+        feedback: document.getElementById("feedback"),
+        hudTechnique: document.getElementById("hudTechnique"),
+        hudStep: document.getElementById("hudStep"),
+        hudTotal: document.getElementById("hudTotal"),
+        hudGoal: document.getElementById("hudGoal"),
+        score: document.getElementById("score"),
+        summaryText: document.getElementById("summaryText"),
+        machine: document.getElementById("machine"),
+        drill: document.getElementById("drill"),
+        hole: document.getElementById("hole"),
+        micropile: document.getElementById("micropile"),
+        bar: document.getElementById("bar"),
+        groutbulb: document.getElementById("groutbulb"),
+        jetColumn: document.getElementById("jetColumn"),
+        jetStream: document.getElementById("jetStream"),
+        particles: document.getElementById("particles"),
+      };
+
+      const floatingLabels = [
+        "labelHole",
+        "labelSteel",
+        "labelMicropile",
+        "labelJet",
+        "labelJetAction",
+      ];
+
+      function hideAllLabels() {
+        floatingLabels.forEach((id) =>
+          document.getElementById(id).classList.remove("show")
+        );
+      }
+
+      function showLabel(id) {
+        document.getElementById(id).classList.add("show");
+      }
+
+      function setMachine(left) {
+        els.machine.style.left = left + "px";
+      }
+
+      function drillActive(active) {
+        els.drill.classList.toggle("active", active);
+      }
+
+      function showHole(height) {
+        els.hole.style.height = height + "px";
+      }
+
+      function showMicropile(height) {
+        els.micropile.style.height = height + "px";
+        els.micropile.style.opacity = 1;
+      }
+
+      function showBar(height) {
+        els.bar.style.height = height + "px";
+        els.bar.style.opacity = 1;
+      }
+
+      function showBulb(size) {
+        els.groutbulb.style.height = size + "px";
+        els.groutbulb.style.opacity = 1;
+      }
+
+      function showJetColumn(height) {
+        els.jetColumn.style.height = height + "px";
+        els.jetColumn.style.opacity = 1;
+        els.jetColumn.style.top = "176px";
+      }
+
+      function showJetAction() {
+        els.jetStream.style.opacity = 1;
+        spawnParticles();
+        showLabel("labelJetAction");
+      }
+
+      function clearJetAction() {
+        els.jetStream.style.opacity = 0;
+        els.particles.innerHTML = "";
+      }
+
+      function spawnParticles() {
+        els.particles.innerHTML = "";
+        const baseX = 220;
+        const baseY = 355;
+        for (let i = 0; i < 24; i++) {
+          const p = document.createElement("div");
+          p.className = "particle";
+          const angle = (Math.PI * 2 * i) / 24;
+          const dist = 20 + Math.random() * 48;
+          const x = baseX + Math.cos(angle) * dist;
+          const y = baseY + Math.sin(angle) * dist;
+          p.style.left = x + "px";
+          p.style.top = y + "px";
+          p.style.opacity = 0.8;
+          p.animate(
+            [
+              { transform: "translate(0,0) scale(.6)", opacity: 0.1 },
+              {
+                transform: `translate(${Math.random() * 20 - 10}px, ${
+                  Math.random() * 20 - 10
+                }px) scale(1.1)`,
+                opacity: 0.85,
+              },
+              {
+                transform: `translate(${Math.random() * 40 - 20}px, ${
+                  Math.random() * 40 - 20
+                }px) scale(.4)`,
+                opacity: 0,
+              },
+            ],
+            {
+              duration: 900 + Math.random() * 500,
+              iterations: 2,
+              easing: "ease-out",
+            }
+          );
+          els.particles.appendChild(p);
+        }
+      }
+
+      function resetVisuals() {
+        els.hole.style.height = "0px";
+        els.micropile.style.height = "0px";
+        els.micropile.style.opacity = 0;
+        els.bar.style.height = "0px";
+        els.bar.style.opacity = 0;
+        els.groutbulb.style.height = "0px";
+        els.groutbulb.style.opacity = 0;
+        els.jetColumn.style.height = "0px";
+        els.jetColumn.style.opacity = 0;
+        clearJetAction();
+        hideAllLabels();
+      }
+
+      function renderSteps() {
+        const data = techniques[currentTechnique];
+        els.steps.innerHTML = "";
+        data.steps.forEach((step, index) => {
+          const div = document.createElement("div");
+          div.className =
+            "step" +
+            (index === currentStep ? " active" : "") +
+            (index < currentStep ? " done" : "");
+          div.innerHTML = `<div class="dot">${
+            index < currentStep ? "✓" : index + 1
+          }</div><div><strong>${step.title}</strong><br><span>${
+            step.desc
+          }</span></div>`;
+          els.steps.appendChild(div);
+        });
+        els.hudTechnique.textContent = data.name;
+        els.hudGoal.textContent = "Objetivo: " + data.goal;
+        els.hudStep.textContent = currentStep + 1;
+        els.hudTotal.textContent = data.steps.length;
+        els.summaryText.innerHTML = data.summary;
+
+        els.btnMicropile.className =
+          currentTechnique === "micropilote" ? "primary" : "secondary";
+        els.btnJet.className =
+          currentTechnique === "jet" ? "primary" : "secondary";
+      }
+
+      // function renderQuestion(step) {
+      //   if (!step.question) {
+      //     els.questionCard.style.display = "none";
+      //     els.feedback.className = "feedback";
+      //     els.feedback.textContent = "";
+      //     return;
+      //   }
+
+      //   els.questionCard.style.display = "block";
+      //   els.questionTitle.textContent = "Comprueba lo aprendido";
+      //   els.questionPrompt.textContent = step.question.prompt;
+      //   els.options.innerHTML = "";
+      //   els.feedback.className = "feedback";
+      //   els.feedback.textContent = "";
+
+      //   step.question.options.forEach((opt) => {
+      //     const b = document.createElement("button");
+      //     b.className = "option";
+      //     b.textContent = opt.text;
+      //     b.addEventListener("click", () => answerOption(opt, step));
+      //     els.options.appendChild(b);
+      //   });
+      // }
+      function renderQuestion(step) {
+        if (!step.question) {
+          els.questionCard.style.display = "none";
+          els.feedback.className = "feedback";
+          els.feedback.textContent = "";
+          return;
+        }
+
+        els.questionCard.style.display = "block";
+        els.questionTitle.textContent = "Comprueba lo aprendido";
+        els.questionPrompt.textContent = step.question.prompt;
+        els.options.innerHTML = "";
+        els.feedback.className = "feedback";
+        els.feedback.textContent = "";
+
+        step.question.options.forEach((opt) => {
+          const b = document.createElement("button");
+          b.className = "option";
+          b.textContent = opt.text;
+          b.addEventListener("click", () => answerOption(opt, step));
+          els.options.appendChild(b);
+        });
+      }
+
+      function answerOption(opt, step) {
+        if (opt.correct) {
+          if (!questionAnswered) {
+            score += 1;
+            els.score.textContent = score;
+          }
+          questionAnswered = true;
+          els.feedback.className = "feedback good";
+          els.feedback.textContent = opt.feedback;
+          if (step.question.onCorrect) step.question.onCorrect();
+        } else {
+          els.feedback.className = "feedback bad";
+          els.feedback.textContent = opt.feedback;
+        }
+      }
+
+      function applyStep() {
+        resetVisuals();
+        questionAnswered = false;
+
+        const data = techniques[currentTechnique];
+        const step = data.steps[currentStep];
+
+        step.apply();
+        renderSteps();
+        renderQuestion(step);
+
+        els.btnPrev.disabled = currentStep === 0;
+        els.btnNext.disabled = !!step.question && !questionAnswered;
+
+        // 🔥 si este paso tiene pregunta, bajar automáticamente a ella
+        if (step.question) {
+          setTimeout(() => {
+            els.questionCard.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          }, 100);
+        }
+      }
+
+      function goToStep(index) {
+        const data = techniques[currentTechnique];
+        currentStep = Math.max(0, Math.min(index, data.steps.length - 1));
+        applyStep();
+      }
+
+      els.btnMicropile.addEventListener("click", () => {
+        currentTechnique = "micropilote";
+        currentStep = 0;
+        applyStep();
+      });
+
+      els.btnJet.addEventListener("click", () => {
+        currentTechnique = "jet";
+        currentStep = 0;
+        applyStep();
+      });
+
+      els.btnPrev.addEventListener("click", () => {
+        // 🔥 SCROLL A LA ANIMACIÓN
+        document.querySelector(".scene").scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        goToStep(currentStep - 1);
+      });
+
+      els.btnNext.addEventListener("click", () => {
+        // 🔥 SCROLL A LA ANIMACIÓN
+        document.querySelector(".scene").scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        const step = techniques[currentTechnique].steps[currentStep];
+        if (step.question && !questionAnswered) {
+          els.feedback.className = "feedback bad";
+          els.feedback.textContent =
+            "Antes de avanzar, responde correctamente para confirmar que entendiste este paso.";
+          return;
+        }
+        goToStep(currentStep + 1);
+      });
+
+      els.btnReset.addEventListener("click", () => {
+        score = 0;
+        els.score.textContent = score;
+        currentStep = 0;
+        applyStep();
+      });
+
+      // Rehabilita avance cuando una respuesta correcta ya fue dada
+      const observer = new MutationObserver(() => {
+        const step = techniques[currentTechnique].steps[currentStep];
+        els.btnNext.disabled = !!step.question && !questionAnswered;
+      });
+      observer.observe(els.feedback, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+
+      applyStep();
+
+      // 👇 NUEVO: comportamiento flecha
+      const scrollHint = document.getElementById("scrollHint");
+
+      // Ocultar al hacer scroll
+      window.addEventListener("scroll", () => {
+        if (window.scrollY > 50 && scrollHint) {
+          scrollHint.style.transition = "opacity 0.4s ease";
+          scrollHint.style.opacity = "0";
+        }
+      });
+
+      // Ocultar al interactuar con botones
+      ["btnNext", "btnPrev", "btnMicropile", "btnJet"].forEach((id) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.addEventListener("click", () => {
+            if (scrollHint) scrollHint.style.opacity = "0";
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

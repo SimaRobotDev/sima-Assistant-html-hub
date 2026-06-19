@@ -1,0 +1,2429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Cenco Costanera</title>
+<!-- mobility-ui-v24 -->
+<link rel="stylesheet" href="../shared/app.css" />
+<link rel="stylesheet" href="../shared/mapvx/styles.css" />
+<script src="../shared/locale.js"></script>
+<script src="../shared/bridge.js"></script>
+<script src="../shared/mapvx/index.js"></script>
+<script src="../shared/mapvx-bridge.js"></script>
+<style>
+:root {
+  --cm-purple: #5B2D8E;
+  --cm-purple-dark: #3D1D5C;
+  --cm-pink: #E4007C;
+  --cm-surface: #F4F0F8;
+  --cm-card: #FFFFFF;
+  --cm-text: #1E1630;
+  --cm-muted: #6B6280;
+  --cm-line: #E7DFF0;
+  --cm-shadow: 0 8px 24px rgba(61, 29, 92, 0.1);
+  --cm-speak-bar: 132px;
+  --cm-header-height: 54px;
+  --cm-survey-strip-height: 0px;
+}
+
+.app-shell.has-survey { --cm-survey-strip-height: 76px; }
+
+html, body {
+  background: transparent;
+  scroll-padding-bottom: calc(var(--cm-speak-bar) + env(safe-area-inset-bottom, 0px));
+}
+body.cencomall-theme { color: var(--cm-text); margin: 0; }
+
+.cencomall-theme .app-shell {
+  max-width: 1080px;
+  padding: 0 0 calc(var(--cm-speak-bar) + env(safe-area-inset-bottom, 0px));
+  gap: 0;
+  background: var(--cm-surface);
+  min-height: 100%;
+}
+
+.cm-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: linear-gradient(135deg, var(--cm-purple-dark) 0%, var(--cm-purple) 100%);
+  color: #fff;
+  padding: 14px 18px 16px;
+  box-shadow: var(--cm-shadow);
+}
+
+.cm-header-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.cm-body {
+  padding: 14px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cm-panel {
+  background: var(--cm-card);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: var(--cm-shadow);
+  border: 1px solid var(--cm-line);
+}
+
+.cm-survey-strip {
+  position: sticky;
+  top: var(--cm-header-height);
+  z-index: 35;
+  background: linear-gradient(180deg, #FFF 0%, #FAF7FD 100%);
+  border-bottom: 1px solid var(--cm-line);
+  box-shadow: 0 4px 14px rgba(61, 29, 92, 0.07);
+  padding: 8px 10px 8px 12px;
+  animation: fadeIn 0.25s ease;
+}
+
+.cm-survey-strip.hidden { display: none; }
+
+.cm-survey-strip-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cm-survey-strip-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cm-survey-title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.cm-star-rating {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cm-star-btn {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--cm-line);
+  border-radius: 9px;
+  background: #fff;
+  color: #C4B8D4;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s;
+}
+
+.cm-star-btn:hover,
+.cm-star-btn:focus-visible {
+  border-color: #D4B85A;
+  background: #FFF9E8;
+}
+
+.cm-star-btn.active,
+.cm-star-btn.selected {
+  border-color: #E6A800;
+  background: #FFF6D6;
+  color: #E6A800;
+}
+
+.cm-star-btn:active { transform: scale(0.94); }
+
+.cm-star-hint {
+  font-size: 10px;
+  color: var(--cm-muted);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.cm-survey-dismiss {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: #F0E9F8;
+  color: var(--cm-muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cm-survey-dismiss:active { transform: scale(0.94); }
+
+.cm-survey-strip.is-thanks .cm-survey-strip-inner {
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.cm-survey-thanks-msg {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cm-purple-dark);
+  margin: 0;
+  text-align: center;
+}
+
+.cm-welcome {
+  text-align: center;
+  padding: 16px 10px;
+  color: var(--cm-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cm-results-sticky {
+  background: var(--cm-card);
+  margin: -14px -14px 10px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--cm-line);
+  border-radius: 16px 16px 0 0;
+}
+
+.cm-results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cm-results-title { font-size: 17px; font-weight: 800; margin: 0; }
+
+.cm-results-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cm-purple);
+  background: #F0E9F8;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.cm-results-query {
+  font-size: 13px;
+  color: var(--cm-muted);
+  margin: 0;
+}
+
+.result-block { padding-bottom: 8px; }
+
+.store-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-bottom: 24px;
+}
+
+.store-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid var(--cm-line);
+  box-shadow: 0 4px 14px rgba(61, 29, 92, 0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.store-card-top { padding: 10px 10px 8px; flex: 1; }
+
+.store-initials {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #EFE5FA 0%, #DCC9F2 100%);
+  color: var(--cm-purple-dark);
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.store-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #F6F1FB;
+  object-fit: contain;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.store-name {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.store-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+
+.store-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #F6F1FB;
+  color: var(--cm-purple-dark);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-badge-floor { background: #EAF3FF; color: #1455A0; }
+
+.store-detail {
+  font-size: 10px;
+  color: var(--cm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-ver-mapa,
+.btn-remodelacion {
+  width: 100%;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 10px 6px;
+  cursor: pointer;
+}
+
+.btn-ver-mapa { background: var(--cm-purple); color: #fff; }
+.btn-remodelacion { background: #B7B0C2; color: #fff; cursor: not-allowed; }
+
+.store-card-group { grid-column: span 1; }
+
+.store-badge-locales {
+  background: #FFF3E0;
+  color: #B45309;
+}
+
+.store-floors-summary {
+  font-size: 10px;
+  color: var(--cm-muted);
+  margin-top: 4px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.btn-toggle-locales {
+  width: 100%;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 10px 6px;
+  cursor: pointer;
+  background: #EFE5FA;
+  color: var(--cm-purple-dark);
+}
+
+.store-group-locations {
+  border-top: 1px solid var(--cm-line);
+  background: #FAF7FD;
+}
+
+.store-group-locations.hidden { display: none; }
+
+.store-group-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--cm-line);
+}
+
+.store-group-row:last-child { border-bottom: none; }
+
+.store-group-row-info { flex: 1; min-width: 0; }
+
+.store-group-row-name {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-group-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.btn-ver-mapa-sm {
+  border: none;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--cm-purple);
+  color: #fff;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cm-empty { text-align: center; padding: 20px 10px; }
+.cm-empty-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+.cm-empty-copy { color: var(--cm-muted); font-size: 13px; line-height: 1.4; }
+
+.cm-speak-fab {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, rgba(244,240,248,0) 0%, rgba(244,240,248,0.92) 30%, #F4F0F8 100%);
+  pointer-events: none;
+}
+
+.cm-speak-btn {
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 16px 18px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+  background: linear-gradient(135deg, var(--cm-purple) 0%, var(--cm-pink) 100%);
+  box-shadow: 0 8px 24px rgba(91, 45, 142, 0.3);
+}
+
+.cm-speak-btn:active { transform: scale(0.98); }
+
+.map-view {
+  position: fixed;
+  inset: 0;
+  background: var(--cm-surface);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-view.hidden { display: none; }
+
+.map-view-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, var(--cm-purple-dark) 0%, var(--cm-purple) 100%);
+  color: #fff;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.map-view-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.btn-map-route {
+  border: none;
+  background: var(--cm-pink);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-map-route.hidden { display: none; }
+
+.btn-map-route:disabled,
+.btn-map-route.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255,255,255,0.25);
+}
+
+.map-floor-bar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  background: #fff;
+  border-bottom: 1px solid var(--cm-line);
+  -webkit-overflow-scrolling: touch;
+}
+
+.map-floor-bar.hidden { display: none; }
+
+.map-floor-btn {
+  border: 1px solid var(--cm-line);
+  background: #fff;
+  color: var(--cm-text);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.map-floor-btn.active {
+  background: var(--cm-purple);
+  color: #fff;
+  border-color: var(--cm-purple);
+}
+
+.btn-back {
+  border: none;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.map-view-title { font-weight: 800; font-size: 16px; }
+
+.map-view-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.store-detail-panel {
+  background: #fff;
+  padding: 16px;
+  border-bottom: 1px solid var(--cm-line);
+}
+
+.store-detail-panel.hidden { display: none; }
+
+.store-detail-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.store-detail-logo.store-logo,
+.store-detail-logo.store-initials {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.store-detail-name {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.store-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.store-detail-desc {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--cm-text);
+}
+
+.store-detail-schedule {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--cm-muted);
+}
+
+.map-embed-wrap {
+  position: relative;
+  min-height: min(52vh, 460px);
+  height: min(52vh, 460px);
+  flex-shrink: 0;
+  background: #fff;
+}
+
+#map-iframe,
+#mapvx-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+  min-height: 0;
+  flex: none;
+}
+
+#mapvx-container.hidden,
+#map-iframe.hidden { display: none; }
+
+.map-status {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--cm-muted);
+  background: #fff;
+  border-bottom: 1px solid var(--cm-line);
+}
+
+.map-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--cm-muted);
+  font-size: 14px;
+  background: #fff;
+}
+
+.fade-in { animation: fadeIn 0.3s ease; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hidden { display: none !important; }
+
+.cm-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+
+.cm-chip {
+  border: 1px solid var(--cm-line);
+  background: #F6F1FB;
+  color: var(--cm-purple-dark);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cm-chip:active { transform: scale(0.97); }
+
+.store-badge-promo {
+  background: #FFE8F3;
+  color: #B8005C;
+}
+
+.promo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-bottom: 24px;
+}
+
+.promo-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid var(--cm-line);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.promo-card-img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  background: #EFE5FA;
+}
+
+.promo-card-body { padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+
+.promo-brand { font-size: 11px; font-weight: 800; color: var(--cm-purple); }
+
+.promo-title {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.promo-validity { font-size: 10px; color: var(--cm-muted); }
+
+.btn-promo-app {
+  width: 100%;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 10px 6px;
+  cursor: pointer;
+  background: var(--cm-pink);
+  color: #fff;
+}
+
+.service-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
+
+.service-card {
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.service-card.expanded .service-desc { -webkit-line-clamp: unset; white-space: normal; }
+
+.service-name { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+
+.service-loc { font-size: 11px; color: var(--cm-purple); font-weight: 700; margin-bottom: 6px; }
+
+.service-desc {
+  font-size: 12px;
+  color: var(--cm-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.parking-summary {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--cm-text);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.parking-accordion { display: flex; flex-direction: column; gap: 8px; }
+
+.parking-item {
+  border: 1px solid var(--cm-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.parking-item-head {
+  width: 100%;
+  border: none;
+  background: #F6F1FB;
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--cm-purple-dark);
+  cursor: pointer;
+}
+
+.parking-item-body {
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--cm-muted);
+  border-top: 1px solid var(--cm-line);
+}
+
+.parking-item-body.hidden { display: none; }
+
+.service-card-bathroom {
+  border-color: #C9B8E8;
+  background: linear-gradient(180deg, #FFF 0%, #F9F5FE 100%);
+}
+
+.service-card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.service-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.service-card-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.btn-service-map {
+  border: none;
+  border-radius: 10px;
+  background: var(--cm-purple);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.service-floor-hint {
+  font-size: 12px;
+  color: var(--cm-muted);
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+
+.cm-search-landing {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cm-search-landing.visible {
+  display: flex;
+}
+
+.cm-search-landing-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--cm-text);
+}
+
+.cm-search-landing-hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--cm-muted);
+  line-height: 1.45;
+}
+
+.cm-search-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.cm-search-input {
+  flex: 1;
+  min-width: 0;
+  border: 2px solid var(--cm-line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cm-text);
+  background: #fff;
+}
+
+.cm-search-input:focus {
+  outline: none;
+  border-color: var(--cm-purple);
+}
+
+.cm-search-btn {
+  border: none;
+  border-radius: 12px;
+  background: var(--cm-purple);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  padding: 12px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cm-search-voice-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--cm-muted);
+  text-align: center;
+}
+</style>
+</head>
+<body class="cencomall-theme">
+
+<div class="app-shell" id="app-shell">
+  <header class="cm-header">
+    <h1 class="cm-header-title">Cenco Costanera</h1>
+  </header>
+
+  <section id="survey-strip" class="cm-survey-strip hidden" aria-label="Evaluación de atención">
+    <div class="cm-survey-strip-inner" id="survey-strip-inner">
+      <div class="cm-survey-strip-text">
+        <h2 class="cm-survey-title" id="survey-title">¿Cómo va mi atención?</h2>
+        <p class="cm-star-hint" id="survey-hint">1 = muy mala · 5 = excelente</p>
+      </div>
+      <div class="cm-star-rating" id="survey-stars"></div>
+      <button class="cm-survey-dismiss" type="button" aria-label="Omitir encuesta" onclick="dismissSurvey()">×</button>
+    </div>
+  </section>
+
+  <div class="cm-body">
+    <section id="resultado" class="result-block">
+      <div class="cm-panel cm-search-landing" id="store-search-landing">
+        <h2 class="cm-search-landing-title" id="store-search-title">Buscar tiendas</h2>
+        <p class="cm-search-landing-hint" id="store-search-hint">
+          Di el nombre de una tienda o escríbelo abajo.
+        </p>
+        <div class="cm-search-row">
+          <input
+            class="cm-search-input"
+            id="storeSearchInput"
+            type="search"
+            autocomplete="off"
+            enterkeyhint="search"
+            placeholder="Ej: Nike, Zara…"
+          />
+          <button class="cm-search-btn" id="storeSearchBtn" type="button">Buscar</button>
+        </div>
+        <p class="cm-search-voice-hint" id="store-search-voice-hint">
+          También puedes usar el botón de voz abajo.
+        </p>
+      </div>
+      <div class="cm-panel cm-welcome" id="welcome-hint">
+        Aquí verás tiendas, promociones y servicios que encuentre Cami.
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="cm-speak-fab">
+  <button class="cm-speak-btn" id="btnSpeak" type="button">🎤 Hablar con Cami</button>
+</div>
+
+<div id="map-view" class="map-view hidden">
+  <div class="map-view-header">
+    <button class="btn-back" id="map-back-btn" onclick="closeMapView()">← Volver</button>
+    <div class="map-view-title" id="map-view-title">Mapa</div>
+    <div class="map-view-actions">
+      <button class="btn-map-route hidden" id="map-route-btn" type="button">Ver ruta</button>
+    </div>
+  </div>
+  <div class="map-view-body">
+    <div id="store-detail-panel" class="store-detail-panel hidden" aria-label="Detalle tienda"></div>
+    <div id="map-floor-bar" class="map-floor-bar hidden" role="tablist" aria-label="Pisos"></div>
+    <div id="map-status" class="map-status hidden"></div>
+    <div class="map-embed-wrap">
+      <div id="mapvx-container" class="hidden"></div>
+      <iframe id="map-iframe" class="hidden" allowfullscreen></iframe>
+      <div id="map-placeholder" class="map-placeholder hidden"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
+const MOBILITY_UI_VERSION = "v24";
+const MALL_TITLE = "Cenco Costanera";
+let lastMarketPayload = null;
+let lastPromotionPayload = null;
+let lastServicesPayload = null;
+
+const MOBILITY_I18N = {
+  es: {
+    results: "Resultados",
+    promotions: "Promociones",
+    services: "Servicios",
+    parking: "Estacionamiento",
+    search: "Búsqueda",
+    filter: "Filtro",
+    allDiscountsToday: "Descuentos vigentes hoy",
+    viewMap: "Ver mapa",
+    back: "← Volver",
+    map: "Mapa",
+    mapComingSoon: "Mapa próximamente",
+    mapLoading: "Cargando mapa…",
+    mapError: "No se pudo cargar el mapa",
+    speakWithCami: "🎤 Hablar con Cami",
+    redeemInApp: "Canjear en la app",
+    noResults: "Sin resultados",
+    storesNotFound: "No encontramos tiendas para",
+    promosNotFound: "No hay promociones para",
+    tryCategoryOrBrand: "Prueba un chip de categoría o di el nombre de la marca.",
+    servicesNotFound: "No encontramos servicios para",
+    tryAnotherKeyword: "Prueba con otro término, por ejemplo baños, cajero o información.",
+    loadError: "No se pudieron mostrar los resultados.",
+    loadErrorTitle: "No pudimos cargar resultados",
+    welcomeHint: "Aquí verás tiendas, promociones y servicios que encuentre Cami.",
+    parkingUnavailable: "No hay información de estacionamiento disponible.",
+    noAdditionalDetail: "Sin detalle adicional.",
+    surveyTitle: "¿Cómo va mi atención?",
+    surveyHint: "1 = muy mala · 5 = excelente",
+    surveyThanks: "¡Gracias por tu evaluación!",
+    bathrooms: "Baños",
+    bathroomsKids: "Niños y mudadores",
+    allLevels: "Todos los niveles",
+    level: "Nivel",
+    gf: "PB",
+    renovation: "Remodelación",
+    showLocales: "Ver locales",
+    hideLocales: "Ocultar locales",
+    locales: "locales",
+    schedule: "Horario",
+    viewRoute: "Ver ruta",
+    clearRoute: "Quitar ruta",
+    routeActive: "Ruta activa",
+    routeNeedsTotem: "Ruta: configura totemPlaceId",
+    routeError: "No se pudo trazar la ruta",
+    floors: "Pisos",
+    validUntil: "Vigente hasta",
+    appOnly: "Solo APP",
+    storesFoundNone: "No encontré tiendas para",
+    storeSearchTitle: "Buscar tiendas",
+    storeSearchHint: "Di el nombre de una tienda o escríbelo abajo.",
+    storeSearchPlaceholder: "Ej: Nike, Zara…",
+    storeSearchBtn: "Buscar",
+    storeSearchVoiceHint: "También puedes usar el botón de voz abajo."
+  },
+  en: {
+    results: "Results",
+    promotions: "Promotions",
+    services: "Services",
+    parking: "Parking",
+    search: "Search",
+    filter: "Filter",
+    allDiscountsToday: "Today's discounts",
+    viewMap: "View map",
+    back: "← Back",
+    map: "Map",
+    mapComingSoon: "Map coming soon",
+    mapLoading: "Loading map…",
+    mapError: "Could not load map",
+    speakWithCami: "🎤 Talk to Cami",
+    redeemInApp: "Redeem in app",
+    noResults: "No results",
+    storesNotFound: "We couldn't find stores for",
+    promosNotFound: "No promotions for",
+    tryCategoryOrBrand: "Try a category chip or say a brand name.",
+    servicesNotFound: "We couldn't find services for",
+    tryAnotherKeyword: "Try another term, e.g. baños, ATM or information.",
+    loadError: "We couldn't show the results.",
+    loadErrorTitle: "Couldn't load results",
+    welcomeHint: "Stores, promotions and services Cami finds will appear here.",
+    parkingUnavailable: "Parking information is not available.",
+    noAdditionalDetail: "No additional details.",
+    surveyTitle: "How is my assistance?",
+    surveyHint: "1 = very poor · 5 = excellent",
+    surveyThanks: "Thanks for your feedback!",
+    bathrooms: "Restrooms",
+    bathroomsKids: "Kids & changing",
+    allLevels: "All levels",
+    level: "Level",
+    gf: "GF",
+    renovation: "Renovation",
+    showLocales: "Show locations",
+    hideLocales: "Hide locations",
+    locales: "locations",
+    schedule: "Hours",
+    viewRoute: "Show route",
+    clearRoute: "Clear route",
+    routeActive: "Route active",
+    routeNeedsTotem: "Route: configure totemPlaceId",
+    routeError: "Could not draw route",
+    floors: "Floors",
+    validUntil: "Valid until",
+    appOnly: "App only",
+    storesFoundNone: "I couldn't find stores for",
+    storeSearchTitle: "Search stores",
+    storeSearchHint: "Say a store name or type it below.",
+    storeSearchPlaceholder: "E.g. Nike, Zara…",
+    storeSearchBtn: "Search",
+    storeSearchVoiceHint: "You can also use the voice button below."
+  },
+  pt: {
+    results: "Resultados",
+    promotions: "Promoções",
+    services: "Serviços",
+    parking: "Estacionamento",
+    search: "Busca",
+    filter: "Filtro",
+    allDiscountsToday: "Descontos de hoje",
+    viewMap: "Ver mapa",
+    back: "← Voltar",
+    map: "Mapa",
+    mapComingSoon: "Mapa em breve",
+    mapLoading: "Carregando mapa…",
+    mapError: "Não foi possível carregar o mapa",
+    speakWithCami: "🎤 Falar com Cami",
+    redeemInApp: "Resgatar no app",
+    noResults: "Sem resultados",
+    storesNotFound: "Não encontramos lojas para",
+    promosNotFound: "Não há promoções para",
+    tryCategoryOrBrand: "Tente uma categoria ou diga o nome da marca.",
+    servicesNotFound: "Não encontramos serviços para",
+    tryAnotherKeyword: "Tente outro termo, por exemplo banheiros, caixa ou informação.",
+    loadError: "Não foi possível mostrar os resultados.",
+    loadErrorTitle: "Não conseguimos carregar resultados",
+    welcomeHint: "Aqui você verá lojas, promoções e serviços que a Cami encontrar.",
+    parkingUnavailable: "Informações de estacionamento indisponíveis.",
+    noAdditionalDetail: "Sem detalhes adicionais.",
+    surveyTitle: "Como está meu atendimento?",
+    surveyHint: "1 = muito ruim · 5 = excelente",
+    surveyThanks: "Obrigado pela avaliação!",
+    bathrooms: "Banheiros",
+    bathroomsKids: "Crianças e fraldário",
+    allLevels: "Todos os níveis",
+    level: "Nível",
+    gf: "Térreo",
+    renovation: "Remodelação",
+    showLocales: "Ver locais",
+    hideLocales: "Ocultar locais",
+    locales: "locais",
+    schedule: "Horário",
+    viewRoute: "Ver rota",
+    clearRoute: "Remover rota",
+    routeActive: "Rota ativa",
+    routeNeedsTotem: "Rota: configure totemPlaceId",
+    routeError: "Não foi possível traçar a rota",
+    floors: "Andares",
+    validUntil: "Válido até",
+    appOnly: "Somente APP",
+    storesFoundNone: "Não encontrei lojas para",
+    storeSearchTitle: "Buscar lojas",
+    storeSearchHint: "Diga o nome de uma loja ou digite abaixo.",
+    storeSearchPlaceholder: "Ex: Nike, Zara…",
+    storeSearchBtn: "Buscar",
+    storeSearchVoiceHint: "Você também pode usar o botão de voz abaixo."
+  }
+};
+
+function getMobilityLocale() {
+  return SimaLocale.resolveLocale(
+    window.MALL_LOCALE || new URLSearchParams(window.location.search).get("locale") || "es"
+  );
+}
+
+let mobilityLocale = getMobilityLocale();
+
+function t(key) {
+  return SimaLocale.t(MOBILITY_I18N, key, mobilityLocale);
+}
+
+function getMobilityMode() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("mode") || "";
+}
+
+function applyStoreSearchLandingLocale() {
+  const title = document.getElementById("store-search-title");
+  if (title) title.textContent = t("storeSearchTitle");
+
+  const hint = document.getElementById("store-search-hint");
+  if (hint) hint.textContent = t("storeSearchHint");
+
+  const input = document.getElementById("storeSearchInput");
+  if (input) input.placeholder = t("storeSearchPlaceholder");
+
+  const btn = document.getElementById("storeSearchBtn");
+  if (btn) btn.textContent = t("storeSearchBtn");
+
+  const voiceHint = document.getElementById("store-search-voice-hint");
+  if (voiceHint) voiceHint.textContent = t("storeSearchVoiceHint");
+}
+
+function showStoreSearchLanding(visible) {
+  const landing = document.getElementById("store-search-landing");
+  const welcome = document.getElementById("welcome-hint");
+  if (landing) landing.classList.toggle("visible", visible);
+  if (welcome) welcome.style.display = visible ? "none" : "";
+}
+
+function submitStoreSearch() {
+  const input = document.getElementById("storeSearchInput");
+  const query = input ? String(input.value || "").trim() : "";
+  if (!query) {
+    if (input) input.focus();
+    return;
+  }
+
+  const landing = document.getElementById("store-search-landing");
+  if (landing) landing.classList.remove("visible");
+
+  SimaBridge.send("market_search", { text: query });
+}
+
+function initStoreSearchLanding() {
+  if (getMobilityMode() !== "store_search") return;
+
+  applyStoreSearchLandingLocale();
+  showStoreSearchLanding(true);
+
+  const input = document.getElementById("storeSearchInput");
+  const btn = document.getElementById("storeSearchBtn");
+
+  if (btn) btn.onclick = submitStoreSearch;
+  if (input) {
+    input.onkeydown = (event) => {
+      if (event.key === "Enter") submitStoreSearch();
+    };
+    window.setTimeout(() => input.focus(), 300);
+  }
+}
+
+function applyMobilityLocale() {
+  mobilityLocale = getMobilityLocale();
+  MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || MAP_SERVICE_BASE_URL || "";
+
+  const welcome = document.getElementById("welcome-hint");
+  if (welcome) welcome.textContent = t("welcomeHint");
+
+  applyStoreSearchLandingLocale();
+  if (getMobilityMode() === "store_search")
+    showStoreSearchLanding(true);
+
+  const speakBtn = document.getElementById("btnSpeak");
+  if (speakBtn) speakBtn.textContent = t("speakWithCami");
+
+  const surveyTitle = document.getElementById("survey-title");
+  if (surveyTitle) surveyTitle.textContent = t("surveyTitle");
+
+  const surveyHint = document.getElementById("survey-hint");
+  if (surveyHint) surveyHint.textContent = t("surveyHint");
+
+  const mapBack = document.getElementById("map-back-btn");
+  if (mapBack) mapBack.textContent = t("back");
+
+  const mapTitle = document.getElementById("map-view-title");
+  if (mapTitle && !mapTitle.textContent) mapTitle.textContent = t("map");
+}
+
+window.applyMobilityLocale = applyMobilityLocale;
+
+function ingestPayload(data) {
+  const payload = typeof data === "string" ? JSON.parse(data) : data;
+  renderIncomingPayload(payload);
+}
+
+window.pushMallContentFromUnity = function(data) {
+  try { ingestPayload(data); }
+  catch (e) {
+    console.error("pushMallContentFromUnity failed", e);
+    showSearchError(t("loadError"));
+  }
+};
+
+window.pushMarketSearchFromUnity = function(data) {
+  try { ingestPayload(data); }
+  catch (e) {
+    console.error("pushMarketSearchFromUnity failed", e);
+    showSearchError(t("loadError"));
+  }
+};
+
+if (typeof SimaBridge === "undefined") {
+  window.SimaBridge = {
+    send: (t, p) => console.log("[DEV]", t, p),
+    speak: (t) => console.log("[DEV TTS]", t),
+    requestClose: () => console.log("[DEV] close"),
+    ready: () => {}
+  };
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  applyMobilityLocale();
+  initStoreSearchLanding();
+  SimaBridge.ready("mobility");
+  SimaBridge.log("mobility DOM ready " + MOBILITY_UI_VERSION + " locale=" + mobilityLocale);
+  logMapVxConfig("DOMContentLoaded");
+  renderEntrySurvey();
+  document.getElementById("btnSpeak").onclick = startVoiceInput;
+});
+
+window.handleUnityData = function(raw) {
+  buscarDesdeVoz(raw);
+};
+
+const STAR_LABELS = ["Muy mala", "Mala", "Regular", "Buena", "Excelente"];
+
+function setSurveyVisible(visible) {
+  const strip = document.getElementById("survey-strip");
+  const shell = document.getElementById("app-shell");
+  if (strip) strip.classList.toggle("hidden", !visible);
+  if (shell) shell.classList.toggle("has-survey", visible);
+}
+
+function dismissSurvey() {
+  setSurveyVisible(false);
+}
+
+function renderEntrySurvey() {
+  const starsWrap = document.getElementById("survey-stars");
+  if (!starsWrap) return;
+
+  starsWrap.innerHTML = [1, 2, 3, 4, 5].map((score) => `
+    <button
+      class="cm-star-btn"
+      type="button"
+      data-score="${score}"
+      aria-label="${score} estrella${score > 1 ? "s" : ""} — ${STAR_LABELS[score - 1]}"
+    >★</button>`).join("");
+
+  starsWrap.querySelectorAll(".cm-star-btn").forEach((btn) => {
+    btn.onclick = () => submitEntrySurvey(btn.getAttribute("data-score"), btn);
+  });
+
+  setSurveyVisible(true);
+}
+
+function highlightStars(upToScore) {
+  document.querySelectorAll(".cm-star-btn").forEach((btn) => {
+    const score = Number(btn.getAttribute("data-score"));
+    btn.classList.toggle("selected", score <= upToScore);
+    btn.classList.toggle("active", score === upToScore);
+  });
+
+  const hint = document.getElementById("survey-hint");
+  if (hint && upToScore >= 1 && upToScore <= 5)
+    hint.textContent = STAR_LABELS[upToScore - 1];
+}
+
+function submitEntrySurvey(score, buttonEl) {
+  const numericScore = Number(score);
+  highlightStars(numericScore);
+  if (buttonEl) buttonEl.classList.add("active");
+
+  SimaBridge.send("service_feedback", { score: String(score), phase: "entry" });
+
+  const strip = document.getElementById("survey-strip");
+  const inner = document.getElementById("survey-strip-inner");
+  if (strip && inner) {
+    strip.classList.add("is-thanks");
+    inner.innerHTML = `<p class="cm-survey-thanks-msg">${escapeHtml(t("surveyThanks"))}</p>`;
+  }
+
+  window.setTimeout(() => {
+    if (strip) strip.classList.remove("is-thanks");
+    setSurveyVisible(false);
+  }, 1200);
+}
+
+function decodeBase64Utf8(b64) {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder("utf-8").decode(bytes);
+}
+
+function showSearchError(message) {
+  document.getElementById("resultado").innerHTML = `
+    <div class="cm-panel fade-in">
+      <div class="cm-empty">
+        <div class="cm-empty-title">${escapeHtml(t("loadErrorTitle"))}</div>
+        <div class="cm-empty-copy">${escapeHtml(message)}</div>
+      </div>
+    </div>`;
+}
+
+function buscarDesdeVoz(raw) {
+  if (raw == null) return;
+  if (typeof raw === "object") {
+    renderIncomingPayload(raw);
+    return;
+  }
+
+  let input = String(raw).trim();
+  if (!input) return;
+
+  if (input.startsWith("base64:")) {
+    try { input = decodeBase64Utf8(input.substring(7)); }
+    catch (e) {
+      showSearchError("Error al leer los datos de la búsqueda.");
+      return;
+    }
+  }
+
+  if (input.startsWith("{") || input.startsWith("[")) {
+    try { renderIncomingPayload(JSON.parse(input)); }
+    catch (e) { showSearchError("Error al mostrar los resultados."); }
+  }
+}
+
+function renderIncomingPayload(dataJson) {
+  if (!dataJson || !dataJson.type) return;
+  switch (dataJson.type) {
+    case "market_search":
+      renderMarketResults(dataJson);
+      break;
+    case "promotion_search":
+      renderPromotionResults(dataJson);
+      break;
+    case "services_search":
+      renderServicesResults(dataJson);
+      break;
+    case "parking_info":
+      renderParkingInfo(dataJson);
+      break;
+    default:
+      console.warn("Unknown payload type", dataJson.type);
+  }
+}
+
+function getStoreInitials(name) {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function getCencomallSiteOrigin() {
+  return String(window.CENCOMALL_SITE_ORIGIN || "https://stg.cencomalls.cl").replace(/\/$/, "");
+}
+
+function resolveMediaUrl(url) {
+  if (!url) return "";
+  const u = String(url).trim();
+  if (/^https?:\/\//i.test(u)) return u;
+  const origin = getCencomallSiteOrigin();
+  return u.startsWith("/") ? origin + u : origin + "/" + u;
+}
+
+function resolveStoreLogoUrl(result) {
+  if (!result) return "";
+  const raw = String(
+    result.logoUrl || result.LogoUrl || result.logo || result.brand_logo || ""
+  ).trim();
+  return resolveMediaUrl(raw);
+}
+
+function onStoreLogoError(img) {
+  const initials = img.getAttribute("data-initials") || "?";
+  const hadDetail = img.classList.contains("store-detail-logo");
+  const div = document.createElement("div");
+  div.className = hadDetail ? "store-initials store-detail-logo" : "store-initials";
+  div.textContent = initials;
+  img.replaceWith(div);
+}
+
+function renderStoreAvatar(result, detail) {
+  const name = result.name || result.brand || "Tienda";
+  const initials = getStoreInitials(name);
+  const logoUrl = resolveStoreLogoUrl(result);
+  const extraClass = detail ? " store-detail-logo" : "";
+  if (!logoUrl) {
+    return `<div class="store-initials${extraClass}">${escapeHtml(initials)}</div>`;
+  }
+  return `<img class="store-logo${extraClass}" src="${escapeHtml(logoUrl)}" alt="" loading="lazy" data-initials="${escapeHtml(initials)}" onerror="onStoreLogoError(this)" />`;
+}
+
+function formatNivel(floor) {
+  if (!floor) return "—";
+  const f = String(floor).trim();
+  if (f.toUpperCase() === "ALL") return t("allLevels");
+  if (/^pb$/i.test(f) || /planta baja/i.test(f)) return t("gf");
+  const m = f.match(/(\d+)/);
+  if (m) return t("level") + " " + m[1];
+  return f;
+}
+
+function formatServiceFloors(floors) {
+  if (!floors || !floors.length) return "";
+  if (floors.includes("ALL")) return t("allLevels");
+  return floors.map((f) => formatNivel(f)).join(" · ");
+}
+
+function getServiceKind(name) {
+  const n = String(name || "").toLowerCase();
+  if (n.includes("niños") || n.includes("ninos") || n.includes("mudador"))
+    return "kids";
+  if (n.includes("baño") || n.includes("bano") || n.includes("wc"))
+    return "bathroom";
+  return "";
+}
+
+function firstCategory(category) {
+  if (!category) return "";
+  return String(category).split(",")[0].trim();
+}
+
+function truncate(text, max) {
+  if (!text) return "";
+  const clean = String(text).trim();
+  return clean.length <= max ? clean : clean.substring(0, max - 1) + "…";
+}
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function summarizeFloors(locations) {
+  if (!locations || !locations.length) return "";
+  const floors = locations
+    .map((loc) => formatNivel(loc.floor))
+    .filter((f) => f && f !== "—");
+  return [...new Set(floors)].join(" · ");
+}
+
+function resolveStore(groupIndex, locationIndex) {
+  const result = lastMarketPayload?.results?.[groupIndex];
+  if (!result) return null;
+
+  const base = {
+    id: result.id,
+    name: result.name,
+    floor: result.floor,
+    category: result.category,
+    local: result.local,
+    schedule: result.schedule,
+    brand: result.brand,
+    mall: result.mall,
+    logoUrl: result.logoUrl,
+    keywords: result.keywords,
+    description: result.description,
+    available: result.available !== false
+  };
+
+  if (
+    locationIndex != null
+    && result.isGroup
+    && result.locations
+    && result.locations[locationIndex]
+  ) {
+    const loc = result.locations[locationIndex];
+    return {
+      ...base,
+      id: loc.id || base.id,
+      name: loc.name || base.name,
+      floor: loc.floor || base.floor,
+      category: loc.category || base.category,
+      local: loc.local || base.local,
+      schedule: loc.schedule || base.schedule,
+      available: loc.available !== false
+    };
+  }
+
+  return base;
+}
+
+function renderStoreDetailPanel(store) {
+  const panel = document.getElementById("store-detail-panel");
+  if (!panel) return;
+  if (!store) {
+    panel.classList.add("hidden");
+    panel.innerHTML = "";
+    return;
+  }
+
+  const displayName = store.name || store.brand || t("results");
+  const category = firstCategory(store.category);
+  const categoryBadge = category
+    ? `<span class="store-badge" title="${escapeHtml(store.category)}">${escapeHtml(truncate(category, 24))}</span>`
+    : "";
+  const floorBadge = store.floor
+    ? `<span class="store-badge store-badge-floor">${escapeHtml(formatNivel(store.floor))}</span>`
+    : "";
+  const localBadge = store.local
+    ? `<span class="store-badge" title="${escapeHtml(store.local)}">${escapeHtml(truncate(store.local, 16))}</span>`
+    : "";
+  const infoText = store.description || store.keywords || "";
+  const schedule = store.schedule ? String(store.schedule).trim() : "";
+
+  panel.innerHTML = `
+    <div class="store-detail-header">
+      ${renderStoreAvatar(store, true)}
+      <div class="store-detail-head-text">
+        <h2 class="store-detail-name">${escapeHtml(displayName)}</h2>
+        <div class="store-detail-meta">${categoryBadge}${floorBadge}${localBadge}</div>
+      </div>
+    </div>
+    ${infoText ? `<p class="store-detail-desc">${escapeHtml(infoText)}</p>` : `<p class="store-detail-desc">${escapeHtml(t("noAdditionalDetail"))}</p>`}
+    ${schedule ? `<p class="store-detail-schedule"><strong>${escapeHtml(t("schedule"))}:</strong> ${escapeHtml(schedule)}</p>` : ""}`;
+  panel.classList.remove("hidden");
+}
+
+function findStoreInMarketPayload(localOrId) {
+  const key = String(localOrId || "").trim().toLowerCase();
+  if (!key || !lastMarketPayload?.results?.length) return null;
+
+  for (let idx = 0; idx < lastMarketPayload.results.length; idx++) {
+    const result = lastMarketPayload.results[idx];
+    if (
+      String(result.local || "").trim().toLowerCase() === key
+      || String(result.id || "").trim().toLowerCase() === key
+    ) {
+      return resolveStore(idx);
+    }
+    if (result.locations?.length) {
+      for (let locIdx = 0; locIdx < result.locations.length; locIdx++) {
+        const loc = result.locations[locIdx];
+        if (
+          String(loc.local || "").trim().toLowerCase() === key
+          || String(loc.id || "").trim().toLowerCase() === key
+        ) {
+          return resolveStore(idx, locIdx);
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function hideStoreDetailPanel() {
+  const panel = document.getElementById("store-detail-panel");
+  if (!panel) return;
+  panel.classList.add("hidden");
+  panel.innerHTML = "";
+}
+
+function toggleGroup(groupIndex) {
+  const panel = document.getElementById("group-locs-" + groupIndex);
+  const btn = document.getElementById("group-toggle-" + groupIndex);
+  if (!panel || !btn) return;
+
+  const willShow = panel.classList.contains("hidden");
+  panel.classList.toggle("hidden", !willShow);
+  btn.textContent = willShow ? t("hideLocales") : t("showLocales");
+}
+
+function renderStoreCard(result, idx) {
+  if (result.isGroup && result.locations && result.locations.length > 1) {
+    const displayName = result.name || result.brand || "Tienda";
+    const category = firstCategory(result.category);
+    const categoryBadge = category
+      ? `<span class="store-badge" title="${escapeHtml(result.category)}">${escapeHtml(truncate(category, 14))}</span>`
+      : "";
+    const floorsSummary = summarizeFloors(result.locations);
+    const subRows = result.locations.map((loc, locIdx) => {
+      const available = loc.available !== false;
+      const mapBtn = available
+        ? `<button class="btn-ver-mapa-sm" type="button" onclick="openStoreMap(${idx}, ${locIdx})">${escapeHtml(t("viewMap"))}</button>`
+        : `<button class="btn-ver-mapa-sm" type="button" disabled style="background:#B7B0C2">${escapeHtml(t("renovation"))}</button>`;
+      const local = loc.local
+        ? `<span class="store-badge" title="${escapeHtml(loc.local)}">${escapeHtml(truncate(loc.local, 12))}</span>`
+        : "";
+
+      return `
+        <div class="store-group-row">
+          <div class="store-group-row-info">
+            <div class="store-group-row-name">${escapeHtml(loc.name || displayName)}</div>
+            <div class="store-group-row-meta">
+              <span class="store-badge store-badge-floor">${escapeHtml(formatNivel(loc.floor))}</span>
+              ${local}
+            </div>
+          </div>
+          ${mapBtn}
+        </div>`;
+    }).join("");
+
+    return `
+      <article class="store-card store-card-group fade-in">
+        <div class="store-card-top">
+          ${renderStoreAvatar(result)}
+          <div class="store-name">${escapeHtml(displayName)}</div>
+          <div class="store-meta">
+            ${categoryBadge}
+            ${result.promoBadge ? `<span class="store-badge store-badge-promo">Promo</span>` : ""}
+            <span class="store-badge store-badge-locales">${result.locationCount} ${escapeHtml(t("locales"))}</span>
+          </div>
+          ${floorsSummary ? `<div class="store-floors-summary">${escapeHtml(floorsSummary)}</div>` : ""}
+        </div>
+        <button class="btn-toggle-locales" id="group-toggle-${idx}" type="button" onclick="toggleGroup(${idx})">${escapeHtml(t("showLocales"))}</button>
+        <div class="store-group-locations hidden" id="group-locs-${idx}">${subRows}</div>
+      </article>`;
+  }
+
+  const available = result.available !== false;
+  const btn = available
+    ? `<button class="btn-ver-mapa" type="button" onclick="openStoreMap(${idx})">${escapeHtml(t("viewMap"))}</button>`
+    : `<button class="btn-remodelacion" disabled>${escapeHtml(t("renovation"))}</button>`;
+  const category = firstCategory(result.category);
+  const categoryBadge = category
+    ? `<span class="store-badge" title="${escapeHtml(result.category)}">${escapeHtml(truncate(category, 14))}</span>`
+    : "";
+  const promoBadge = result.promoBadge
+    ? `<span class="store-badge store-badge-promo" title="${escapeHtml(result.promoTitle || "")}">Promo</span>`
+    : "";
+  const floor = `<span class="store-badge store-badge-floor">${escapeHtml(formatNivel(result.floor))}</span>`;
+  const local = result.local
+    ? `<div class="store-detail" title="${escapeHtml(result.local)}">${escapeHtml(truncate(result.local, 16))}</div>`
+    : "";
+
+  return `
+    <article class="store-card fade-in">
+      <div class="store-card-top">
+        ${renderStoreAvatar(result)}
+        <div class="store-name">${escapeHtml(result.name || "Tienda")}</div>
+        <div class="store-meta">${categoryBadge}${promoBadge}${floor}</div>
+        ${local}
+      </div>
+      ${btn}
+    </article>`;
+}
+
+function renderCategoryChips(categories, activeQuery) {
+  if (!categories || !categories.length) return "";
+  const chips = categories.map((cat) => {
+    const active = activeQuery && String(activeQuery).toLowerCase() === String(cat).toLowerCase();
+    return `<button class="cm-chip${active ? " active" : ""}" type="button" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`;
+  }).join("");
+  return `<div class="cm-chip-row" id="promo-chip-row">${chips}</div>`;
+}
+
+function bindPromotionChips() {
+  const row = document.getElementById("promo-chip-row");
+  if (!row) return;
+  row.querySelectorAll(".cm-chip[data-cat]").forEach((btn) => {
+    btn.onclick = () => filterPromotionsByCategory(btn.getAttribute("data-cat"));
+  });
+}
+
+function filterPromotionsByCategory(category) {
+  SimaBridge.send("promotion_search", { text: category || "" });
+}
+
+function renderPromoCard(promo, appUrl) {
+  const img = promo.imageUrl
+    ? `<img class="promo-card-img" src="${escapeHtml(promo.imageUrl)}" alt="" loading="lazy" />`
+    : `<div class="promo-card-img"></div>`;
+  const appBadge = promo.requiresApp
+    ? `<span class="store-badge store-badge-promo">${escapeHtml(t("appOnly"))}</span>`
+    : "";
+  const validity = promo.validityEnd
+    ? `${escapeHtml(t("validUntil"))} ${escapeHtml(promo.validityEnd)}`
+    : "";
+  const cta = promo.requiresApp
+    ? `<button class="btn-promo-app" type="button" onclick="openPromoInApp('${escapeHtml(promo.id || "")}', '${escapeHtml(appUrl || "https://www.cencomalls.cl/").replace(/'/g, "\\'")}')">${escapeHtml(t("redeemInApp"))}</button>`
+    : "";
+
+  return `
+    <article class="promo-card fade-in">
+      ${img}
+      <div class="promo-card-body">
+        <div class="promo-brand">${escapeHtml(promo.brandName || "")}</div>
+        <div class="promo-title">${escapeHtml(promo.title || "Promoción")}</div>
+        <div class="store-meta">${appBadge}</div>
+        ${validity ? `<div class="promo-validity">${validity}</div>` : ""}
+        ${cta}
+      </div>
+    </article>`;
+}
+
+function openPromoInApp(promoId, url) {
+  SimaBridge.send("generate_qr", { url: url, id: promoId || "promo" });
+}
+
+function renderPromotionResults(payload) {
+  lastPromotionPayload = payload;
+  const results = Array.isArray(payload.results) ? payload.results : [];
+  const query = payload.query || "";
+  const categories = payload.categories || [];
+  const appUrl = payload.appUrl || "https://www.cencomalls.cl/";
+  hideWelcome();
+
+  SimaBridge.log("promotion_search results=" + results.length + " query=" + query);
+
+  if (payload.message && results.length === 0) {
+    document.getElementById("resultado").innerHTML = `
+      <div class="cm-panel fade-in">
+        <div class="cm-empty">
+          <div class="cm-empty-title">${escapeHtml(t("promotions"))}</div>
+          <div class="cm-empty-copy">${escapeHtml(payload.message)}</div>
+        </div>
+      </div>`;
+    SimaBridge.speak(payload.message);
+    return;
+  }
+
+  const chips = renderCategoryChips(categories, query);
+  const cardsHtml = results.length
+    ? results.map((p) => renderPromoCard(normalizePromoResult(p), appUrl)).join("")
+    : `<div class="cm-empty"><div class="cm-empty-title">${escapeHtml(t("noResults"))}</div><div class="cm-empty-copy">${escapeHtml(t("promosNotFound"))} "${escapeHtml(query || "")}". ${escapeHtml(t("tryCategoryOrBrand"))}</div></div>`;
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="cm-panel fade-in">
+      <div class="cm-results-sticky">
+        <div class="cm-results-head">
+          <h2 class="cm-results-title">${escapeHtml(t("promotions"))}</h2>
+          <span class="cm-results-count">${results.length}</span>
+        </div>
+        <p class="cm-results-query">${query ? `${escapeHtml(t("filter"))}: <strong>${escapeHtml(query)}</strong>` : escapeHtml(t("allDiscountsToday"))}</p>
+        ${chips}
+      </div>
+      <div class="promo-grid">${cardsHtml}</div>
+    </div>`;
+  bindPromotionChips();
+}
+
+function normalizePromoResult(promo) {
+  if (!promo || typeof promo !== "object") return {};
+  return {
+    id: promo.id || promo.Id || "",
+    title: promo.title || promo.Title || "",
+    brandName: promo.brandName || promo.BrandName || "",
+    category: promo.category || promo.Category || "",
+    description: promo.description || promo.Description || "",
+    imageUrl: promo.imageUrl || promo.ImageUrl || promo.image || promo.Image || "",
+    validityEnd: promo.validityEnd || promo.ValidityEnd || "",
+    requiresApp: promo.requiresApp === true || promo.RequiresApp === true
+      || String(promo.control || promo.Control || "").toLowerCase().includes("app")
+  };
+}
+
+function normalizeServiceResult(svc) {
+  if (!svc || typeof svc !== "object") return {};
+  const floors = svc.floors || svc.Floors;
+  return {
+    id: svc.id || svc.Id || "",
+    name: svc.name || svc.Name || "Servicio",
+    description: svc.description || svc.Description || "",
+    location: svc.location || svc.Location || "",
+    floors: Array.isArray(floors) ? floors : [],
+    imageUrl: svc.imageUrl || svc.ImageUrl || svc.image || svc.Image || "",
+    mall: svc.mall || svc.Mall || ""
+  };
+}
+
+function normalizeParkingItem(item) {
+  if (!item || typeof item !== "object") return {};
+  return {
+    id: item.id || item.Id || "",
+    title: item.title || item.Title || "Info",
+    description: item.description || item.Description || "",
+    hours: item.hours || item.Hours || ""
+  };
+}
+
+function renderServiceCard(svc, idx) {
+  const kind = getServiceKind(svc.name);
+  const kindBadge = kind === "kids"
+    ? `<span class="store-badge store-badge-promo">${escapeHtml(t("bathroomsKids"))}</span>`
+    : kind === "bathroom"
+      ? `<span class="store-badge store-badge-floor">${escapeHtml(t("bathrooms"))}</span>`
+      : "";
+  const floorsLabel = formatServiceFloors(svc.floors);
+  const floorBadge = floorsLabel
+    ? `<span class="store-badge store-badge-floor">${escapeHtml(floorsLabel)}</span>`
+    : "";
+  const mapBtn = svc.id
+    ? `<button class="btn-service-map" type="button" onclick="event.stopPropagation(); openServiceMap(${idx})">${escapeHtml(t("viewMap"))}</button>`
+    : "";
+
+  return `
+    <article class="service-card fade-in${kind ? " service-card-bathroom" : ""}" id="svc-${idx}" onclick="toggleServiceCard(${idx})">
+      <div class="service-card-row">
+        <div class="service-card-top">
+          <div class="service-name">${escapeHtml(svc.name)}</div>
+          <div class="store-meta">${kindBadge}${floorBadge}</div>
+          ${svc.location ? `<div class="service-loc">📍 ${escapeHtml(svc.location)}</div>` : ""}
+          ${svc.description ? `<div class="service-desc">${escapeHtml(svc.description)}</div>` : ""}
+        </div>
+        <div class="service-card-actions">${mapBtn}</div>
+      </div>
+    </article>`;
+}
+
+function renderServicesResults(payload) {
+  lastServicesPayload = payload;
+  if (payload.mapBaseUrl) MAP_SERVICE_BASE_URL = payload.mapBaseUrl;
+
+  const results = Array.isArray(payload.results)
+    ? payload.results.map(normalizeServiceResult)
+    : [];
+  const query = payload.query || "";
+  const floorHint = payload.floorHint || payload.FloorHint || "";
+  hideWelcome();
+
+  SimaBridge.log("services_search results=" + results.length + " query=" + query);
+
+  if (payload.message && results.length === 0) {
+    document.getElementById("resultado").innerHTML = `
+      <div class="cm-panel fade-in">
+        <div class="cm-empty">
+          <div class="cm-empty-title">${escapeHtml(t("services"))}</div>
+          <div class="cm-empty-copy">${escapeHtml(payload.message)}</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const cards = results.length
+    ? results.map((svc, idx) => renderServiceCard(svc, idx)).join("")
+    : `<div class="cm-empty">
+        <div class="cm-empty-title">${escapeHtml(t("noResults"))}</div>
+        <div class="cm-empty-copy">${escapeHtml(t("servicesNotFound"))} "${escapeHtml(query)}". ${escapeHtml(t("tryAnotherKeyword"))}</div>
+      </div>`;
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="cm-panel fade-in">
+      <div class="cm-results-sticky">
+        <div class="cm-results-head">
+          <h2 class="cm-results-title">${escapeHtml(t("services"))}</h2>
+          <span class="cm-results-count">${results.length}</span>
+        </div>
+        <p class="cm-results-query">${escapeHtml(t("search"))}: <strong>${escapeHtml(query)}</strong></p>
+        ${floorHint ? `<p class="service-floor-hint">${escapeHtml(floorHint)}</p>` : ""}
+      </div>
+      <div class="service-list">${cards}</div>
+    </div>`;
+}
+
+function toggleServiceCard(idx) {
+  const el = document.getElementById("svc-" + idx);
+  if (el) el.classList.toggle("expanded");
+}
+
+function renderParkingInfo(payload) {
+  hideWelcome();
+  const items = Array.isArray(payload.items)
+    ? payload.items.map(normalizeParkingItem)
+    : [];
+  const summary = payload.summary || payload.message || "";
+
+  SimaBridge.log("parking_info items=" + items.length);
+
+  if (!summary && items.length === 0) {
+    document.getElementById("resultado").innerHTML = `
+      <div class="cm-panel fade-in">
+        <div class="cm-empty">
+          <div class="cm-empty-title">${escapeHtml(t("parking"))}</div>
+          <div class="cm-empty-copy">${escapeHtml(t("parkingUnavailable"))}</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const accordion = items.length
+    ? items.map((item, idx) => `
+    <div class="parking-item">
+      <button class="parking-item-head" type="button" onclick="toggleParkingItem(${idx})">${escapeHtml(item.title)}</button>
+      <div class="parking-item-body hidden" id="park-body-${idx}">
+        ${item.hours ? `<div><strong>${escapeHtml(t("schedule"))}:</strong> ${escapeHtml(item.hours)}</div>` : ""}
+        ${item.description ? `<div style="margin-top:6px">${escapeHtml(item.description)}</div>` : ""}
+      </div>
+    </div>`).join("")
+    : `<div class="cm-empty-copy">${escapeHtml(t("noAdditionalDetail"))}</div>`;
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="cm-panel fade-in">
+      <div class="cm-results-sticky">
+        <div class="cm-results-head">
+          <h2 class="cm-results-title">${escapeHtml(t("parking"))}</h2>
+          ${items.length ? `<span class="cm-results-count">${items.length}</span>` : ""}
+        </div>
+      </div>
+      ${summary ? `<div class="parking-summary">${escapeHtml(summary)}</div>` : ""}
+      <div class="parking-accordion">${accordion}</div>
+    </div>`;
+}
+
+function toggleParkingItem(idx) {
+  const body = document.getElementById("park-body-" + idx);
+  if (body) body.classList.toggle("hidden");
+}
+
+function hideWelcome() {
+  const welcome = document.getElementById("welcome-hint");
+  if (welcome) welcome.classList.add("hidden");
+  showStoreSearchLanding(false);
+}
+
+function renderMarketResults(payload) {
+  lastMarketPayload = payload;
+  const results = payload.results || [];
+  const query = payload.query || "";
+  hideWelcome();
+
+  if (payload.message && results.length === 0) {
+    document.getElementById("resultado").innerHTML = `
+      <div class="cm-panel fade-in">
+        <div class="cm-empty">
+          <div class="cm-empty-title">${escapeHtml(query || t("search"))}</div>
+          <div class="cm-empty-copy">${escapeHtml(payload.message)}</div>
+        </div>
+      </div>`;
+    SimaBridge.speak(payload.message);
+    return;
+  }
+
+  if (results.length === 0) {
+    document.getElementById("resultado").innerHTML = `
+      <div class="cm-panel fade-in">
+        <div class="cm-empty">
+          <div class="cm-empty-title">${escapeHtml(t("noResults"))}</div>
+          <div class="cm-empty-copy">${escapeHtml(t("storesNotFound"))} "${escapeHtml(query)}".</div>
+        </div>
+      </div>`;
+    SimaBridge.speak(t("storesFoundNone") + " " + query);
+    return;
+  }
+
+  const cardsHtml = results.map((r, idx) => renderStoreCard(r, idx)).join("");
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="cm-panel fade-in">
+      <div class="cm-results-sticky">
+        <div class="cm-results-head">
+          <h2 class="cm-results-title">${escapeHtml(t("results"))}</h2>
+          <span class="cm-results-count">${results.length}</span>
+        </div>
+        <p class="cm-results-query">${escapeHtml(t("search"))}: <strong>${escapeHtml(query)}</strong></p>
+      </div>
+      <div class="store-grid">${cardsHtml}</div>
+    </div>`;
+}
+
+function setMapStatus(text, isError) {
+  const status = document.getElementById("map-status");
+  if (!status) return;
+  if (!text) {
+    status.classList.add("hidden");
+    status.textContent = "";
+    return;
+  }
+  status.textContent = text;
+  status.classList.remove("hidden");
+  status.style.color = isError ? "#B42318" : "var(--cm-muted)";
+}
+
+function logMap(level, message, data) {
+  const prefix = "[mobility/map]";
+  const line = data !== undefined ? `${prefix} ${message} ${JSON.stringify(data)}` : `${prefix} ${message}`;
+  if (level === "error") console.error(line);
+  else if (level === "warn") console.warn(line);
+  else console.log(line);
+  if (typeof SimaBridge !== "undefined") {
+    SimaBridge.send("mapvx_log", {
+      level: level || "info",
+      message: prefix + " " + message,
+      data: data ? String(JSON.stringify(data)).slice(0, 500) : ""
+    });
+  }
+}
+
+function logMapVxConfig(context) {
+  const cfg = window.MAPVX_CONFIG || {};
+  const summary = typeof MapVxBridge !== "undefined" && MapVxBridge.configSummary
+    ? MapVxBridge.configSummary(cfg)
+    : {
+        hasApiKey: !!(cfg.apiKey && cfg.apiKey.length),
+        apiKeyLen: cfg.apiKey ? cfg.apiKey.length : 0,
+        parentPlace: cfg.parentPlace || null,
+        institutionId: cfg.institutionId || null
+      };
+  logMap("info", context + " MAPVX_CONFIG", summary);
+  logMap("info", context + " sdkLoaded", {
+    MapVX: typeof MapVX !== "undefined",
+    MapVxBridge: typeof MapVxBridge !== "undefined",
+    configured: typeof MapVxBridge !== "undefined" && MapVxBridge.isConfigured()
+  });
+}
+
+function useMapVxSdk() {
+  const ok = typeof MapVxBridge !== "undefined" && MapVxBridge.isConfigured();
+  if (!ok) {
+    logMap("warn", "useMapVxSdk=false", {
+      bridge: typeof MapVxBridge !== "undefined",
+      configured: typeof MapVxBridge !== "undefined" ? MapVxBridge.isConfigured() : false,
+      mapUrl: MAP_SERVICE_BASE_URL || window.MALL_MAP_BASE_URL || ""
+    });
+  }
+  return ok;
+}
+
+function resetMapControls() {
+  const floorBar = document.getElementById("map-floor-bar");
+  const routeBtn = document.getElementById("map-route-btn");
+  if (floorBar) {
+    floorBar.classList.add("hidden");
+    floorBar.innerHTML = "";
+  }
+  if (routeBtn) {
+    routeBtn.classList.add("hidden");
+    routeBtn.disabled = false;
+    routeBtn.classList.remove("disabled");
+    routeBtn.textContent = t("viewRoute");
+  }
+}
+
+function updateMapRouteButton(result) {
+  const btn = document.getElementById("map-route-btn");
+  if (!btn) return;
+  const canRoute = typeof MapVxBridge !== "undefined"
+    && MapVxBridge.hasRouteOrigin
+    && MapVxBridge.hasRouteOrigin();
+  btn.classList.remove("hidden");
+  if (!canRoute) {
+    btn.textContent = t("routeNeedsTotem");
+    btn.classList.add("disabled");
+    btn.disabled = true;
+    return;
+  }
+  btn.disabled = false;
+  btn.classList.remove("disabled");
+  const active = !!(result && (result.routeActive || result.routeStarted));
+  btn.textContent = active ? t("clearRoute") : t("viewRoute");
+}
+
+function renderMapFloorBar(activeFloorKey) {
+  const bar = document.getElementById("map-floor-bar");
+  if (!bar || typeof MapVxBridge === "undefined" || !MapVxBridge.getMapFloors) return;
+  const floors = MapVxBridge.getMapFloors() || [];
+  if (!floors.length) {
+    bar.classList.add("hidden");
+    bar.innerHTML = "";
+    return;
+  }
+  bar.classList.remove("hidden");
+  bar.innerHTML = floors.map(function (f) {
+    const active = f.key === activeFloorKey ? " active" : "";
+    return `<button type="button" class="map-floor-btn${active}" data-floor-key="${escapeHtml(f.key)}" role="tab" aria-selected="${f.key === activeFloorKey}">${escapeHtml(f.label)}</button>`;
+  }).join("");
+  bar.querySelectorAll(".map-floor-btn").forEach(function (btn) {
+    btn.onclick = function () { onMapFloorSelect(btn.getAttribute("data-floor-key")); };
+  });
+}
+
+async function onMapFloorSelect(floorKey) {
+  if (!floorKey || typeof MapVxBridge === "undefined" || !MapVxBridge.switchFloor) return;
+  try {
+    await MapVxBridge.switchFloor(floorKey);
+    renderMapFloorBar(floorKey);
+  } catch (e) {
+    logMap("error", "onMapFloorSelect failed", { floorKey, message: e.message || String(e) });
+  }
+}
+
+async function onMapRouteToggle() {
+  const btn = document.getElementById("map-route-btn");
+  if (!btn || btn.disabled || typeof MapVxBridge === "undefined" || !MapVxBridge.toggleRouteToTarget) return;
+  try {
+    const state = await MapVxBridge.toggleRouteToTarget();
+    btn.textContent = state.active ? t("clearRoute") : t("viewRoute");
+    const session = MapVxBridge.getMapSession && MapVxBridge.getMapSession();
+    const title = session && session.result ? session.result.title : "";
+    setMapStatus(title + (state.active ? " · " + t("routeActive") : ""));
+  } catch (e) {
+    setMapStatus(t("routeError") + ": " + (e.message || e));
+    logMap("error", "onMapRouteToggle failed", { message: e.message || String(e) });
+  }
+}
+
+function setupMapControls(result) {
+  updateMapRouteButton(result);
+  const activeFloor = result && result.floorId ? result.floorId : null;
+  renderMapFloorBar(activeFloor);
+  const routeBtn = document.getElementById("map-route-btn");
+  if (routeBtn && !routeBtn._bound) {
+    routeBtn._bound = true;
+    routeBtn.onclick = onMapRouteToggle;
+  }
+}
+
+async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode }) {
+  const container = document.getElementById("mapvx-container");
+  const iframe = document.getElementById("map-iframe");
+  const placeholder = document.getElementById("map-placeholder");
+
+  logMap("info", "openPoiMapViaMapVx start", { poiType, id, floor, mall, name, local, mode });
+  logMapVxConfig("openPoiMapViaMapVx");
+
+  iframe.classList.add("hidden");
+  iframe.src = "";
+  placeholder.classList.add("hidden");
+  container.classList.remove("hidden");
+  if (typeof MapVxBridge !== "undefined" && MapVxBridge.destroyMap) {
+    MapVxBridge.destroyMap();
+  }
+  container.innerHTML = "";
+  resetMapControls();
+  setMapStatus(t("mapLoading") || "Cargando mapa…");
+
+  try {
+    const showFn = mode === "navigation" && MapVxBridge.showRouteTo
+      ? MapVxBridge.showRouteTo
+      : MapVxBridge.showPlace;
+    logMap("info", "calling MapVxBridge", { fn: showFn.name || "showPlace" });
+    const result = await showFn(container, { id, name, floor, local, mall, poiType });
+    const detail = result.clientId
+      ? "clientId=" + result.clientId
+      : "mapvxId=" + result.mapvxId;
+    let statusLine = (result.title || name || "") + " · " + result.resolvedBy + " · " + detail;
+    if (result.routeSkipped) {
+      statusLine += " · " + t("routeNeedsTotem");
+    } else if (result.routeActive || result.routeStarted) {
+      statusLine += " · " + t("routeActive");
+    }
+    setMapStatus(statusLine);
+    setupMapControls(result);
+    logMap("info", "openPoiMapViaMapVx success", result);
+    window.__mapVxLastLog = { ts: Date.now(), phase: "success", result: result };
+  } catch (e) {
+    logMap("error", "openPoiMapViaMapVx failed", {
+      message: e.message || String(e),
+      attempts: e.attempts || null
+    });
+    window.__mapVxLastLog = {
+      ts: Date.now(),
+      phase: "error",
+      message: e.message || String(e),
+      attempts: e.attempts || null
+    };
+    container.classList.add("hidden");
+    MapVxBridge.destroyMap();
+    placeholder.classList.remove("hidden");
+    const attemptsHtml = e.attempts && e.attempts.length
+      ? `<br><small>${escapeHtml(JSON.stringify(e.attempts))}</small>`
+      : "";
+    placeholder.innerHTML =
+      `<div><strong>${escapeHtml(t("mapError") || "No se pudo cargar el mapa")}</strong><br><br>` +
+      `${escapeHtml(name || "")}<br>` +
+      `${escapeHtml(String(e.message || e))}` +
+      attemptsHtml +
+      `</div>`;
+    setMapStatus("");
+  }
+}
+
+function openPoiMapViaIframe({ poiType, id, floor, mall, name, local }) {
+  logMap("warn", "openPoiMapViaIframe fallback (MapVX not configured or unavailable)", {
+    poiType, id, floor, name
+  });
+  const iframe = document.getElementById("map-iframe");
+  const container = document.getElementById("mapvx-container");
+  const placeholder = document.getElementById("map-placeholder");
+  const params = new URLSearchParams();
+  if (mall) params.set("mall", mall);
+
+  if (poiType === "service") {
+    if (id) params.set("serviceId", id);
+    if (name) params.set("serviceName", name);
+  } else {
+    if (id) params.set("storeId", id);
+    if (floor) params.set("floor", floor);
+    if (local) params.set("local", local);
+    if (name) params.set("storeName", name);
+  }
+  if (floor) params.set("floor", floor);
+
+  const mapUrl = MAP_SERVICE_BASE_URL || window.MALL_MAP_BASE_URL || "";
+  container.classList.add("hidden");
+  if (mapUrl) {
+    const fullUrl = mapUrl + (mapUrl.includes("?") ? "&" : "?") + params.toString();
+    logMap("info", "iframe map URL", { url: fullUrl });
+    iframe.src = fullUrl;
+    iframe.classList.remove("hidden");
+    placeholder.classList.add("hidden");
+    setMapStatus("");
+  } else {
+    iframe.src = "";
+    iframe.classList.add("hidden");
+    placeholder.classList.remove("hidden");
+    placeholder.innerHTML =
+      `<div><strong>${escapeHtml(t("mapComingSoon"))}</strong><br><br>` +
+      `${escapeHtml(name || "")}<br>` +
+      `${floor ? `${escapeHtml(t("level"))}: ${escapeHtml(formatNivel(floor))}` : ""}</div>`;
+    setMapStatus("");
+  }
+}
+
+function storeMapKey(store) {
+  if (!store) return "";
+  const local = store.local != null ? String(store.local).trim() : "";
+  const id = store.id != null ? String(store.id).trim() : "";
+  return local || id;
+}
+
+function openPoiMap({ poiType, id, floor, mall, name, local, mode, storeDetail }) {
+  const mapLocal = (local != null && String(local).trim()) || (id != null && String(id).trim()) || "";
+  logMap("info", "openPoiMap called", { poiType, id, floor, mall, name, local: mapLocal, mode });
+
+  if (!mapLocal) {
+    logMap("error", "openPoiMap aborted: missing local/id", { name, poiType });
+    return;
+  }
+
+  document.getElementById("map-view-title").textContent = name || t("map");
+  document.querySelector(".cm-body").style.display = "none";
+  document.querySelector(".cm-speak-fab").style.display = "none";
+  document.getElementById("map-view").classList.remove("hidden");
+
+  if (poiType === "store" && storeDetail) {
+    renderStoreDetailPanel(storeDetail);
+  } else {
+    hideStoreDetailPanel();
+  }
+
+  const mapOptions = {
+    poiType,
+    id: mapLocal,
+    floor,
+    mall,
+    name,
+    local: mapLocal,
+    mode
+  };
+
+  const doOpen = function() {
+    if (useMapVxSdk()) {
+      openPoiMapViaMapVx(mapOptions);
+    } else {
+      logMap("warn", "MapVX not ready after wait; iframe/placeholder fallback", mapOptions);
+      openPoiMapViaIframe(mapOptions);
+    }
+  };
+
+  waitForMapVxReady(doOpen);
+
+  const eventType = poiType === "service" ? "service_map_opened" : "store_map_opened";
+  SimaBridge.send(eventType, {
+    id: mapLocal,
+    text: name || "",
+    destination: formatNivel(floor)
+  });
+}
+
+window.pushNavigationFromUnity = function(data) {
+  try {
+    const payload = typeof data === "string" ? JSON.parse(data) : data;
+    logMap("info", "pushNavigationFromUnity", payload);
+    const mapKey = payload.local || payload.placeId || payload.id;
+    const storeDetail = findStoreInMarketPayload(mapKey) || {
+      name: payload.name,
+      floor: payload.floor,
+      mall: payload.mall,
+      local: mapKey,
+      id: payload.id
+    };
+    openPoiMap({
+      poiType: "store",
+      id: mapKey,
+      floor: payload.floor,
+      mall: payload.mall,
+      name: payload.name,
+      local: mapKey,
+      mode: "navigation",
+      storeDetail
+    });
+  } catch (e) {
+    logMap("error", "pushNavigationFromUnity failed", { message: e.message });
+  }
+};
+
+function waitForMapVxReady(fn, attempt) {
+  attempt = attempt || 0;
+  try {
+    if (typeof MapVxBridge !== "undefined" && MapVxBridge.isConfigured && MapVxBridge.isConfigured()) {
+      fn();
+      return;
+    }
+  } catch (e) { /* retry */ }
+  if (attempt > 150) {
+    logMap("error", "waitForMapVxReady timeout", {
+      MapVxBridge: typeof MapVxBridge,
+      MapVX: typeof MapVX,
+      hasCfg: !!(window.MAPVX_CONFIG && window.MAPVX_CONFIG.apiKey)
+    });
+    try { fn(); } catch (e2) { logMap("error", "waitForMapVxReady fallback failed", { message: e2.message }); }
+    return;
+  }
+  setTimeout(function () { waitForMapVxReady(fn, attempt + 1); }, 100);
+}
+
+function openStoreMap(groupIndex, locationIndex) {
+  const store = resolveStore(groupIndex, locationIndex);
+  const mapKey = storeMapKey(store);
+  logMap("info", "openStoreMap", { groupIndex, locationIndex, store, mapKey });
+  if (!store || store.available === false) {
+    logMap("warn", "openStoreMap skipped", { reason: !store ? "no store" : "unavailable" });
+    return;
+  }
+  if (!mapKey) {
+    logMap("error", "openStoreMap aborted: no local/id on store", { name: store.name });
+    return;
+  }
+
+  openPoiMap({
+    poiType: "store",
+    id: mapKey,
+    floor: store.floor,
+    mall: store.mall,
+    name: store.name,
+    local: mapKey,
+    mode: "place",
+    storeDetail: store
+  });
+}
+
+function openServiceMap(idx) {
+  const svc = lastServicesPayload?.results?.[idx];
+  if (!svc) return;
+
+  const normalized = normalizeServiceResult(svc);
+  const floor = normalized.floors?.find((f) => f !== "ALL") || normalized.floors?.[0] || "";
+
+  openPoiMap({
+    poiType: "service",
+    id: normalized.id,
+    floor: floor === "ALL" ? "" : floor,
+    mall: normalized.mall || lastServicesPayload?.mall,
+    name: normalized.name,
+    mode: "place"
+  });
+}
+
+function closeMapView() {
+  if (typeof MapVxBridge !== "undefined") {
+    if (MapVxBridge.clearActiveRoute) MapVxBridge.clearActiveRoute();
+    MapVxBridge.destroyMap();
+  }
+  resetMapControls();
+  hideStoreDetailPanel();
+  document.getElementById("map-view").classList.add("hidden");
+  document.getElementById("map-iframe").src = "";
+  document.getElementById("map-iframe").classList.add("hidden");
+  document.getElementById("mapvx-container").classList.add("hidden");
+  document.getElementById("mapvx-container").innerHTML = "";
+  document.getElementById("map-placeholder").classList.add("hidden");
+  setMapStatus("");
+  document.querySelector(".cm-body").style.display = "";
+  document.querySelector(".cm-speak-fab").style.display = "";
+}
+
+function startVoiceInput() {
+  SimaBridge.send("start_stt", {});
+}
+</script>
+</body>
+</html>

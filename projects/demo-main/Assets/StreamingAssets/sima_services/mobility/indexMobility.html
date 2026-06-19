@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>SIMA Movilidad</title>
+
+<style>
+
+
+@font-face {
+  font-family: 'Avenir';
+  src: url('./fonts/AvenirLTStd-Book.otf') format('opentype');
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'Avenir';
+  src: url('./fonts/AvenirLTStd-Medium.otf') format('opentype');
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: 'Avenir';
+  src: url('./fonts/AvenirLTStd-Roman.otf') format('opentype');
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: 'Avenir';
+  src: url('./fonts/AvenirLTStd-Heavy.otf') format('opentype');
+  font-weight: 700;
+}
+
+  body {
+     font-family: 'Avenir', sans-serif;
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f5f6fa;
+    color: #2d1f6f;
+  }
+
+  .title {
+  font-weight: 700; /* Heavy */
+}
+
+.card-title {
+  font-weight: 600; /* Roman */
+}
+
+.subtitle {
+  font-weight: 500; /* Medium */
+}
+
+.btn {
+  font-weight: 600;
+}
+
+.circle {
+  font-weight: 700;
+}
+
+  .container {
+    max-width: 900px;
+    margin: auto;
+    padding: 30px 20px;
+  }
+
+  /* HEADER */
+ .header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+  .back {
+    position: absolute;
+    left: 0;
+    font-size: 28px;
+    cursor: pointer;
+  }
+
+  .title {
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #6c63a6;
+    margin-bottom: 30px;
+    font-weight: 500;
+  }
+
+  /* CARDS */
+  .cards {
+    display: flex;
+    gap: 25px;
+    justify-content: center;
+  }
+
+  .card {
+    background: white;
+    border-radius: 18px;
+    padding: 25px 20px;
+    width: 220px;
+    text-align: center;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+  }
+
+  .card-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+  }
+
+  /* CIRCLE */
+  .circle {
+    width: 80px;
+    height: 80px;
+    background: #1da1f2;
+    border-radius: 50%;
+    color: white;
+    font-size: 28px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px auto;
+  }
+
+  .available {
+    font-size: 14px;
+    color: #6c63a6;
+    margin-bottom: 15px;
+  }
+
+  /* BUTTON */
+  .btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #2d1f6f;
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .btn:active {
+    transform: scale(0.98);
+  }
+
+  /* SUCCESS */
+  .success {
+    display: none;
+    text-align: center;
+    margin-top: 100px;
+  }
+
+  .success.active {
+    display: block;
+  }
+
+  .success-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 15px;
+  }
+
+  .success-text {
+    color: #6c63a6;
+    font-weight: 500;
+  }
+
+</style>
+
+<script src="../shared/bridge.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="title">Reserva aquí</div>
+  </div>
+
+  <div class="subtitle">
+    Selecciona la movilidad que necesites
+  </div>
+
+  <!-- CARDS -->
+  <div id="mainUI" class="cards">
+
+    <div class="card">
+      <div class="card-title">Silla de ruedas</div>
+      <div class="circle" id="wheelCount">3</div>
+      <div class="available">Disponibles</div>
+      <button class="btn" onclick="reserve('silla de ruedas')">
+        Reservar
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Coche de niños</div>
+      <div class="circle" id="babyCount">5</div>
+      <div class="available">Disponibles</div>
+      <button class="btn" onclick="reserve('coche de bebé')">
+        Reservar
+      </button>
+    </div>
+
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="successUI" class="success">
+    <div class="success-title">Reserva exitosa</div>
+    <div id="successText" class="success-text"></div>
+  </div>
+
+</div>
+
+<script>
+
+function goBack() {
+  document.getElementById("mainUI").style.display = "flex";
+  document.getElementById("successUI").classList.remove("active");
+}
+
+function reserve(item) {
+  const id = "SIMA-" + Math.floor(1000 + Math.random() * 9000);
+
+  document.getElementById("mainUI").style.display = "none";
+  document.getElementById("successUI").classList.add("active");
+
+  document.getElementById("successText").innerHTML =
+    `Tu servicio ha sido reservado.<br>ID ${id}.<br>Escanea el código QR en pantalla para continuar en whatsapp`;
+const sessionId = "usuario_" + Date.now();
+  const link = `https://wa.me/56975416648?text=Reserva%20completada%20con%20éxito.%20${item}%20ID%20${id}%20soy_${sessionId}`;
+
+  SimaBridge.send("generate_qr", {
+    url: link,
+    id: id,
+  });
+
+  SimaBridge.send("mobility_reserved", {
+    itemType: item,
+    reservationId: id,
+  });
+
+  SimaBridge.speak("Reserva realizada con éxito. Código " + id);
+  SimaBridge.animate("happy");
+}
+
+function handleUnityData(data) {
+  SimaBridge.speak("Puedes reservar una silla de ruedas o un coche.");
+}
+
+window.addEventListener("load", () => {
+  SimaBridge.ready("mobility");
+});
+
+</script>
+
+</body>
+</html>

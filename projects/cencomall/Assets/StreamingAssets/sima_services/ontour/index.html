@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>On Tour — Cenco Costanera</title>
+  <link rel="stylesheet" href="../shared/app.css" />
+  <script src="../shared/locale.js"></script>
+  <script src="../shared/bridge.js"></script>
+  <style>
+    :root {
+      --cm-purple: #5B2D8E;
+      --cm-purple-dark: #3D1D5C;
+      --cm-surface: #F4F0F8;
+      --cm-text: #1E1630;
+      --cm-muted: #6B6280;
+    }
+
+    body { background: var(--cm-surface); color: var(--cm-text); }
+
+    .app-shell {
+      background: var(--cm-surface);
+      gap: 16px;
+      padding: 20px 18px 28px;
+    }
+
+    .cm-header {
+      background: linear-gradient(135deg, var(--cm-purple-dark) 0%, var(--cm-purple) 100%);
+      color: #fff;
+      border-radius: 18px;
+      padding: 18px 20px;
+      box-shadow: 0 8px 24px rgba(61, 29, 92, 0.18);
+    }
+
+    .cm-header h1 { margin: 0 0 6px; font-size: 24px; font-weight: 800; }
+    .cm-header p { margin: 0; font-size: 15px; opacity: 0.92; line-height: 1.4; }
+
+    .card {
+      border: 1px solid #E7DFF0;
+      box-shadow: 0 8px 24px rgba(61, 29, 92, 0.08);
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .bullet-list {
+      margin: 0;
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .qr-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 14px;
+      background: #FAF7FD;
+      border: 1px solid #E7DFF0;
+    }
+
+    .qr-box img {
+      width: 220px;
+      height: 220px;
+      border-radius: 12px;
+      background: #fff;
+      object-fit: contain;
+    }
+
+    .qr-caption {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--cm-muted);
+      text-align: center;
+    }
+
+    .btn-primary, .btn-secondary {
+      border-radius: 14px;
+      padding: 14px 20px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .btn-primary {
+      background: var(--cm-purple);
+      color: #fff;
+      border: none;
+    }
+
+    .btn-secondary {
+      background: #fff;
+      color: var(--cm-purple);
+      border: 2px solid var(--cm-purple);
+    }
+
+    .actions { display: flex; flex-direction: column; gap: 10px; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="cm-header">
+      <h1 id="page-title">On Tour</h1>
+      <p id="page-subtitle">Tu pasaporte a una experiencia exclusiva en Cenco Costanera</p>
+    </header>
+
+    <div class="card">
+      <div class="title" id="section-title">¿De visita en Santiago?</div>
+      <div class="subtitle" id="section-lead">
+        Programa exclusivo para turistas con descuentos, promociones y panoramas únicos.
+      </div>
+
+      <ul class="bullet-list" id="benefits-list"></ul>
+
+      <div class="qr-box">
+        <img id="qr-image" alt="QR On Tour" />
+        <p class="qr-caption" id="qr-hint"></p>
+      </div>
+
+      <div class="actions">
+        <button class="btn-secondary" type="button" id="btn-close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ontourUrl = "https://www.cencomalls.cl/costanera/Ontour-es";
+    let currentLocale = "es";
+
+    const I18N = {
+      es: {
+        pageTitle: "On Tour",
+        pageSubtitle: "Tu pasaporte a una experiencia exclusiva en Cenco Costanera",
+        sectionTitle: "¿De visita en Santiago?",
+        sectionLead: "Programa exclusivo para turistas con descuentos, promociones y panoramas únicos.",
+        benefits: [
+          "Descuentos únicos en las mejores tiendas del mall.",
+          "Promociones especiales solo para visitantes internacionales.",
+          "Acceso a servicios y experiencias como Sky Costanera.",
+          "Regístrate en el módulo On Tour (Nivel 2) con tu pasaporte extranjero."
+        ],
+        qrHint: "Escanea el código QR para abrir On Tour en tu teléfono.",
+        close: "Cerrar",
+        speakIntro: "On Tour es el programa de turistas de Cenco Costanera. Escanea el código en pantalla para abrirlo en tu teléfono."
+      },
+      en: {
+        pageTitle: "On Tour",
+        pageSubtitle: "Your passport to an exclusive experience at Cenco Costanera",
+        sectionTitle: "Visiting Santiago?",
+        sectionLead: "Exclusive tourist program with discounts, promotions and unique experiences.",
+        benefits: [
+          "Unique discounts at the mall's best stores.",
+          "Special promotions for international visitors.",
+          "Access to services and experiences like Sky Costanera.",
+          "Register at the On Tour booth (Level 2) with your foreign passport."
+        ],
+        qrHint: "Scan the QR code to open On Tour on your phone.",
+        close: "Close",
+        speakIntro: "On Tour is the tourist program at Cenco Costanera. Scan the code on screen to open it on your phone."
+      },
+      pt: {
+        pageTitle: "On Tour",
+        pageSubtitle: "Seu passaporte para uma experiência exclusiva no Cenco Costanera",
+        sectionTitle: "Visitando Santiago?",
+        sectionLead: "Programa exclusivo para turistas com descontos, promoções e experiências únicas.",
+        benefits: [
+          "Descontos únicos nas melhores lojas do shopping.",
+          "Promoções especiais para visitantes internacionais.",
+          "Acesso a serviços e experiências como Sky Costanera.",
+          "Cadastre-se no módulo On Tour (Nível 2) com seu passaporte estrangeiro."
+        ],
+        qrHint: "Escaneie o código QR para abrir o On Tour no seu celular.",
+        close: "Fechar",
+        speakIntro: "On Tour é o programa de turistas do Cenco Costanera. Escaneie o código na tela para abrir no seu celular."
+      }
+    };
+
+    function applyLocale() {
+      currentLocale = SimaLocale.readLocaleFromPage();
+      document.documentElement.lang = currentLocale;
+
+      document.getElementById("page-title").textContent = SimaLocale.t(I18N, "pageTitle", currentLocale);
+      document.getElementById("page-subtitle").textContent = SimaLocale.t(I18N, "pageSubtitle", currentLocale);
+      document.getElementById("section-title").textContent = SimaLocale.t(I18N, "sectionTitle", currentLocale);
+      document.getElementById("section-lead").textContent = SimaLocale.t(I18N, "sectionLead", currentLocale);
+      document.getElementById("qr-hint").textContent = SimaLocale.t(I18N, "qrHint", currentLocale);
+      document.getElementById("btn-close").textContent = SimaLocale.t(I18N, "close", currentLocale);
+
+      const pack = SimaLocale.pickPack(I18N, currentLocale);
+      document.getElementById("benefits-list").innerHTML =
+        (pack.benefits || []).map((item) => `<li>${item}</li>`).join("");
+    }
+
+    function renderQrImage(base64) {
+      const img = document.getElementById("qr-image");
+      if (!img) return;
+      if (base64) {
+        img.src = "data:image/png;base64," + base64;
+        img.style.display = "block";
+        SimaBridge.send("qr_displayed", { id: "ontour", url: ontourUrl });
+      } else {
+        img.style.display = "none";
+      }
+    }
+
+    window.handleUnityData = function(data) {
+      if (!data) return;
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch (e) { return; }
+      }
+
+      if (data.url) ontourUrl = data.url;
+      if (data.language) window.MALL_LOCALE = data.language;
+
+      applyLocale();
+      renderQrImage(data.qrImage || "");
+      SimaBridge.speak(SimaLocale.t(I18N, "speakIntro", currentLocale));
+    };
+
+    document.getElementById("btn-close").onclick = () => SimaBridge.requestClose();
+
+    window.addEventListener("load", () => {
+      applyLocale();
+      SimaBridge.ready("ontour");
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,332 @@
+:root {
+  color-scheme: light;
+  --sima-bg: #f3f5f8;
+  --sima-bg-strong: #e9edf4;
+  --sima-surface: #ffffff;
+  --sima-surface-2: #f8fafc;
+  --sima-text: #102033;
+  --sima-muted: #5e6b7a;
+  --sima-border: rgba(16, 32, 51, 0.12);
+  --sima-primary: #0d4a6d;
+  --sima-primary-strong: #093751;
+  --sima-danger: #b42318;
+  --sima-shadow: 0 24px 60px rgba(16, 32, 51, 0.12);
+  --sima-radius-xl: 28px;
+  --sima-radius-lg: 22px;
+  --sima-radius-md: 16px;
+  --sima-radius-sm: 12px;
+  --sima-font: Inter, "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--sima-font);
+  color: var(--sima-text);
+  background:
+    radial-gradient(circle at top left, rgba(13, 74, 109, 0.12), transparent 32%),
+    radial-gradient(circle at right top, rgba(178, 232, 255, 0.45), transparent 26%),
+    linear-gradient(180deg, #f8fbfe 0%, var(--sima-bg) 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(16, 32, 51, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 32, 51, 0.025) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 85%);
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.hidden,
+.talk-hidden {
+  display: none !important;
+}
+
+.app-shell,
+.modal {
+  width: min(100%, 860px);
+  margin: 0 auto;
+  padding: 28px;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--sima-primary);
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.status-chip {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(13, 74, 109, 0.08);
+  color: var(--sima-primary-strong);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid rgba(13, 74, 109, 0.12);
+}
+
+.card {
+  background: var(--sima-surface);
+  border: 1px solid var(--sima-border);
+  border-radius: var(--sima-radius-xl);
+  box-shadow: var(--sima-shadow);
+  padding: 28px;
+}
+
+.title {
+  font-size: clamp(1.5rem, 2.8vw, 2.2rem);
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 10px;
+}
+
+.subtitle {
+  color: var(--sima-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+  margin: 0 0 22px;
+}
+
+.info-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 24px;
+}
+
+.info-item {
+  border-radius: var(--sima-radius-md);
+  background: var(--sima-surface-2);
+  padding: 14px 16px;
+  border: 1px solid rgba(16, 32, 51, 0.08);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  min-height: 48px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+  user-select: none;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: var(--sima-primary);
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(13, 74, 109, 0.2);
+}
+
+.btn-primary:hover {
+  background: var(--sima-primary-strong);
+}
+
+.btn-secondary {
+  background: #fff;
+  color: var(--sima-primary);
+  border-color: rgba(13, 74, 109, 0.2);
+}
+
+.btn-danger {
+  background: var(--sima-danger);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  filter: brightness(0.96);
+}
+
+.btn:focus-visible {
+  outline: 3px solid rgba(13, 74, 109, 0.25);
+  outline-offset: 2px;
+}
+
+.talk-bar,
+.talk-bar-inline {
+  min-height: 52px;
+  border: 1px solid rgba(13, 74, 109, 0.15);
+  background: linear-gradient(180deg, #ffffff 0%, #f1f7fb 100%);
+  border-radius: 999px;
+  color: var(--sima-primary-strong);
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 24px rgba(16, 32, 51, 0.08);
+  cursor: pointer;
+}
+
+.talk-bar {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 50;
+}
+
+.talk-bar-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.talk-bar-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+.talk-bar-label {
+  font-weight: 700;
+}
+
+.content-frame {
+  width: 100%;
+  min-height: 420px;
+  border: 0;
+  border-radius: var(--sima-radius-lg);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(16, 32, 51, 0.06);
+}
+
+.modal {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: rgba(16, 32, 51, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #0d4a6d 0%, #13a4d6 100%);
+  transition: width 260ms ease;
+}
+
+.driver-card {
+  margin-top: 18px;
+  background: var(--sima-surface);
+  border-radius: var(--sima-radius-lg);
+  padding: 18px;
+  border: 1px solid var(--sima-border);
+  box-shadow: 0 14px 34px rgba(16, 32, 51, 0.08);
+}
+
+.driver-name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.driver-info {
+  color: var(--sima-muted);
+  margin-bottom: 6px;
+}
+
+.location {
+  margin-top: 10px;
+  font-weight: 600;
+  color: var(--sima-primary);
+}
+
+@media (max-width: 720px) {
+  .app-shell,
+  .modal {
+    width: 100%;
+    padding: 18px;
+  }
+
+  .card {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .btn,
+  .talk-bar-inline {
+    width: 100%;
+  }
+
+  .talk-bar {
+    left: 18px;
+    right: 18px;
+    bottom: 18px;
+    justify-content: center;
+  }
+}
+

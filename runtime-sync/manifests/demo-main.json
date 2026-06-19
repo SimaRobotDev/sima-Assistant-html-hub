@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "project": "demo-main",
+  "version": "2026.06.19-1",
+  "baseUrl": "https://cdn.example.com/sima/demo-main",
+  "generatedAt": "2026-06-19T15:15:06.056Z",
+  "hashAlgorithm": "sha256",
+  "rollbackTo": null,
+  "entryPoints": [
+    {
+      "service": "agenda",
+      "entry": "agenda/index.html"
+    },
+    {
+      "service": "call",
+      "entry": "call/index.html"
+    },
+    {
+      "service": "flights",
+      "entry": "flights/index.html"
+    },
+    {
+      "service": "human",
+      "entry": "human/index.html"
+    },
+    {
+      "service": "mobility",
+      "entry": "mobility/index.html"
+    },
+    {
+      "service": "taxi",
+      "entry": "taxi/index.html"
+    }
+  ],
+  "files": [
+    {
+      "path": "agenda/index.html",
+      "size": 52079,
+      "sha256": "92ccdddebd87c268910043bb79cf2722e3fa7730d5af867bb8c9f9ed2e15a479"
+    },
+    {
+      "path": "agenda/indexAgenda.html",
+      "size": 4399,
+      "sha256": "cc9702db00d7a668fd69aa074ebf7cb9379dd013c72fa5603f25ada4cb0a1a67"
+    },
+    {
+      "path": "call/index.html",
+      "size": 2211,
+      "sha256": "7f8f4571136403ac7dad9a49c776bd094404ffd0cdf943f0350b544d45f77ea7"
+    },
+    {
+      "path": "flights/index.html",
+      "size": 23212,
+      "sha256": "dd0a87506d8d106db8e8807c1e181e32305a3cfdc6a2ea4de0fa55b0cd414482"
+    },
+    {
+      "path": "human/img.zip",
+      "size": 10252,
+      "sha256": "c001284fe3a4d533a2d96404ad215edfd37b4a98e16cd078866785fd9899b94d"
+    },
+    {
+      "path": "human/img/emergency.png",
+      "size": 2061,
+      "sha256": "c805c0b25353e19e609a55dcd1344dc5215c96b9798c472171a64c8139f4efaf"
+    },
+    {
+      "path": "human/img/loading.png",
+      "size": 5567,
+      "sha256": "efb43e40f7be6aee97310cc6484d721fb51c9cf00b06e08509c5e4bf31226496"
+    },
+    {
+      "path": "human/index.html",
+      "size": 2142,
+      "sha256": "109236c6541937800807bc12fb452edd35a2e818005abca863ada26082c5988c"
+    },
+    {
+      "path": "mobility/index.html",
+      "size": 12868,
+      "sha256": "4b405ace5c7bf6ef8e074058193b426fa040a062152407dcc64a550c7f5a2a05"
+    },
+    {
+      "path": "mobility/indexMobility.html",
+      "size": 4981,
+      "sha256": "1b7d0e5ce7090799e91168371105acd8c42f50fcc8de2823bdfb93121d438832"
+    },
+    {
+      "path": "shared/app.css",
+      "size": 5898,
+      "sha256": "45de88c91843eb8492d48fa0858b804bc3d12933f7c52ca5a431efedbf364779"
+    },
+    {
+      "path": "shared/bridge.js",
+      "size": 4245,
+      "sha256": "ecb88b57dd20fd1ce2d87b7cc0eef5e52ad97f2cb98880153af7112de22799e3"
+    },
+    {
+      "path": "shared/fragment.js",
+      "size": 1772,
+      "sha256": "2219efef5a75df8c8f85d2e285d59f17cf47f15da2df02b6e9145e44d532ecb9"
+    },
+    {
+      "path": "shared/mapvx/index.js",
+      "size": 1808589,
+      "sha256": "eec7467d353c2132cbe0c5826ed0a66601cb7c487f6eca4cc6871699609a128a"
+    },
+    {
+      "path": "shared/mapvx/styles.css",
+      "size": 72568,
+      "sha256": "b517490ce649abaf2cfeea36e0e436ea2078f83ec0c6842ec8eec74efc8973b9"
+    },
+    {
+      "path": "shared/qrcode.min.js",
+      "size": 19927,
+      "sha256": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36"
+    },
+    {
+      "path": "taxi/index.html",
+      "size": 6336,
+      "sha256": "546b4eff50bcf486971a0a4dc1bcfb689bdc249639d88d10e34801b0e9bf4f23"
+    },
+    {
+      "path": "taxi/indextradica.html",
+      "size": 42165,
+      "sha256": "6e587969ec451a9307c82d71ab5a105da92aeaa37bd467432b2ea8f59ffbcac5"
+    }
+  ]
+}

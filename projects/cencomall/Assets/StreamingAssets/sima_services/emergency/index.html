@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Emergencia — Cenco Costanera</title>
+  <link rel="stylesheet" href="../shared/app.css" />
+  <script src="../shared/locale.js"></script>
+  <script src="../shared/bridge.js"></script>
+  <style>
+    :root {
+      --em-red: #C62828;
+      --em-red-dark: #8E0000;
+      --em-surface: #FFF5F5;
+      --em-text: #1E1630;
+      --em-muted: #6B6280;
+      --em-line: #F3D6D6;
+    }
+
+    body {
+      background: var(--em-surface);
+      color: var(--em-text);
+    }
+
+    .app-shell {
+      background: var(--em-surface);
+      gap: 14px;
+      padding: 20px 18px 28px;
+    }
+
+    .em-header {
+      background: linear-gradient(135deg, var(--em-red-dark) 0%, var(--em-red) 100%);
+      color: #fff;
+      border-radius: 18px;
+      padding: 18px 20px;
+      box-shadow: 0 8px 24px rgba(142, 0, 0, 0.22);
+    }
+
+    .em-header h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .em-header p {
+      margin: 0;
+      font-size: 15px;
+      opacity: 0.95;
+      line-height: 1.45;
+    }
+
+    .alert-banner {
+      background: #fff;
+      border: 1px solid var(--em-line);
+      border-left: 5px solid var(--em-red);
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--em-muted);
+    }
+
+    .alert-banner strong {
+      color: var(--em-red-dark);
+    }
+
+    .section-title {
+      margin: 4px 0 8px;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .btn-immediate {
+      border: none;
+      border-radius: 14px;
+      background: var(--em-red);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 800;
+      padding: 16px 20px;
+      cursor: pointer;
+      width: 100%;
+      box-shadow: 0 8px 20px rgba(198, 40, 40, 0.25);
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .option-btn {
+      border: 1px solid var(--em-line);
+      border-radius: 14px;
+      background: #fff;
+      color: var(--em-text);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 14px 16px;
+      cursor: pointer;
+      text-align: left;
+      box-shadow: 0 4px 14px rgba(30, 22, 48, 0.06);
+    }
+
+    .option-btn:active,
+    .btn-immediate:active {
+      transform: scale(0.99);
+    }
+
+    .connecting {
+      display: none;
+      text-align: center;
+      gap: 16px;
+      padding: 28px 12px;
+    }
+
+    .connecting.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .pulse-ring {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      border: 4px solid var(--em-red);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pulse 2s infinite;
+      font-size: 36px;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.85; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .connecting h2 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--em-red-dark);
+    }
+
+    .connecting p {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--em-muted);
+      max-width: 420px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="mainUI">
+      <header class="em-header">
+        <h1 id="title">Emergencia</h1>
+        <p id="subtitle">Selecciona el tipo de ayuda que necesitas.</p>
+      </header>
+
+      <div class="alert-banner" id="alertBanner">
+        <strong id="alertTitle">Alerta enviada.</strong>
+        <span id="alertBody"> Se notificó al equipo con tu piso y ubicación.</span>
+      </div>
+
+      <p class="section-title" id="immediateTitle">Ayuda inmediata</p>
+      <button class="btn-immediate" id="btnImmediate" type="button">Contactar ayuda inmediata</button>
+
+      <p class="section-title" id="optionsTitle">Otras opciones</p>
+      <div class="options" id="optionsList"></div>
+    </div>
+
+    <div class="connecting" id="connectingUI">
+      <div class="pulse-ring">✱</div>
+      <h2 id="connectingTitle">Comunicándote con seguridad</h2>
+      <p id="connectingBody">Estamos conectándote con la seguridad del piso. Mantén la calma.</p>
+    </div>
+  </div>
+
+  <script>
+    const OPTIONS = [
+      { id: "security", es: "Contactar seguridad", en: "Contact security", pt: "Contatar segurança" },
+      { id: "first_aid", es: "Contactar primeros auxilios", en: "Contact first aid", pt: "Contatar primeiros socorros" },
+      { id: "lost_person", es: "Reportar persona extraviada", en: "Report missing person", pt: "Reportar pessoa desaparecida" },
+      { id: "lost_object", es: "Reportar objeto perdido", en: "Report lost item", pt: "Reportar objeto perdido" },
+      { id: "suspicious", es: "Reportar situación sospechosa", en: "Report suspicious situation", pt: "Reportar situação suspeita" }
+    ];
+
+    const IMMEDIATE = {
+      id: "immediate_help",
+      es: "Ayuda inmediata",
+      en: "Immediate help",
+      pt: "Ajuda imediata"
+    };
+
+    const I18N = {
+      es: {
+        title: "Emergencia",
+        subtitle: "Selecciona el tipo de ayuda que necesitas.",
+        alertTitle: "Alerta enviada.",
+        alertBody: " Se notificó al equipo con tu piso y ubicación.",
+        immediateTitle: "Ayuda inmediata",
+        immediateBtn: "Contactar ayuda inmediata",
+        optionsTitle: "Otras opciones",
+        connectingTitle: "Comunicándote con seguridad",
+        speakIntro: "Se envió una alerta. Selecciona el tipo de ayuda que necesitas."
+      },
+      en: {
+        title: "Emergency",
+        subtitle: "Select the type of help you need.",
+        alertTitle: "Alert sent.",
+        alertBody: " The team was notified with your floor and location.",
+        immediateTitle: "Immediate help",
+        immediateBtn: "Contact immediate help",
+        optionsTitle: "Other options",
+        connectingTitle: "Connecting you with security",
+        speakIntro: "An alert was sent. Select the type of help you need."
+      },
+      pt: {
+        title: "Emergência",
+        subtitle: "Selecione o tipo de ajuda que você precisa.",
+        alertTitle: "Alerta enviada.",
+        alertBody: " A equipe foi notificada com seu andar e localização.",
+        immediateTitle: "Ajuda imediata",
+        immediateBtn: "Contatar ajuda imediata",
+        optionsTitle: "Outras opções",
+        connectingTitle: "Conectando você à segurança",
+        speakIntro: "Um alerta foi enviado. Selecione o tipo de ajuda que você precisa."
+      }
+    };
+
+    let locale = "es";
+    let floorLabel = "el piso";
+    let selected = false;
+
+    function connectingBody() {
+      return locale === "en"
+        ? "We are connecting you with security on " + floorLabel + ". Stay calm."
+        : locale === "pt"
+          ? "Estamos conectando você à segurança do " + floorLabel + ". Mantenha a calma."
+          : "Estamos conectándote con la seguridad de " + floorLabel + ". Mantén la calma.";
+    }
+
+    function optionLabel(opt) {
+      return opt[locale] || opt.en || opt.es;
+    }
+
+    function applyLocale() {
+      locale = SimaLocale.resolveLocale(window.MALL_LOCALE || locale);
+      document.documentElement.lang = locale;
+
+      document.getElementById("title").textContent = SimaLocale.t(I18N, "title", locale);
+      document.getElementById("subtitle").textContent = SimaLocale.t(I18N, "subtitle", locale);
+      document.getElementById("alertTitle").textContent = SimaLocale.t(I18N, "alertTitle", locale);
+      document.getElementById("alertBody").textContent = SimaLocale.t(I18N, "alertBody", locale);
+      document.getElementById("immediateTitle").textContent = SimaLocale.t(I18N, "immediateTitle", locale);
+      document.getElementById("btnImmediate").textContent = SimaLocale.t(I18N, "immediateBtn", locale);
+      document.getElementById("optionsTitle").textContent = SimaLocale.t(I18N, "optionsTitle", locale);
+      document.getElementById("connectingTitle").textContent = SimaLocale.t(I18N, "connectingTitle", locale);
+      document.getElementById("connectingBody").textContent = connectingBody();
+
+      const list = document.getElementById("optionsList");
+      list.innerHTML = "";
+      OPTIONS.forEach((opt) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "option-btn";
+        const label = optionLabel(opt);
+        btn.textContent = label;
+        btn.onclick = () => selectOption(opt.id, label);
+        list.appendChild(btn);
+      });
+    }
+
+    function selectOption(optionId, optionLabel) {
+      if (selected) return;
+      selected = true;
+
+      document.getElementById("mainUI").style.display = "none";
+      document.getElementById("connectingUI").classList.add("active");
+
+      SimaBridge.send("emergency_option", {
+        optionId: optionId,
+        optionLabel: optionLabel,
+        sessionId: window.EMERGENCY_SESSION_ID || ""
+      });
+      SimaBridge.speak(connectingBody());
+      SimaBridge.animate("serious");
+    }
+
+    window.handleUnityData = function(data) {
+      if (!data) return;
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch (e) { return; }
+      }
+
+      if (data.language) window.MALL_LOCALE = data.language;
+      if (data.floor) floorLabel = data.floor;
+      if (data.sessionId) window.EMERGENCY_SESSION_ID = data.sessionId;
+
+      applyLocale();
+    };
+
+    document.getElementById("btnImmediate").onclick = function() {
+      selectOption(IMMEDIATE.id, optionLabel(IMMEDIATE));
+    };
+
+    window.addEventListener("load", function() {
+      applyLocale();
+      SimaBridge.ready("emergency");
+      SimaBridge.speak(SimaLocale.t(I18N, "speakIntro", locale));
+    });
+  </script>
+</body>
+</html>

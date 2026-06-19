@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MapVX ID Test — Cenco Costanera</title>
+<link rel="stylesheet" href="../shared/app.css" />
+<link rel="stylesheet" href="../shared/mapvx/styles.css" />
+<script src="../shared/locale.js"></script>
+<script src="../shared/bridge.js"></script>
+<script src="../shared/mapvx/index.js"></script>
+<script src="../shared/mapvx-bridge.js"></script>
+<style>
+:root {
+  --cm-purple: #5B2D8E;
+  --cm-purple-dark: #3D1D5C;
+  --cm-surface: #F4F0F8;
+  --cm-line: #E7DFF0;
+}
+html, body { margin: 0; height: 100%; background: var(--cm-surface); font-family: system-ui, sans-serif; color: #1E1630; }
+.shell { display: flex; flex-direction: column; height: 100%; min-height: 100vh; }
+.panel {
+  padding: 12px 14px;
+  background: linear-gradient(135deg, var(--cm-purple-dark), var(--cm-purple));
+  color: #fff;
+}
+.panel h1 { margin: 0 0 8px; font-size: 18px; }
+.panel h2 { margin: 12px 0 6px; font-size: 14px; font-weight: 700; opacity: 0.95; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+input, select {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #1E1630;
+}
+input.wide { min-width: 100%; flex-basis: 100%; }
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+button.primary { background: #fff; color: var(--cm-purple-dark); }
+.config-box {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.18);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.config-box code { background: rgba(255,255,255,0.15); padding: 1px 5px; border-radius: 4px; }
+.config-box.hidden { display: none; }
+.hint { margin: 6px 0 0; opacity: 0.85; font-size: 12px; }
+#map-container { flex: 1; min-height: 240px; background: #fff; }
+#log {
+  max-height: 34vh;
+  overflow: auto;
+  padding: 10px 14px;
+  font-size: 12px;
+  background: #fff;
+  border-top: 1px solid var(--cm-line);
+  white-space: pre-wrap;
+  font-family: ui-monospace, monospace;
+}
+.ok { color: #0a7; }
+.err { color: #c22; }
+.warn { color: #b86a00; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="panel">
+    <h1 id="map-page-title">Prueba MapVX — local catálogo Cenco</h1>
+    <p class="hint">
+      Modo navegador: completa credenciales MapVX abajo y pulsa «Guardar config».
+      El mapa indoor de Costanera usa <code>parentPlace=-N19VjzEVIj2RDKu7i4r</code>.
+      Si ves el mapa del mundo, revisa api-key y parentPlace en el panel de config.
+    </p>
+
+    <div id="config-box" class="config-box">
+      <h2>Credenciales MapVX (solo en browser)</h2>
+      <div class="row">
+        <input id="cfg-api-key" class="wide" type="password" placeholder="api-key MapVX" autocomplete="off" />
+      </div>
+      <div class="row">
+        <input id="cfg-parent-place" type="text" placeholder="parentPlace" value="-N19VjzEVIj2RDKu7i4r" />
+        <input id="cfg-institution-id" type="text" placeholder="institutionId" value="-N19VgPNxo3jiBtu583Z" />
+      </div>
+      <div class="row">
+        <select id="cfg-lang">
+          <option value="es" selected>Español</option>
+          <option value="en">English</option>
+        </select>
+        <button type="button" onclick="applyManualConfig(true)">Guardar config</button>
+        <button type="button" onclick="clearStoredConfig()">Borrar guardado</button>
+      </div>
+      <p class="hint">
+        Se guarda en <code>sessionStorage</code> del browser (solo esta pestaña). No commitees la api-key.
+        Sirve por HTTP local, no abras como <code>file://</code> — ver instrucciones abajo.
+      </p>
+    </div>
+
+    <h2 style="margin-top:14px;font-size:14px;">Tienda a probar</h2>
+    <div class="row">
+      <input id="store-local" class="wide" type="text" placeholder="local MapVX (ej. CC_N3_3129) — preferido" />
+    </div>
+    <div class="row">
+      <input id="catalog-id" type="text" placeholder="ID catálogo Cenco (fallback)" />
+      <input id="store-name" type="text" placeholder="Nombre tienda (fallback)" />
+      <input id="store-floor" type="text" placeholder="Piso (opcional)" />
+    </div>
+    <div class="row">
+      <button class="primary" type="button" onclick="runPlaceTest()">Mostrar local</button>
+      <button type="button" onclick="runResolveOnly()">Solo resolver ID</button>
+      <button type="button" onclick="toggleConfigBox()">Config MapVX</button>
+      <button type="button" onclick="clearLog()">Limpiar log</button>
+    </div>
+  </div>
+  <div id="map-container"></div>
+  <div id="log">Cargando…</div>
+</div>
+<script>
+const CONFIG_STORAGE_KEY = "cencomall_mapvx_test_config";
+
+function isUnityWebView() {
+  if (window.MAPVX_CONFIG && window.MAPVX_CONFIG.apiKey)
+    return true;
+  // En UniWebView el HTML suele cargar por file:// antes de que Unity inyecte MAPVX_CONFIG.
+  return window.location.protocol === "file:" && typeof SimaBridge !== "undefined";
+}
+
+function isFileProtocol() {
+  return window.location.protocol === "file:";
+}
+
+function logLine(text, cls) {
+  const el = document.getElementById("log");
+  const line = document.createElement("div");
+  if (cls) line.className = cls;
+  line.textContent = text;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  if (window.SimaBridge && SimaBridge.log) SimaBridge.log(text);
+}
+
+function clearLog() {
+  document.getElementById("log").innerHTML = "";
+}
+
+function toggleConfigBox() {
+  document.getElementById("config-box").classList.toggle("hidden");
+}
+
+function readConfigForm() {
+  return {
+    apiKey: document.getElementById("cfg-api-key").value.trim(),
+    parentPlace: document.getElementById("cfg-parent-place").value.trim(),
+    institutionId: document.getElementById("cfg-institution-id").value.trim(),
+    lang: document.getElementById("cfg-lang").value || "es",
+  };
+}
+
+function writeConfigForm(cfg) {
+  if (!cfg) return;
+  if (cfg.apiKey) document.getElementById("cfg-api-key").value = cfg.apiKey;
+  if (cfg.parentPlace) document.getElementById("cfg-parent-place").value = cfg.parentPlace;
+  if (cfg.institutionId) document.getElementById("cfg-institution-id").value = cfg.institutionId;
+  if (cfg.lang) document.getElementById("cfg-lang").value = cfg.lang;
+}
+
+function loadStoredConfig() {
+  try {
+    const raw = sessionStorage.getItem(CONFIG_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveStoredConfig(cfg) {
+  sessionStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(cfg));
+}
+
+function clearStoredConfig() {
+  sessionStorage.removeItem(CONFIG_STORAGE_KEY);
+  document.getElementById("cfg-api-key").value = "";
+  logLine("Config borrada de sessionStorage.", "warn");
+  applyManualConfig(false);
+}
+
+function applyManualConfig(save) {
+  const cfg = readConfigForm();
+  if (save) saveStoredConfig(cfg);
+
+  window.MAPVX_CONFIG = {
+    apiKey: cfg.apiKey,
+    parentPlace: cfg.parentPlace,
+    institutionId: cfg.institutionId,
+    lang: cfg.lang,
+    totemPlaceId: "",
+  };
+  window.MAPVX_ASSETS_BASE = "../shared/mapvx/";
+
+  if (typeof MapVxBridge !== "undefined" && MapVxBridge.reset) {
+    MapVxBridge.reset();
+  }
+
+  logLine(
+    "Config aplicada manualmente: apiKey=" + (cfg.apiKey ? "✓ (" + cfg.apiKey.length + " chars)" : "✗")
+    + " parentPlace=" + (cfg.parentPlace || "✗")
+    + " institutionId=" + (cfg.institutionId || "✗"),
+    MapVxBridge.isConfigured() ? "ok" : "err"
+  );
+}
+
+function readInputs() {
+  return {
+    local: document.getElementById("store-local").value.trim(),
+    id: document.getElementById("catalog-id").value.trim(),
+    name: document.getElementById("store-name").value.trim(),
+    floor: document.getElementById("store-floor").value.trim(),
+  };
+}
+
+function logConfigStatus() {
+  const cfg = window.MAPVX_CONFIG || {};
+  const bridgeReady = typeof MapVxBridge !== "undefined";
+  const cfgOk = !!(cfg.apiKey && cfg.parentPlace && cfg.institutionId);
+  const ok = bridgeReady && cfgOk && MapVxBridge.isConfigured();
+
+  if (isFileProtocol() && !isUnityWebView()) {
+    logLine("⚠ Estás en file:// — MapVX API puede fallar por CORS. Usa un servidor HTTP local (ver abajo).", "warn");
+  } else if (isFileProtocol() && isUnityWebView()) {
+    logLine("Modo Unity WebView (file://). La config MapVX la inyecta C#.", "ok");
+  }
+
+  logLine(
+    "MAPVX_CONFIG: apiKey=" + (cfg.apiKey ? "✓" : "✗")
+    + " parentPlace=" + (cfg.parentPlace || "(vacío)")
+    + " institutionId=" + (cfg.institutionId || "(vacío)")
+    + " MapVxBridge=" + (bridgeReady ? "✓" : "✗")
+    + " → " + (ok ? "OK" : cfgOk && !bridgeReady ? "ESPERANDO SDK" : "INCOMPLETO"),
+    ok ? "ok" : bridgeReady ? "err" : "warn"
+  );
+
+  if (ok && cfg.parentPlace && cfg.parentPlace !== "-N19VjzEVIj2RDKu7i4r") {
+    logLine("⚠ parentPlace distinto al de Costanera stage; puede mostrar otro mall.", "warn");
+  }
+
+  if (!cfgOk && !isUnityWebView()) {
+    logLine("Abre «Config MapVX», pega tu api-key y pulsa «Guardar config».", "err");
+  } else if (!cfgOk && isUnityWebView()) {
+    logLine("Esperando inyección desde CencomallApiConfig (Inspector Unity)…", "warn");
+  } else if (cfgOk && !bridgeReady) {
+    logLine("Esperando carga del SDK MapVX (index.js)…", "warn");
+  }
+}
+
+function logBrowserServeHint() {
+  if (!isFileProtocol()) return;
+  logLine("Servidor local sugerido (desde repo):", "warn");
+  logLine("  cd Assets/StreamingAssets/sima_services && python3 -m http.server 8765", "warn");
+  logLine("  http://localhost:8765/map/index.html", "warn");
+}
+
+async function runResolveOnly() {
+  clearLog();
+  if (!isUnityWebView()) applyManualConfig(false);
+  logConfigStatus();
+  const { local, id, name, floor } = readInputs();
+  if (!local && !id && !name) {
+    logLine("Ingresa local MapVX, ID catálogo o nombre de tienda.", "err");
+    return;
+  }
+  try {
+    await MapVxBridge.ensureReady();
+    const resolved = await MapVxBridge.resolvePlace({ local, id, name, floor });
+    logLine("✓ Resuelto por: " + resolved.resolvedBy, "ok");
+    logLine("  mapvxId: " + resolved.place.mapvxId);
+    logLine("  clientId: " + (resolved.place.clientId || "(null)"));
+    logLine("  title: " + resolved.place.title);
+    if (resolved.candidates > 1) {
+      logLine("  (candidatos: " + resolved.candidates + ")", "ok");
+    }
+    if (local && resolved.place.clientId === local) {
+      logLine("→ CONFIRMADO: local catálogo = clientId MapVX", "ok");
+    } else if (local) {
+      logLine("→ local probado (" + local + ") distinto de clientId (" + (resolved.place.clientId || "?") + ")", "err");
+    } else if (id && resolved.place.clientId === id) {
+      logLine("→ El ID catálogo coincide con clientId MapVX.", "ok");
+    } else if (id && resolved.place.mapvxId === id) {
+      logLine("→ El ID catálogo coincide con mapvxId.", "ok");
+    } else if (id) {
+      logLine("→ El ID catálogo NO coincide directamente; se resolvió por otro método.", "err");
+    }
+  } catch (e) {
+    logLine("✗ " + (e.message || e), "err");
+    if (e.attempts) logLine(JSON.stringify(e.attempts, null, 2));
+  }
+}
+
+async function runPlaceTest() {
+  clearLog();
+  if (!isUnityWebView()) applyManualConfig(false);
+  logConfigStatus();
+  const { local, id, name, floor } = readInputs();
+  if (!local && !id && !name) {
+    logLine("Ingresa local MapVX, ID catálogo o nombre de tienda.", "err");
+    return;
+  }
+  try {
+    const container = document.getElementById("map-container");
+    const result = await MapVxBridge.showPlace(container, { local, id, name, floor });
+    logLine("✓ Mapa mostrado — " + result.resolvedBy, "ok");
+    logLine("  local probado: " + (result.local || "(vacío)"));
+    logLine("  catalogId: " + (result.catalogId || "(vacío)"));
+    logLine("  mapvxId: " + result.mapvxId);
+    logLine("  clientId: " + (result.clientId || "(null)"));
+    logLine("  title: " + result.title);
+    logLine("  floorId: " + (result.floorId || "(null)"));
+    if (result.local && result.clientId === result.local) {
+      logLine("→ CONFIRMADO: local catálogo = clientId MapVX", "ok");
+    } else if (result.catalogId && result.clientId === result.catalogId) {
+      logLine("→ CONFIRMADO: id catálogo = clientId MapVX", "ok");
+    } else if (result.catalogId && result.mapvxId === result.catalogId) {
+      logLine("→ CONFIRMADO: id catálogo = mapvxId", "ok");
+    } else if (result.local || result.catalogId) {
+      logLine("→ Usar clientId arriba para integración MapVX.", "err");
+    }
+  } catch (e) {
+    logLine("✗ " + (e.message || e), "err");
+    if (e.attempts) logLine(JSON.stringify(e.attempts, null, 2));
+  }
+}
+
+window.handleUnityData = function(raw) {
+  try {
+    const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (data.local) document.getElementById("store-local").value = data.local;
+    if (data.catalogId) document.getElementById("catalog-id").value = data.catalogId;
+    if (data.name) document.getElementById("store-name").value = data.name;
+    if (data.floor) document.getElementById("store-floor").value = data.floor;
+    if (data.autoRun) waitForMapVxReady(runPlaceTest);
+  } catch (e) {
+    logLine("handleUnityData error: " + e.message, "err");
+  }
+};
+
+function waitForMapVxReady(fn, attempt) {
+  attempt = attempt || 0;
+  if (typeof MapVxBridge !== "undefined" && window.MAPVX_CONFIG && window.MAPVX_CONFIG.apiKey) {
+    fn();
+    return;
+  }
+  if (attempt > 100) {
+    logLine("Timeout esperando MapVxBridge / MAPVX_CONFIG", "err");
+    return;
+  }
+  setTimeout(function () { waitForMapVxReady(fn, attempt + 1); }, 150);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const stored = loadStoredConfig();
+  if (stored) writeConfigForm(stored);
+
+  const inUnity = isUnityWebView();
+  const configBox = document.getElementById("config-box");
+  configBox.classList.toggle("hidden", inUnity);
+
+  if (!inUnity) {
+    applyManualConfig(false);
+  }
+
+  if (typeof SimaBridge !== "undefined" && SimaBridge.ready) {
+    SimaBridge.ready("map");
+  }
+
+  clearLog();
+  logConfigStatus();
+  logBrowserServeHint();
+
+  const params = new URLSearchParams(window.location.search);
+  const MAP_I18N = {
+    es: { title: "Prueba MapVX — local catálogo Cenco" },
+    en: { title: "MapVX test — local Cenco catalog" },
+    pt: { title: "Teste MapVX — catálogo local Cenco" }
+  };
+  const mapLocale = SimaLocale.resolveLocale(window.MALL_LOCALE || params.get("locale") || "es");
+  const mapTitle = document.getElementById("map-page-title");
+  if (mapTitle) mapTitle.textContent = SimaLocale.t(MAP_I18N, "title", mapLocale);
+
+  if (params.get("id")) document.getElementById("catalog-id").value = params.get("id");
+  if (params.get("name")) document.getElementById("store-name").value = params.get("name");
+  if (params.get("floor")) document.getElementById("store-floor").value = params.get("floor");
+  if (params.get("parentPlace")) document.getElementById("cfg-parent-place").value = params.get("parentPlace");
+  if (params.get("institutionId")) document.getElementById("cfg-institution-id").value = params.get("institutionId");
+  if (params.get("run") === "1") setTimeout(runPlaceTest, 500);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Servicios — Cenco Costanera</title>
+  <link rel="stylesheet" href="../shared/app.css" />
+  <script src="../shared/locale.js"></script>
+  <script src="../shared/bridge.js"></script>
+  <style>
+    :root {
+      --cm-purple: #5B2D8E;
+      --cm-purple-dark: #3D1D5C;
+      --cm-surface: #F4F0F8;
+      --cm-text: #1E1630;
+      --cm-muted: #6B6280;
+      --cm-line: #E7DFF0;
+    }
+
+    body {
+      background: var(--cm-surface);
+      color: var(--cm-text);
+    }
+
+    .app-shell {
+      background: var(--cm-surface);
+      gap: 16px;
+      padding: 20px 18px 28px;
+    }
+
+    .cm-header {
+      background: linear-gradient(135deg, var(--cm-purple-dark) 0%, var(--cm-purple) 100%);
+      color: #fff;
+      border-radius: 18px;
+      padding: 18px 20px;
+      box-shadow: 0 8px 24px rgba(61, 29, 92, 0.18);
+    }
+
+    .cm-header h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .cm-header p {
+      margin: 0;
+      font-size: 15px;
+      opacity: 0.92;
+      line-height: 1.4;
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .service-card {
+      background: #fff;
+      border: 1px solid var(--cm-line);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(61, 29, 92, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      text-align: center;
+    }
+
+    .service-card-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .service-card-desc {
+      font-size: 13px;
+      color: var(--cm-muted);
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .btn-reserve {
+      border: none;
+      border-radius: 12px;
+      background: var(--cm-purple);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 10px 16px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .call-card {
+      background: #fff;
+      border: 1px solid var(--cm-line);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 8px 20px rgba(61, 29, 92, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .call-card p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--cm-muted);
+    }
+
+    .btn-call {
+      border: none;
+      border-radius: 14px;
+      background: #1E6B4F;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      padding: 14px 18px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .btn-close {
+      border: 2px solid var(--cm-purple);
+      border-radius: 14px;
+      background: #fff;
+      color: var(--cm-purple);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 12px 18px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .success {
+      display: none;
+      text-align: center;
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid var(--cm-line);
+    }
+
+    .success.active { display: block; }
+
+    .success-title {
+      font-size: 22px;
+      font-weight: 800;
+      margin: 0 0 10px;
+    }
+
+    .success-text {
+      font-size: 15px;
+      color: var(--cm-muted);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    @media (max-width: 640px) {
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="cm-header">
+      <h1 id="page-title">Servicios</h1>
+      <p id="page-subtitle">Rodados y atención al cliente</p>
+    </header>
+
+    <div id="mainUI">
+      <div>
+        <h2 class="section-title" id="rodados-title">Préstamo de rodados</h2>
+        <div class="cards">
+          <div class="service-card">
+            <h3 class="service-card-title" id="wheel-title">Silla de ruedas</h3>
+            <p class="service-card-desc" id="wheel-desc">
+              Solicítala en el módulo de servicio al cliente, Nivel 1.
+            </p>
+            <button class="btn-reserve" type="button" onclick="reserve('silla de ruedas')">
+              Solicitar
+            </button>
+          </div>
+          <div class="service-card">
+            <h3 class="service-card-title" id="stroller-title">Coche de niños</h3>
+            <p class="service-card-desc" id="stroller-desc">
+              Préstamo de coche para bebés en servicio al cliente.
+            </p>
+            <button class="btn-reserve" type="button" onclick="reserve('coche de bebé')">
+              Solicitar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="call-card">
+        <h2 class="section-title" id="call-title">Atención al cliente</h2>
+        <p id="call-desc">
+          Módulo de servicio al cliente en Nivel 1. Te ayudamos con tiendas, rodados y más.
+        </p>
+        <button class="btn-call" id="btnCall" type="button">Llamar a atención al cliente</button>
+        <button class="btn-close" type="button" onclick="SimaBridge.requestClose()">Cerrar</button>
+      </div>
+    </div>
+
+    <div id="successUI" class="success">
+      <h2 class="success-title" id="success-title">Solicitud registrada</h2>
+      <p class="success-text" id="success-text"></p>
+    </div>
+  </div>
+
+  <script>
+    let whatsappNumber = "56975416648";
+
+    const I18N = {
+      es: {
+        pageTitle: "Servicios",
+        pageSubtitle: "Rodados y atención al cliente",
+        rodadosTitle: "Préstamo de rodados",
+        wheelTitle: "Silla de ruedas",
+        wheelDesc: "Solicítala en el módulo de servicio al cliente, Nivel 1.",
+        strollerTitle: "Coche de niños",
+        strollerDesc: "Préstamo de coche para bebés en servicio al cliente.",
+        reserve: "Solicitar",
+        callTitle: "Atención al cliente",
+        callDesc: "Módulo de servicio al cliente en Nivel 1. Te ayudamos con tiendas, rodados y más.",
+        callBtn: "Llamar a atención al cliente",
+        close: "Cerrar",
+        successTitle: "Solicitud registrada",
+        successBody: "Escanea el código QR en pantalla para continuar en WhatsApp.",
+        speakIntro: "Puedes solicitar silla de ruedas, coche de niños o llamar a atención al cliente.",
+        speakReserve: "Solicitud registrada. Escanea el código QR para continuar.",
+        speakCall: "Te conecto con atención al cliente."
+      },
+      en: {
+        pageTitle: "Services",
+        pageSubtitle: "Mobility aids and customer service",
+        rodadosTitle: "Mobility equipment",
+        wheelTitle: "Wheelchair",
+        wheelDesc: "Request it at the customer service desk, Level 1.",
+        strollerTitle: "Stroller",
+        strollerDesc: "Baby stroller loan at customer service.",
+        reserve: "Request",
+        callTitle: "Customer service",
+        callDesc: "Customer service desk on Level 1. We can help with stores, mobility aids and more.",
+        callBtn: "Call customer service",
+        close: "Close",
+        successTitle: "Request registered",
+        successBody: "Scan the QR code on screen to continue on WhatsApp.",
+        speakIntro: "You can request a wheelchair, stroller or call customer service.",
+        speakReserve: "Request registered. Scan the QR code to continue.",
+        speakCall: "Connecting you to customer service."
+      },
+      pt: {
+        pageTitle: "Serviços",
+        pageSubtitle: "Rodas e atendimento ao cliente",
+        rodadosTitle: "Empréstimo de rodas",
+        wheelTitle: "Cadeira de rodas",
+        wheelDesc: "Solicite no módulo de atendimento ao cliente, Nível 1.",
+        strollerTitle: "Carrinho de bebê",
+        strollerDesc: "Empréstimo de carrinho no atendimento ao cliente.",
+        reserve: "Solicitar",
+        callTitle: "Atendimento ao cliente",
+        callDesc: "Módulo de atendimento no Nível 1. Ajudamos com lojas, rodas e mais.",
+        callBtn: "Ligar para atendimento ao cliente",
+        close: "Fechar",
+        successTitle: "Solicitação registrada",
+        successBody: "Escaneie o código QR na tela para continuar no WhatsApp.",
+        speakIntro: "Você pode solicitar cadeira de rodas, carrinho de bebê ou ligar para o atendimento.",
+        speakReserve: "Solicitação registrada. Escaneie o código QR para continuar.",
+        speakCall: "Conectando você ao atendimento ao cliente."
+      }
+    };
+
+    function getLocale() {
+      return SimaLocale.readLocaleFromPage();
+    }
+
+    function t(key) {
+      return SimaLocale.t(I18N, key, getLocale());
+    }
+
+    function applyLocale() {
+      document.getElementById("page-title").textContent = t("pageTitle");
+      document.getElementById("page-subtitle").textContent = t("pageSubtitle");
+      document.getElementById("rodados-title").textContent = t("rodadosTitle");
+      document.getElementById("wheel-title").textContent = t("wheelTitle");
+      document.getElementById("wheel-desc").textContent = t("wheelDesc");
+      document.getElementById("stroller-title").textContent = t("strollerTitle");
+      document.getElementById("stroller-desc").textContent = t("strollerDesc");
+      document.getElementById("call-title").textContent = t("callTitle");
+      document.getElementById("call-desc").textContent = t("callDesc");
+      document.getElementById("btnCall").textContent = t("callBtn");
+      document.getElementById("success-title").textContent = t("successTitle");
+
+      document.querySelectorAll(".btn-reserve").forEach((btn) => {
+        btn.textContent = t("reserve");
+      });
+    }
+
+    function reserve(item) {
+      const id = "SIMA-" + Math.floor(1000 + Math.random() * 9000);
+      const sessionId = "usuario_" + Date.now();
+      const link =
+        "https://wa.me/" + whatsappNumber
+        + "?text=Reserva%20completada%20con%20%C3%A9xito.%20"
+        + encodeURIComponent(item) + "%20ID%20" + id + "%20soy_" + sessionId;
+
+      document.getElementById("mainUI").style.display = "none";
+      const success = document.getElementById("successUI");
+      success.classList.add("active");
+      document.getElementById("success-text").textContent = t("successBody") + " ID " + id + ".";
+
+      SimaBridge.send("generate_qr", { url: link, id: id });
+      SimaBridge.send("mobility_reserved", { itemType: item, reservationId: id });
+      SimaBridge.speak(t("speakReserve"));
+      SimaBridge.animate("happy");
+    }
+
+    function startCustomerCall() {
+      SimaBridge.speak(t("speakCall"));
+      SimaBridge.send("totem_call", { source: "servicios" });
+    }
+
+    window.handleUnityData = function(data) {
+      if (!data) return;
+
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch (e) { return; }
+      }
+
+      if (data.extra) whatsappNumber = String(data.extra).replace(/\D/g, "");
+      if (data.language) window.MALL_LOCALE = data.language;
+
+      applyLocale();
+      SimaBridge.speak(t("speakIntro"));
+    };
+
+    document.getElementById("btnCall").onclick = startCustomerCall;
+
+    window.addEventListener("load", () => {
+      applyLocale();
+      SimaBridge.ready("servicios");
+    });
+  </script>
+</body>
+</html>
