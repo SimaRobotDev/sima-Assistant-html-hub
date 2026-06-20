@@ -2257,16 +2257,7 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
       : MapVxBridge.showPlace;
     logMap("info", "calling MapVxBridge", { fn: showFn.name || "showPlace" });
     const result = await showFn(container, { id, name, floor, local, mall, poiType });
-    const detail = result.clientId
-      ? "clientId=" + result.clientId
-      : "mapvxId=" + result.mapvxId;
-    let statusLine = (result.title || name || "") + " · " + result.resolvedBy + " · " + detail;
-    if (result.routeSkipped) {
-      statusLine += " · " + t("routeNeedsTotem");
-    } else if (result.routeActive || result.routeStarted) {
-      statusLine += " · " + t("routeActive");
-    }
-    setMapStatus(statusLine);
+    setMapStatus("");
     setupMapControls(result);
     setMapLoadingState(false);
     logMap("info", "openPoiMapViaMapVx success", result);
