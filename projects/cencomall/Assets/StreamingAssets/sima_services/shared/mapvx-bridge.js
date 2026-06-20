@@ -270,6 +270,15 @@ window.MapVxBridge = (function () {
     return getStoreLabelMode(config) !== "none";
   }
 
+  function getStoreLabelLimit(config) {
+    config = config || getConfig();
+    var limit = Number(config.storeLabelMax);
+    if (!isFinite(limit) || limit <= 0) {
+      return 0;
+    }
+    return Math.floor(limit);
+  }
+
   function clearStoreLabelMarkers() {
     if (!map || !storeLabelState.markerIds.length) {
       storeLabelState.markerIds = [];
@@ -415,6 +424,7 @@ window.MapVxBridge = (function () {
     }
 
     var mode = getStoreLabelMode(config);
+    var limit = getStoreLabelLimit(config);
     var currentParentPlaceId = String(config.parentPlace);
     if (mode === "all" && storeLabelState.parentPlaceId === currentParentPlaceId && storeLabelState.markerIds.length) {
       return storeLabelState.markerIds.length;
@@ -450,9 +460,13 @@ window.MapVxBridge = (function () {
       var added = 0;
       var seen = {};
 
+      function canAddMore() {
+        return !limit || added < limit;
+      }
+
       if (mode === "selected") {
         var selectedMarker = selectedPlace ? findSelectedStoreLabelMarker(selectedPlace, currentFloorId) : null;
-        if (selectedMarker) {
+        if (selectedMarker && canAddMore()) {
           try {
             var selectedMarkerId = mapInstance.addMarker(selectedMarker);
             if (selectedMarkerId) {
@@ -469,7 +483,7 @@ window.MapVxBridge = (function () {
         }
       } else if (mode === "featured") {
         var selectedKey = selectedPlace ? String(selectedPlace.mapvxId || selectedPlace.clientId || storeLabelTitle(selectedPlace)) : "";
-        if (selectedPlace && !isAuxiliaryLabel(selectedPlace)) {
+        if (selectedPlace && !isAuxiliaryLabel(selectedPlace) && canAddMore()) {
           var selectedFeaturedMarker = findSelectedStoreLabelMarker(selectedPlace, currentFloorId);
           if (selectedFeaturedMarker) {
             try {
@@ -492,6 +506,7 @@ window.MapVxBridge = (function () {
         }
 
         (subPlaces || []).forEach(function (place) {
+          if (!canAddMore()) return;
           var title = storeLabelTitle(place);
           if (!title || !place || !place.position || place.position.lat == null || place.position.lng == null) {
             return;
@@ -523,6 +538,7 @@ window.MapVxBridge = (function () {
         });
       } else {
         (subPlaces || []).forEach(function (place) {
+          if (!canAddMore()) return;
           var title = storeLabelTitle(place);
           if (!title || !place || !place.position || place.position.lat == null || place.position.lng == null) {
             return;

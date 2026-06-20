@@ -47,20 +47,6 @@ button {
   color: #fff;
 }
 button.primary { background: #fff; color: var(--cm-purple-dark); }
-.test-version-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: 10px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.18);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  vertical-align: middle;
-}
 .config-box {
   margin-top: 10px;
   padding: 10px 12px;
@@ -91,7 +77,7 @@ button.primary { background: #fff; color: var(--cm-purple-dark); }
 <body>
 <div class="shell">
   <div class="panel">
-    <h1><span id="map-page-title">Prueba MapVX — local catálogo Cenco</span><span class="test-version-badge" id="map-test-version-badge">versión prueba</span></h1>
+    <h1><span id="map-page-title">Prueba MapVX — local catálogo Cenco</span></h1>
     <p class="hint">
       Modo navegador: completa credenciales MapVX abajo y pulsa «Guardar config».
       El mapa indoor de Costanera usa <code>parentPlace=-N19VjzEVIj2RDKu7i4r</code>.
@@ -142,7 +128,6 @@ button.primary { background: #fff; color: var(--cm-purple-dark); }
 </div>
 <script>
 const CONFIG_STORAGE_KEY = "cencomall_mapvx_test_config";
-const MAPVX_TEST_VERSION = "labels-v1";
 
 function isUnityWebView() {
   if (window.MAPVX_CONFIG && window.MAPVX_CONFIG.apiKey)
@@ -210,13 +195,6 @@ function clearStoredConfig() {
   applyManualConfig(false);
 }
 
-function renderTestVersionBadge() {
-  const badge = document.getElementById("map-test-version-badge");
-  if (badge) {
-    badge.textContent = "prueba " + MAPVX_TEST_VERSION;
-  }
-}
-
 function applyManualConfig(save) {
   const cfg = readConfigForm();
   if (save) saveStoredConfig(cfg);
@@ -228,6 +206,7 @@ function applyManualConfig(save) {
     lang: cfg.lang,
     totemPlaceId: "",
     showStoreLabels: "featured",
+    storeLabelMax: 6,
   };
   window.MAPVX_ASSETS_BASE = "../shared/mapvx/";
 
