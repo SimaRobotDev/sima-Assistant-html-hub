@@ -2192,6 +2192,10 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
   logMap("info", "openPoiMapViaMapVx start", { poiType, id, floor, mall, name, local, mode });
   logMapVxConfig("openPoiMapViaMapVx");
 
+  if (window.MAPVX_CONFIG) {
+    window.MAPVX_CONFIG.showStoreLabels = "featured";
+  }
+
   iframe.classList.add("hidden");
   iframe.src = "";
   placeholder.classList.add("hidden");
