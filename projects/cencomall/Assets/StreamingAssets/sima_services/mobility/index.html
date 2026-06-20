@@ -597,6 +597,19 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   background: #fff;
 }
 
+.map-embed-wrap.is-loading #mapvx-container {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-embed-wrap.is-loading #map-placeholder {
+  z-index: 2;
+}
+
+.map-embed-wrap.is-ready #mapvx-container {
+  opacity: 1;
+}
+
 #map-iframe,
 #mapvx-container {
   position: absolute;
@@ -611,6 +624,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 #mapvx-container.hidden,
 #map-iframe.hidden { display: none; }
+
+#mapvx-container {
+  transition: opacity 160ms ease;
+}
 
 .map-status {
   padding: 8px 14px;
@@ -973,6 +990,7 @@ const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
 let lastServicesPayload = null;
+let mapVxWarmupPromise = null;
 
 const MOBILITY_I18N = {
   es: {
@@ -1280,6 +1298,7 @@ document.addEventListener("DOMContentLoaded", () => {
   SimaBridge.ready("mobility");
   SimaBridge.log("mobility DOM ready " + MOBILITY_UI_VERSION + " locale=" + mobilityLocale);
   logMapVxConfig("DOMContentLoaded");
+  warmupMapVxInBackground();
   renderEntrySurvey();
   document.getElementById("btnSpeak").onclick = startVoiceInput;
 });
@@ -2066,6 +2085,47 @@ function logMapVxConfig(context) {
   });
 }
 
+function isMapVxConfigured() {
+  return typeof MapVxBridge !== "undefined" && MapVxBridge.isConfigured && MapVxBridge.isConfigured();
+}
+
+async function warmupMapVxInBackground() {
+  if (mapVxWarmupPromise || !isMapVxConfigured()) return mapVxWarmupPromise;
+
+  const cfg = window.MAPVX_CONFIG || {};
+  if (!cfg.apiKey || !cfg.parentPlace || !cfg.institutionId) return null;
+
+  mapVxWarmupPromise = MapVxBridge.ensureReady(cfg)
+    .then(() => {
+      SimaBridge.log("mobility map warmup completed");
+      return true;
+    })
+    .catch((e) => {
+      console.warn("MapVx warmup failed", e);
+      SimaBridge.log("mobility map warmup failed");
+      return false;
+    });
+
+  return mapVxWarmupPromise;
+}
+
+function setMapLoadingState(loading) {
+  const wrap = document.querySelector(".map-embed-wrap");
+  const container = document.getElementById("mapvx-container");
+  const placeholder = document.getElementById("map-placeholder");
+  if (!wrap || !container || !placeholder) return;
+
+  wrap.classList.toggle("is-loading", !!loading);
+  wrap.classList.toggle("is-ready", !loading);
+  if (loading) {
+    placeholder.classList.remove("hidden");
+    container.style.opacity = "0";
+  } else {
+    container.style.opacity = "1";
+    placeholder.classList.add("hidden");
+  }
+}
+
 function useMapVxSdk() {
   const ok = typeof MapVxBridge !== "undefined" && MapVxBridge.isConfigured();
   if (!ok) {
@@ -2170,10 +2230,10 @@ function setupMapControls(result) {
 async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode }) {
   const container = document.getElementById("mapvx-container");
   const iframe = document.getElementById("map-iframe");
-  const placeholder = document.getElementById("map-placeholder");
 
   logMap("info", "openPoiMapViaMapVx start", { poiType, id, floor, mall, name, local, mode });
   logMapVxConfig("openPoiMapViaMapVx");
+  warmupMapVxInBackground();
 
   if (window.MAPVX_CONFIG) {
     window.MAPVX_CONFIG.showStoreLabels = "selected";
@@ -2182,7 +2242,7 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
 
   iframe.classList.add("hidden");
   iframe.src = "";
-  placeholder.classList.add("hidden");
+  setMapLoadingState(true);
   container.classList.remove("hidden");
   if (typeof MapVxBridge !== "undefined" && MapVxBridge.destroyMap) {
     MapVxBridge.destroyMap();
@@ -2208,6 +2268,7 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
     }
     setMapStatus(statusLine);
     setupMapControls(result);
+    setMapLoadingState(false);
     logMap("info", "openPoiMapViaMapVx success", result);
     window.__mapVxLastLog = { ts: Date.now(), phase: "success", result: result };
   } catch (e) {
@@ -2223,7 +2284,8 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
     };
     container.classList.add("hidden");
     MapVxBridge.destroyMap();
-    placeholder.classList.remove("hidden");
+    setMapLoadingState(false);
+    const placeholder = document.getElementById("map-placeholder");
     const attemptsHtml = e.attempts && e.attempts.length
       ? `<br><small>${escapeHtml(JSON.stringify(e.attempts))}</small>`
       : "";
@@ -2233,6 +2295,7 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
       `${escapeHtml(String(e.message || e))}` +
       attemptsHtml +
       `</div>`;
+    placeholder.classList.remove("hidden");
     setMapStatus("");
   }
 }
@@ -2260,6 +2323,7 @@ function openPoiMapViaIframe({ poiType, id, floor, mall, name, local }) {
 
   const mapUrl = MAP_SERVICE_BASE_URL || window.MALL_MAP_BASE_URL || "";
   container.classList.add("hidden");
+  setMapLoadingState(false);
   if (mapUrl) {
     const fullUrl = mapUrl + (mapUrl.includes("?") ? "&" : "?") + params.toString();
     logMap("info", "iframe map URL", { url: fullUrl });
@@ -2438,6 +2502,7 @@ function closeMapView() {
   document.getElementById("mapvx-container").classList.add("hidden");
   document.getElementById("mapvx-container").innerHTML = "";
   document.getElementById("map-placeholder").classList.add("hidden");
+  setMapLoadingState(false);
   setMapStatus("");
   document.querySelector(".cm-body").style.display = "";
   document.querySelector(".cm-speak-fab").style.display = "";
