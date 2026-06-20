@@ -238,7 +238,7 @@ window.MapVxBridge = (function () {
   }
 
   function fitMapToPlace(mapInstance, position) {
-    if (!position || typeof mapInstance.fitCoordinates !== "function") {
+    if (!position) {
       return;
     }
     var lat = position.lat;
@@ -246,16 +246,12 @@ window.MapVxBridge = (function () {
     if (lat == null || lng == null) {
       return;
     }
-    // fitCoordinates con 1 punto solo hace setCenter sin zoom → vista mundo.
-    var delta = 0.00035;
-    mapInstance.fitCoordinates(
-      [
-        { lat: lat - delta, lng: lng - delta },
-        { lat: lat + delta, lng: lng + delta },
-      ],
-      { padding: 60, maxZoom: 20, duration: 0 }
-    );
-    log("info", "fitMapToPlace", { lat: lat, lng: lng });
+    if (typeof mapInstance.setCenter === "function") {
+      mapInstance.setCenter({ lat: lat, lng: lng });
+    } else if (typeof mapInstance.fitCoordinates === "function") {
+      mapInstance.fitCoordinates([{ lat: lat, lng: lng }], { duration: 0 });
+    }
+    log("info", "fitMapToPlace", { lat: lat, lng: lng, method: typeof mapInstance.setCenter === "function" ? "setCenter" : "fitCoordinates" });
   }
 
   function getStoreLabelMode(config) {
@@ -1055,7 +1051,6 @@ window.MapVxBridge = (function () {
     }
 
     await waitForMapContainerLayout(containerEl);
-    fitMapToPlace(map, place.position);
     if (!place.position) {
       log("warn", "no position to fit", { mapvxId: mapvxId });
       if (parentPlace) {
