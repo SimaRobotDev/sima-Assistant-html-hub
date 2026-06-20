@@ -59,6 +59,21 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   font-weight: 800;
 }
 
+.test-version-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
 .cm-body {
   padding: 14px 14px 8px;
   display: flex;
@@ -514,7 +529,21 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   cursor: pointer;
 }
 
-.map-view-title { font-weight: 800; font-size: 16px; }
+.map-view-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 16px;
+  min-width: 0;
+}
+
+.map-view-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .map-view-body {
   flex: 1;
@@ -885,7 +914,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <div class="app-shell" id="app-shell">
   <header class="cm-header">
-    <h1 class="cm-header-title">Cenco Costanera</h1>
+    <h1 class="cm-header-title">Cenco Costanera <span class="test-version-badge" id="mobility-test-version-badge">versión prueba</span></h1>
   </header>
 
   <section id="survey-strip" class="cm-survey-strip hidden" aria-label="Evaluación de atención">
@@ -935,7 +964,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 <div id="map-view" class="map-view hidden">
   <div class="map-view-header">
     <button class="btn-back" id="map-back-btn" onclick="closeMapView()">← Volver</button>
-    <div class="map-view-title" id="map-view-title">Mapa</div>
+    <div class="map-view-title" id="map-view-title"><span class="map-view-title-text" id="map-view-title-text">Mapa</span><span class="test-version-badge" id="map-view-version-badge">versión prueba</span></div>
     <div class="map-view-actions">
       <button class="btn-map-route hidden" id="map-route-btn" type="button">Ver ruta</button>
     </div>
@@ -956,6 +985,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
 const MOBILITY_UI_VERSION = "v24";
 const MALL_TITLE = "Cenco Costanera";
+const MAPVX_TEST_VERSION = "labels-v1";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
 let lastServicesPayload = null;
@@ -1224,7 +1254,7 @@ function applyMobilityLocale() {
   const mapBack = document.getElementById("map-back-btn");
   if (mapBack) mapBack.textContent = t("back");
 
-  const mapTitle = document.getElementById("map-view-title");
+  const mapTitle = document.getElementById("map-view-title-text");
   if (mapTitle && !mapTitle.textContent) mapTitle.textContent = t("map");
 }
 
@@ -1262,6 +1292,7 @@ if (typeof SimaBridge === "undefined") {
 
 document.addEventListener("DOMContentLoaded", () => {
   applyMobilityLocale();
+  renderTestVersionBadges();
   initStoreSearchLanding();
   SimaBridge.ready("mobility");
   SimaBridge.log("mobility DOM ready " + MOBILITY_UI_VERSION + " locale=" + mobilityLocale);
@@ -2276,7 +2307,8 @@ function openPoiMap({ poiType, id, floor, mall, name, local, mode, storeDetail }
     return;
   }
 
-  document.getElementById("map-view-title").textContent = name || t("map");
+  const mapTitleText = document.getElementById("map-view-title-text");
+  if (mapTitleText) mapTitleText.textContent = name || t("map");
   document.querySelector(".cm-body").style.display = "none";
   document.querySelector(".cm-speak-fab").style.display = "none";
   document.getElementById("map-view").classList.remove("hidden");
@@ -2314,6 +2346,14 @@ function openPoiMap({ poiType, id, floor, mall, name, local, mode, storeDetail }
     text: name || "",
     destination: formatNivel(floor)
   });
+}
+
+function renderTestVersionBadges() {
+  const label = "prueba " + MAPVX_TEST_VERSION;
+  const headerBadge = document.getElementById("mobility-test-version-badge");
+  const mapBadge = document.getElementById("map-view-version-badge");
+  if (headerBadge) headerBadge.textContent = label;
+  if (mapBadge) mapBadge.textContent = label;
 }
 
 window.pushNavigationFromUnity = function(data) {
