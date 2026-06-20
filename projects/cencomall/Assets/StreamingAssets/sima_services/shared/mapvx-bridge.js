@@ -8,6 +8,11 @@ window.MapVxBridge = (function () {
   var mapContainer = null;
   var initPromise = null;
   var stylesLoaded = false;
+  var storeLabelState = {
+    parentPlaceId: null,
+    markerIds: [],
+    loading: null,
+  };
   var LOG_PREFIX = "[MapVxBridge]";
 
   function log(level, message, data) {
@@ -253,6 +258,181 @@ window.MapVxBridge = (function () {
     log("info", "fitMapToPlace", { lat: lat, lng: lng });
   }
 
+  function shouldRenderStoreLabels(config) {
+    config = config || getConfig();
+    return config.showStoreLabels !== false;
+  }
+
+  function clearStoreLabelMarkers() {
+    if (!map || !storeLabelState.markerIds.length) {
+      storeLabelState.markerIds = [];
+      return;
+    }
+
+    var ids = storeLabelState.markerIds.slice();
+    storeLabelState.markerIds = [];
+    ids.forEach(function (markerId) {
+      if (!markerId || typeof map.removeMarker !== "function") {
+        return;
+      }
+      try {
+        map.removeMarker(markerId);
+      } catch (e) {
+        log("warn", "remove store label marker failed", {
+          markerId: markerId,
+          error: String(e.message || e),
+        });
+      }
+    });
+  }
+
+  function storeLabelTitle(place) {
+    if (!place) return "";
+    return String(place.title || place.shortName || place.name || place.clientId || "").trim();
+  }
+
+  function storeLabelFloorIds(place, fallbackFloorId) {
+    var ids = [];
+    var seen = {};
+    var floors = place && Array.isArray(place.inFloors) ? place.inFloors : [];
+
+    floors.forEach(function (floorId) {
+      var key = String(floorId || "").trim();
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      ids.push(key);
+    });
+
+    if (!ids.length && fallbackFloorId) {
+      ids.push(String(fallbackFloorId));
+    }
+
+    return ids;
+  }
+
+  function buildStoreLabelMarkers(place, fallbackFloorId) {
+    var title = storeLabelTitle(place);
+    var position = place && place.position;
+    if (!title || !position || position.lat == null || position.lng == null) {
+      return [];
+    }
+
+    var floorIds = storeLabelFloorIds(place, fallbackFloorId);
+    var markerBaseId = String(place.mapvxId || place.clientId || title).replace(/[^A-Za-z0-9_-]/g, "_");
+    var labelText = title;
+    var markers = [];
+
+    for (var i = 0; i < floorIds.length; i++) {
+      var floorId = floorIds[i];
+      var markerId = "store-label-" + markerBaseId + "-" + floorId.replace(/[^A-Za-z0-9_-]/g, "_");
+      markers.push({
+        id: markerId,
+        coordinate: { lat: position.lat, lng: position.lng },
+        floorId: floorId,
+        text: labelText,
+        textPosition: MapVX.TextPosition.right,
+        iconProperties: { width: 10, height: 10 },
+        textProperties: {
+          fontSize: "12px",
+          fontWeight: "700",
+          color: "#1E1630",
+          textShadow: "0 1px 3px rgba(255,255,255,0.95)",
+        },
+        anchor: "center",
+        rotationAlignment: "viewport",
+      });
+    }
+
+    return markers;
+  }
+
+  async function refreshStoreLabels(mapInstance, config, parentPlace) {
+    config = config || getConfig();
+    if (!mapInstance || !config || !config.parentPlace || !shouldRenderStoreLabels(config)) {
+      return 0;
+    }
+
+    var currentParentPlaceId = String(config.parentPlace);
+    if (
+      storeLabelState.parentPlaceId === currentParentPlaceId
+      && storeLabelState.markerIds.length
+    ) {
+      return storeLabelState.markerIds.length;
+    }
+
+    if (storeLabelState.loading) {
+      return storeLabelState.loading;
+    }
+
+    storeLabelState.loading = (async function () {
+      if (storeLabelState.parentPlaceId !== currentParentPlaceId) {
+        clearStoreLabelMarkers();
+      }
+
+      var subPlaces = [];
+      try {
+        subPlaces = await sdk.getSubPlaces(config.parentPlace);
+      } catch (e) {
+        log("warn", "refreshStoreLabels getSubPlaces failed", {
+          parentPlace: config.parentPlace,
+          error: String(e.message || e),
+        });
+        return 0;
+      }
+
+      if (map !== mapInstance) {
+        return 0;
+      }
+
+      clearStoreLabelMarkers();
+
+      var currentFloorId = mapInstance.currentFloor || (parentPlace && pickDefaultFloorKey(parentPlace)) || null;
+      var added = 0;
+      var seen = {};
+
+      (subPlaces || []).forEach(function (place) {
+        var title = storeLabelTitle(place);
+        if (!title || !place || !place.position || place.position.lat == null || place.position.lng == null) {
+          return;
+        }
+
+        var placeKey = String(place.mapvxId || place.clientId || title);
+        if (seen[placeKey]) return;
+        seen[placeKey] = true;
+
+        var markers = buildStoreLabelMarkers(place, currentFloorId);
+        markers.forEach(function (markerConfig) {
+          try {
+            var markerId = mapInstance.addMarker(markerConfig);
+            if (markerId) {
+              storeLabelState.markerIds.push(markerId);
+              added++;
+            }
+          } catch (e) {
+            log("warn", "add store label marker failed", {
+              title: title,
+              floorId: markerConfig.floorId,
+              error: String(e.message || e),
+            });
+          }
+        });
+      });
+
+      storeLabelState.parentPlaceId = currentParentPlaceId;
+      log("info", "refreshStoreLabels done", {
+        parentPlace: currentParentPlaceId,
+        markers: added,
+      });
+      return added;
+    })();
+
+    try {
+      return await storeLabelState.loading;
+    } finally {
+      storeLabelState.loading = null;
+    }
+  }
+
   function waitForMapContainerLayout(containerEl, timeoutMs) {
     timeoutMs = timeoutMs || 3000;
     return new Promise(function (resolve) {
@@ -404,6 +584,7 @@ window.MapVxBridge = (function () {
     }
 
     await fitMapToIndoorContext(mapInstance, config, parentPlace);
+    await refreshStoreLabels(mapInstance, config, parentPlace);
     return parentPlace;
   }
 
@@ -713,6 +894,7 @@ window.MapVxBridge = (function () {
       registerParentPlace(map, parentPlace);
     }
     await applyPlaceFloorAndWait(map, config, floorId, parentPlace);
+    await refreshStoreLabels(map, config, parentPlace);
 
     if (typeof map.clearColoredPlaces === "function") map.clearColoredPlaces();
     if (typeof map.setPlacesAsSelected === "function") {
@@ -960,6 +1142,8 @@ window.MapVxBridge = (function () {
   function destroyMap() {
     log("info", "destroyMap");
     lastMapSession = null;
+    clearStoreLabelMarkers();
+    storeLabelState.parentPlaceId = null;
     if (map && typeof map.destroyMap === "function") {
       try { map.destroyMap(); } catch (e) { log("warn", "destroyMap error", { error: String(e.message || e) }); }
     }
@@ -972,6 +1156,7 @@ window.MapVxBridge = (function () {
     destroyMap();
     sdk = null;
     initPromise = null;
+    storeLabelState.loading = null;
   }
 
   return {
