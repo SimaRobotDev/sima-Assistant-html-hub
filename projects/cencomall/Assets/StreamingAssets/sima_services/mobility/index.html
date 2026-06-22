@@ -307,23 +307,32 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .btn-ver-mapa,
 .btn-remodelacion {
   width: 100%;
-  border: none;
+  min-width: 100%;
   display: flex;
+  align-self: stretch;
+  box-sizing: border-box;
+  border: none;
   align-items: center;
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
-  padding: 12px 10px;
+  padding: 14px 12px;
   cursor: pointer;
   border-radius: 0 0 14px 14px;
-  min-height: 48px;
+  min-height: 52px;
   letter-spacing: 0.01em;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .btn-ver-mapa {
   background: linear-gradient(135deg, var(--cm-purple) 0%, #7440a8 100%);
   color: #fff;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+  overflow: visible;
 }
 .btn-remodelacion { background: #B7B0C2; color: #fff; cursor: not-allowed; }
 
@@ -392,19 +401,24 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 }
 
 .btn-ver-mapa-sm {
+  width: 100%;
+  min-width: 100%;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   font-size: 11px;
   font-weight: 700;
-  padding: 9px 10px;
-  border-radius: 8px;
+  padding: 11px 12px;
+  border-radius: 10px;
   cursor: pointer;
   background: linear-gradient(135deg, var(--cm-purple) 0%, #7440a8 100%);
   color: #fff;
   white-space: nowrap;
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  flex-shrink: 1;
+  min-height: 42px;
 }
 
 .cm-empty { text-align: center; padding: 20px 10px; }
@@ -1190,6 +1204,10 @@ function getMobilityMode() {
   return params.get("mode") || "";
 }
 
+function isLocalHtmlMode() {
+  return window.location.protocol === "file:";
+}
+
 function applyStoreSearchLandingLocale() {
   const title = document.getElementById("store-search-title");
   if (title) title.textContent = t("storeSearchTitle");
@@ -1225,11 +1243,53 @@ function submitStoreSearch() {
   const landing = document.getElementById("store-search-landing");
   if (landing) landing.classList.remove("visible");
 
+  if (isLocalHtmlMode()) {
+    renderLocalStoreSearch(query);
+    return;
+  }
+
   SimaBridge.send("market_search", { text: query });
 }
 
+const LOCAL_STORE_SEARCH_DATA = [
+  { id: "nike-rise", name: "Nike Rise", brand: "Nike", floor: "Nivel 2", category: "Deportes y Outdoor", local: "CC_N2_2192", available: true },
+  { id: "adidas-originals", name: "Adidas Originals", brand: "Adidas", floor: "Nivel 2", category: "Deportes y Outdoor", local: "CC_N3_3129", available: true },
+  { id: "easy-cencosud", name: "Easy", brand: "Easy Cencosud", floor: "Planta Baja", category: "Hogar y Construcción", local: "CC_PB_1001", available: true },
+  { id: "jumbo", name: "Jumbo", brand: "Jumbo Cencosud", floor: "Planta Baja", category: "Supermercados", local: "CC_PB_1200", available: true },
+  { id: "decathlon", name: "Decathlon", brand: "Decathlon", floor: "Nivel 1", category: "Deportes y Outdoor", local: "CC_N1_4100", available: true }
+];
+
+function normalizeSearchText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function renderLocalStoreSearch(query) {
+  const q = normalizeSearchText(query);
+  const results = LOCAL_STORE_SEARCH_DATA.filter((item) => {
+    const haystack = normalizeSearchText([
+      item.name,
+      item.brand,
+      item.category,
+      item.local,
+      item.floor
+    ].join(" "));
+    return !q || haystack.indexOf(q) >= 0;
+  });
+
+  renderMarketResults({
+    type: "market_search",
+    query: query,
+    results: results
+  });
+}
+
 function initStoreSearchLanding() {
-  if (getMobilityMode() !== "store_search") return;
+  const allowLocalSearch = isLocalHtmlMode();
+  if (getMobilityMode() !== "store_search" && !allowLocalSearch) return;
 
   applyStoreSearchLandingLocale();
   showStoreSearchLanding(true);
@@ -1239,10 +1299,18 @@ function initStoreSearchLanding() {
 
   if (btn) btn.onclick = submitStoreSearch;
   if (input) {
+    if (allowLocalSearch && !input.value) {
+      input.value = "adidas";
+    }
     input.onkeydown = (event) => {
       if (event.key === "Enter") submitStoreSearch();
     };
-    window.setTimeout(() => input.focus(), 300);
+    window.setTimeout(() => {
+      input.focus();
+      if (allowLocalSearch && input.value) {
+        submitStoreSearch();
+      }
+    }, 300);
   }
 }
 
@@ -1254,7 +1322,7 @@ function applyMobilityLocale() {
   if (welcome) welcome.textContent = t("welcomeHint");
 
   applyStoreSearchLandingLocale();
-  if (getMobilityMode() === "store_search")
+  if (getMobilityMode() === "store_search" || isLocalHtmlMode())
     showStoreSearchLanding(true);
 
   const speakBtn = document.getElementById("btnSpeak");
@@ -1714,7 +1782,7 @@ function renderStoreCard(result, idx) {
 
   const available = result.available !== false;
   const btn = available
-    ? `<button class="btn-ver-mapa" type="button" onclick="openStoreMap(${idx})">${escapeHtml(t("viewMap"))}</button>`
+    ? `<button class="btn-ver-mapa" type="button" onclick="event.stopPropagation(); openStoreMap(${idx})">${escapeHtml(t("viewMap"))}</button>`
     : `<button class="btn-remodelacion" disabled>${escapeHtml(t("renovation"))}</button>`;
   const category = firstCategory(result.category);
   const categoryBadge = category
@@ -1729,7 +1797,7 @@ function renderStoreCard(result, idx) {
     : "";
 
   return `
-    <article class="store-card fade-in">
+    <article class="store-card fade-in" role="button" tabindex="0" onclick="openStoreMap(${idx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); openStoreMap(${idx});}">
       <div class="store-card-top">
         ${renderStoreAvatar(result)}
         <div class="store-name">${escapeHtml(result.name || "Tienda")}</div>
@@ -2252,10 +2320,10 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
     window.MAPVX_CONFIG.showStoreLabels = "selected";
     window.MAPVX_CONFIG.storeLabelMax = 1;
     if (window.MAPVX_CONFIG.minZoom == null) {
-      window.MAPVX_CONFIG.minZoom = 12;
+      window.MAPVX_CONFIG.minZoom = 8;
     }
     if (window.MAPVX_CONFIG.maxZoom == null) {
-      window.MAPVX_CONFIG.maxZoom = 22;
+      window.MAPVX_CONFIG.maxZoom = 30;
     }
   }
 
