@@ -111,7 +111,7 @@
 }
 
 .mapvx-place-popover-content {
-  width: 228px;
+  width: 184px;
   box-sizing: border-box;
 }
 
@@ -126,49 +126,49 @@
 
 .mapvx-place-popover-card {
   position: relative;
-  width: 228px;
-  min-height: 96px;
-  padding: 12px 14px 12px 12px;
+  width: 184px;
+  min-height: 77px;
+  padding: 10px 12px 10px 10px;
   box-sizing: border-box;
   background: #ffffff;
   border: 1px solid rgba(61, 29, 92, 0.14);
-  border-radius: 14px;
-  box-shadow: 0 10px 26px rgba(61, 29, 92, 0.18);
-  transform: translate(-50%, calc(-100% - 16px));
+  border-radius: 12px;
+  box-shadow: 0 8px 21px rgba(61, 29, 92, 0.18);
+  transform: translate(-50%, calc(-100% - 13px));
 }
 
 .mapvx-place-popover-arrow {
   position: absolute;
   left: 50%;
-  bottom: -10px;
-  width: 18px;
-  height: 18px;
+  bottom: -8px;
+  width: 14px;
+  height: 14px;
   background: #fff;
   border-right: 1px solid rgba(61, 29, 92, 0.14);
   border-bottom: 1px solid rgba(61, 29, 92, 0.14);
   transform: translateX(-50%) rotate(45deg);
-  border-radius: 0 0 4px 0;
+  border-radius: 0 0 3px 0;
 }
 
 .mapvx-place-popover-logo-wrap {
   width: 100%;
-  min-height: 34px;
+  min-height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .mapvx-place-popover-logo {
   display: block;
-  max-width: 82px;
-  max-height: 34px;
+  max-width: 66px;
+  max-height: 28px;
   object-fit: contain;
 }
 
 .mapvx-place-popover-initials {
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   background: #f0e9f8;
   color: #5b2d8e;
@@ -176,7 +176,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 13px;
+  font-size: 11px;
   letter-spacing: 0.04em;
 }
 
@@ -186,17 +186,24 @@
 }
 
 .mapvx-place-popover-title {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 800;
   line-height: 1.1;
   margin: 0;
 }
 
-.mapvx-place-popover-subtitle {
-  margin-top: 6px;
-  font-size: 12px;
-  line-height: 1.25;
-  color: #6b6280;
+.mapvx-place-popover-floor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f0e9f8;
+  color: #5b2d8e;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 

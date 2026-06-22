@@ -21,6 +21,7 @@ window.MapVxBridge = (function () {
     node: null,
     listenersBound: false,
     scheduled: false,
+    visible: false,
   };
   var LOG_PREFIX = "[MapVxBridge]";
 
@@ -299,6 +300,18 @@ window.MapVxBridge = (function () {
     return parts.filter(Boolean).join(" · ");
   }
 
+  function getFloorDisplayLabel(floorId) {
+    var key = String(floorId || "").trim();
+    if (!key) return "";
+    var floors = getMapFloors();
+    for (var i = 0; i < floors.length; i++) {
+      if (String(floors[i].key || "").trim() === key) {
+        return String(floors[i].label || floors[i].shortName || floors[i].key || key);
+      }
+    }
+    return key;
+  }
+
   function getPlaceInitials(place) {
     var title = getPlaceDisplayTitle(place);
     if (!title) return "?";
@@ -349,12 +362,12 @@ window.MapVxBridge = (function () {
       title.className = "mapvx-place-popover-title";
       title.setAttribute("data-mapvx-popover-title", "true");
 
-      var subtitle = document.createElement("div");
-      subtitle.className = "mapvx-place-popover-subtitle";
-      subtitle.setAttribute("data-mapvx-popover-subtitle", "true");
+      var floor = document.createElement("div");
+      floor.className = "mapvx-place-popover-floor";
+      floor.setAttribute("data-mapvx-popover-floor", "true");
 
       body.appendChild(title);
-      body.appendChild(subtitle);
+      body.appendChild(floor);
       card.appendChild(arrow);
       card.appendChild(logoWrap);
       card.appendChild(body);
@@ -367,7 +380,7 @@ window.MapVxBridge = (function () {
     return placePopOverState.node;
   }
 
-  function buildPlacePopOverContent(place) {
+  function buildPlacePopOverContent(place, floorId) {
     var wrap = document.createElement("div");
     wrap.className = "mapvx-place-popover-content";
 
@@ -405,6 +418,14 @@ window.MapVxBridge = (function () {
 
     body.appendChild(title);
 
+    var floorLabel = getFloorDisplayLabel(floorId || (place && place.inFloors && place.inFloors[0]));
+    if (floorLabel) {
+      var floor = document.createElement("div");
+      floor.className = "mapvx-place-popover-floor";
+      floor.textContent = floorLabel;
+      body.appendChild(floor);
+    }
+
     wrap.appendChild(logoWrap);
     wrap.appendChild(body);
     return wrap;
@@ -413,17 +434,17 @@ window.MapVxBridge = (function () {
   function renderPlacePopOverContent(place, root) {
     if (!place || !root) return;
     var titleEl = root.querySelector("[data-mapvx-popover-title]");
-    var subtitleEl = root.querySelector("[data-mapvx-popover-subtitle]");
+    var floorEl = root.querySelector("[data-mapvx-popover-floor]");
     var logoWrap = root.querySelector("[data-mapvx-popover-logo]");
     var title = getPlaceDisplayTitle(place);
-    var subtitle = getPlaceDisplaySubtitle(place);
     var logoUrl = getPlaceLogoUrl(place);
     var initials = getPlaceInitials(place);
+    var floorLabel = getFloorDisplayLabel(placePopOverState.floorId || (place.inFloors && place.inFloors[0]));
 
     if (titleEl) titleEl.textContent = title;
-    if (subtitleEl) {
-      subtitleEl.textContent = subtitle;
-      subtitleEl.classList.toggle("hidden", !subtitle);
+    if (floorEl) {
+      floorEl.textContent = floorLabel;
+      floorEl.classList.toggle("hidden", !floorLabel);
     }
     if (logoWrap) {
       logoWrap.innerHTML = "";
@@ -503,13 +524,7 @@ window.MapVxBridge = (function () {
   }
 
   function clearPlacePopOver() {
-    if (placePopOverState.map && typeof placePopOverState.map.removePopOver === "function") {
-      try {
-        placePopOverState.map.removePopOver(placePopOverState.placeId);
-      } catch (e) {
-        log("warn", "removePopOver failed", { error: String(e.message || e) });
-      }
-    }
+    hidePlacePopOver();
     placePopOverState.map = null;
     placePopOverState.placeId = null;
     placePopOverState.floorId = null;
@@ -517,6 +532,22 @@ window.MapVxBridge = (function () {
     placePopOverState.node = null;
     placePopOverState.listenersBound = false;
     placePopOverState.scheduled = false;
+    placePopOverState.visible = false;
+  }
+
+  function hidePlacePopOver() {
+    if (placePopOverState.map && typeof placePopOverState.map.removePopOver === "function" && placePopOverState.visible) {
+      try {
+        placePopOverState.map.removePopOver(placePopOverState.placeId);
+      } catch (e) {
+        log("warn", "removePopOver failed", { error: String(e.message || e) });
+      }
+    }
+    if (placePopOverState.node && placePopOverState.node.parentNode) {
+      placePopOverState.node.parentNode.removeChild(placePopOverState.node);
+    }
+    placePopOverState.node = null;
+    placePopOverState.visible = false;
   }
 
   function showPlacePopOver(mapInstance, place, floorId) {
@@ -537,19 +568,20 @@ window.MapVxBridge = (function () {
     placePopOverState.placeId = place.mapvxId || place.clientId || getPlaceDisplayTitle(place) || null;
     placePopOverState.floorId = floorId || (place.inFloors && place.inFloors.length ? place.inFloors[0] : null);
 
-      if (typeof mapInstance.addPopOver === "function") {
-        mapInstance.addPopOver({
-          placeId: placePopOverState.placeId,
-          content: buildPlacePopOverContent(place),
-          maxWidth: "224px",
-          className: "mapvx-sdk-popover",
-        });
-      } else {
+    if (typeof mapInstance.addPopOver === "function") {
+      mapInstance.addPopOver({
+        placeId: placePopOverState.placeId,
+        content: buildPlacePopOverContent(place, placePopOverState.floorId),
+        maxWidth: "224px",
+        className: "mapvx-sdk-popover",
+      });
+    } else {
       ensurePlacePopOverNode(mapInstance);
       bindPlacePopOverEvents(mapInstance);
       schedulePlacePopOverUpdate();
       updatePlacePopOverPosition();
     }
+    placePopOverState.visible = true;
 
     log("info", "showPlacePopOver", {
       placeId: placePopOverState.placeId,
@@ -1519,6 +1551,7 @@ window.MapVxBridge = (function () {
       : "es";
 
     log("info", "drawRouteToTarget", { from: originId, to: destId, originRaw: originRaw });
+    hidePlacePopOver();
 
     try {
       await map.startAnimateRoute(
@@ -1531,9 +1564,24 @@ window.MapVxBridge = (function () {
           polylineWidth: 5,
           aheadPathStyle: { type: "Solid", color: "#E4007C" },
           behindPathStyle: { type: "Solid", color: "#E4007C" },
+        },
+        {
+          callBack: function (payload) {
+            if (payload && payload.isFinished) {
+              if (lastMapSession) {
+                lastMapSession.routeActive = false;
+              }
+              if (lastMapSession && lastMapSession.result && lastMapSession.result.selectedPlace) {
+                showPlacePopOver(map, lastMapSession.result.selectedPlace, lastMapSession.floorId);
+              }
+            }
+          }
         }
       );
     } catch (e) {
+      if (lastMapSession && lastMapSession.result && lastMapSession.result.selectedPlace) {
+        showPlacePopOver(map, lastMapSession.result.selectedPlace, lastMapSession.floorId);
+      }
       var msg = String(e.message || e);
       if (msg.indexOf("Failed to start animating") >= 0 || msg.indexOf("Failed to add route") >= 0) {
         throw new Error(
@@ -1555,6 +1603,9 @@ window.MapVxBridge = (function () {
     }
     if (lastMapSession) {
       lastMapSession.routeActive = false;
+    }
+    if (lastMapSession && lastMapSession.result && lastMapSession.result.selectedPlace) {
+      showPlacePopOver(map, lastMapSession.result.selectedPlace, lastMapSession.floorId);
     }
     log("info", "clearActiveRoute");
   }
