@@ -14245,23 +14245,64 @@ var InternalMapVXMap = /*#__PURE__*/function (_Loggeable) {
   }, {
     key: "addPopOver",
     value: function addPopOver(popOverConfig) {
-      var placeId = popOverConfig.placeId;
+      var _this = this;
+      var config = popOverConfig || {};
+      if (this._activePopOver && typeof this._activePopOver.remove === "function") {
+        try {
+          this._activePopOver.remove();
+        } catch (error) {
+          // Ignore stale popovers.
+        }
+      }
+      var placeId = config.placeId;
       if (placeId !== undefined) {
         var pointedPlace = this.subPlaces.find(function (subplace) {
           return subplace.clientId === placeId || subplace.mapvxId === placeId;
         });
         if (pointedPlace !== undefined) {
-          new (maplibre_gl_default()).Popup().setLngLat(pointedPlace.position).setHTML(pointedPlace.title).addTo(this.map);
+          var popup = new (maplibre_gl_default()).Popup({
+            closeButton: false,
+            closeOnClick: false,
+            maxWidth: config.maxWidth || "280px",
+          });
+          if (config.className) {
+            popup.addClassName(config.className);
+          }
+          if (config.content && typeof config.content === "object" && config.content.nodeType) {
+            popup.setDOMContent(config.content);
+          } else if (config.html) {
+            popup.setHTML(config.html);
+          } else if (config.title) {
+            popup.setHTML(config.title);
+          } else {
+            popup.setHTML(pointedPlace.title);
+          }
+          popup.setLngLat(pointedPlace.position).addTo(this.map);
+          this._activePopOver = popup;
+          popup.on("close", function () {
+            if (_this._activePopOver === popup) {
+              _this._activePopOver = null;
+            }
+          });
+          return popup;
         }
       }
-      return "";
+      return null;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   }, {
     key: "removePopOver",
     value: function removePopOver(id) {
-      throw Error("Not implemented");
+      if (this._activePopOver && typeof this._activePopOver.remove === "function") {
+        try {
+          this._activePopOver.remove();
+        } catch (error) {
+          // Ignore stale popovers.
+        }
+      }
+      this._activePopOver = null;
+      return true;
     }
   }, {
     key: "startClickListener",

@@ -13,6 +13,15 @@ window.MapVxBridge = (function () {
     markerIds: [],
     loading: null,
   };
+  var placePopOverState = {
+    map: null,
+    placeId: null,
+    floorId: null,
+    place: null,
+    node: null,
+    listenersBound: false,
+    scheduled: false,
+  };
   var LOG_PREFIX = "[MapVxBridge]";
 
   function log(level, message, data) {
@@ -252,6 +261,311 @@ window.MapVxBridge = (function () {
       mapInstance.fitCoordinates([{ lat: lat, lng: lng }], { duration: 0 });
     }
     log("info", "fitMapToPlace", { lat: lat, lng: lng, method: typeof mapInstance.setCenter === "function" ? "setCenter" : "fitCoordinates" });
+  }
+
+  function getPlaceLogoUrl(place) {
+    if (!place) return "";
+    var candidates = [
+      place.logo,
+      place.logoUrl,
+      place.imageUrl,
+      place.image,
+    ];
+    if (place.images && place.images.length) {
+      candidates.push(place.images[0] && (place.images[0].url || place.images[0].src || place.images[0].imageUrl));
+    }
+    if (place.metadata) {
+      candidates.push(place.metadata.logoUrl, place.metadata.imageUrl);
+    }
+    for (var i = 0; i < candidates.length; i++) {
+      if (candidates[i]) {
+        return String(candidates[i]);
+      }
+    }
+    return "";
+  }
+
+  function getPlaceDisplayTitle(place) {
+    if (!place) return "";
+    return String(place.title || place.shortName || place.name || place.clientId || "").trim();
+  }
+
+  function getPlaceDisplaySubtitle(place) {
+    if (!place) return "";
+    var parts = [];
+    if (place.category) parts.push(String(place.category));
+    if (place.shortDescription) parts.push(String(place.shortDescription));
+    else if (place.description) parts.push(String(place.description));
+    return parts.filter(Boolean).join(" · ");
+  }
+
+  function getPlaceInitials(place) {
+    var title = getPlaceDisplayTitle(place);
+    if (!title) return "?";
+    var words = title.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return "?";
+    if (words.length === 1) {
+      return words[0].substring(0, 2).toUpperCase();
+    }
+    return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+  }
+
+  function ensurePlacePopOverNode(mapInstance) {
+    var container = mapInstance && typeof mapInstance.getCanvasContainer === "function"
+      ? mapInstance.getCanvasContainer()
+      : (mapInstance && typeof mapInstance.getContainer === "function"
+        ? mapInstance.getContainer()
+        : mapContainer);
+    if (!container) return null;
+
+    if (!placePopOverState.node || placePopOverState.node.parentNode !== container) {
+      if (placePopOverState.node && placePopOverState.node.parentNode) {
+        placePopOverState.node.parentNode.removeChild(placePopOverState.node);
+      }
+
+      var layer = document.createElement("div");
+      layer.className = "mapvx-place-popover-layer";
+      layer.setAttribute("aria-hidden", "true");
+      layer.style.zIndex = "9999";
+
+      var popover = document.createElement("div");
+      popover.className = "mapvx-place-popover hidden";
+      popover.setAttribute("data-mapvx-place-popover", "true");
+
+      var card = document.createElement("div");
+      card.className = "mapvx-place-popover-card";
+
+      var arrow = document.createElement("div");
+      arrow.className = "mapvx-place-popover-arrow";
+
+      var logoWrap = document.createElement("div");
+      logoWrap.className = "mapvx-place-popover-logo-wrap";
+      logoWrap.setAttribute("data-mapvx-popover-logo", "true");
+
+      var body = document.createElement("div");
+      body.className = "mapvx-place-popover-body";
+
+      var title = document.createElement("div");
+      title.className = "mapvx-place-popover-title";
+      title.setAttribute("data-mapvx-popover-title", "true");
+
+      var subtitle = document.createElement("div");
+      subtitle.className = "mapvx-place-popover-subtitle";
+      subtitle.setAttribute("data-mapvx-popover-subtitle", "true");
+
+      body.appendChild(title);
+      body.appendChild(subtitle);
+      card.appendChild(arrow);
+      card.appendChild(logoWrap);
+      card.appendChild(body);
+      popover.appendChild(card);
+      layer.appendChild(popover);
+      container.appendChild(layer);
+      placePopOverState.node = layer;
+    }
+
+    return placePopOverState.node;
+  }
+
+  function buildPlacePopOverContent(place) {
+    var wrap = document.createElement("div");
+    wrap.className = "mapvx-place-popover-content";
+
+    var logoWrap = document.createElement("div");
+    logoWrap.className = "mapvx-place-popover-logo-wrap";
+    var logoUrl = getPlaceLogoUrl(place);
+    var initials = getPlaceInitials(place);
+    if (logoUrl) {
+      var img = document.createElement("img");
+      img.className = "mapvx-place-popover-logo";
+      img.alt = "";
+      img.loading = "lazy";
+      img.src = logoUrl;
+      img.onerror = function () {
+        if (!img.parentNode) return;
+        var fallback = document.createElement("div");
+        fallback.className = "mapvx-place-popover-initials";
+        fallback.textContent = initials;
+        img.parentNode.replaceChild(fallback, img);
+      };
+      logoWrap.appendChild(img);
+    } else {
+      var fallbackLogo = document.createElement("div");
+      fallbackLogo.className = "mapvx-place-popover-initials";
+      fallbackLogo.textContent = initials;
+      logoWrap.appendChild(fallbackLogo);
+    }
+
+    var body = document.createElement("div");
+    body.className = "mapvx-place-popover-body";
+
+    var title = document.createElement("div");
+    title.className = "mapvx-place-popover-title";
+    title.textContent = getPlaceDisplayTitle(place);
+
+    body.appendChild(title);
+
+    var subtitle = getPlaceDisplaySubtitle(place);
+    if (subtitle) {
+      var subtitleEl = document.createElement("div");
+      subtitleEl.className = "mapvx-place-popover-subtitle";
+      subtitleEl.textContent = subtitle;
+      body.appendChild(subtitleEl);
+    }
+
+    wrap.appendChild(logoWrap);
+    wrap.appendChild(body);
+    return wrap;
+  }
+
+  function renderPlacePopOverContent(place, root) {
+    if (!place || !root) return;
+    var titleEl = root.querySelector("[data-mapvx-popover-title]");
+    var subtitleEl = root.querySelector("[data-mapvx-popover-subtitle]");
+    var logoWrap = root.querySelector("[data-mapvx-popover-logo]");
+    var title = getPlaceDisplayTitle(place);
+    var subtitle = getPlaceDisplaySubtitle(place);
+    var logoUrl = getPlaceLogoUrl(place);
+    var initials = getPlaceInitials(place);
+
+    if (titleEl) titleEl.textContent = title;
+    if (subtitleEl) {
+      subtitleEl.textContent = subtitle;
+      subtitleEl.classList.toggle("hidden", !subtitle);
+    }
+    if (logoWrap) {
+      logoWrap.innerHTML = "";
+      if (logoUrl) {
+        var img = document.createElement("img");
+        img.className = "mapvx-place-popover-logo";
+        img.alt = "";
+        img.loading = "lazy";
+        img.src = logoUrl;
+        img.onerror = function () {
+          if (!img.parentNode) return;
+          var fallback = document.createElement("div");
+          fallback.className = "mapvx-place-popover-initials";
+          fallback.textContent = initials;
+          img.parentNode.replaceChild(fallback, img);
+        };
+        logoWrap.appendChild(img);
+      } else {
+        var fallback2 = document.createElement("div");
+        fallback2.className = "mapvx-place-popover-initials";
+        fallback2.textContent = initials;
+        logoWrap.appendChild(fallback2);
+      }
+    }
+  }
+
+  function updatePlacePopOverPosition() {
+    if (!placePopOverState.map || !placePopOverState.node || !placePopOverState.place) {
+      return;
+    }
+
+    var root = placePopOverState.node.querySelector("[data-mapvx-place-popover]");
+    if (!root) return;
+
+    try {
+      renderPlacePopOverContent(placePopOverState.place, root);
+      var point = placePopOverState.map.project({
+        lng: placePopOverState.place.position.lng,
+        lat: placePopOverState.place.position.lat,
+      });
+      if (!point || point.x == null || point.y == null) {
+        root.classList.add("hidden");
+        return;
+      }
+      root.style.left = point.x + "px";
+      root.style.top = point.y + "px";
+      root.classList.remove("hidden");
+    } catch (e) {
+      root.classList.add("hidden");
+      log("warn", "updatePlacePopOverPosition failed", { error: String(e.message || e) });
+    }
+  }
+
+  function schedulePlacePopOverUpdate() {
+    if (placePopOverState.scheduled) return;
+    placePopOverState.scheduled = true;
+    requestAnimationFrame(function () {
+      placePopOverState.scheduled = false;
+      updatePlacePopOverPosition();
+    });
+  }
+
+  function bindPlacePopOverEvents(mapInstance) {
+    if (!mapInstance || placePopOverState.listenersBound) {
+      return;
+    }
+    placePopOverState.listenersBound = true;
+    placePopOverState.map = mapInstance;
+    if (typeof mapInstance.on === "function") {
+      mapInstance.on("move", schedulePlacePopOverUpdate);
+      mapInstance.on("zoom", schedulePlacePopOverUpdate);
+      mapInstance.on("rotate", schedulePlacePopOverUpdate);
+      mapInstance.on("pitch", schedulePlacePopOverUpdate);
+      mapInstance.on("resize", schedulePlacePopOverUpdate);
+      mapInstance.on("moveend", schedulePlacePopOverUpdate);
+    }
+  }
+
+  function clearPlacePopOver() {
+    if (placePopOverState.map && typeof placePopOverState.map.removePopOver === "function") {
+      try {
+        placePopOverState.map.removePopOver(placePopOverState.placeId);
+      } catch (e) {
+        log("warn", "removePopOver failed", { error: String(e.message || e) });
+      }
+    }
+    placePopOverState.map = null;
+    placePopOverState.placeId = null;
+    placePopOverState.floorId = null;
+    placePopOverState.place = null;
+    placePopOverState.node = null;
+    placePopOverState.listenersBound = false;
+    placePopOverState.scheduled = false;
+  }
+
+  function showPlacePopOver(mapInstance, place, floorId) {
+    if (!mapInstance || !place || !place.position || place.position.lat == null || place.position.lng == null) {
+      clearPlacePopOver();
+      return null;
+    }
+
+    if (typeof mapInstance.removePopOver === "function") {
+      try {
+        mapInstance.removePopOver(placePopOverState.placeId);
+      } catch (e) {
+        log("warn", "removePopOver before show failed", { error: String(e.message || e) });
+      }
+    }
+    placePopOverState.map = mapInstance;
+    placePopOverState.place = place;
+    placePopOverState.placeId = place.mapvxId || place.clientId || getPlaceDisplayTitle(place) || null;
+    placePopOverState.floorId = floorId || (place.inFloors && place.inFloors.length ? place.inFloors[0] : null);
+
+    if (typeof mapInstance.addPopOver === "function") {
+      mapInstance.addPopOver({
+        placeId: placePopOverState.placeId,
+        content: buildPlacePopOverContent(place),
+        maxWidth: "280px",
+        className: "mapvx-sdk-popover",
+      });
+    } else {
+      ensurePlacePopOverNode(mapInstance);
+      bindPlacePopOverEvents(mapInstance);
+      schedulePlacePopOverUpdate();
+      updatePlacePopOverPosition();
+    }
+
+    log("info", "showPlacePopOver", {
+      placeId: placePopOverState.placeId,
+      floorId: placePopOverState.floorId,
+      title: getPlaceDisplayTitle(place),
+    });
+
+    return placePopOverState.placeId;
   }
 
   function getStoreLabelMode(config) {
@@ -1049,6 +1363,7 @@ window.MapVxBridge = (function () {
       map.setPlacesAsSelected([mapvxId], "#5B2D8E");
       log("info", "setPlacesAsSelected", { mapvxId: mapvxId });
     }
+    showPlacePopOver(map, place, floorId);
 
     await waitForMapContainerLayout(containerEl);
     if (!place.position) {
@@ -1178,6 +1493,7 @@ window.MapVxBridge = (function () {
 
     if (lastMapSession && lastMapSession.result && lastMapSession.result.selectedPlace) {
       await refreshStoreLabels(map, config, null, lastMapSession.result.selectedPlace);
+      showPlacePopOver(map, lastMapSession.result.selectedPlace, floorKey);
     }
 
     log("info", "switchFloor", { floorKey: floorKey });
@@ -1295,6 +1611,7 @@ window.MapVxBridge = (function () {
     log("info", "destroyMap");
     lastMapSession = null;
     clearStoreLabelMarkers();
+    clearPlacePopOver();
     storeLabelState.parentPlaceId = null;
     if (map && typeof map.destroyMap === "function") {
       try { map.destroyMap(); } catch (e) { log("warn", "destroyMap error", { error: String(e.message || e) }); }
@@ -1327,6 +1644,8 @@ window.MapVxBridge = (function () {
     drawRouteToTarget: drawRouteToTarget,
     clearActiveRoute: clearActiveRoute,
     toggleRouteToTarget: toggleRouteToTarget,
+    showPlacePopOver: showPlacePopOver,
+    clearPlacePopOver: clearPlacePopOver,
     destroyMap: destroyMap,
     reset: reset,
   };
