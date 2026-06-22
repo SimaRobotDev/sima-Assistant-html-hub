@@ -775,44 +775,13 @@ window.MapVxBridge = (function () {
       }
 
       if (mode === "selected") {
-        var selectedMarker = selectedPlace ? findSelectedStoreLabelMarker(selectedPlace, currentFloorId) : null;
-        if (selectedMarker && canAddMore()) {
-          try {
-            var selectedMarkerId = mapInstance.addMarker(selectedMarker);
-            if (selectedMarkerId) {
-              storeLabelState.markerIds.push(selectedMarkerId);
-              added++;
-            }
-          } catch (e) {
-            log("warn", "add selected store label marker failed", {
-              title: storeLabelTitle(selectedPlace),
-              floorId: selectedMarker.floorId,
-              error: String(e.message || e),
-            });
-          }
+        if (selectedPlace) {
+          seen[String(selectedPlace.mapvxId || selectedPlace.clientId || storeLabelTitle(selectedPlace))] = true;
         }
       } else if (mode === "featured") {
         var selectedKey = selectedPlace ? String(selectedPlace.mapvxId || selectedPlace.clientId || storeLabelTitle(selectedPlace)) : "";
-        if (selectedPlace && !isAuxiliaryLabel(selectedPlace) && canAddMore()) {
-          var selectedFeaturedMarker = findSelectedStoreLabelMarker(selectedPlace, currentFloorId);
-          if (selectedFeaturedMarker) {
-            try {
-              var selectedFeaturedMarkerId = mapInstance.addMarker(selectedFeaturedMarker);
-              if (selectedFeaturedMarkerId) {
-                storeLabelState.markerIds.push(selectedFeaturedMarkerId);
-                added++;
-              }
-            } catch (e) {
-              log("warn", "add featured selected store label marker failed", {
-                title: storeLabelTitle(selectedPlace),
-                floorId: selectedFeaturedMarker.floorId,
-                error: String(e.message || e),
-              });
-            }
-          }
-          if (selectedKey) {
-            seen[selectedKey] = true;
-          }
+        if (selectedPlace && !isAuxiliaryLabel(selectedPlace) && selectedKey) {
+          seen[selectedKey] = true;
         }
 
         (subPlaces || []).forEach(function (place) {
