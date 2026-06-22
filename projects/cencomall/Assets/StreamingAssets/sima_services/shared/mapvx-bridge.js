@@ -1508,6 +1508,24 @@ window.MapVxBridge = (function () {
     return lastMapSession;
   }
 
+  function getMapViewState() {
+    if (!map) return null;
+    var center = null;
+    try {
+      if (typeof map.getCenter === "function") {
+        center = map.getCenter();
+      }
+    } catch (e) {
+      center = null;
+    }
+    return {
+      zoom: typeof map.getZoom === "function" ? map.getZoom() : null,
+      center: center ? { lat: center.lat, lng: center.lng } : null,
+      bearing: typeof map.getBearing === "function" ? map.getBearing() : null,
+      pitch: typeof map.getPitch === "function" ? map.getPitch() : null,
+    };
+  }
+
   function getMapFloors() {
     return lastMapSession && lastMapSession.floors ? lastMapSession.floors.slice() : [];
   }
@@ -1657,6 +1675,10 @@ window.MapVxBridge = (function () {
     }
     if (lastMapSession) {
       lastMapSession.routeActive = false;
+      if (lastMapSession.result) {
+        lastMapSession.result.routeActive = false;
+        lastMapSession.result.routeStarted = false;
+      }
     }
     if (lastMapSession && lastMapSession.result && lastMapSession.result.selectedPlace) {
       showPlacePopOver(map, lastMapSession.result.selectedPlace, lastMapSession.floorId);
@@ -1705,6 +1727,7 @@ window.MapVxBridge = (function () {
     showRouteTo: showRouteTo,
     hasRouteOrigin: hasRouteOrigin,
     getMapSession: getMapSession,
+    getMapViewState: getMapViewState,
     getMapFloors: getMapFloors,
     switchFloor: switchFloor,
     drawRouteToTarget: drawRouteToTarget,

@@ -646,6 +646,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   z-index: 2;
 }
 
+.map-embed-wrap.is-loading .map-loading-circle {
+  display: flex;
+}
+
 .map-embed-wrap.is-ready #mapvx-container {
   opacity: 1;
 }
@@ -690,10 +694,63 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   background: #fff;
 }
 
+.map-loading-circle {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  pointer-events: none;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(2px);
+}
+
+.map-loading-circle-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--cm-purple-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.map-loading-spinner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 4px solid rgba(91,45,142,0.14);
+  border-top-color: var(--cm-purple);
+  animation: spin 0.9s linear infinite;
+}
+
+.map-zoom-meter {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.92);
+  color: var(--cm-purple-dark);
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(61, 29, 92, 0.12);
+  border: 1px solid rgba(61, 29, 92, 0.1);
+}
+
 .fade-in { animation: fadeIn 0.3s ease; }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .hidden { display: none !important; }
@@ -1017,9 +1074,16 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
     <div id="map-floor-bar" class="map-floor-bar hidden" role="tablist" aria-label="Pisos"></div>
     <div id="map-status" class="map-status hidden"></div>
     <div class="map-embed-wrap">
+      <div id="map-zoom-meter" class="map-zoom-meter hidden" aria-hidden="true"></div>
       <div id="mapvx-container" class="hidden"></div>
       <iframe id="map-iframe" class="hidden" allowfullscreen></iframe>
       <div id="map-placeholder" class="map-placeholder hidden"></div>
+      <div id="map-loading-circle" class="map-loading-circle hidden" aria-hidden="true">
+        <div class="map-loading-circle-inner">
+          <div class="map-loading-spinner"></div>
+          <div>Cargando mapa…</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1313,18 +1377,10 @@ function initStoreSearchLanding() {
 
   if (btn) btn.onclick = submitStoreSearch;
   if (input) {
-    if (allowLocalSearch && !input.value) {
-      input.value = "adidas";
-    }
     input.onkeydown = (event) => {
       if (event.key === "Enter") submitStoreSearch();
     };
-    window.setTimeout(() => {
-      input.focus();
-      if (allowLocalSearch && input.value) {
-        submitStoreSearch();
-      }
-    }, 300);
+    window.setTimeout(() => input.focus(), 300);
   }
 }
 
@@ -2208,16 +2264,64 @@ function setMapLoadingState(loading) {
   const wrap = document.querySelector(".map-embed-wrap");
   const container = document.getElementById("mapvx-container");
   const placeholder = document.getElementById("map-placeholder");
-  if (!wrap || !container || !placeholder) return;
+  const spinner = document.getElementById("map-loading-circle");
+  if (!wrap || !container || !placeholder || !spinner) return;
 
   wrap.classList.toggle("is-loading", !!loading);
   wrap.classList.toggle("is-ready", !loading);
   if (loading) {
-    placeholder.classList.remove("hidden");
+    placeholder.classList.add("hidden");
+    spinner.classList.remove("hidden");
     container.style.opacity = "0";
   } else {
     container.style.opacity = "1";
     placeholder.classList.add("hidden");
+    spinner.classList.add("hidden");
+  }
+}
+
+function getMetersPerPixel(zoom, lat) {
+  return 156543.03392 * Math.cos((lat || 0) * Math.PI / 180) / Math.pow(2, zoom || 0);
+}
+
+function formatVisibleWidthMeters(meters) {
+  if (!isFinite(meters) || meters <= 0) return "";
+  if (meters < 1000) return Math.round(meters) + " m";
+  return (meters / 1000).toFixed(meters >= 10000 ? 0 : 1) + " km";
+}
+
+let mapZoomMeterTimer = null;
+
+function updateMapZoomMeter() {
+  const meter = document.getElementById("map-zoom-meter");
+  const wrap = document.querySelector(".map-embed-wrap");
+  const mapView = document.getElementById("map-view");
+  if (!meter || !wrap || !mapView || mapView.classList.contains("hidden")) return;
+  if (typeof MapVxBridge === "undefined" || !MapVxBridge.getMapViewState) {
+    meter.classList.add("hidden");
+    return;
+  }
+  const state = MapVxBridge.getMapViewState();
+  if (!state || state.zoom == null) {
+    meter.classList.add("hidden");
+    return;
+  }
+  const lat = state.center && state.center.lat != null ? state.center.lat : 0;
+  const visibleMeters = getMetersPerPixel(state.zoom, lat) * (wrap.clientWidth || 0);
+  meter.textContent = "Zoom " + state.zoom.toFixed(1) + " · aprox. " + formatVisibleWidthMeters(visibleMeters) + " visibles";
+  meter.classList.remove("hidden");
+}
+
+function startMapZoomMeter() {
+  stopMapZoomMeter();
+  updateMapZoomMeter();
+  mapZoomMeterTimer = window.setInterval(updateMapZoomMeter, 300);
+}
+
+function stopMapZoomMeter() {
+  if (mapZoomMeterTimer) {
+    window.clearInterval(mapZoomMeterTimer);
+    mapZoomMeterTimer = null;
   }
 }
 
@@ -2337,7 +2441,7 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
       window.MAPVX_CONFIG.minZoom = 8;
     }
     if (window.MAPVX_CONFIG.maxZoom == null) {
-      window.MAPVX_CONFIG.maxZoom = 30;
+      window.MAPVX_CONFIG.maxZoom = 50;
     }
   }
 
@@ -2361,6 +2465,7 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
     setMapStatus("");
     setupMapControls(result);
     setMapLoadingState(false);
+    startMapZoomMeter();
     logMap("info", "openPoiMapViaMapVx success", result);
     window.__mapVxLastLog = { ts: Date.now(), phase: "success", result: result };
   } catch (e) {
@@ -2377,6 +2482,7 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
     container.classList.add("hidden");
     MapVxBridge.destroyMap();
     setMapLoadingState(false);
+    stopMapZoomMeter();
     const placeholder = document.getElementById("map-placeholder");
     const attemptsHtml = e.attempts && e.attempts.length
       ? `<br><small>${escapeHtml(JSON.stringify(e.attempts))}</small>`
@@ -2586,6 +2692,7 @@ function closeMapView() {
     if (MapVxBridge.clearActiveRoute) MapVxBridge.clearActiveRoute();
     MapVxBridge.destroyMap();
   }
+  stopMapZoomMeter();
   resetMapControls();
   hideStoreDetailPanel();
   document.getElementById("map-view").classList.add("hidden");
