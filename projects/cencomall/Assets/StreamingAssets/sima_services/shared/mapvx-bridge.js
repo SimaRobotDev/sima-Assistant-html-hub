@@ -405,14 +405,6 @@ window.MapVxBridge = (function () {
 
     body.appendChild(title);
 
-    var subtitle = getPlaceDisplaySubtitle(place);
-    if (subtitle) {
-      var subtitleEl = document.createElement("div");
-      subtitleEl.className = "mapvx-place-popover-subtitle";
-      subtitleEl.textContent = subtitle;
-      body.appendChild(subtitleEl);
-    }
-
     wrap.appendChild(logoWrap);
     wrap.appendChild(body);
     return wrap;
@@ -545,14 +537,14 @@ window.MapVxBridge = (function () {
     placePopOverState.placeId = place.mapvxId || place.clientId || getPlaceDisplayTitle(place) || null;
     placePopOverState.floorId = floorId || (place.inFloors && place.inFloors.length ? place.inFloors[0] : null);
 
-    if (typeof mapInstance.addPopOver === "function") {
-      mapInstance.addPopOver({
-        placeId: placePopOverState.placeId,
-        content: buildPlacePopOverContent(place),
-        maxWidth: "280px",
-        className: "mapvx-sdk-popover",
-      });
-    } else {
+      if (typeof mapInstance.addPopOver === "function") {
+        mapInstance.addPopOver({
+          placeId: placePopOverState.placeId,
+          content: buildPlacePopOverContent(place),
+          maxWidth: "224px",
+          className: "mapvx-sdk-popover",
+        });
+      } else {
       ensurePlacePopOverNode(mapInstance);
       bindPlacePopOverEvents(mapInstance);
       schedulePlacePopOverUpdate();

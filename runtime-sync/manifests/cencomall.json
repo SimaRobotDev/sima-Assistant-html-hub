@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.06.22-2",
+  "version": "2026.06.22-4",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-06-22T14:59:49.603Z",
+  "generatedAt": "2026-06-22T15:04:49.704Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -141,8 +141,8 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 51360,
-      "sha256": "0329f7616f750df49a75aca9ebd9cecd4cb507089e81bf1bc33375d045871e77"
+      "size": 51106,
+      "sha256": "f67022ac6620ed2552979f19a20d158674f0a3517f0ea95c469f45f881e0e456"
     },
     {
       "path": "shared/mapvx/index.js",
@@ -151,8 +151,8 @@
     },
     {
       "path": "shared/mapvx/styles.css",
-      "size": 74410,
-      "sha256": "14f3b0592a1f910825fd48f17d76953c13dbe3e212ce56a8f4430b14d85969e6"
+      "size": 74408,
+      "sha256": "99a1037892387b7c313c53db3859740d484ea1317e1d8bcdca6d8fc35934a647"
     },
     {
       "path": "shared/qrcode.min.js",
