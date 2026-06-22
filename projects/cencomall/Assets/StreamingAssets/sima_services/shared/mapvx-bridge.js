@@ -23,6 +23,7 @@ window.MapVxBridge = (function () {
     scheduled: false,
     visible: false,
   };
+  var routeAnimationToken = 0;
   var LOG_PREFIX = "[MapVxBridge]";
 
   function log(level, message, data) {
@@ -262,6 +263,42 @@ window.MapVxBridge = (function () {
       mapInstance.fitCoordinates([{ lat: lat, lng: lng }], { duration: 0 });
     }
     log("info", "fitMapToPlace", { lat: lat, lng: lng, method: typeof mapInstance.setCenter === "function" ? "setCenter" : "fitCoordinates" });
+  }
+
+  function buildBoundsCoordinates(coords, paddingRatio) {
+    if (!coords || coords.length < 2) return coords;
+
+    var minLat = null;
+    var minLng = null;
+    var maxLat = null;
+    var maxLng = null;
+
+    coords.forEach(function (coord) {
+      if (!coord || coord.lat == null || coord.lng == null) return;
+      var lat = Number(coord.lat);
+      var lng = Number(coord.lng);
+      if (!isFinite(lat) || !isFinite(lng)) return;
+      minLat = minLat === null ? lat : Math.min(minLat, lat);
+      minLng = minLng === null ? lng : Math.min(minLng, lng);
+      maxLat = maxLat === null ? lat : Math.max(maxLat, lat);
+      maxLng = maxLng === null ? lng : Math.max(maxLng, lng);
+    });
+
+    if (minLat === null || minLng === null || maxLat === null || maxLng === null) {
+      return coords;
+    }
+
+    var latSpan = Math.max(maxLat - minLat, 0.0001);
+    var lngSpan = Math.max(maxLng - minLng, 0.0001);
+    var padLat = latSpan * (paddingRatio != null ? paddingRatio : 0.08);
+    var padLng = lngSpan * (paddingRatio != null ? paddingRatio : 0.08);
+
+    return [
+      { lng: minLng - padLng, lat: minLat - padLat },
+      { lng: maxLng + padLng, lat: minLat - padLat },
+      { lng: maxLng + padLng, lat: maxLat + padLat },
+      { lng: minLng - padLng, lat: maxLat + padLat },
+    ];
   }
 
   function getPlaceLogoUrl(place) {
@@ -955,6 +992,13 @@ window.MapVxBridge = (function () {
     }
 
     if (coords.length >= 2) {
+      if (typeof mapInstance.setMaxBounds === "function" && config.enableBoundsClamp !== false) {
+        var boundsCoords = buildBoundsCoordinates(coords, config.maxBoundsPaddingRatio);
+        if (boundsCoords && boundsCoords.length >= 2) {
+          mapInstance.setMaxBounds(boundsCoords);
+          log("info", "fitMapToIndoorContext maxBounds", { points: boundsCoords.length });
+        }
+      }
       mapInstance.fitCoordinates(coords, { padding: 56, maxZoom: 20, duration: 0 });
       log("info", "fitMapToIndoorContext bbox", { points: coords.length });
       return;
@@ -1552,6 +1596,8 @@ window.MapVxBridge = (function () {
 
     log("info", "drawRouteToTarget", { from: originId, to: destId, originRaw: originRaw });
     hidePlacePopOver();
+    routeAnimationToken += 1;
+    var currentToken = routeAnimationToken;
 
     try {
       await map.startAnimateRoute(
@@ -1567,6 +1613,9 @@ window.MapVxBridge = (function () {
         },
         {
           callBack: function (payload) {
+            if (currentToken !== routeAnimationToken) {
+              return;
+            }
             if (payload && payload.isFinished) {
               if (lastMapSession) {
                 lastMapSession.routeActive = false;
@@ -1596,7 +1645,12 @@ window.MapVxBridge = (function () {
   }
 
   function clearActiveRoute() {
-    if (map && typeof map.stopAnimateRoute === "function") {
+    routeAnimationToken += 1;
+    if (map && typeof map.removeAllRoutes === "function") {
+      try { map.removeAllRoutes(); } catch (e) {
+        log("warn", "removeAllRoutes failed", { error: String(e.message || e) });
+      }
+    } else if (map && typeof map.stopAnimateRoute === "function") {
       try { map.stopAnimateRoute(); } catch (e) {
         log("warn", "stopAnimateRoute failed", { error: String(e.message || e) });
       }

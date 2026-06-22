@@ -2238,6 +2238,12 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
   if (window.MAPVX_CONFIG) {
     window.MAPVX_CONFIG.showStoreLabels = "selected";
     window.MAPVX_CONFIG.storeLabelMax = 1;
+    if (window.MAPVX_CONFIG.minZoom == null) {
+      window.MAPVX_CONFIG.minZoom = 15;
+    }
+    if (window.MAPVX_CONFIG.maxZoom == null) {
+      window.MAPVX_CONFIG.maxZoom = 21;
+    }
   }
 
   iframe.classList.add("hidden");
