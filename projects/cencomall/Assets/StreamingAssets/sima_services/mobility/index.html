@@ -589,8 +589,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .store-detail-header {
   display: flex;
   gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 10px;
+  align-items: center;
 }
 
 .store-detail-logo.store-logo,
@@ -603,30 +602,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 }
 
 .store-detail-name {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 18px;
   font-weight: 800;
   line-height: 1.2;
-}
-
-.store-detail-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.store-detail-desc {
-  margin: 0 0 10px;
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--cm-text);
-}
-
-.store-detail-schedule {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--cm-muted);
 }
 
 .map-embed-wrap {
@@ -1733,29 +1712,13 @@ function renderStoreDetailPanel(store) {
   }
 
   const displayName = store.name || store.brand || t("results");
-  const category = firstCategory(store.category);
-  const categoryBadge = category
-    ? `<span class="store-badge" title="${escapeHtml(store.category)}">${escapeHtml(truncate(category, 24))}</span>`
-    : "";
-  const floorBadge = store.floor
-    ? `<span class="store-badge store-badge-floor">${escapeHtml(formatNivel(store.floor))}</span>`
-    : "";
-  const localBadge = store.local
-    ? `<span class="store-badge" title="${escapeHtml(store.local)}">${escapeHtml(truncate(store.local, 16))}</span>`
-    : "";
-  const infoText = store.description || store.keywords || "";
-  const schedule = store.schedule ? String(store.schedule).trim() : "";
-
   panel.innerHTML = `
     <div class="store-detail-header">
       ${renderStoreAvatar(store, true)}
       <div class="store-detail-head-text">
         <h2 class="store-detail-name">${escapeHtml(displayName)}</h2>
-        <div class="store-detail-meta">${categoryBadge}${floorBadge}${localBadge}</div>
       </div>
-    </div>
-    ${infoText ? `<p class="store-detail-desc">${escapeHtml(infoText)}</p>` : `<p class="store-detail-desc">${escapeHtml(t("noAdditionalDetail"))}</p>`}
-    ${schedule ? `<p class="store-detail-schedule"><strong>${escapeHtml(t("schedule"))}:</strong> ${escapeHtml(schedule)}</p>` : ""}`;
+    </div>`;
   panel.classList.remove("hidden");
 }
 
