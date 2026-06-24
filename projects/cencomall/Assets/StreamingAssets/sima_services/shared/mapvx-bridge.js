@@ -1635,9 +1635,6 @@ window.MapVxBridge = (function () {
               return;
             }
             if (payload && payload.isFinished) {
-              if (lastMapSession) {
-                lastMapSession.routeActive = false;
-              }
               if (lastMapSession && lastMapSession.result && lastMapSession.result.selectedPlace) {
                 showPlacePopOver(map, lastMapSession.result.selectedPlace, lastMapSession.floorId);
               }

@@ -1780,16 +1780,8 @@ function shortenSpeechText(text, maxWords, maxChars) {
 function speakStoreDetail(store) {
   if (!store || !SimaBridge || typeof SimaBridge.speak !== "function") return;
 
-  const name = String(store.name || store.brand || "").trim();
   const description = shortenSpeechText(store.description || store.keywords || "", 14, 110);
-  const parts = [];
-  if (name) parts.push(name);
-  if (description) parts.push(description);
-
-  const text = parts.join(". ");
-  if (text) {
-    SimaBridge.speak(text);
-  }
+  if (description) SimaBridge.speak(description);
 }
 
 function toggleGroup(groupIndex) {
