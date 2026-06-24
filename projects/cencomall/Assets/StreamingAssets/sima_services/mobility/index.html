@@ -1756,11 +1756,32 @@ function hideStoreDetailPanel() {
   panel.innerHTML = "";
 }
 
+function shortenSpeechText(text, maxWords, maxChars) {
+  const raw = String(text || "").trim();
+  if (!raw) return "";
+
+  const sentence = raw.split(/[.!?]\s+/)[0].trim() || raw;
+  const words = sentence.split(/\s+/).filter(Boolean);
+  const wordLimit = Math.max(1, Number(maxWords) || 12);
+  const charLimit = Math.max(20, Number(maxChars) || 120);
+  const shortened = words.slice(0, wordLimit).join(" ");
+  const clipped = shortened.length > charLimit
+    ? shortened.slice(0, charLimit).replace(/\s+\S*$/, "").trim()
+    : shortened;
+
+  if (clipped && clipped.length < sentence.length) {
+    return clipped.replace(/[,:;]+$/, "").trim();
+  }
+  return sentence.length > charLimit
+    ? sentence.slice(0, charLimit).replace(/\s+\S*$/, "").trim()
+    : sentence;
+}
+
 function speakStoreDetail(store) {
   if (!store || !SimaBridge || typeof SimaBridge.speak !== "function") return;
 
   const name = String(store.name || store.brand || "").trim();
-  const description = String(store.description || store.keywords || "").trim();
+  const description = shortenSpeechText(store.description || store.keywords || "", 14, 110);
   const parts = [];
   if (name) parts.push(name);
   if (description) parts.push(description);
