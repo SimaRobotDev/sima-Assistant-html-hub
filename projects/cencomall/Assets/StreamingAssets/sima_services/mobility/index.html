@@ -1756,6 +1756,21 @@ function hideStoreDetailPanel() {
   panel.innerHTML = "";
 }
 
+function speakStoreDetail(store) {
+  if (!store || !SimaBridge || typeof SimaBridge.speak !== "function") return;
+
+  const name = String(store.name || store.brand || "").trim();
+  const description = String(store.description || store.keywords || "").trim();
+  const parts = [];
+  if (name) parts.push(name);
+  if (description) parts.push(description);
+
+  const text = parts.join(". ");
+  if (text) {
+    SimaBridge.speak(text);
+  }
+}
+
 function toggleGroup(groupIndex) {
   const panel = document.getElementById("group-locs-" + groupIndex);
   const btn = document.getElementById("group-toggle-" + groupIndex);
@@ -2528,6 +2543,7 @@ function openPoiMap({ poiType, id, floor, mall, name, local, mode, storeDetail }
 
   if (poiType === "store" && storeDetail) {
     renderStoreDetailPanel(storeDetail);
+    speakStoreDetail(storeDetail);
   } else {
     hideStoreDetailPanel();
   }
