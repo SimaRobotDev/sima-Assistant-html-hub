@@ -12,6 +12,8 @@ window.MapVxBridge = (function () {
     parentPlaceId: null,
     markerIds: [],
     loading: null,
+    featuredPlaceMarkers: [], // [{place, floorId, markerId}]
+    centroidListener: null,   // {libreMap, fn} for cleanup
   };
   var placePopOverState = {
     map: null,
@@ -330,11 +332,14 @@ window.MapVxBridge = (function () {
 
   function getPlaceDisplaySubtitle(place) {
     if (!place) return "";
-    var parts = [];
-    if (place.category) parts.push(String(place.category));
-    if (place.shortDescription) parts.push(String(place.shortDescription));
-    else if (place.description) parts.push(String(place.description));
-    return parts.filter(Boolean).join(" · ");
+    // Skip Foursquare/Firebase hex IDs (24+ hex chars)
+    var cat = String(place.categoryName || place.category || "").trim();
+    if (cat && /^[0-9a-f]{16,}$/i.test(cat)) cat = "";
+    if (cat) return cat;
+    // Use shortDescription only if short enough to be a label
+    var sd = String(place.shortDescription || "").trim();
+    if (sd && sd.length <= 60) return sd;
+    return "";
   }
 
   function getFloorDisplayLabel(floorId) {
@@ -454,6 +459,14 @@ window.MapVxBridge = (function () {
     title.textContent = getPlaceDisplayTitle(place);
 
     body.appendChild(title);
+
+    var subtitle = getPlaceDisplaySubtitle(place);
+    if (subtitle) {
+      var subtitleEl = document.createElement("div");
+      subtitleEl.className = "mapvx-place-popover-subtitle";
+      subtitleEl.textContent = subtitle;
+      body.appendChild(subtitleEl);
+    }
 
     var floorLabel = getFloorDisplayLabel(floorId || (place && place.inFloors && place.inFloors[0]));
     if (floorLabel) {
@@ -629,10 +642,21 @@ window.MapVxBridge = (function () {
     return placePopOverState.placeId;
   }
 
+  function refreshPopOverFloorLabel() {
+    if (!placePopOverState.visible || !placePopOverState.floorId) return;
+    var label = getFloorDisplayLabel(placePopOverState.floorId);
+    if (!label) return;
+    var nodes = document.querySelectorAll(".mapvx-place-popover-floor");
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].textContent = label;
+    }
+  }
+
   function getStoreLabelMode(config) {
     config = config || getConfig();
     var mode = config.showStoreLabels;
     if (mode === true || mode === "all") return "all";
+    if (mode === "featured") return "featured";
     if (mode === "selected") return "selected";
     return "none";
   }
@@ -651,6 +675,16 @@ window.MapVxBridge = (function () {
   }
 
   function clearStoreLabelMarkers() {
+    // Detach centroid listener
+    if (storeLabelState.centroidListener) {
+      try {
+        var cl = storeLabelState.centroidListener;
+        cl.libreMap.off("moveend", cl.fn);
+      } catch (e) {}
+      storeLabelState.centroidListener = null;
+    }
+    storeLabelState.featuredPlaceMarkers = [];
+
     if (!map || !storeLabelState.markerIds.length) {
       storeLabelState.markerIds = [];
       return;
@@ -671,6 +705,108 @@ window.MapVxBridge = (function () {
         });
       }
     });
+  }
+
+  function queryPOICentroids(libreMap) {
+    var result = {};
+    try {
+      // querySourceFeatures reads all loaded tiles, not just the viewport
+      var poiLayer = libreMap.getLayer("indoor-poi-rank1");
+      var features = [];
+      if (poiLayer && poiLayer.source && poiLayer.sourceLayer) {
+        features = libreMap.querySourceFeatures(poiLayer.source, {
+          sourceLayer: poiLayer.sourceLayer,
+        });
+      }
+      // Fallback to rendered features if source query returned nothing
+      if (!features.length) {
+        features = libreMap.queryRenderedFeatures(undefined, { layers: ["indoor-poi-rank1"] });
+      }
+      features.forEach(function (f) {
+        if (f.geometry.type !== "Point") return;
+        var coords = f.geometry.coordinates;
+        var pos = { lat: coords[1], lng: coords[0] };
+        if (f.properties && f.properties.ref) {
+          result[f.properties.ref] = pos;
+        }
+      });
+    } catch (e) {}
+    return result;
+  }
+
+  function applyFeaturedCentroids(mapInst, centroids) {
+    if (!mapInst || !centroids || !storeLabelState.featuredPlaceMarkers.length) return;
+    var toUpdate = storeLabelState.featuredPlaceMarkers.filter(function (entry) {
+      return entry.place && entry.place.mapvxId && centroids[entry.place.mapvxId];
+    });
+    if (!toUpdate.length) return;
+
+    toUpdate.forEach(function (entry) {
+      var centroidPos = centroids[entry.place.mapvxId];
+      // Skip if already at centroid (within ~1cm precision)
+      if (entry.centroidApplied) return;
+
+      // Remove old marker
+      try {
+        if (typeof mapInst.removeMarker === "function") {
+          mapInst.removeMarker(entry.markerId);
+        }
+      } catch (e) {}
+      // Remove from global list
+      var idx = storeLabelState.markerIds.indexOf(entry.markerId);
+      if (idx !== -1) storeLabelState.markerIds.splice(idx, 1);
+
+      // Re-add at centroid
+      var markerConfigs = buildStoreLabelMarkers(
+        Object.assign({}, entry.place, { position: centroidPos }),
+        entry.floorId,
+        true
+      );
+      markerConfigs.forEach(function (cfg) {
+        if (cfg.floorId !== entry.floorId) return;
+        try {
+          var newId = mapInst.addMarker(cfg);
+          if (newId) {
+            storeLabelState.markerIds.push(newId);
+            entry.markerId = newId;
+            entry.centroidApplied = true;
+          }
+        } catch (e) {}
+      });
+    });
+  }
+
+  function attachCentroidUpdater(mapInst) {
+    var libreMap = mapInst && mapInst.map;
+    if (!libreMap || typeof libreMap.queryRenderedFeatures !== "function") return;
+    if (!storeLabelState.featuredPlaceMarkers.length) return;
+
+    // Detach any previous listener
+    if (storeLabelState.centroidListener) {
+      try { storeLabelState.centroidListener.libreMap.off("moveend", storeLabelState.centroidListener.fn); } catch (e) {}
+      storeLabelState.centroidListener = null;
+    }
+
+    function runUpdate() {
+      if (map !== mapInst) return; // map changed
+      var centroids = queryPOICentroids(libreMap);
+      applyFeaturedCentroids(mapInst, centroids);
+      // Once all featured places have centroids, remove the listener
+      var remaining = storeLabelState.featuredPlaceMarkers.filter(function (e) { return !e.centroidApplied; });
+      if (!remaining.length && storeLabelState.centroidListener) {
+        try { libreMap.off("moveend", storeLabelState.centroidListener.fn); } catch (e) {}
+        storeLabelState.centroidListener = null;
+      }
+    }
+
+    storeLabelState.centroidListener = { libreMap: libreMap, fn: runUpdate };
+    libreMap.on("moveend", runUpdate);
+    // Wait for map to be fully idle (all tiles loaded) before first query
+    try {
+      libreMap.once("idle", runUpdate);
+    } catch (e) {
+      setTimeout(runUpdate, 500);
+    }
   }
 
   function storeLabelTitle(place) {
@@ -747,7 +883,7 @@ window.MapVxBridge = (function () {
     return ids;
   }
 
-  function buildStoreLabelMarkers(place, fallbackFloorId) {
+  function buildStoreLabelMarkers(place, fallbackFloorId, featured) {
     var title = storeLabelTitle(place);
     var position = place && place.position;
     if (!title || !position || position.lat == null || position.lng == null) {
@@ -759,25 +895,49 @@ window.MapVxBridge = (function () {
     var labelText = title;
     var markers = [];
 
+    var logoUrl = featured && place.logo ? String(place.logo).trim() : null;
+
     for (var i = 0; i < floorIds.length; i++) {
       var floorId = floorIds[i];
       var markerId = "store-label-" + markerBaseId + "-" + floorId.replace(/[^A-Za-z0-9_-]/g, "_");
-      markers.push({
-        id: markerId,
-        coordinate: { lat: position.lat, lng: position.lng },
-        floorId: floorId,
-        text: labelText,
-        textPosition: MapVX.TextPosition.right,
-        iconProperties: { width: 10, height: 10 },
-        textProperties: {
-          fontSize: "12px",
-          fontWeight: "700",
-          color: "#1E1630",
-          textShadow: "0 1px 3px rgba(255,255,255,0.95)",
-        },
-        anchor: "center",
-        rotationAlignment: "viewport",
-      });
+      if (featured && logoUrl) {
+        markers.push({
+          id: markerId,
+          coordinate: { lat: position.lat, lng: position.lng },
+          floorId: floorId,
+          text: labelText,
+          icon: logoUrl,
+          textPosition: MapVX.TextPosition.top,
+          iconProperties: { width: 36, height: 36 },
+          textProperties: {
+            fontSize: "10px",
+            fontWeight: "800",
+            color: "#1E1630",
+            textShadow: "0 1px 3px rgba(255,255,255,1), 0 0 6px rgba(255,255,255,0.95)",
+          },
+          anchor: "center",
+          rotationAlignment: "viewport",
+          pitchAlignment: "viewport",
+        });
+      } else {
+        markers.push({
+          id: markerId,
+          coordinate: { lat: position.lat, lng: position.lng },
+          floorId: floorId,
+          text: labelText,
+          textPosition: MapVX.TextPosition.top,
+          iconProperties: { width: 0, height: 0 },
+          textProperties: {
+            fontSize: featured ? "11px" : "7px",
+            fontWeight: "700",
+            color: "#1E1630",
+            textShadow: "0 1px 2px rgba(255,255,255,0.98), 0 0 4px rgba(255,255,255,0.9)",
+          },
+          anchor: "center",
+          rotationAlignment: "viewport",
+          pitchAlignment: "viewport",
+        });
+      }
     }
 
     return markers;
@@ -859,12 +1019,18 @@ window.MapVxBridge = (function () {
           if (seen[placeKey]) return;
           seen[placeKey] = true;
 
-          var markers = buildStoreLabelMarkers(place, currentFloorId);
+          var markers = buildStoreLabelMarkers(place, currentFloorId, true);
           markers.forEach(function (markerConfig) {
             try {
               var markerId = mapInstance.addMarker(markerConfig);
               if (markerId) {
                 storeLabelState.markerIds.push(markerId);
+                storeLabelState.featuredPlaceMarkers.push({
+                  place: place,
+                  floorId: markerConfig.floorId,
+                  markerId: markerId,
+                  centroidApplied: false,
+                });
                 added++;
               }
             } catch (e) {
@@ -876,6 +1042,8 @@ window.MapVxBridge = (function () {
             }
           });
         });
+
+        attachCentroidUpdater(mapInstance);
       } else {
         (subPlaces || []).forEach(function (place) {
           if (!canAddMore()) return;
@@ -1428,6 +1596,10 @@ window.MapVxBridge = (function () {
     };
     log("info", "showPlace success", result);
     await finalizeMapSession(result, options);
+    // Floors are now loaded — refresh floor label in any open popup
+    refreshPopOverFloorLabel();
+    // Set up zoom-based label switching: featured → all after +2.5 zoom levels
+    attachZoomLabelSwitcher(map, place);
     return result;
   }
 
@@ -1468,6 +1640,41 @@ window.MapVxBridge = (function () {
     if (floor.level === 0) return "PB";
     if (floor.level != null && floor.level !== "") return String(floor.level);
     return floor.key ? String(floor.key) : "?";
+  }
+
+  var _zoomLabelListener = null;
+  var _zoomLabelExpanded = false;
+
+  function attachZoomLabelSwitcher(mapInstance, selectedPlace) {
+    if (_zoomLabelListener && mapInstance && typeof mapInstance.off === "function") {
+      try { mapInstance.off("zoom", _zoomLabelListener); } catch (e) {}
+    }
+    _zoomLabelListener = null;
+    _zoomLabelExpanded = false;
+
+    if (!mapInstance || typeof mapInstance.getZoom !== "function") return;
+
+    var baseConfig = getConfig();
+    if (getStoreLabelMode(baseConfig) !== "featured") return;
+
+    var initialZoom = mapInstance.getZoom();
+
+    _zoomLabelListener = function () {
+      var currentZoom = mapInstance.getZoom();
+      var shouldExpand = (currentZoom - initialZoom) >= 2.5;
+
+      if (shouldExpand === _zoomLabelExpanded) return; // no change
+      _zoomLabelExpanded = shouldExpand;
+
+      var cfg = Object.assign({}, getConfig(), {
+        showStoreLabels: shouldExpand ? "all" : "featured",
+      });
+      // Reset cache so refreshStoreLabels re-renders
+      storeLabelState.parentPlaceId = null;
+      refreshStoreLabels(mapInstance, cfg, cfg.parentPlace, selectedPlace);
+    };
+
+    try { mapInstance.on("zoom", _zoomLabelListener); } catch (e) {}
   }
 
   async function loadFloorsForParent(config) {
@@ -1734,5 +1941,42 @@ window.MapVxBridge = (function () {
     clearPlacePopOver: clearPlacePopOver,
     destroyMap: destroyMap,
     reset: reset,
+    _debugCentroids: function () {
+      var libreMap = map && map.map;
+      if (!libreMap) return { error: "no map" };
+      var poiLayer = libreMap.getLayer("indoor-poi-rank1");
+      var sourceFeatures = [];
+      var renderedFeatures = [];
+      try {
+        if (poiLayer && poiLayer.source && poiLayer.sourceLayer) {
+          sourceFeatures = libreMap.querySourceFeatures(poiLayer.source, { sourceLayer: poiLayer.sourceLayer });
+        }
+        renderedFeatures = libreMap.queryRenderedFeatures(undefined, { layers: ["indoor-poi-rank1"] });
+      } catch (e) {}
+      return {
+        layer: poiLayer ? { source: poiLayer.source, sourceLayer: poiLayer.sourceLayer } : null,
+        sourceCount: sourceFeatures.length,
+        renderedCount: renderedFeatures.length,
+        featuredTracked: storeLabelState.featuredPlaceMarkers.length,
+        featuredApplied: storeLabelState.featuredPlaceMarkers.filter(function(e){ return e.centroidApplied; }).length,
+        centroids: queryPOICentroids(libreMap),
+        featuredPlaces: storeLabelState.featuredPlaceMarkers.map(function(e){
+          return { title: e.place && (e.place.title || e.place.name), mapvxId: e.place && e.place.mapvxId, floorId: e.floorId, applied: e.centroidApplied };
+        }),
+      };
+    },
+    _refreshStoreLabels: function (mode, mapResult) {
+      if (!map) return;
+      // storeLabelMax 0 = unlimited, so SDK creates markers for all floors and
+      // only renders those matching the active floor
+      var cfg = Object.assign({}, getConfig(), {
+        showStoreLabels: mode,
+        storeLabelMax: mode === "all" ? 0 : getConfig().storeLabelMax,
+      });
+      storeLabelState.parentPlaceId = null;
+      storeLabelState.loading = null;
+      var place = mapResult && mapResult.selectedPlace;
+      refreshStoreLabels(map, cfg, cfg.parentPlace, place);
+    },
   };
 })();

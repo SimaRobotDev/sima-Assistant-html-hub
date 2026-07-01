@@ -513,36 +513,24 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   background: rgba(255,255,255,0.25);
 }
 
-.map-floor-bar {
-  display: flex;
-  gap: 8px;
-  padding: 8px 12px;
-  overflow-x: auto;
-  background: #fff;
-  border-bottom: 1px solid var(--cm-line);
-  -webkit-overflow-scrolling: touch;
-}
-
-.map-floor-bar.hidden { display: none; }
-
-.map-floor-btn {
-  border: 1px solid var(--cm-line);
-  background: #fff;
-  color: var(--cm-text);
-  padding: 6px 12px;
+.map-current-floor {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  background: rgba(255,255,255,0.92);
+  color: var(--cm-purple-dark);
+  padding: 6px 16px;
   border-radius: 999px;
   font-weight: 700;
   font-size: 13px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex: 0 0 auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  border: 1px solid rgba(61,29,92,0.1);
+  pointer-events: none;
+  user-select: none;
 }
 
-.map-floor-btn.active {
-  background: var(--cm-purple);
-  color: #fff;
-  border-color: var(--cm-purple);
-}
+.map-current-floor.hidden { display: none; }
 
 .btn-back {
   border: none;
@@ -610,9 +598,8 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 .map-embed-wrap {
   position: relative;
-  min-height: min(52vh, 460px);
-  height: min(52vh, 460px);
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  min-height: 0;
   background: #fff;
 }
 
@@ -1049,10 +1036,9 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
     </div>
   </div>
   <div class="map-view-body">
-    <div id="store-detail-panel" class="store-detail-panel hidden" aria-label="Detalle tienda"></div>
-    <div id="map-floor-bar" class="map-floor-bar hidden" role="tablist" aria-label="Pisos"></div>
     <div id="map-status" class="map-status hidden"></div>
     <div class="map-embed-wrap">
+      <div id="map-current-floor" class="map-current-floor hidden"></div>
       <div id="map-zoom-meter" class="map-zoom-meter hidden" aria-hidden="true"></div>
       <div id="mapvx-container" class="hidden"></div>
       <iframe id="map-iframe" class="hidden" allowfullscreen></iframe>
@@ -1088,6 +1074,8 @@ const MOBILITY_I18N = {
     viewMap: "Ver mapa",
     back: "← Volver",
     map: "Mapa",
+    mapStoreLocation: "Ubicación de la tienda",
+    mapServiceLocation: "Ubicación del servicio",
     mapComingSoon: "Mapa próximamente",
     mapLoading: "Cargando mapa…",
     mapError: "No se pudo cargar el mapa",
@@ -1143,6 +1131,8 @@ const MOBILITY_I18N = {
     viewMap: "View map",
     back: "← Back",
     map: "Map",
+    mapStoreLocation: "Store location",
+    mapServiceLocation: "Service location",
     mapComingSoon: "Map coming soon",
     mapLoading: "Loading map…",
     mapError: "Could not load map",
@@ -1198,6 +1188,8 @@ const MOBILITY_I18N = {
     viewMap: "Ver mapa",
     back: "← Voltar",
     map: "Mapa",
+    mapStoreLocation: "Localização da loja",
+    mapServiceLocation: "Localização do serviço",
     mapComingSoon: "Mapa em breve",
     mapLoading: "Carregando mapa…",
     mapError: "Não foi possível carregar o mapa",
@@ -2316,6 +2308,60 @@ function stopMapZoomMeter() {
   }
 }
 
+let _zoomClickCount = 0;
+let _zoomLabelExpanded = false;
+let _zoomClickListeners = [];
+
+function attachMapZoomLabelSwitcher(result) {
+  // Remove previous listeners
+  _zoomClickListeners.forEach(([el, fn]) => el.removeEventListener("click", fn));
+  _zoomClickListeners = [];
+  _zoomClickCount = 0;
+  _zoomLabelExpanded = false;
+
+  const container = document.getElementById("mapvx-container");
+  if (!container) return;
+
+  const cfg = window.MAPVX_CONFIG;
+  if (!cfg || cfg.showStoreLabels !== "featured") return;
+
+  function onZoomChange() {
+    const shouldExpand = _zoomClickCount >= 3;
+    if (shouldExpand === _zoomLabelExpanded) return;
+    _zoomLabelExpanded = shouldExpand;
+    if (typeof MapVxBridge !== "undefined" && MapVxBridge._refreshStoreLabels) {
+      MapVxBridge._refreshStoreLabels(shouldExpand ? "all" : "featured", result);
+    }
+  }
+
+  // Watch for zoom buttons added by MapLibre inside the container
+  function bindZoomButtons() {
+    const zoomIn = container.querySelector(".maplibregl-ctrl-zoom-in");
+    const zoomOut = container.querySelector(".maplibregl-ctrl-zoom-out");
+    if (!zoomIn && !zoomOut) return false;
+
+    if (zoomIn) {
+      const fn = () => { _zoomClickCount++; onZoomChange(); };
+      zoomIn.addEventListener("click", fn);
+      _zoomClickListeners.push([zoomIn, fn]);
+    }
+    if (zoomOut) {
+      const fn = () => { _zoomClickCount = Math.max(0, _zoomClickCount - 1); onZoomChange(); };
+      zoomOut.addEventListener("click", fn);
+      _zoomClickListeners.push([zoomOut, fn]);
+    }
+    return true;
+  }
+
+  // Buttons may not exist yet — observe DOM
+  if (!bindZoomButtons()) {
+    const observer = new MutationObserver(() => {
+      if (bindZoomButtons()) observer.disconnect();
+    });
+    observer.observe(container, { childList: true, subtree: true });
+  }
+}
+
 function useMapVxSdk() {
   const ok = typeof MapVxBridge !== "undefined" && MapVxBridge.isConfigured();
   if (!ok) {
@@ -2329,11 +2375,11 @@ function useMapVxSdk() {
 }
 
 function resetMapControls() {
-  const floorBar = document.getElementById("map-floor-bar");
+  const floorBadge = document.getElementById("map-current-floor");
   const routeBtn = document.getElementById("map-route-btn");
-  if (floorBar) {
-    floorBar.classList.add("hidden");
-    floorBar.innerHTML = "";
+  if (floorBadge) {
+    floorBadge.classList.add("hidden");
+    floorBadge.textContent = "";
   }
   if (routeBtn) {
     routeBtn.classList.add("hidden");
@@ -2363,22 +2409,17 @@ function updateMapRouteButton(result) {
 }
 
 function renderMapFloorBar(activeFloorKey) {
-  const bar = document.getElementById("map-floor-bar");
-  if (!bar || typeof MapVxBridge === "undefined" || !MapVxBridge.getMapFloors) return;
+  const badge = document.getElementById("map-current-floor");
+  if (!badge || typeof MapVxBridge === "undefined" || !MapVxBridge.getMapFloors) return;
   const floors = MapVxBridge.getMapFloors() || [];
   if (!floors.length) {
-    bar.classList.add("hidden");
-    bar.innerHTML = "";
+    badge.classList.add("hidden");
+    badge.textContent = "";
     return;
   }
-  bar.classList.remove("hidden");
-  bar.innerHTML = floors.map(function (f) {
-    const active = f.key === activeFloorKey ? " active" : "";
-    return `<button type="button" class="map-floor-btn${active}" data-floor-key="${escapeHtml(f.key)}" role="tab" aria-selected="${f.key === activeFloorKey}">${escapeHtml(f.label)}</button>`;
-  }).join("");
-  bar.querySelectorAll(".map-floor-btn").forEach(function (btn) {
-    btn.onclick = function () { onMapFloorSelect(btn.getAttribute("data-floor-key")); };
-  });
+  const active = floors.find(function (f) { return f.key === activeFloorKey; }) || floors[0];
+  badge.textContent = active ? active.label : "";
+  badge.classList.toggle("hidden", !active || !active.label);
 }
 
 async function onMapFloorSelect(floorKey) {
@@ -2426,8 +2467,8 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
   warmupMapVxInBackground();
 
   if (window.MAPVX_CONFIG) {
-    window.MAPVX_CONFIG.showStoreLabels = "selected";
-    window.MAPVX_CONFIG.storeLabelMax = 1;
+    window.MAPVX_CONFIG.showStoreLabels = "featured";
+    window.MAPVX_CONFIG.storeLabelMax = 50;
     if (window.MAPVX_CONFIG.minZoom == null) {
       window.MAPVX_CONFIG.minZoom = 8;
     }
@@ -2457,6 +2498,7 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
     setupMapControls(result);
     setMapLoadingState(false);
     startMapZoomMeter();
+    attachMapZoomLabelSwitcher(result);
     logMap("info", "openPoiMapViaMapVx success", result);
     window.__mapVxLastLog = { ts: Date.now(), phase: "success", result: result };
   } catch (e) {
@@ -2549,7 +2591,11 @@ function openPoiMap({ poiType, id, floor, mall, name, local, mode, storeDetail }
   }
 
   const mapTitleText = document.getElementById("map-view-title-text");
-  if (mapTitleText) mapTitleText.textContent = name || t("map");
+  if (mapTitleText) {
+    mapTitleText.textContent = poiType === "store"
+      ? (t("mapStoreLocation") || "Ubicación de la tienda")
+      : (poiType === "service" ? (t("mapServiceLocation") || "Ubicación del servicio") : (name || t("map") || "Mapa"));
+  }
   document.querySelector(".cm-body").style.display = "none";
   document.querySelector(".cm-speak-fab").style.display = "none";
   document.getElementById("map-view").classList.remove("hidden");
