@@ -477,6 +477,13 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 .map-view.hidden { display: none; }
 
+.map-view.hidden.preload-mount {
+  display: flex;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
 .map-view-header {
   display: flex;
   align-items: center;
@@ -595,6 +602,13 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   font-size: 18px;
   font-weight: 800;
   line-height: 1.2;
+}
+
+.store-detail-desc {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--cm-muted);
+  line-height: 1.4;
 }
 
 .map-embed-wrap {
@@ -1038,6 +1052,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   </div>
   <div class="map-view-body">
     <div id="map-status" class="map-status hidden"></div>
+    <div id="store-detail-panel" class="store-detail-panel hidden"></div>
     <div class="map-embed-wrap">
       <div id="map-current-floor" class="map-current-floor hidden"></div>
       <div id="map-zoom-meter" class="map-zoom-meter hidden" aria-hidden="true"></div>
@@ -1062,6 +1077,9 @@ let lastMarketPayload = null;
 let lastPromotionPayload = null;
 let lastServicesPayload = null;
 let mapVxWarmupPromise = null;
+let mapVxPreloadPromise = null;
+let marketSearchSeq = 0;
+let lastLocalMarketSearch = { query: "", seq: -1 };
 
 const MOBILITY_I18N = {
   es: {
@@ -1293,8 +1311,9 @@ function submitStoreSearch() {
   const landing = document.getElementById("store-search-landing");
   if (landing) landing.classList.remove("visible");
 
+  marketSearchSeq++;
   SimaBridge.send("market_search", { text: query });
-  runMarketCatalogSearch(query);
+  runMarketCatalogSearch(query, { seq: marketSearchSeq });
 }
 
 async function runMarketCatalogSearch(query, options) {
@@ -1321,8 +1340,8 @@ async function runMarketCatalogSearch(query, options) {
 
     if (!options.skipRender) {
       renderMarketResults(payload);
-      if (!payload.results.length && !options.silent) {
-        SimaBridge.speak(t("storesFoundNone") + " " + q);
+      if (options.seq != null) {
+        lastLocalMarketSearch = { query: q.toLowerCase(), seq: options.seq };
       }
     }
 
@@ -1551,16 +1570,26 @@ function buscarDesdeVoz(raw) {
   if (inputEl) inputEl.value = input;
   const landing = document.getElementById("store-search-landing");
   if (landing) landing.classList.remove("visible");
+  marketSearchSeq++;
   SimaBridge.send("market_search", { text: input, source: "voice" });
-  runMarketCatalogSearch(input);
+  runMarketCatalogSearch(input, { seq: marketSearchSeq });
 }
 
 function renderIncomingPayload(dataJson) {
   if (!dataJson || !dataJson.type) return;
   switch (dataJson.type) {
-    case "market_search":
+    case "market_search": {
       if (Array.isArray(dataJson.results) && dataJson.results.length) {
         renderMarketResults(dataJson);
+        break;
+      }
+      const incomingQuery = String(dataJson.query || dataJson.text || dataJson.q || "").trim().toLowerCase();
+      const alreadyHandledLocally =
+        incomingQuery &&
+        incomingQuery === lastLocalMarketSearch.query &&
+        lastLocalMarketSearch.seq === marketSearchSeq;
+      if (alreadyHandledLocally) {
+        SimaBridge.log("market_search echo ignored (already resolved locally): " + incomingQuery);
         break;
       }
       runMarketCatalogSearch(
@@ -1568,6 +1597,7 @@ function renderIncomingPayload(dataJson) {
         { skipRender: false }
       );
       break;
+    }
     case "promotion_search":
       renderPromotionResults(dataJson);
       break;
@@ -1732,13 +1762,15 @@ function renderStoreDetailPanel(store) {
   }
 
   const displayName = store.name || store.brand || t("results");
+  const description = String(store.description || "").trim();
   panel.innerHTML = `
     <div class="store-detail-header">
       ${renderStoreAvatar(store, true)}
       <div class="store-detail-head-text">
         <h2 class="store-detail-name">${escapeHtml(displayName)}</h2>
       </div>
-    </div>`;
+    </div>
+    ${description ? `<p class="store-detail-desc">${escapeHtml(description)}</p>` : ""}`;
   panel.classList.remove("hidden");
 }
 
@@ -2094,6 +2126,7 @@ function renderServicesResults(payload) {
       </div>
       <div class="service-list">${cards}</div>
     </div>`;
+  if (results.length) preloadMapVxBaseMap();
 }
 
 function toggleServiceCard(idx) {
@@ -2199,6 +2232,7 @@ function renderMarketResults(payload) {
       </div>
       <div class="store-grid">${cardsHtml}</div>
     </div>`;
+  preloadMapVxBaseMap();
 }
 
 function setMapStatus(text, isError) {
@@ -2269,6 +2303,40 @@ async function warmupMapVxInBackground() {
     });
 
   return mapVxWarmupPromise;
+}
+
+async function preloadMapVxBaseMap() {
+  if (mapVxPreloadPromise || !isMapVxConfigured()) return mapVxPreloadPromise;
+
+  const cfg = window.MAPVX_CONFIG || {};
+  if (!cfg.apiKey || !cfg.parentPlace || !cfg.institutionId) return null;
+
+  const mapView = document.getElementById("map-view");
+  const container = document.getElementById("mapvx-container");
+  if (!mapView || !container || !mapView.classList.contains("hidden")) return null;
+
+  mapView.classList.add("preload-mount");
+  container.classList.remove("hidden");
+
+  mapVxPreloadPromise = MapVxBridge.ensureMap(container, cfg)
+    .then(() => {
+      SimaBridge.log("mobility map base preload completed");
+      return true;
+    })
+    .catch((e) => {
+      console.warn("MapVx base preload failed", e);
+      SimaBridge.log("mobility map base preload failed: " + (e.message || e));
+      mapVxPreloadPromise = null;
+      return false;
+    })
+    .finally(() => {
+      if (mapView.classList.contains("hidden")) {
+        mapView.classList.remove("preload-mount");
+        container.classList.add("hidden");
+      }
+    });
+
+  return mapVxPreloadPromise;
 }
 
 function setMapLoadingState(loading) {
@@ -2454,10 +2522,13 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
   iframe.src = "";
   setMapLoadingState(true);
   container.classList.remove("hidden");
-  if (typeof MapVxBridge !== "undefined" && MapVxBridge.destroyMap) {
+
+  const preloadPromise = mapVxPreloadPromise;
+  const mapReused = preloadPromise ? await preloadPromise : false;
+  if (!mapReused && typeof MapVxBridge !== "undefined" && MapVxBridge.destroyMap) {
     MapVxBridge.destroyMap();
+    container.innerHTML = "";
   }
-  container.innerHTML = "";
   resetMapControls();
   setMapStatus(t("mapLoading") || "Cargando mapa…");
 
@@ -2703,6 +2774,7 @@ function closeMapView() {
     if (MapVxBridge.clearActiveRoute) MapVxBridge.clearActiveRoute();
     MapVxBridge.destroyMap();
   }
+  mapVxPreloadPromise = null;
   stopMapZoomMeter();
   resetMapControls();
   hideStoreDetailPanel();
