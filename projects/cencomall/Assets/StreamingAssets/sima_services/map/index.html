@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="../shared/mapvx/styles.css" />
 <script src="../shared/locale.js"></script>
 <script src="../shared/bridge.js"></script>
+<script src="../shared/market-search.js"></script>
 <script src="../shared/mapvx/index.js"></script>
 <script src="../shared/mapvx-bridge.js"></script>
 <style>
@@ -206,7 +207,8 @@ function applyManualConfig(save) {
     lang: cfg.lang,
     totemPlaceId: "",
     showStoreLabels: "featured",
-    storeLabelMax: 6,
+    storeLabelMax: 0,
+    storeLabelZoomDelta: 2,
   };
   window.MAPVX_ASSETS_BASE = "../shared/mapvx/";
 

@@ -1,0 +1,10 @@
+{
+  "_comment": "Coloca aquí los PNG/SVG de cada tienda ancla. La clave es el nombre normalizado (minúsculas, sin tildes).",
+  "falabella": "falabella.png",
+  "ripley": "ripley.png",
+  "paris": "paris.png",
+  "casa ideas": "casa-ideas.png",
+  "la polar": "la-polar.png",
+  "adidas": "adidas.png",
+  "cencosud": "cencosud.png"
+}

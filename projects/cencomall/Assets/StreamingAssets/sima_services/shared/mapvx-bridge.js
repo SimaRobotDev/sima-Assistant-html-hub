@@ -12,9 +12,13 @@ window.MapVxBridge = (function () {
     parentPlaceId: null,
     markerIds: [],
     loading: null,
-    featuredPlaceMarkers: [], // [{place, floorId, markerId}]
+    labelPlaceMarkers: [], // [{place, floorId, markerId, featured, centroidApplied}]
     centroidListener: null,   // {libreMap, fn} for cleanup
+    zoomListenerCleanup: null,
+    zoomBaseline: null,
   };
+  var storeLogoManifest = null;
+  var storeLogoManifestPromise = null;
   var placePopOverState = {
     map: null,
     placeId: null,
@@ -45,6 +49,64 @@ window.MapVxBridge = (function () {
     return window.MAPVX_CONFIG || {};
   }
 
+  function getLibreMap(mapInstance) {
+    if (!mapInstance) return null;
+    if (mapInstance.map && typeof mapInstance.map.getZoom === "function") {
+      return mapInstance.map;
+    }
+    return mapInstance;
+  }
+
+  function getMapZoom(mapInstance) {
+    if (!mapInstance) return null;
+    if (typeof mapInstance.getZoom === "function") {
+      return mapInstance.getZoom();
+    }
+    if (typeof mapInstance.getZoomLevel === "function") {
+      return mapInstance.getZoomLevel();
+    }
+    var libreMap = getLibreMap(mapInstance);
+    if (libreMap && typeof libreMap.getZoom === "function") {
+      return libreMap.getZoom();
+    }
+    return null;
+  }
+
+  function bindMapViewListener(mapInstance, eventName, fn) {
+    var libreMap = getLibreMap(mapInstance);
+    if (libreMap && typeof libreMap.on === "function") {
+      libreMap.on(eventName, fn);
+      return function unbind() {
+        try {
+          if (typeof libreMap.off === "function") {
+            libreMap.off(eventName, fn);
+          }
+        } catch (e) {}
+      };
+    }
+    if (mapInstance && typeof mapInstance.on === "function") {
+      mapInstance.on(eventName, fn);
+      return function unbind() {
+        try {
+          if (typeof mapInstance.off === "function") {
+            mapInstance.off(eventName, fn);
+          }
+        } catch (e) {}
+      };
+    }
+    return null;
+  }
+
+  function detachZoomLabelListener() {
+    if (typeof storeLabelState.zoomListenerCleanup === "function") {
+      try { storeLabelState.zoomListenerCleanup(); } catch (e) {}
+    }
+    storeLabelState.zoomListenerCleanup = null;
+    _zoomLabelListener = null;
+    _zoomLabelExpanded = false;
+    storeLabelState.zoomBaseline = null;
+  }
+
   function configSummary(config) {
     config = config || getConfig();
     return {
@@ -61,6 +123,69 @@ window.MapVxBridge = (function () {
     var base = window.MAPVX_ASSETS_BASE || "../shared/mapvx/";
     if (base.charAt(base.length - 1) !== "/") base += "/";
     return base;
+  }
+
+  function storeLogosBase(config) {
+    config = config || getConfig();
+    var base = config.storeLogosBase || "../shared/store-logos/";
+    if (base.charAt(base.length - 1) !== "/") base += "/";
+    return base;
+  }
+
+  function loadStoreLogoManifest(config) {
+    if (storeLogoManifest) return Promise.resolve(storeLogoManifest);
+    if (storeLogoManifestPromise) return storeLogoManifestPromise;
+
+    var manifestUrl = storeLogosBase(config) + "store-logos.manifest.json";
+    storeLogoManifestPromise = fetch(manifestUrl, { cache: "no-cache" })
+      .then(function (response) {
+        if (!response.ok) return {};
+        return response.json();
+      })
+      .catch(function () {
+        return {};
+      })
+      .then(function (data) {
+        storeLogoManifest = data && typeof data === "object" ? data : {};
+        log("info", "store logo manifest loaded", {
+          entries: Object.keys(storeLogoManifest).filter(function (key) {
+            return key.charAt(0) !== "_";
+          }).length,
+          manifestUrl: manifestUrl,
+        });
+        return storeLogoManifest;
+      });
+
+    return storeLogoManifestPromise;
+  }
+
+  function getLocalStoreLogoFilename(place, manifest) {
+    if (!place || !manifest) return "";
+    var keys = [
+      getStoreLogoOverrideKey(place),
+      place.clientId,
+      place.title,
+      place.shortName,
+      place.name,
+    ].map(normalizeText).filter(Boolean);
+
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      if (manifest[key]) return String(manifest[key]).trim();
+      for (var manifestKey in manifest) {
+        if (!manifestKey || manifestKey.charAt(0) === "_") continue;
+        if (key === manifestKey || key.indexOf(manifestKey) >= 0 || manifestKey.indexOf(key) >= 0) {
+          return String(manifest[manifestKey]).trim();
+        }
+      }
+    }
+    return "";
+  }
+
+  function getLocalStoreLogoUrl(place, config, manifest) {
+    var filename = getLocalStoreLogoFilename(place, manifest || storeLogoManifest);
+    if (!filename) return "";
+    return storeLogosBase(config) + filename;
   }
 
   function isConfigured(config) {
@@ -250,7 +375,8 @@ window.MapVxBridge = (function () {
     return (def || floors[0]).key;
   }
 
-  function fitMapToPlace(mapInstance, position) {
+  function fitMapToPlace(mapInstance, position, config) {
+    config = config || getConfig();
     if (!position) {
       return;
     }
@@ -259,12 +385,36 @@ window.MapVxBridge = (function () {
     if (lat == null || lng == null) {
       return;
     }
+
+    var radiusMeters = config.placeFitRadiusMeters != null
+      ? Number(config.placeFitRadiusMeters)
+      : 140;
+    var boundsCoords = expandSingleCoordinate(position, radiusMeters);
+
+    if (boundsCoords && boundsCoords.length >= 2 && typeof mapInstance.fitCoordinates === "function") {
+      var maxZoom = config.placeFitMaxZoom != null ? Number(config.placeFitMaxZoom) : 18.5;
+      var padding = config.placeFitPadding != null ? Number(config.placeFitPadding) : 80;
+      mapInstance.fitCoordinates(boundsCoords, {
+        padding: padding,
+        maxZoom: maxZoom,
+        duration: config.placeFitDuration != null ? Number(config.placeFitDuration) : 0,
+      });
+      log("info", "fitMapToPlace fitCoordinates", {
+        lat: lat,
+        lng: lng,
+        radiusMeters: radiusMeters,
+        maxZoom: maxZoom,
+        padding: padding,
+      });
+      return;
+    }
+
     if (typeof mapInstance.setCenter === "function") {
       mapInstance.setCenter({ lat: lat, lng: lng });
     } else if (typeof mapInstance.fitCoordinates === "function") {
       mapInstance.fitCoordinates([{ lat: lat, lng: lng }], { duration: 0 });
     }
-    log("info", "fitMapToPlace", { lat: lat, lng: lng, method: typeof mapInstance.setCenter === "function" ? "setCenter" : "fitCoordinates" });
+    log("info", "fitMapToPlace fallback center", { lat: lat, lng: lng });
   }
 
   function buildBoundsCoordinates(coords, paddingRatio) {
@@ -303,14 +453,95 @@ window.MapVxBridge = (function () {
     ];
   }
 
+  function resolveMapZoomLimits(config) {
+    config = config || getConfig();
+    return {
+      minZoom: config.minZoom != null ? Number(config.minZoom) : null,
+      maxZoom: config.maxZoom != null ? Number(config.maxZoom) : 22,
+    };
+  }
+
+  function expandSingleCoordinate(position, meters) {
+    if (!position || position.lat == null || position.lng == null) return null;
+    var lat = Number(position.lat);
+    var lng = Number(position.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+    var radiusMeters = meters != null ? Number(meters) : 220;
+    var latDelta = radiusMeters / 111320;
+    var lngScale = Math.cos(lat * Math.PI / 180);
+    var lngDelta = radiusMeters / (111320 * (lngScale || 1));
+    return [
+      { lng: lng - lngDelta, lat: lat - latDelta },
+      { lng: lng + lngDelta, lat: lat - latDelta },
+      { lng: lng + lngDelta, lat: lat + latDelta },
+      { lng: lng - lngDelta, lat: lat + latDelta },
+    ];
+  }
+
+  function buildIndoorBoundsCoords(coords, config) {
+    if (!coords || !coords.length) return null;
+    var paddingRatio = config.maxBoundsPaddingRatio != null ? config.maxBoundsPaddingRatio : 0.2;
+    if (coords.length >= 2) {
+      return buildBoundsCoordinates(coords, paddingRatio);
+    }
+    return expandSingleCoordinate(coords[0], config.singlePointBoundsMeters);
+  }
+
+  function applyIndoorViewConstraints(mapInstance, config, coords) {
+    if (!mapInstance || !coords || !coords.length || config.enableBoundsClamp === false) {
+      return;
+    }
+
+    var boundsCoords = buildIndoorBoundsCoords(coords, config);
+    if (boundsCoords && boundsCoords.length >= 2 && typeof mapInstance.setMaxBounds === "function") {
+      mapInstance.setMaxBounds(boundsCoords);
+      log("info", "applyIndoorViewConstraints maxBounds", {
+        points: boundsCoords.length,
+        paddingRatio: config.maxBoundsPaddingRatio != null ? config.maxBoundsPaddingRatio : 0.2,
+      });
+    }
+
+    var zoomLimits = resolveMapZoomLimits(config);
+    if (zoomLimits.maxZoom != null && typeof mapInstance.setMaxZoom === "function") {
+      mapInstance.setMaxZoom(zoomLimits.maxZoom);
+    }
+  }
+
+  function applyDynamicMinZoomFromFit(mapInstance, config) {
+    if (!mapInstance || typeof mapInstance.setMinZoom !== "function") {
+      return;
+    }
+    var overviewZoom = getMapZoom(mapInstance);
+    if (!isFinite(overviewZoom)) return;
+
+    var maxOut = config.maxZoomOutLevels != null ? Number(config.maxZoomOutLevels) : 1.5;
+    var configuredFloor = config.minZoom != null ? Number(config.minZoom) : 15;
+    var dynamicMin = overviewZoom - maxOut;
+    var effectiveMin = Math.max(configuredFloor, dynamicMin);
+
+    mapInstance.setMinZoom(effectiveMin);
+    log("info", "applyDynamicMinZoomFromFit", {
+      overviewZoom: overviewZoom,
+      effectiveMin: effectiveMin,
+      maxZoomOutLevels: maxOut,
+    });
+  }
+
   function getPlaceLogoUrl(place) {
     if (!place) return "";
-    var candidates = [
-      place.logo,
+    var candidates = [];
+    if (place.logo) {
+      if (typeof place.logo === "string") {
+        candidates.push(place.logo);
+      } else if (typeof place.logo === "object") {
+        candidates.push(place.logo.light, place.logo.dark, place.logo.url);
+      }
+    }
+    candidates.push(
       place.logoUrl,
       place.imageUrl,
-      place.image,
-    ];
+      place.image
+    );
     if (place.images && place.images.length) {
       candidates.push(place.images[0] && (place.images[0].url || place.images[0].src || place.images[0].imageUrl));
     }
@@ -319,10 +550,146 @@ window.MapVxBridge = (function () {
     }
     for (var i = 0; i < candidates.length; i++) {
       if (candidates[i]) {
-        return String(candidates[i]);
+        return String(candidates[i]).trim();
       }
     }
     return "";
+  }
+
+  function getStoreLogoOverrideKey(place) {
+    if (!place) return "";
+    return normalizeText(
+      place.clientId || place.title || place.shortName || place.name || ""
+    );
+  }
+
+  function getStoreLogoUrl(place, config, manifest) {
+    config = config || getConfig();
+    var fromPlace = getPlaceLogoUrl(place);
+    if (fromPlace) return fromPlace;
+
+    var overrides = config.storeLogoOverrides || {};
+    var keys = [
+      place && place.mapvxId,
+      place && place.clientId,
+      place && place.title,
+      place && place.shortName,
+      place && place.name,
+      getStoreLogoOverrideKey(place),
+    ];
+    for (var i = 0; i < keys.length; i++) {
+      var rawKey = keys[i] ? String(keys[i]).trim() : "";
+      if (!rawKey) continue;
+      if (overrides[rawKey]) return String(overrides[rawKey]).trim();
+      var normalized = normalizeText(rawKey);
+      if (overrides[normalized]) return String(overrides[normalized]).trim();
+    }
+
+    return getLocalStoreLogoUrl(place, config, manifest);
+  }
+
+  function getAnchorBrandStyle(place) {
+    var key = normalizeText(getPlaceDisplayTitle(place));
+    if (!key) return null;
+    if (key.indexOf("falabella") >= 0) {
+      return { kind: "text", text: "falabella.", className: "mapvx-anchor-falabella" };
+    }
+    if (key.indexOf("ripley") >= 0) {
+      return { kind: "text", text: "RIPLEY", className: "mapvx-anchor-ripley" };
+    }
+    if (key.indexOf("paris") >= 0) {
+      return { kind: "paris", text: "paris", subtext: "cencosud", className: "mapvx-anchor-paris" };
+    }
+    if (key.indexOf("casa ideas") >= 0) {
+      return { kind: "text", text: "casa ideas", className: "mapvx-anchor-casa-ideas" };
+    }
+    if (key.indexOf("la polar") >= 0) {
+      return { kind: "text", text: "La Polar", className: "mapvx-anchor-casa-ideas" };
+    }
+    return null;
+  }
+
+  function buildAnchorBrandElement(brandStyle) {
+    if (!brandStyle) return null;
+    var wrap = document.createElement("div");
+    wrap.className = "mapvx-anchor-brand " + (brandStyle.className || "");
+
+    if (brandStyle.kind === "paris") {
+      var ring = document.createElement("div");
+      ring.className = "mapvx-anchor-paris-ring";
+      ring.textContent = brandStyle.text || "paris";
+      if (brandStyle.subtext) {
+        var sub = document.createElement("span");
+        sub.className = "mapvx-anchor-paris-sub";
+        sub.textContent = brandStyle.subtext;
+        ring.appendChild(sub);
+      }
+      wrap.appendChild(ring);
+      return wrap;
+    }
+
+    wrap.textContent = brandStyle.text || "";
+    return wrap;
+  }
+
+  function buildAnchorLogoElement(place, logoUrl, logoDims, config) {
+    config = config || getConfig();
+    var width = logoDims && logoDims.width ? logoDims.width : 140;
+    var height = logoDims && logoDims.height ? logoDims.height : 56;
+    var wrap = document.createElement("div");
+    wrap.style.width = width + "px";
+    wrap.style.height = height + "px";
+    wrap.style.display = "flex";
+    wrap.style.alignItems = "center";
+    wrap.style.justifyContent = "center";
+    wrap.style.pointerEvents = "none";
+
+    if (logoUrl) {
+      var img = document.createElement("img");
+      img.className = "mapvx-anchor-logo";
+      img.alt = "";
+      img.loading = "lazy";
+      img.src = logoUrl;
+      img.onerror = function () {
+        if (!img.parentNode) return;
+        var brand = buildAnchorBrandElement(getAnchorBrandStyle(place));
+        if (brand) {
+          img.parentNode.replaceChild(brand, img);
+          return;
+        }
+        wrap.style.display = "none";
+      };
+      wrap.appendChild(img);
+      return wrap;
+    }
+
+    return buildAnchorBrandElement(getAnchorBrandStyle(place));
+  }
+
+  async function enrichPlaceLogo(place, config) {
+    if (!place || getStoreLogoUrl(place, config)) return place;
+    if (!place.mapvxId || !sdk || typeof sdk.getPlaceDetail !== "function") return place;
+    try {
+      var detail = await sdk.getPlaceDetail(place.mapvxId);
+      if (detail) {
+        return Object.assign({}, place, detail);
+      }
+    } catch (e) {
+      log("warn", "enrichPlaceLogo failed", {
+        mapvxId: place.mapvxId,
+        title: place.title,
+        error: String(e.message || e),
+      });
+    }
+    return place;
+  }
+
+  function getFeaturedLogoDimensions(config) {
+    config = config || getConfig();
+    return {
+      width: config.featuredLogoWidth != null ? Number(config.featuredLogoWidth) : 140,
+      height: config.featuredLogoHeight != null ? Number(config.featuredLogoHeight) : 56,
+    };
   }
 
   function getPlaceDisplayTitle(place) {
@@ -683,7 +1050,7 @@ window.MapVxBridge = (function () {
       } catch (e) {}
       storeLabelState.centroidListener = null;
     }
-    storeLabelState.featuredPlaceMarkers = [];
+    storeLabelState.labelPlaceMarkers = [];
 
     if (!map || !storeLabelState.markerIds.length) {
       storeLabelState.markerIds = [];
@@ -705,6 +1072,124 @@ window.MapVxBridge = (function () {
         });
       }
     });
+  }
+
+  // IndoorEqual: rank1 = shops/restaurants + most POIs; rank2 = vending, info, etc.
+  var RETAIL_FOOD_POI_CLASSES = [
+    "shop",
+    "clothing_store",
+    "grocery",
+    "cafe",
+    "fast_food",
+    "bar",
+    "beer",
+    "alcohol_shop",
+    "attraction",
+    "art_gallery",
+    "music",
+    "lodging",
+    "park",
+    "stadium",
+    "swimming",
+    "hospital",
+    "school",
+    "college",
+    "library",
+    "office",
+    "laundry",
+    "car",
+    "fuel",
+    "harbor",
+    "bus",
+    "golf",
+    "cemetery",
+    "castle",
+    "campsite",
+    "town_hall",
+  ];
+  var retailPoiFilterTimer = null;
+
+  function shouldHideRetailPoiIcons(config) {
+    config = config || getConfig();
+    return config.hideRetailPoiIcons !== false;
+  }
+
+  function retailPoiExclusionFilter() {
+    return ["!", ["in", ["get", "class"], ["literal", RETAIL_FOOD_POI_CLASSES]]];
+  }
+
+  function mergeMapFilter(existing, extra) {
+    if (!extra) return existing;
+    if (!existing) return extra;
+    if (Array.isArray(existing) && existing[0] === "all") {
+      return existing.concat([extra]);
+    }
+    return ["all", existing, extra];
+  }
+
+  function filterIncludesRetailExclusion(filter) {
+    if (!filter) return false;
+    var json;
+    try {
+      json = JSON.stringify(filter);
+    } catch (e) {
+      return false;
+    }
+    return json.indexOf('"clothing_store"') >= 0 && json.indexOf('"fast_food"') >= 0;
+  }
+
+  function isRetailPoiRankLayer(layer) {
+    if (!layer || layer.type !== "symbol") return false;
+    if (layer.source !== "indoorequal") return false;
+    if (layer["source-layer"] !== "poi") return false;
+    var id = String(layer.id || "");
+    return id === "indoor-poi-rank1" || id === "base-indoor-poi-rank1";
+  }
+
+  function applyRetailPoiIconFilter(mapInstance, config) {
+    config = config || getConfig();
+    if (!shouldHideRetailPoiIcons(config)) return;
+
+    var libreMap = getLibreMap(mapInstance);
+    if (!libreMap || typeof libreMap.getStyle !== "function") return;
+
+    var style = libreMap.getStyle();
+    var layers = (style && style.layers) || [];
+    var exclusion = retailPoiExclusionFilter();
+    var updated = [];
+
+    layers.filter(isRetailPoiRankLayer).forEach(function (layer) {
+      try {
+        var current = libreMap.getFilter(layer.id);
+        if (filterIncludesRetailExclusion(current)) return;
+        var next = mergeMapFilter(current, exclusion);
+        libreMap.setFilter(layer.id, next);
+        updated.push(layer.id);
+      } catch (e) {
+        log("warn", "applyRetailPoiIconFilter layer failed", {
+          layerId: layer.id,
+          error: String(e.message || e),
+        });
+      }
+    });
+
+    if (updated.length) {
+      log("info", "applyRetailPoiIconFilter", { layers: updated });
+    }
+  }
+
+  function scheduleRetailPoiIconFilter(mapInstance, config) {
+    if (!shouldHideRetailPoiIcons(config)) return;
+    if (retailPoiFilterTimer) {
+      clearTimeout(retailPoiFilterTimer);
+    }
+    retailPoiFilterTimer = setTimeout(function () {
+      retailPoiFilterTimer = null;
+      applyRetailPoiIconFilter(mapInstance, config);
+    }, 200);
+    setTimeout(function () {
+      applyRetailPoiIconFilter(mapInstance, config);
+    }, 650);
   }
 
   function queryPOICentroids(libreMap) {
@@ -735,8 +1220,8 @@ window.MapVxBridge = (function () {
   }
 
   function applyFeaturedCentroids(mapInst, centroids) {
-    if (!mapInst || !centroids || !storeLabelState.featuredPlaceMarkers.length) return;
-    var toUpdate = storeLabelState.featuredPlaceMarkers.filter(function (entry) {
+    if (!mapInst || !centroids || !storeLabelState.labelPlaceMarkers.length) return;
+    var toUpdate = storeLabelState.labelPlaceMarkers.filter(function (entry) {
       return entry.place && entry.place.mapvxId && centroids[entry.place.mapvxId];
     });
     if (!toUpdate.length) return;
@@ -760,7 +1245,8 @@ window.MapVxBridge = (function () {
       var markerConfigs = buildStoreLabelMarkers(
         Object.assign({}, entry.place, { position: centroidPos }),
         entry.floorId,
-        true
+        entry.featured,
+        getConfig()
       );
       markerConfigs.forEach(function (cfg) {
         if (cfg.floorId !== entry.floorId) return;
@@ -779,7 +1265,7 @@ window.MapVxBridge = (function () {
   function attachCentroidUpdater(mapInst) {
     var libreMap = mapInst && mapInst.map;
     if (!libreMap || typeof libreMap.queryRenderedFeatures !== "function") return;
-    if (!storeLabelState.featuredPlaceMarkers.length) return;
+    if (!storeLabelState.labelPlaceMarkers.length) return;
 
     // Detach any previous listener
     if (storeLabelState.centroidListener) {
@@ -792,7 +1278,7 @@ window.MapVxBridge = (function () {
       var centroids = queryPOICentroids(libreMap);
       applyFeaturedCentroids(mapInst, centroids);
       // Once all featured places have centroids, remove the listener
-      var remaining = storeLabelState.featuredPlaceMarkers.filter(function (e) { return !e.centroidApplied; });
+      var remaining = storeLabelState.labelPlaceMarkers.filter(function (e) { return !e.centroidApplied; });
       if (!remaining.length && storeLabelState.centroidListener) {
         try { libreMap.off("moveend", storeLabelState.centroidListener.fn); } catch (e) {}
         storeLabelState.centroidListener = null;
@@ -814,6 +1300,104 @@ window.MapVxBridge = (function () {
     return String(place.title || place.shortName || place.name || place.clientId || "").trim();
   }
 
+  function stripMallSuffix(title) {
+    return String(title || "")
+      .replace(/\s*-\s*(PB|N\d+)\s*-\s*CC\s*$/i, "")
+      .replace(/\s*-\s*CC\s*$/i, "")
+      .trim();
+  }
+
+  function resolveStoreLabelDisplayName(place) {
+    if (!place) return "";
+    var localCode = place.clientId || place.local || "";
+    if (typeof MarketSearch !== "undefined" && typeof MarketSearch.getBrandByLocal === "function") {
+      var fromCatalog = MarketSearch.getBrandByLocal(localCode);
+      if (fromCatalog) return fromCatalog;
+    }
+    var raw = storeLabelTitle(place);
+    return stripMallSuffix(raw) || raw;
+  }
+
+  function prefetchMarketCatalogIfAvailable() {
+    if (typeof MarketSearch === "undefined" || typeof MarketSearch.loadCatalog !== "function") {
+      return Promise.resolve(false);
+    }
+    return MarketSearch.loadCatalog()
+      .then(function () { return true; })
+      .catch(function (error) {
+        log("warn", "market catalog prefetch failed", { error: String(error.message || error) });
+        return false;
+      });
+  }
+
+  function getStoreLabelZoomDelta(config) {
+    config = config || getConfig();
+    var delta = config.storeLabelZoomDelta != null ? Number(config.storeLabelZoomDelta) : 2;
+    if (!isFinite(delta) || delta <= 0) return 2;
+    return delta;
+  }
+
+  function shouldExpandStoreLabels(mapInstance, config, baselineZoom) {
+    var currentZoom = getMapZoom(mapInstance);
+    if (!isFinite(currentZoom) || !isFinite(baselineZoom)) return false;
+    return (currentZoom - baselineZoom) >= getStoreLabelZoomDelta(config);
+  }
+
+  function evaluateStoreLabelZoom(mapInstance, selectedPlace, baselineZoom) {
+    var baseConfig = getConfig();
+    if (getStoreLabelMode(baseConfig) !== "featured") return;
+
+    var baseline = isFinite(baselineZoom) ? baselineZoom : storeLabelState.zoomBaseline;
+    if (!isFinite(baseline)) {
+      baseline = getMapZoom(mapInstance);
+      storeLabelState.zoomBaseline = baseline;
+    }
+
+    var shouldExpand = shouldExpandStoreLabels(mapInstance, baseConfig, baseline);
+    if (shouldExpand === _zoomLabelExpanded) return;
+
+    _zoomLabelExpanded = shouldExpand;
+    var cfg = Object.assign({}, baseConfig, {
+      showStoreLabels: shouldExpand ? "all" : "featured",
+      storeLabelMax: shouldExpand ? 0 : baseConfig.storeLabelMax,
+    });
+    storeLabelState.parentPlaceId = null;
+    log("info", "evaluateStoreLabelZoom", {
+      currentZoom: getMapZoom(mapInstance),
+      baselineZoom: baseline,
+      mode: cfg.showStoreLabels,
+    });
+    refreshStoreLabels(mapInstance, cfg, cfg.parentPlace, selectedPlace);
+  }
+
+  function getStoreLabelTextProperties(featured, config) {
+    config = config || getConfig();
+    if (featured) {
+      return {
+        fontSize: config.featuredLabelFontSize || "11px",
+        fontWeight: "700",
+        color: "#1E1630",
+        textShadow: "0 1px 2px rgba(255,255,255,0.98), 0 0 4px rgba(255,255,255,0.9)",
+      };
+    }
+    return {
+      fontSize: config.storeLabelFontSize || "10px",
+      fontWeight: "600",
+      color: "#FFFFFF",
+      textShadow: "0 1px 3px rgba(0,0,0,0.92), 0 0 8px rgba(0,0,0,0.5), 1px 1px 0 rgba(0,0,0,0.35)",
+    };
+  }
+
+  function trackLabelMarker(place, markerConfig, markerId, featured) {
+    storeLabelState.labelPlaceMarkers.push({
+      place: place,
+      floorId: markerConfig.floorId,
+      markerId: markerId,
+      featured: !!featured,
+      centroidApplied: false,
+    });
+  }
+
   function isAuxiliaryLabel(place) {
     var text = normalizeText(storeLabelTitle(place));
     if (!text) return true;
@@ -826,16 +1410,21 @@ window.MapVxBridge = (function () {
     var tokens = Array.isArray(config.storeLabelFeatured) ? config.storeLabelFeatured : [];
     if (tokens.length) return tokens;
     return [
+      "Falabella",
+      "Ripley",
+      "Paris",
+      "Casa Ideas",
+      "La Polar",
       "Nike Rise",
       "ZARA",
       "H&M",
       "Mango",
       "Levi's",
-      "Ripley",
-      "Falabella",
       "Steve Madden",
       "BIMBA",
       "Aldo",
+      "Adidas",
+      "Cencosud",
     ];
   }
 
@@ -883,8 +1472,9 @@ window.MapVxBridge = (function () {
     return ids;
   }
 
-  function buildStoreLabelMarkers(place, fallbackFloorId, featured) {
-    var title = storeLabelTitle(place);
+  function buildStoreLabelMarkers(place, fallbackFloorId, featured, config) {
+    config = config || getConfig();
+    var title = resolveStoreLabelDisplayName(place);
     var position = place && place.position;
     if (!title || !position || position.lat == null || position.lng == null) {
       return [];
@@ -892,47 +1482,55 @@ window.MapVxBridge = (function () {
 
     var floorIds = storeLabelFloorIds(place, fallbackFloorId);
     var markerBaseId = String(place.mapvxId || place.clientId || title).replace(/[^A-Za-z0-9_-]/g, "_");
-    var labelText = title;
     var markers = [];
+    var labelTextProps = getStoreLabelTextProperties(featured, config);
 
-    var logoUrl = featured && place.logo ? String(place.logo).trim() : null;
+    var logoUrl = featured ? getStoreLogoUrl(place, config) : "";
+    var logoDims = getFeaturedLogoDimensions(config);
+    var anchorElement = featured
+      ? buildAnchorLogoElement(place, logoUrl, logoDims, config)
+      : null;
 
     for (var i = 0; i < floorIds.length; i++) {
       var floorId = floorIds[i];
       var markerId = "store-label-" + markerBaseId + "-" + floorId.replace(/[^A-Za-z0-9_-]/g, "_");
-      if (featured && logoUrl) {
+      if (featured && anchorElement) {
         markers.push({
           id: markerId,
           coordinate: { lat: position.lat, lng: position.lng },
           floorId: floorId,
-          text: labelText,
-          icon: logoUrl,
-          textPosition: MapVX.TextPosition.top,
-          iconProperties: { width: 36, height: 36 },
-          textProperties: {
-            fontSize: "10px",
-            fontWeight: "800",
-            color: "#1E1630",
-            textShadow: "0 1px 3px rgba(255,255,255,1), 0 0 6px rgba(255,255,255,0.95)",
-          },
+          text: "",
+          element: anchorElement.cloneNode(true),
+          iconProperties: { width: logoDims.width, height: logoDims.height },
           anchor: "center",
           rotationAlignment: "viewport",
           pitchAlignment: "viewport",
         });
+      } else if (featured && logoUrl) {
+        markers.push({
+          id: markerId,
+          coordinate: { lat: position.lat, lng: position.lng },
+          floorId: floorId,
+          text: "",
+          icon: logoUrl,
+          textPosition: MapVX.TextPosition.top,
+          iconProperties: { width: logoDims.width, height: logoDims.height },
+          anchor: "center",
+          rotationAlignment: "viewport",
+          pitchAlignment: "viewport",
+        });
+      } else if (featured) {
+        // Zoom out / featured: no text-only labels — logos and anchor marks only.
+        continue;
       } else {
         markers.push({
           id: markerId,
           coordinate: { lat: position.lat, lng: position.lng },
           floorId: floorId,
-          text: labelText,
+          text: title,
           textPosition: MapVX.TextPosition.top,
           iconProperties: { width: 0, height: 0 },
-          textProperties: {
-            fontSize: featured ? "11px" : "7px",
-            fontWeight: "700",
-            color: "#1E1630",
-            textShadow: "0 1px 2px rgba(255,255,255,0.98), 0 0 4px rgba(255,255,255,0.9)",
-          },
+          textProperties: labelTextProps,
           anchor: "center",
           rotationAlignment: "viewport",
           pitchAlignment: "viewport",
@@ -944,7 +1542,7 @@ window.MapVxBridge = (function () {
   }
 
   function findSelectedStoreLabelMarker(place, fallbackFloorId) {
-    var markers = buildStoreLabelMarkers(place, fallbackFloorId);
+    var markers = buildStoreLabelMarkers(place, fallbackFloorId, false, getConfig());
     return markers.length ? markers[0] : null;
   }
 
@@ -969,6 +1567,9 @@ window.MapVxBridge = (function () {
       if (storeLabelState.parentPlaceId !== currentParentPlaceId) {
         clearStoreLabelMarkers();
       }
+
+      await loadStoreLogoManifest(config);
+      await prefetchMarketCatalogIfAvailable();
 
       var subPlaces = [];
       try {
@@ -1005,49 +1606,48 @@ window.MapVxBridge = (function () {
           seen[selectedKey] = true;
         }
 
-        (subPlaces || []).forEach(function (place) {
-          if (!canAddMore()) return;
-          var title = storeLabelTitle(place);
-          if (!title || !place || !place.position || place.position.lat == null || place.position.lng == null) {
-            return;
+        for (var fi = 0; fi < (subPlaces || []).length; fi++) {
+          if (!canAddMore()) break;
+          var featuredPlace = subPlaces[fi];
+          var featuredTitle = storeLabelTitle(featuredPlace);
+          if (!featuredTitle || !featuredPlace || !featuredPlace.position || featuredPlace.position.lat == null || featuredPlace.position.lng == null) {
+            continue;
           }
-          if (!isFeaturedStore(place, config)) {
-            return;
+          if (!isFeaturedStore(featuredPlace, config)) {
+            continue;
           }
 
-          var placeKey = String(place.mapvxId || place.clientId || title);
-          if (seen[placeKey]) return;
-          seen[placeKey] = true;
+          featuredPlace = await enrichPlaceLogo(featuredPlace, config);
 
-          var markers = buildStoreLabelMarkers(place, currentFloorId, true);
-          markers.forEach(function (markerConfig) {
+          var featuredKey = String(featuredPlace.mapvxId || featuredPlace.clientId || featuredTitle);
+          if (seen[featuredKey]) continue;
+          seen[featuredKey] = true;
+
+          var featuredMarkers = buildStoreLabelMarkers(featuredPlace, currentFloorId, true, config);
+          featuredMarkers.forEach(function (markerConfig) {
             try {
               var markerId = mapInstance.addMarker(markerConfig);
               if (markerId) {
                 storeLabelState.markerIds.push(markerId);
-                storeLabelState.featuredPlaceMarkers.push({
-                  place: place,
-                  floorId: markerConfig.floorId,
-                  markerId: markerId,
-                  centroidApplied: false,
-                });
+                trackLabelMarker(featuredPlace, markerConfig, markerId, true);
                 added++;
               }
             } catch (e) {
               log("warn", "add featured store label marker failed", {
-                title: title,
+                title: featuredTitle,
                 floorId: markerConfig.floorId,
+                hasLogo: !!getStoreLogoUrl(featuredPlace, config),
                 error: String(e.message || e),
               });
             }
           });
-        });
+        }
 
         attachCentroidUpdater(mapInstance);
       } else {
         (subPlaces || []).forEach(function (place) {
           if (!canAddMore()) return;
-          var title = storeLabelTitle(place);
+          var title = resolveStoreLabelDisplayName(place);
           if (!title || !place || !place.position || place.position.lat == null || place.position.lng == null) {
             return;
           }
@@ -1059,12 +1659,19 @@ window.MapVxBridge = (function () {
           if (seen[placeKey]) return;
           seen[placeKey] = true;
 
-          var markers = buildStoreLabelMarkers(place, currentFloorId);
+          var isFeatured = isFeaturedStore(place, config);
+          var markers = buildStoreLabelMarkers(
+            place,
+            currentFloorId,
+            false,
+            config
+          );
           markers.forEach(function (markerConfig) {
             try {
               var markerId = mapInstance.addMarker(markerConfig);
               if (markerId) {
                 storeLabelState.markerIds.push(markerId);
+                trackLabelMarker(place, markerConfig, markerId, false);
                 added++;
               }
             } catch (e) {
@@ -1076,12 +1683,19 @@ window.MapVxBridge = (function () {
             }
           });
         });
+
+        attachCentroidUpdater(mapInstance);
       }
 
       storeLabelState.parentPlaceId = currentParentPlaceId;
       log("info", "refreshStoreLabels done", {
+        mode: mode,
         parentPlace: currentParentPlaceId,
         markers: added,
+        labelTracked: storeLabelState.labelPlaceMarkers.length,
+        featuredWithLogo: storeLabelState.labelPlaceMarkers.filter(function (entry) {
+          return entry.featured && entry.place && getStoreLogoUrl(entry.place, config);
+        }).length,
       });
       return added;
     })();
@@ -1159,21 +1773,21 @@ window.MapVxBridge = (function () {
       });
     }
 
-    if (coords.length >= 2) {
-      if (typeof mapInstance.setMaxBounds === "function" && config.enableBoundsClamp !== false) {
-        var boundsCoords = buildBoundsCoordinates(coords, config.maxBoundsPaddingRatio);
-        if (boundsCoords && boundsCoords.length >= 2) {
-          mapInstance.setMaxBounds(boundsCoords);
-          log("info", "fitMapToIndoorContext maxBounds", { points: boundsCoords.length });
-        }
-      }
-      mapInstance.fitCoordinates(coords, { padding: 56, maxZoom: 20, duration: 0 });
-      log("info", "fitMapToIndoorContext bbox", { points: coords.length });
+    if (!coords.length) {
+      log("warn", "fitMapToIndoorContext no coordinates for bounds");
       return;
     }
-    if (coords.length === 1) {
+
+    applyIndoorViewConstraints(mapInstance, config, coords);
+
+    if (coords.length >= 2) {
+      mapInstance.fitCoordinates(coords, { padding: 56, maxZoom: 20, duration: 0 });
+      log("info", "fitMapToIndoorContext bbox", { points: coords.length });
+    } else {
       fitMapToPlace(mapInstance, coords[0]);
     }
+
+    applyDynamicMinZoomFromFit(mapInstance, config);
   }
 
   async function ensureIndoorMapReady(mapInstance, config) {
@@ -1182,6 +1796,7 @@ window.MapVxBridge = (function () {
     }
 
     await ensureReady(config);
+    prefetchMarketCatalogIfAvailable();
 
     var parentPlace = null;
     try {
@@ -1252,6 +1867,7 @@ window.MapVxBridge = (function () {
 
     await fitMapToIndoorContext(mapInstance, config, parentPlace);
     await refreshStoreLabels(mapInstance, config, parentPlace);
+    scheduleRetailPoiIconFilter(mapInstance, config);
     return parentPlace;
   }
 
@@ -1357,7 +1973,8 @@ window.MapVxBridge = (function () {
       }, 25000);
 
       try {
-        map = sdk.createMap(containerEl, {
+        var zoomLimits = resolveMapZoomLimits(config);
+        var createMapOptions = {
           parentPlaceId: config.parentPlace,
           lang: (config.lang || window.MALL_LOCALE || "es").toLowerCase().startsWith("en") ? "en" : "es",
           showCompass: true,
@@ -1371,8 +1988,15 @@ window.MapVxBridge = (function () {
           onParentPlaceChange: function (parentPlaceId) {
             log("info", "onParentPlaceChange", { parentPlaceId: parentPlaceId });
           },
+        };
+        if (zoomLimits.maxZoom != null) {
+          createMapOptions.maxZoom = zoomLimits.maxZoom;
+        }
+        map = sdk.createMap(containerEl, createMapOptions);
+        log("info", "createMap called", {
+          parentPlaceId: config.parentPlace,
+          maxZoom: zoomLimits.maxZoom,
         });
-        log("info", "createMap called", { parentPlaceId: config.parentPlace });
       } catch (e) {
         clearTimeout(timeout);
         log("error", "createMap threw", { error: String(e.message || e) });
@@ -1561,6 +2185,7 @@ window.MapVxBridge = (function () {
       registerParentPlace(map, parentPlace);
     }
     await applyPlaceFloorAndWait(map, config, floorId, parentPlace);
+    scheduleRetailPoiIconFilter(map, config);
     await refreshStoreLabels(map, config, parentPlace, place);
 
     if (typeof map.clearColoredPlaces === "function") map.clearColoredPlaces();
@@ -1578,8 +2203,16 @@ window.MapVxBridge = (function () {
       }
     } else {
       await new Promise(function (r) { setTimeout(r, 250); });
-      fitMapToPlace(map, place.position);
+      fitMapToPlace(map, place.position, config);
+      await new Promise(function (r) { setTimeout(r, 450); });
     }
+
+    var baselineZoom = getMapZoom(map);
+    storeLabelState.zoomBaseline = baselineZoom;
+    _zoomLabelExpanded = false;
+    storeLabelState.parentPlaceId = null;
+    await refreshStoreLabels(map, config, parentPlace, place);
+    attachZoomLabelSwitcher(map, place, baselineZoom);
 
     var result = {
       mapvxId: mapvxId,
@@ -1596,10 +2229,7 @@ window.MapVxBridge = (function () {
     };
     log("info", "showPlace success", result);
     await finalizeMapSession(result, options);
-    // Floors are now loaded — refresh floor label in any open popup
     refreshPopOverFloorLabel();
-    // Set up zoom-based label switching: featured → all after +2.5 zoom levels
-    attachZoomLabelSwitcher(map, place);
     return result;
   }
 
@@ -1645,36 +2275,30 @@ window.MapVxBridge = (function () {
   var _zoomLabelListener = null;
   var _zoomLabelExpanded = false;
 
-  function attachZoomLabelSwitcher(mapInstance, selectedPlace) {
-    if (_zoomLabelListener && mapInstance && typeof mapInstance.off === "function") {
-      try { mapInstance.off("zoom", _zoomLabelListener); } catch (e) {}
-    }
-    _zoomLabelListener = null;
-    _zoomLabelExpanded = false;
+  function attachZoomLabelSwitcher(mapInstance, selectedPlace, baselineZoom) {
+    detachZoomLabelListener();
 
-    if (!mapInstance || typeof mapInstance.getZoom !== "function") return;
+    if (!mapInstance) return;
 
     var baseConfig = getConfig();
     if (getStoreLabelMode(baseConfig) !== "featured") return;
 
-    var initialZoom = mapInstance.getZoom();
+    storeLabelState.zoomBaseline = isFinite(baselineZoom) ? baselineZoom : getMapZoom(mapInstance);
 
     _zoomLabelListener = function () {
-      var currentZoom = mapInstance.getZoom();
-      var shouldExpand = (currentZoom - initialZoom) >= 2.5;
-
-      if (shouldExpand === _zoomLabelExpanded) return; // no change
-      _zoomLabelExpanded = shouldExpand;
-
-      var cfg = Object.assign({}, getConfig(), {
-        showStoreLabels: shouldExpand ? "all" : "featured",
-      });
-      // Reset cache so refreshStoreLabels re-renders
-      storeLabelState.parentPlaceId = null;
-      refreshStoreLabels(mapInstance, cfg, cfg.parentPlace, selectedPlace);
+      evaluateStoreLabelZoom(mapInstance, selectedPlace, storeLabelState.zoomBaseline);
     };
 
-    try { mapInstance.on("zoom", _zoomLabelListener); } catch (e) {}
+    var unbindZoom = bindMapViewListener(mapInstance, "zoom", _zoomLabelListener);
+    var unbindZoomEnd = bindMapViewListener(mapInstance, "zoomend", _zoomLabelListener);
+    storeLabelState.zoomListenerCleanup = function () {
+      if (typeof unbindZoom === "function") unbindZoom();
+      if (typeof unbindZoomEnd === "function") unbindZoomEnd();
+    };
+
+    if (!unbindZoom && !unbindZoomEnd) {
+      log("warn", "attachZoomLabelSwitcher could not bind map zoom listeners");
+    }
   }
 
   async function loadFloorsForParent(config) {
@@ -1726,7 +2350,7 @@ window.MapVxBridge = (function () {
       center = null;
     }
     return {
-      zoom: typeof map.getZoom === "function" ? map.getZoom() : null,
+      zoom: getMapZoom(map),
       center: center ? { lat: center.lat, lng: center.lng } : null,
       bearing: typeof map.getBearing === "function" ? map.getBearing() : null,
       pitch: typeof map.getPitch === "function" ? map.getPitch() : null,
@@ -1753,9 +2377,14 @@ window.MapVxBridge = (function () {
       lastMapSession.floorId = floorKey;
     }
 
-    if (lastMapSession && lastMapSession.result && lastMapSession.result.selectedPlace) {
-      await refreshStoreLabels(map, config, null, lastMapSession.result.selectedPlace);
-      showPlacePopOver(map, lastMapSession.result.selectedPlace, floorKey);
+    var selectedPlace = lastMapSession && lastMapSession.result
+      ? lastMapSession.result.selectedPlace
+      : null;
+    await refreshStoreLabels(map, config, null, selectedPlace);
+    scheduleRetailPoiIconFilter(map, config);
+
+    if (selectedPlace) {
+      showPlacePopOver(map, selectedPlace, floorKey);
     }
 
     log("info", "switchFloor", { floorKey: floorKey });
@@ -1902,6 +2531,7 @@ window.MapVxBridge = (function () {
   function destroyMap() {
     log("info", "destroyMap");
     lastMapSession = null;
+    detachZoomLabelListener();
     clearStoreLabelMarkers();
     clearPlacePopOver();
     storeLabelState.parentPlaceId = null;
@@ -1941,6 +2571,31 @@ window.MapVxBridge = (function () {
     clearPlacePopOver: clearPlacePopOver,
     destroyMap: destroyMap,
     reset: reset,
+    _debugPoiLayers: function () {
+      var libreMap = map && getLibreMap(map);
+      if (!libreMap) return { error: "no map" };
+      var style = libreMap.getStyle();
+      var layers = (style && style.layers) || [];
+      return {
+        retailFilterEnabled: shouldHideRetailPoiIcons(getConfig()),
+        poiSymbolLayers: layers
+          .filter(function (layer) {
+            return layer.source === "indoorequal" && layer["source-layer"] === "poi";
+          })
+          .map(function (layer) {
+            var filter = null;
+            var visibility = null;
+            try { filter = libreMap.getFilter(layer.id); } catch (e) {}
+            try { visibility = libreMap.getLayoutProperty(layer.id, "visibility"); } catch (e) {}
+            return {
+              id: layer.id,
+              visibility: visibility,
+              filter: filter,
+              hasIcon: !!(layer.layout && layer.layout["icon-image"]),
+            };
+          }),
+      };
+    },
     _debugCentroids: function () {
       var libreMap = map && map.map;
       if (!libreMap) return { error: "no map" };
@@ -1957,11 +2612,33 @@ window.MapVxBridge = (function () {
         layer: poiLayer ? { source: poiLayer.source, sourceLayer: poiLayer.sourceLayer } : null,
         sourceCount: sourceFeatures.length,
         renderedCount: renderedFeatures.length,
-        featuredTracked: storeLabelState.featuredPlaceMarkers.length,
-        featuredApplied: storeLabelState.featuredPlaceMarkers.filter(function(e){ return e.centroidApplied; }).length,
+        featuredTracked: storeLabelState.labelPlaceMarkers.length,
+        featuredApplied: storeLabelState.labelPlaceMarkers.filter(function(e){ return e.centroidApplied; }).length,
         centroids: queryPOICentroids(libreMap),
-        featuredPlaces: storeLabelState.featuredPlaceMarkers.map(function(e){
+        featuredPlaces: storeLabelState.labelPlaceMarkers.map(function(e){
           return { title: e.place && (e.place.title || e.place.name), mapvxId: e.place && e.place.mapvxId, floorId: e.floorId, applied: e.centroidApplied };
+        }),
+      };
+    },
+    _debugStoreLogos: function () {
+      var cfg = getConfig();
+      return {
+        storeLogosBase: storeLogosBase(cfg),
+        manifestLoaded: !!storeLogoManifest,
+        manifestEntries: storeLogoManifest
+          ? Object.keys(storeLogoManifest).filter(function (key) { return key.charAt(0) !== "_"; })
+          : [],
+        featuredPlaces: (storeLabelState.labelPlaceMarkers || []).map(function (entry) {
+          var place = entry.place || {};
+          return {
+            title: place.title || place.name || place.clientId,
+            mapvxId: place.mapvxId,
+            apiLogo: getPlaceLogoUrl(place),
+            resolvedLogo: getStoreLogoUrl(place, cfg),
+            brandFallback: !!getAnchorBrandStyle(place),
+            floorId: entry.floorId,
+            markerId: entry.markerId,
+          };
         }),
       };
     },

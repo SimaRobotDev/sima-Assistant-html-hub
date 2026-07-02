@@ -4,11 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Cenco Costanera</title>
-<!-- mobility-ui-v25 -->
+<!-- mobility-ui-v26-market-search -->
 <link rel="stylesheet" href="../shared/app.css" />
 <link rel="stylesheet" href="../shared/mapvx/styles.css" />
 <script src="../shared/locale.js"></script>
 <script src="../shared/bridge.js"></script>
+<script src="../shared/market-search.js"></script>
 <script src="../shared/mapvx/index.js"></script>
 <script src="../shared/mapvx-bridge.js"></script>
 <style>
@@ -1055,7 +1056,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA 22/06";
+const MOBILITY_UI_VERSION = "OTA market-search v1";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -1292,48 +1293,57 @@ function submitStoreSearch() {
   const landing = document.getElementById("store-search-landing");
   if (landing) landing.classList.remove("visible");
 
-  if (isLocalHtmlMode()) {
-    renderLocalStoreSearch(query);
-    return;
+  SimaBridge.send("market_search", { text: query });
+  runMarketCatalogSearch(query);
+}
+
+async function runMarketCatalogSearch(query, options) {
+  options = options || {};
+  const q = String(query || "").trim();
+  if (!q) return null;
+
+  if (typeof MarketSearch === "undefined") {
+    if (!options.silent) showSearchError(t("loadError"));
+    return null;
   }
 
-  SimaBridge.send("market_search", { text: query });
+  try {
+    await MarketSearch.loadCatalog();
+    const searchResult = MarketSearch.search(q, { limit: options.limit || 30 });
+    const payload = {
+      type: "market_search",
+      query: q,
+      results: searchResult.results || [],
+      totalMatches: searchResult.totalMatches || 0,
+      catalogSize: searchResult.catalogSize || MarketSearch.getCatalogSize(),
+      source: "market-catalog",
+    };
+
+    if (!options.skipRender) {
+      renderMarketResults(payload);
+      if (!payload.results.length && !options.silent) {
+        SimaBridge.speak(t("storesFoundNone") + " " + q);
+      }
+    }
+
+    return payload;
+  } catch (e) {
+    console.error("runMarketCatalogSearch failed", e);
+    SimaBridge.log("market catalog search failed: " + (e.message || e));
+    if (!options.silent) showSearchError(t("loadError"));
+    return null;
+  }
 }
 
-const LOCAL_STORE_SEARCH_DATA = [
-  { id: "nike-rise", name: "Nike Rise", brand: "Nike", floor: "Nivel 2", category: "Deportes y Outdoor", local: "CC_N2_2192", available: true },
-  { id: "adidas-originals", name: "Adidas Originals", brand: "Adidas", floor: "Nivel 2", category: "Deportes y Outdoor", local: "CC_N3_3129", available: true },
-  { id: "easy-cencosud", name: "Easy", brand: "Easy Cencosud", floor: "Planta Baja", category: "Hogar y Construcción", local: "CC_PB_1001", available: true },
-  { id: "jumbo", name: "Jumbo", brand: "Jumbo Cencosud", floor: "Planta Baja", category: "Supermercados", local: "CC_PB_1200", available: true },
-  { id: "decathlon", name: "Decathlon", brand: "Decathlon", floor: "Nivel 1", category: "Deportes y Outdoor", local: "CC_N1_4100", available: true }
-];
-
-function normalizeSearchText(text) {
-  return String(text || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
-
-function renderLocalStoreSearch(query) {
-  const q = normalizeSearchText(query);
-  const results = LOCAL_STORE_SEARCH_DATA.filter((item) => {
-    const haystack = normalizeSearchText([
-      item.name,
-      item.brand,
-      item.category,
-      item.local,
-      item.floor
-    ].join(" "));
-    return !q || haystack.indexOf(q) >= 0;
-  });
-
-  renderMarketResults({
-    type: "market_search",
-    query: query,
-    results: results
-  });
+function prefetchMarketCatalog() {
+  if (typeof MarketSearch === "undefined" || !MarketSearch.loadCatalog) return;
+  MarketSearch.loadCatalog()
+    .then(function () {
+      SimaBridge.log("market catalog ready count=" + MarketSearch.getCatalogSize());
+    })
+    .catch(function (e) {
+      console.warn("market catalog prefetch failed", e);
+    });
 }
 
 function initStoreSearchLanding() {
@@ -1389,6 +1399,8 @@ function ingestPayload(data) {
   renderIncomingPayload(payload);
 }
 
+window.runMarketCatalogSearch = runMarketCatalogSearch;
+
 window.pushMallContentFromUnity = function(data) {
   try { ingestPayload(data); }
   catch (e) {
@@ -1417,6 +1429,7 @@ if (typeof SimaBridge === "undefined") {
 document.addEventListener("DOMContentLoaded", () => {
   applyMobilityLocale();
   initStoreSearchLanding();
+  prefetchMarketCatalog();
   SimaBridge.ready("mobility");
   SimaBridge.log("mobility DOM ready " + MOBILITY_UI_VERSION + " locale=" + mobilityLocale);
   logMapVxConfig("DOMContentLoaded");
@@ -1531,14 +1544,29 @@ function buscarDesdeVoz(raw) {
   if (input.startsWith("{") || input.startsWith("[")) {
     try { renderIncomingPayload(JSON.parse(input)); }
     catch (e) { showSearchError("Error al mostrar los resultados."); }
+    return;
   }
+
+  const inputEl = document.getElementById("storeSearchInput");
+  if (inputEl) inputEl.value = input;
+  const landing = document.getElementById("store-search-landing");
+  if (landing) landing.classList.remove("visible");
+  SimaBridge.send("market_search", { text: input, source: "voice" });
+  runMarketCatalogSearch(input);
 }
 
 function renderIncomingPayload(dataJson) {
   if (!dataJson || !dataJson.type) return;
   switch (dataJson.type) {
     case "market_search":
-      renderMarketResults(dataJson);
+      if (Array.isArray(dataJson.results) && dataJson.results.length) {
+        renderMarketResults(dataJson);
+        break;
+      }
+      runMarketCatalogSearch(
+        dataJson.query || dataJson.text || dataJson.q || "",
+        { skipRender: false }
+      );
       break;
     case "promotion_search":
       renderPromotionResults(dataJson);
@@ -2308,58 +2336,8 @@ function stopMapZoomMeter() {
   }
 }
 
-let _zoomClickCount = 0;
-let _zoomLabelExpanded = false;
-let _zoomClickListeners = [];
-
 function attachMapZoomLabelSwitcher(result) {
-  // Remove previous listeners
-  _zoomClickListeners.forEach(([el, fn]) => el.removeEventListener("click", fn));
-  _zoomClickListeners = [];
-  _zoomClickCount = 0;
-  _zoomLabelExpanded = false;
-
-  const container = document.getElementById("mapvx-container");
-  if (!container) return;
-
-  const cfg = window.MAPVX_CONFIG;
-  if (!cfg || cfg.showStoreLabels !== "featured") return;
-
-  function onZoomChange() {
-    const shouldExpand = _zoomClickCount >= 3;
-    if (shouldExpand === _zoomLabelExpanded) return;
-    _zoomLabelExpanded = shouldExpand;
-    if (typeof MapVxBridge !== "undefined" && MapVxBridge._refreshStoreLabels) {
-      MapVxBridge._refreshStoreLabels(shouldExpand ? "all" : "featured", result);
-    }
-  }
-
-  // Watch for zoom buttons added by MapLibre inside the container
-  function bindZoomButtons() {
-    const zoomIn = container.querySelector(".maplibregl-ctrl-zoom-in");
-    const zoomOut = container.querySelector(".maplibregl-ctrl-zoom-out");
-    if (!zoomIn && !zoomOut) return false;
-
-    if (zoomIn) {
-      const fn = () => { _zoomClickCount++; onZoomChange(); };
-      zoomIn.addEventListener("click", fn);
-      _zoomClickListeners.push([zoomIn, fn]);
-    }
-    if (zoomOut) {
-      const fn = () => { _zoomClickCount = Math.max(0, _zoomClickCount - 1); onZoomChange(); };
-      zoomOut.addEventListener("click", fn);
-      _zoomClickListeners.push([zoomOut, fn]);
-    }
-    return true;
-  }
-
-  // Buttons may not exist yet — observe DOM
-  if (!bindZoomButtons()) {
-    const observer = new MutationObserver(() => {
-      if (bindZoomButtons()) observer.disconnect();
-    });
-    observer.observe(container, { childList: true, subtree: true });
-  }
+  // Label expansion on zoom is handled by MapVxBridge.attachZoomLabelSwitcher.
 }
 
 function useMapVxSdk() {
@@ -2468,13 +2446,8 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
 
   if (window.MAPVX_CONFIG) {
     window.MAPVX_CONFIG.showStoreLabels = "featured";
-    window.MAPVX_CONFIG.storeLabelMax = 50;
-    if (window.MAPVX_CONFIG.minZoom == null) {
-      window.MAPVX_CONFIG.minZoom = 8;
-    }
-    if (window.MAPVX_CONFIG.maxZoom == null) {
-      window.MAPVX_CONFIG.maxZoom = 50;
-    }
+    window.MAPVX_CONFIG.storeLabelMax = 0;
+    window.MAPVX_CONFIG.storeLabelZoomDelta = 2;
   }
 
   iframe.classList.add("hidden");
