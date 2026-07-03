@@ -982,6 +982,91 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   white-space: nowrap;
 }
 
+.cm-categories-btn {
+  width: 100%;
+  border: 2px solid var(--cm-purple);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--cm-purple);
+  font-size: 15px;
+  font-weight: 800;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.cm-categories-btn:active,
+.cm-search-btn:active { transform: scale(0.98); }
+
+.cm-results-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cm-results-categories-link {
+  border: 1px solid var(--cm-line);
+  background: #F6F1FB;
+  color: var(--cm-purple-dark);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cm-back-link {
+  border: none;
+  background: transparent;
+  color: var(--cm-purple);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0;
+  margin: 0 0 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cm-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-bottom: 24px;
+}
+
+.cm-category-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 72px;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAF7FD 100%);
+  color: var(--cm-text);
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 4px 14px rgba(61, 29, 92, 0.05);
+}
+
+.cm-category-chip:active { transform: scale(0.98); }
+
+.cm-category-chip-name {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.cm-category-chip-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cm-purple);
+  background: #F0E9F8;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
 .cm-search-voice-hint {
   margin: 0;
   font-size: 13px;
@@ -1026,6 +1111,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
           />
           <button class="cm-search-btn" id="storeSearchBtn" type="button">Buscar</button>
         </div>
+        <button class="cm-categories-btn" id="storeCategoriesBtn" type="button">Categorías</button>
         <p class="cm-search-voice-hint" id="store-search-voice-hint">
           También puedes usar el botón de voz abajo.
         </p>
@@ -1137,7 +1223,15 @@ const MOBILITY_I18N = {
     storeSearchHint: "Di el nombre de una tienda o escríbelo abajo.",
     storeSearchPlaceholder: "Ej: Nike, Zara…",
     storeSearchBtn: "Buscar",
-    storeSearchVoiceHint: "También puedes usar el botón de voz abajo."
+    storeSearchVoiceHint: "También puedes usar el botón de voz abajo.",
+    categories: "Categorías",
+    category: "Categoría",
+    categoriesHint: "Elige una categoría para ver sus tiendas.",
+    categoriesEmpty: "No hay categorías disponibles.",
+    categoriesLoading: "Cargando categorías…",
+    backCategories: "← Ver categorías",
+    backSearch: "← Buscar tiendas",
+    storesInCategory: "tiendas"
   },
   en: {
     results: "Results",
@@ -1194,7 +1288,15 @@ const MOBILITY_I18N = {
     storeSearchHint: "Say a store name or type it below.",
     storeSearchPlaceholder: "E.g. Nike, Zara…",
     storeSearchBtn: "Search",
-    storeSearchVoiceHint: "You can also use the voice button below."
+    storeSearchVoiceHint: "You can also use the voice button below.",
+    categories: "Categories",
+    category: "Category",
+    categoriesHint: "Pick a category to browse its stores.",
+    categoriesEmpty: "No categories available.",
+    categoriesLoading: "Loading categories…",
+    backCategories: "← Browse categories",
+    backSearch: "← Search stores",
+    storesInCategory: "stores"
   },
   pt: {
     results: "Resultados",
@@ -1251,7 +1353,15 @@ const MOBILITY_I18N = {
     storeSearchHint: "Diga o nome de uma loja ou digite abaixo.",
     storeSearchPlaceholder: "Ex: Nike, Zara…",
     storeSearchBtn: "Buscar",
-    storeSearchVoiceHint: "Você também pode usar o botão de voz abaixo."
+    storeSearchVoiceHint: "Você também pode usar o botão de voz abaixo.",
+    categories: "Categorias",
+    category: "Categoria",
+    categoriesHint: "Escolha uma categoria para ver as lojas.",
+    categoriesEmpty: "Não há categorias disponíveis.",
+    categoriesLoading: "Carregando categorias…",
+    backCategories: "← Ver categorias",
+    backSearch: "← Buscar lojas",
+    storesInCategory: "lojas"
   }
 };
 
@@ -1276,6 +1386,47 @@ function isLocalHtmlMode() {
   return window.location.protocol === "file:";
 }
 
+function getMarketSearchMode() {
+  if (window.MARKET_SEARCH_UNITY_ONLY === true) return "unity-only";
+  if (window.MARKET_SEARCH_LEGACY === true) return "unity-only";
+  const explicit = String(window.MARKET_SEARCH_MODE || "").toLowerCase();
+  if (explicit === "unity-only" || explicit === "legacy-only") return "unity-only";
+  if (explicit === "catalog-only" || explicit === "local-only") return "catalog-only";
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = String(params.get("marketSearch") || params.get("market_search") || "").toLowerCase();
+  if (fromUrl === "unity-only" || fromUrl === "legacy-only" || fromUrl === "legacy") return "unity-only";
+  if (fromUrl === "catalog-only" || fromUrl === "local-only") return "catalog-only";
+  return "hybrid";
+}
+
+function isMarketSearchUnityOnlyMode() {
+  return getMarketSearchMode() === "unity-only";
+}
+
+function shouldUseLocalMarketCatalog() {
+  return getMarketSearchMode() !== "unity-only";
+}
+
+function shouldNotifyUnityMarketSearch() {
+  return getMarketSearchMode() !== "catalog-only";
+}
+
+function normalizeMarketQuery(query) {
+  return String(query || "").trim().toLowerCase();
+}
+
+function localMarketSearchAlreadyResolved(query, seq) {
+  const q = normalizeMarketQuery(query);
+  return !!(
+    q &&
+    q === lastLocalMarketSearch.query &&
+    (seq == null || lastLocalMarketSearch.seq === seq) &&
+    lastMarketPayload &&
+    Array.isArray(lastMarketPayload.results) &&
+    lastMarketPayload.results.length
+  );
+}
+
 function applyStoreSearchLandingLocale() {
   const title = document.getElementById("store-search-title");
   if (title) title.textContent = t("storeSearchTitle");
@@ -1289,8 +1440,47 @@ function applyStoreSearchLandingLocale() {
   const btn = document.getElementById("storeSearchBtn");
   if (btn) btn.textContent = t("storeSearchBtn");
 
+  const categoriesBtn = document.getElementById("storeCategoriesBtn");
+  if (categoriesBtn) categoriesBtn.textContent = t("categories");
+
   const voiceHint = document.getElementById("store-search-voice-hint");
   if (voiceHint) voiceHint.textContent = t("storeSearchVoiceHint");
+}
+
+function buildStoreSearchLandingHtml() {
+  return `
+      <div class="cm-panel cm-search-landing visible" id="store-search-landing">
+        <h2 class="cm-search-landing-title" id="store-search-title">${escapeHtml(t("storeSearchTitle"))}</h2>
+        <p class="cm-search-landing-hint" id="store-search-hint">${escapeHtml(t("storeSearchHint"))}</p>
+        <div class="cm-search-row">
+          <input
+            class="cm-search-input"
+            id="storeSearchInput"
+            type="search"
+            autocomplete="off"
+            enterkeyhint="search"
+            placeholder="${escapeHtml(t("storeSearchPlaceholder"))}"
+          />
+          <button class="cm-search-btn" id="storeSearchBtn" type="button">${escapeHtml(t("storeSearchBtn"))}</button>
+        </div>
+        <button class="cm-categories-btn" id="storeCategoriesBtn" type="button">${escapeHtml(t("categories"))}</button>
+        <p class="cm-search-voice-hint" id="store-search-voice-hint">${escapeHtml(t("storeSearchVoiceHint"))}</p>
+      </div>`;
+}
+
+function wireStoreSearchLandingEvents() {
+  const btn = document.getElementById("storeSearchBtn");
+  if (btn) btn.onclick = submitStoreSearch;
+
+  const categoriesBtn = document.getElementById("storeCategoriesBtn");
+  if (categoriesBtn) categoriesBtn.onclick = openStoreCategories;
+
+  const input = document.getElementById("storeSearchInput");
+  if (input) {
+    input.onkeydown = (event) => {
+      if (event.key === "Enter") submitStoreSearch();
+    };
+  }
 }
 
 function showStoreSearchLanding(visible) {
@@ -1312,12 +1502,17 @@ function submitStoreSearch() {
   if (landing) landing.classList.remove("visible");
 
   marketSearchSeq++;
-  SimaBridge.send("market_search", { text: query });
-  runMarketCatalogSearch(query, { seq: marketSearchSeq });
+  if (shouldNotifyUnityMarketSearch()) {
+    SimaBridge.send("market_search", { text: query });
+  }
+  if (shouldUseLocalMarketCatalog()) {
+    runMarketCatalogSearch(query, { seq: marketSearchSeq });
+  }
 }
 
 async function runMarketCatalogSearch(query, options) {
   options = options || {};
+  if (!shouldUseLocalMarketCatalog()) return null;
   const q = String(query || "").trim();
   if (!q) return null;
 
@@ -1340,9 +1535,10 @@ async function runMarketCatalogSearch(query, options) {
 
     if (!options.skipRender) {
       renderMarketResults(payload);
-      if (options.seq != null) {
-        lastLocalMarketSearch = { query: q.toLowerCase(), seq: options.seq };
-      }
+      lastLocalMarketSearch = {
+        query: normalizeMarketQuery(q),
+        seq: options.seq != null ? options.seq : marketSearchSeq,
+      };
     }
 
     return payload;
@@ -1355,6 +1551,7 @@ async function runMarketCatalogSearch(query, options) {
 }
 
 function prefetchMarketCatalog() {
+  if (!shouldUseLocalMarketCatalog()) return;
   if (typeof MarketSearch === "undefined" || !MarketSearch.loadCatalog) return;
   MarketSearch.loadCatalog()
     .then(function () {
@@ -1370,18 +1567,11 @@ function initStoreSearchLanding() {
   if (getMobilityMode() !== "store_search" && !allowLocalSearch) return;
 
   applyStoreSearchLandingLocale();
+  wireStoreSearchLandingEvents();
   showStoreSearchLanding(true);
 
   const input = document.getElementById("storeSearchInput");
-  const btn = document.getElementById("storeSearchBtn");
-
-  if (btn) btn.onclick = submitStoreSearch;
-  if (input) {
-    input.onkeydown = (event) => {
-      if (event.key === "Enter") submitStoreSearch();
-    };
-    window.setTimeout(() => input.focus(), 300);
-  }
+  if (input) window.setTimeout(() => input.focus(), 300);
 }
 
 function applyMobilityLocale() {
@@ -1419,6 +1609,125 @@ function ingestPayload(data) {
 }
 
 window.runMarketCatalogSearch = runMarketCatalogSearch;
+window.openStoreCategories = openStoreCategories;
+window.selectStoreCategory = selectStoreCategory;
+
+function returnToStoreSearchLanding() {
+  const container = document.getElementById("resultado");
+  if (!container) return;
+  container.innerHTML = buildStoreSearchLandingHtml();
+  wireStoreSearchLandingEvents();
+  showStoreSearchLanding(true);
+  const input = document.getElementById("storeSearchInput");
+  if (input) window.setTimeout(() => input.focus(), 200);
+}
+
+window.returnToStoreSearchLanding = returnToStoreSearchLanding;
+
+async function openStoreCategories() {
+  if (!shouldUseLocalMarketCatalog()) return;
+  if (typeof MarketSearch === "undefined") {
+    showSearchError(t("loadError"));
+    return;
+  }
+
+  hideWelcome();
+  const landing = document.getElementById("store-search-landing");
+  if (landing) landing.classList.remove("visible");
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="cm-panel fade-in">
+      <div class="cm-empty">
+        <div class="cm-empty-title">${escapeHtml(t("categories"))}</div>
+        <div class="cm-empty-copy">${escapeHtml(t("categoriesLoading"))}</div>
+      </div>
+    </div>`;
+
+  try {
+    await MarketSearch.loadCatalog();
+    const data = MarketSearch.listCategories();
+    renderStoreCategories(data.categories || []);
+  } catch (e) {
+    console.error("openStoreCategories failed", e);
+    showSearchError(t("loadError"));
+  }
+}
+
+function renderStoreCategories(categories) {
+  hideWelcome();
+
+  if (!categories.length) {
+    document.getElementById("resultado").innerHTML = `
+      <div class="cm-panel fade-in">
+        <div class="cm-empty">
+          <div class="cm-empty-title">${escapeHtml(t("categories"))}</div>
+          <div class="cm-empty-copy">${escapeHtml(t("categoriesEmpty"))}</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const chips = categories.map(function (cat) {
+    const safeName = escapeHtml(cat.name);
+    const jsName = encodeURIComponent(String(cat.name || ""));
+    return `
+      <button class="cm-category-chip" type="button" onclick="selectStoreCategory(decodeURIComponent('${jsName}'))">
+        <span class="cm-category-chip-name">${safeName}</span>
+        <span class="cm-category-chip-count">${cat.storeCount} ${escapeHtml(t("storesInCategory"))}</span>
+      </button>`;
+  }).join("");
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="cm-panel fade-in">
+      <div class="cm-results-sticky">
+        <button class="cm-back-link" type="button" onclick="returnToStoreSearchLanding()">${escapeHtml(t("backSearch"))}</button>
+        <div class="cm-results-head">
+          <h2 class="cm-results-title">${escapeHtml(t("categories"))}</h2>
+          <span class="cm-results-count">${categories.length}</span>
+        </div>
+        <p class="cm-results-query">${escapeHtml(t("categoriesHint"))}</p>
+      </div>
+      <div class="cm-category-grid">${chips}</div>
+    </div>`;
+}
+
+async function selectStoreCategory(categoryName) {
+  if (!shouldUseLocalMarketCatalog()) return;
+  const name = String(categoryName || "").trim();
+  if (!name || typeof MarketSearch === "undefined") return;
+
+  try {
+    await MarketSearch.loadCatalog();
+    const searchResult = MarketSearch.searchByCategory(name, { limit: 200 });
+    const payload = {
+      type: "market_search",
+      query: name,
+      results: searchResult.results || [],
+      totalMatches: searchResult.totalMatches || 0,
+      catalogSize: searchResult.catalogSize || MarketSearch.getCatalogSize(),
+      source: "market-catalog",
+      resultType: "category",
+    };
+    renderMarketResults(payload);
+    SimaBridge.send("market_search", { text: name, category: name, source: "category" });
+  } catch (e) {
+    console.error("selectStoreCategory failed", e);
+    showSearchError(t("loadError"));
+  }
+}
+
+function renderMarketResultsActions() {
+  if (!shouldUseLocalMarketCatalog()) return "";
+  return `<button class="cm-results-categories-link" type="button" onclick="openStoreCategories()">${escapeHtml(t("categories"))}</button>`;
+}
+
+function renderMarketResultsLabel(payload) {
+  const query = payload.query || "";
+  if (payload.resultType === "category") {
+    return `${escapeHtml(t("category"))}: <strong>${escapeHtml(query)}</strong>`;
+  }
+  return `${escapeHtml(t("search"))}: <strong>${escapeHtml(query)}</strong>`;
+}
 
 window.pushMallContentFromUnity = function(data) {
   try { ingestPayload(data); }
@@ -1450,7 +1759,11 @@ document.addEventListener("DOMContentLoaded", () => {
   initStoreSearchLanding();
   prefetchMarketCatalog();
   SimaBridge.ready("mobility");
-  SimaBridge.log("mobility DOM ready " + MOBILITY_UI_VERSION + " locale=" + mobilityLocale);
+  SimaBridge.log(
+    "mobility DOM ready " + MOBILITY_UI_VERSION +
+    " locale=" + mobilityLocale +
+    " marketSearch=" + getMarketSearchMode()
+  );
   logMapVxConfig("DOMContentLoaded");
   warmupMapVxInBackground();
   renderEntrySurvey();
@@ -1571,31 +1884,57 @@ function buscarDesdeVoz(raw) {
   const landing = document.getElementById("store-search-landing");
   if (landing) landing.classList.remove("visible");
   marketSearchSeq++;
-  SimaBridge.send("market_search", { text: input, source: "voice" });
-  runMarketCatalogSearch(input, { seq: marketSearchSeq });
+  if (shouldNotifyUnityMarketSearch()) {
+    SimaBridge.send("market_search", { text: input, source: "voice" });
+  }
+  if (shouldUseLocalMarketCatalog()) {
+    runMarketCatalogSearch(input, { seq: marketSearchSeq });
+  }
 }
 
 function renderIncomingPayload(dataJson) {
   if (!dataJson || !dataJson.type) return;
   switch (dataJson.type) {
     case "market_search": {
-      if (Array.isArray(dataJson.results) && dataJson.results.length) {
+      const incomingQuery = String(dataJson.query || dataJson.text || dataJson.q || "").trim();
+      const hasResultsArray = Array.isArray(dataJson.results);
+
+      if (hasResultsArray && dataJson.results.length > 0) {
+        renderMarketResults(Object.assign({}, dataJson, {
+          source: dataJson.source || "unity",
+        }));
+        break;
+      }
+
+      if (hasResultsArray && dataJson.results.length === 0) {
+        if (localMarketSearchAlreadyResolved(incomingQuery, marketSearchSeq)) {
+          SimaBridge.log(
+            "market_search unity empty kept local results: " + incomingQuery
+          );
+          break;
+        }
+        renderMarketResults(Object.assign({}, dataJson, {
+          source: dataJson.source || "unity",
+        }));
+        break;
+      }
+
+      if (isMarketSearchUnityOnlyMode()) {
         renderMarketResults(dataJson);
         break;
       }
-      const incomingQuery = String(dataJson.query || dataJson.text || dataJson.q || "").trim().toLowerCase();
-      const alreadyHandledLocally =
-        incomingQuery &&
-        incomingQuery === lastLocalMarketSearch.query &&
-        lastLocalMarketSearch.seq === marketSearchSeq;
-      if (alreadyHandledLocally) {
+
+      if (localMarketSearchAlreadyResolved(incomingQuery, marketSearchSeq)) {
         SimaBridge.log("market_search echo ignored (already resolved locally): " + incomingQuery);
         break;
       }
-      runMarketCatalogSearch(
-        dataJson.query || dataJson.text || dataJson.q || "",
-        { skipRender: false }
-      );
+
+      if (shouldUseLocalMarketCatalog()) {
+        runMarketCatalogSearch(incomingQuery, { skipRender: false, seq: marketSearchSeq });
+        break;
+      }
+
+      renderMarketResults(dataJson);
       break;
     }
     case "promotion_search":
@@ -2200,8 +2539,12 @@ function renderMarketResults(payload) {
   }
 
   if (results.length === 0) {
+    const backLink = payload.resultType === "category"
+      ? `<button class="cm-back-link" type="button" onclick="openStoreCategories()">${escapeHtml(t("backCategories"))}</button>`
+      : "";
     document.getElementById("resultado").innerHTML = `
       <div class="cm-panel fade-in">
+        ${backLink ? `<div class="cm-results-sticky">${backLink}</div>` : ""}
         <div class="cm-empty">
           <div class="cm-empty-title">${escapeHtml(t("noResults"))}</div>
           <div class="cm-empty-copy">${escapeHtml(t("storesNotFound"))} "${escapeHtml(query)}".</div>
@@ -2212,15 +2555,22 @@ function renderMarketResults(payload) {
   }
 
   const cardsHtml = results.map((r, idx) => renderStoreCard(r, idx)).join("");
+  const backLink = payload.resultType === "category"
+    ? `<button class="cm-back-link" type="button" onclick="openStoreCategories()">${escapeHtml(t("backCategories"))}</button>`
+    : "";
 
   document.getElementById("resultado").innerHTML = `
     <div class="cm-panel fade-in">
       <div class="cm-results-sticky">
+        ${backLink}
         <div class="cm-results-head">
           <h2 class="cm-results-title">${escapeHtml(t("results"))}</h2>
-          <span class="cm-results-count">${results.length}</span>
+          <div class="cm-results-actions">
+            ${renderMarketResultsActions()}
+            <span class="cm-results-count">${results.length}</span>
+          </div>
         </div>
-        <p class="cm-results-query">${escapeHtml(t("search"))}: <strong>${escapeHtml(query)}</strong></p>
+        <p class="cm-results-query">${renderMarketResultsLabel(payload)}</p>
       </div>
       <div class="store-grid">${cardsHtml}</div>
     </div>`;

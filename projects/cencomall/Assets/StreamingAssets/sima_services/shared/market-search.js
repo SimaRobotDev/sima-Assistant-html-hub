@@ -194,6 +194,29 @@ window.MarketSearch = (function () {
       .filter(Boolean);
   }
 
+  function parseCategoryList(rawCategories) {
+    var seen = {};
+    var list = [];
+    String(rawCategories || "")
+      .split(",")
+      .forEach(function (part) {
+        var name = String(part || "").trim();
+        if (!name) return;
+        var key = normalizeText(name);
+        if (!key || seen[key]) return;
+        seen[key] = true;
+        list.push({ key: key, name: name });
+      });
+    return list;
+  }
+
+  function entryMatchesCategory(entry, categoryKey) {
+    if (!entry || !categoryKey) return false;
+    return parseCategoryList(entry.category).some(function (cat) {
+      return cat.key === categoryKey;
+    });
+  }
+
   function scoreEntry(indexedEntry, queryNorm, tokens) {
     var entry = indexedEntry.entry;
     var blob = indexedEntry.blob;
@@ -449,9 +472,110 @@ window.MarketSearch = (function () {
     return catalog ? catalog.length : 0;
   }
 
+  function listCategories() {
+    if (!catalog || !catalog.length) {
+      return { categories: [], catalogLoaded: false, catalogSize: 0 };
+    }
+
+    var bucket = {};
+    catalog.forEach(function (entry) {
+      if (entry.available === false) return;
+      var seen = {};
+      parseCategoryList(entry.category).forEach(function (cat) {
+        if (seen[cat.key]) return;
+        seen[cat.key] = true;
+        if (!bucket[cat.key]) {
+          bucket[cat.key] = { key: cat.key, names: {}, storeCount: 0 };
+        }
+        bucket[cat.key].storeCount += 1;
+        bucket[cat.key].names[cat.name] = (bucket[cat.key].names[cat.name] || 0) + 1;
+      });
+    });
+
+    var categories = Object.keys(bucket).map(function (key) {
+      var item = bucket[key];
+      var displayName = Object.keys(item.names).sort(function (a, b) {
+        return item.names[b] - item.names[a];
+      })[0];
+      return {
+        key: key,
+        name: displayName,
+        storeCount: item.storeCount,
+      };
+    }).sort(function (a, b) {
+      return a.name.localeCompare(b.name, "es");
+    });
+
+    return {
+      categories: categories,
+      catalogLoaded: true,
+      catalogSize: catalog.length,
+    };
+  }
+
+  function searchByCategory(category, options) {
+    options = options || {};
+    var limit = options.limit != null ? Number(options.limit) : 200;
+    if (!isFinite(limit) || limit <= 0) limit = 200;
+
+    var categoryName = String(category || "").trim();
+    var categoryKey = normalizeText(categoryName);
+    if (!categoryKey) {
+      return {
+        query: categoryName,
+        category: categoryName,
+        results: [],
+        totalMatches: 0,
+        catalogLoaded: !!indexed,
+        catalogSize: catalog ? catalog.length : 0,
+      };
+    }
+
+    if (!indexed || !indexed.length) {
+      return {
+        query: categoryName,
+        category: categoryName,
+        results: [],
+        totalMatches: 0,
+        catalogLoaded: false,
+        catalogSize: 0,
+      };
+    }
+
+    var matches = [];
+    indexed.forEach(function (indexedEntry) {
+      var entry = indexedEntry.entry;
+      if (entry.available === false) return;
+      if (entryMatchesCategory(entry, categoryKey)) {
+        matches.push({ entry: entry, score: 100 });
+      }
+    });
+
+    matches.sort(function (a, b) {
+      return String(a.entry.name).localeCompare(String(b.entry.name), "es");
+    });
+
+    var grouped = groupByBrand(matches);
+    var results = grouped
+      .map(toResultCard)
+      .filter(Boolean)
+      .slice(0, limit);
+
+    return {
+      query: categoryName,
+      category: categoryName,
+      results: results,
+      totalMatches: matches.length,
+      catalogLoaded: true,
+      catalogSize: catalog.length,
+    };
+  }
+
   return {
     loadCatalog: loadCatalog,
     search: search,
+    listCategories: listCategories,
+    searchByCategory: searchByCategory,
     isReady: isReady,
     getCatalogSize: getCatalogSize,
     getBrandByLocal: getBrandByLocal,
