@@ -7,10 +7,41 @@ window.MarketSearch = (function () {
   var indexed = null;
   var localBrandIndex = null;
 
-  function catalogUrl() {
+  function catalogBase() {
     var base = window.MARKET_CATALOG_BASE || "../data/";
     if (base.charAt(base.length - 1) !== "/") base += "/";
-    return base + (window.MARKET_CATALOG_FILE || "market-catalog.json");
+    return base;
+  }
+
+  function catalogUrl() {
+    return catalogBase() + (window.MARKET_CATALOG_FILE || "market-catalog.json");
+  }
+
+  function catalogJsonpUrl() {
+    return catalogBase() + (window.MARKET_CATALOG_JSONP_FILE || "market-catalog.jsonp.js");
+  }
+
+  // Android WebView blocks fetch()/XHR on file:// URLs ("URL scheme file is
+  // not supported"), but <script src> works. This injects a companion JS file
+  // that assigns the catalog array to a global, so local loads keep working.
+  function loadJsonViaScript(url, globalName) {
+    return new Promise(function (resolve, reject) {
+      if (window[globalName] != null) {
+        resolve(window[globalName]);
+        return;
+      }
+      var script = document.createElement("script");
+      script.async = true;
+      script.src = url;
+      script.onload = function () {
+        if (window[globalName] != null) resolve(window[globalName]);
+        else reject(new Error("catalog jsonp loaded but global missing: " + globalName));
+      };
+      script.onerror = function () {
+        reject(new Error("catalog jsonp failed to load: " + url));
+      };
+      (document.head || document.documentElement).appendChild(script);
+    });
   }
 
   function normalizeText(value) {
@@ -86,11 +117,26 @@ window.MarketSearch = (function () {
     ].join(" "));
   }
 
+  // Token matching skips long descriptions to avoid city-name noise
+  // (e.g. "paris" in "parisino", "falabella" in travel copy).
+  function buildTokenBlob(entry) {
+    return normalizeText([
+      entry.id,
+      entry.local,
+      entry.name,
+      entry.brand,
+      entry.marketName,
+      entry.category,
+      entry.keywords,
+    ].join(" "));
+  }
+
   function buildIndex(entries) {
     return entries.map(function (entry) {
       return {
         entry: entry,
         blob: buildSearchBlob(entry),
+        tokenBlob: buildTokenBlob(entry),
         brandKey: normalizeText(entry.brand || entry.name),
       };
     });
@@ -114,64 +160,147 @@ window.MarketSearch = (function () {
     return localBrandIndex[key] || "";
   }
 
+  // Word-aware match to avoid substring false positives
+  // (e.g. "puma" must not match "espumante" / "espumador").
+  // Returns exactPts if some word equals the term, prefixPts if some word
+  // starts with the term (min length 3), otherwise 0.
+  function wordScore(text, term, exactPts, prefixPts) {
+    if (!text || !term) return 0;
+    var words = text.split(" ");
+    var prefixHit = 0;
+    for (var i = 0; i < words.length; i++) {
+      var word = words[i];
+      if (!word) continue;
+      if (word === term) return exactPts;
+      if (term.length >= 3 && word.indexOf(term) === 0) {
+        var rest = word.slice(term.length);
+        // Allow short suffixes only (plural / light inflection), not "paris" → "parisino".
+        if (!rest || rest.length <= 2) prefixHit = prefixPts;
+      }
+    }
+    return prefixHit;
+  }
+
+  function brandContainsToken(brandNorm, token) {
+    return wordScore(brandNorm, token, 1, 1) > 0;
+  }
+
+  function parseKeywordList(rawKeywords) {
+    return String(rawKeywords || "")
+      .split(",")
+      .map(function (keyword) {
+        return normalizeText(keyword);
+      })
+      .filter(Boolean);
+  }
+
   function scoreEntry(indexedEntry, queryNorm, tokens) {
     var entry = indexedEntry.entry;
     var blob = indexedEntry.blob;
+    var tokenBlob = indexedEntry.tokenBlob || blob;
     var score = 0;
 
     if (!queryNorm) return 0;
 
-    if (entry.local && normalizeText(entry.local) === queryNorm) score += 1200;
+    if (entry.available === false) score -= 60;
+
+    var queryCompact = queryNorm.replace(/ /g, "");
+    var localNorm = normalizeText(entry.local);
+    if (localNorm && localNorm === queryNorm) score += 1200;
     if (entry.id && normalizeText(entry.id) === queryNorm) score += 1100;
 
     var brandNorm = normalizeText(entry.brand || entry.name);
-    if (brandNorm === queryNorm) score += 1000;
-    if (brandNorm && brandNorm.indexOf(queryNorm) === 0) score += 850;
-    if (brandNorm && queryNorm.indexOf(brandNorm) === 0) score += 800;
+    var brandCompact = brandNorm.replace(/ /g, "");
 
-    var keywordList = normalizeText(entry.keywords).split(",").map(function (k) {
-      return k.trim();
-    }).filter(Boolean);
+    var brandScore = 0;
+    if (brandNorm === queryNorm) brandScore = 1000;
+    else if (brandCompact && brandCompact === queryCompact) brandScore = 950;
+    else if (brandNorm && brandNorm.indexOf(queryNorm + " ") === 0) brandScore = 850;
+    else if (
+      brandCompact &&
+      queryCompact.length >= 3 &&
+      brandCompact.indexOf(queryCompact) === 0
+    ) brandScore = 780;
+    else if (queryNorm.indexOf(brandNorm + " ") === 0) brandScore = 700;
 
-    keywordList.forEach(function (keyword) {
-      if (keyword === queryNorm) score += 750;
-      else if (keyword.indexOf(queryNorm) === 0) score += 650;
-      else if (keyword.indexOf(queryNorm) >= 0) score += 500;
-    });
+    if (brandScore >= 700) return score + brandScore + 200;
 
-    if (blob.indexOf(queryNorm) >= 0) score += 300;
+    var keywordList = parseKeywordList(entry.keywords);
+
+    if (queryNorm.indexOf(" ") >= 0 && blob.indexOf(queryNorm) >= 0) score += 300;
 
     if (!tokens.length) return score;
 
     var matchedTokens = 0;
     tokens.forEach(function (token) {
       if (!token) return;
-      if (entry.local && normalizeText(entry.local).indexOf(token) >= 0) {
-        score += 400;
-        matchedTokens += 1;
-        return;
-      }
-      if (brandNorm === token) {
-        score += 350;
-        matchedTokens += 1;
-        return;
-      }
-      if (keywordList.some(function (keyword) {
-        return keyword === token || keyword.indexOf(token) >= 0;
-      })) {
-        score += 280;
-        matchedTokens += 1;
-        return;
-      }
-      if (blob.indexOf(token) >= 0) {
-        score += 120;
+      var best = 0;
+
+      if (localNorm && localNorm === token) best = Math.max(best, 400);
+      else best = Math.max(best, wordScore(localNorm, token, 400, 300));
+
+      if (brandNorm === token) best = Math.max(best, 350);
+      else best = Math.max(best, wordScore(brandNorm, token, 320, 220));
+
+      var keywordHit = 0;
+      keywordList.forEach(function (keyword) {
+        var hit = wordScore(keyword, token, 280, 180);
+        if (hit <= 0) return;
+        // Multimarca resellers list many brand names in keywords (Block, etc.).
+        if (keywordList.length > 12 && !brandContainsToken(brandNorm, token)) return;
+        if (brandContainsToken(brandNorm, token) || keyword === brandNorm) {
+          keywordHit = Math.max(keywordHit, hit);
+        } else if (keywordList.length <= 12) {
+          keywordHit = Math.max(keywordHit, hit);
+        }
+      });
+      best = Math.max(best, keywordHit);
+
+      best = Math.max(best, wordScore(tokenBlob, token, 120, 80));
+
+      if (best > 0) {
+        score += best;
         matchedTokens += 1;
       }
     });
 
     if (matchedTokens < tokens.length) return 0;
-    if (matchedTokens === tokens.length) score += 80 * tokens.length;
+    score += 80 * tokens.length;
     return score;
+  }
+
+  function isDirectBrandQueryMatch(brandNorm, token, queryNorm, queryCompact) {
+    var brandCompact = brandNorm.replace(/ /g, "");
+    return (
+      brandNorm === queryNorm ||
+      brandNorm === token ||
+      brandCompact === queryCompact
+    );
+  }
+
+  function applyRelevanceFilter(matches, queryNorm, tokens) {
+    if (!matches.length || tokens.length !== 1) return matches;
+
+    var token = tokens[0];
+    if (!token || token.length < 3) return matches;
+
+    var queryCompact = queryNorm.replace(/ /g, "");
+    var brandHits = matches.filter(function (match) {
+      var brandNorm = normalizeText(match.entry.brand || match.entry.name);
+      return isDirectBrandQueryMatch(brandNorm, token, queryNorm, queryCompact);
+    });
+
+    if (!brandHits.length || brandHits[0].score < 900) return matches;
+
+    var topBrandScore = brandHits[0].score;
+    var threshold = Math.max(420, topBrandScore * 0.38);
+
+    return matches.filter(function (match) {
+      if (match.score >= threshold) return true;
+      var brandNorm = normalizeText(match.entry.brand || match.entry.name);
+      if (isDirectBrandQueryMatch(brandNorm, token, queryNorm, queryCompact)) return true;
+      return brandContainsToken(brandNorm, token) && brandNorm.split(" ").length <= 4;
+    });
   }
 
   function groupByBrand(matches) {
@@ -246,6 +375,10 @@ window.MarketSearch = (function () {
         }
         return response.json();
       })
+      .catch(function () {
+        // file:// (Android WebView) blocks fetch — use the <script> companion.
+        return loadJsonViaScript(catalogJsonpUrl(), "__MARKET_CATALOG__");
+      })
       .then(function (data) {
         if (!Array.isArray(data)) {
           throw new Error("market catalog must be an array");
@@ -290,6 +423,8 @@ window.MarketSearch = (function () {
       if (b.score !== a.score) return b.score - a.score;
       return String(a.entry.name).localeCompare(String(b.entry.name), "es");
     });
+
+    matches = applyRelevanceFilter(matches, queryNorm, tokens);
 
     var grouped = groupByBrand(matches);
     var results = grouped

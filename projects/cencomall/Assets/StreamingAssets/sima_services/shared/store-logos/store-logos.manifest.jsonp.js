@@ -1,4 +1,5 @@
-{
+/* AUTO-GENERATED from projects/cencomall/Assets/StreamingAssets/sima_services/shared/store-logos/store-logos.manifest.json by tools/build-jsonp-assets.mjs. Do not edit by hand. */
+window.__STORE_LOGO_MANIFEST__ = {
   "_comment": "Logos PNG transparentes para tiendas ancla. La clave es el nombre normalizado (minúsculas, sin tildes).",
   "adidas": "adidas.png",
   "adidas originals": "adidas.png",
@@ -31,4 +32,4 @@
     "file": "zara.png",
     "backgroundColor": "#4A4A4A"
   }
-}
+};

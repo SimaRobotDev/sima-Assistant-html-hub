@@ -1859,9 +1859,6 @@ function renderStoreCard(result, idx) {
       const mapBtn = available
         ? `<button class="btn-ver-mapa-sm" type="button" onclick="openStoreMap(${idx}, ${locIdx})">${escapeHtml(t("viewMap"))}</button>`
         : `<button class="btn-ver-mapa-sm" type="button" disabled style="background:#B7B0C2">${escapeHtml(t("renovation"))}</button>`;
-      const local = loc.local
-        ? `<span class="store-badge" title="${escapeHtml(loc.local)}">${escapeHtml(truncate(loc.local, 12))}</span>`
-        : "";
 
       return `
         <div class="store-group-row">
@@ -1869,7 +1866,6 @@ function renderStoreCard(result, idx) {
             <div class="store-group-row-name">${escapeHtml(loc.name || displayName)}</div>
             <div class="store-group-row-meta">
               <span class="store-badge store-badge-floor">${escapeHtml(formatNivel(loc.floor))}</span>
-              ${local}
             </div>
           </div>
           ${mapBtn}
@@ -1905,9 +1901,6 @@ function renderStoreCard(result, idx) {
     ? `<span class="store-badge store-badge-promo" title="${escapeHtml(result.promoTitle || "")}">Promo</span>`
     : "";
   const floor = `<span class="store-badge store-badge-floor">${escapeHtml(formatNivel(result.floor))}</span>`;
-  const local = result.local
-    ? `<div class="store-detail" title="${escapeHtml(result.local)}">${escapeHtml(truncate(result.local, 16))}</div>`
-    : "";
 
   return `
     <article class="store-card fade-in" role="button" tabindex="0" onclick="openStoreMap(${idx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); openStoreMap(${idx});}">
@@ -1915,7 +1908,6 @@ function renderStoreCard(result, idx) {
         ${renderStoreAvatar(result)}
         <div class="store-name">${escapeHtml(result.name || "Tienda")}</div>
         <div class="store-meta">${categoryBadge}${promoBadge}${floor}</div>
-        ${local}
       </div>
       ${btn}
     </article>`;
@@ -2515,7 +2507,7 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
   if (window.MAPVX_CONFIG) {
     window.MAPVX_CONFIG.showStoreLabels = "featured";
     window.MAPVX_CONFIG.storeLabelMax = 0;
-    window.MAPVX_CONFIG.storeLabelZoomDelta = 2;
+    window.MAPVX_CONFIG.storeLabelZoomDelta = 1.2;
   }
 
   iframe.classList.add("hidden");
