@@ -31,6 +31,15 @@ window.MapVxBridge = (function () {
   };
   var routeAnimationToken = 0;
   var LOG_PREFIX = "[MapVxBridge]";
+  var subPlacesCache = { key: null, data: null, loading: null };
+  var _zoomLabelDebounceTimer = null;
+  var centroidUpdateTimer = null;
+
+  function shouldBridgeLog(level) {
+    if (level === "error" || level === "warn") return true;
+    var cfg = getConfig();
+    return !!(cfg.mapvxVerboseLog || cfg.debugMapvx);
+  }
 
   function log(level, message, data) {
     var line = LOG_PREFIX + " " + message;
@@ -40,9 +49,41 @@ window.MapVxBridge = (function () {
     if (level === "error") console.error(line);
     else if (level === "warn") console.warn(line);
     else console.log(line);
-    if (typeof SimaBridge !== "undefined" && SimaBridge.send) {
+    if (shouldBridgeLog(level) && typeof SimaBridge !== "undefined" && SimaBridge.send) {
       SimaBridge.send("mapvx_log", { level: level, message: message, data: data ? String(JSON.stringify(data)).slice(0, 500) : "" });
     }
+  }
+
+  function invalidateSubPlacesCache() {
+    subPlacesCache.key = null;
+    subPlacesCache.data = null;
+    subPlacesCache.loading = null;
+  }
+
+  function getSubPlacesCached(parentPlaceId) {
+    var key = String(parentPlaceId || "");
+    if (!key || !sdk || typeof sdk.getSubPlaces !== "function") {
+      return Promise.resolve([]);
+    }
+    if (subPlacesCache.key === key && subPlacesCache.data) {
+      return Promise.resolve(subPlacesCache.data);
+    }
+    if (subPlacesCache.key === key && subPlacesCache.loading) {
+      return subPlacesCache.loading;
+    }
+    subPlacesCache.key = key;
+    subPlacesCache.loading = sdk.getSubPlaces(parentPlaceId)
+      .then(function (places) {
+        subPlacesCache.data = places || [];
+        subPlacesCache.loading = null;
+        return subPlacesCache.data;
+      })
+      .catch(function (error) {
+        subPlacesCache.loading = null;
+        subPlacesCache.key = null;
+        throw error;
+      });
+    return subPlacesCache.loading;
   }
 
   function getConfig() {
@@ -98,12 +139,16 @@ window.MapVxBridge = (function () {
   }
 
   function detachZoomLabelListener() {
+    if (_zoomLabelDebounceTimer) {
+      clearTimeout(_zoomLabelDebounceTimer);
+      _zoomLabelDebounceTimer = null;
+    }
     if (typeof storeLabelState.zoomListenerCleanup === "function") {
       try { storeLabelState.zoomListenerCleanup(); } catch (e) {}
     }
     storeLabelState.zoomListenerCleanup = null;
     _zoomLabelListener = null;
-    _zoomLabelExpanded = false;
+    _zoomLabelTier = -1;
     storeLabelState.zoomBaseline = null;
   }
 
@@ -132,18 +177,45 @@ window.MapVxBridge = (function () {
     return base;
   }
 
+  // Android WebView blocks fetch()/XHR on file:// URLs but <script src> works.
+  // Injects a companion JS file that assigns the manifest to a global.
+  function loadJsonViaScript(url, globalName) {
+    return new Promise(function (resolve, reject) {
+      if (window[globalName] != null) {
+        resolve(window[globalName]);
+        return;
+      }
+      var script = document.createElement("script");
+      script.async = true;
+      script.src = url;
+      script.onload = function () {
+        if (window[globalName] != null) resolve(window[globalName]);
+        else reject(new Error("logo manifest jsonp loaded but global missing"));
+      };
+      script.onerror = function () {
+        reject(new Error("logo manifest jsonp failed to load: " + url));
+      };
+      (document.head || document.documentElement).appendChild(script);
+    });
+  }
+
   function loadStoreLogoManifest(config) {
     if (storeLogoManifest) return Promise.resolve(storeLogoManifest);
     if (storeLogoManifestPromise) return storeLogoManifestPromise;
 
-    var manifestUrl = storeLogosBase(config) + "store-logos.manifest.json";
+    var manifestBase = storeLogosBase(config);
+    var manifestUrl = manifestBase + "store-logos.manifest.json";
+    var manifestJsonpUrl = manifestBase + "store-logos.manifest.jsonp.js";
     storeLogoManifestPromise = fetch(manifestUrl, { cache: "no-cache" })
       .then(function (response) {
-        if (!response.ok) return {};
+        if (!response.ok) throw new Error("store logo manifest HTTP " + response.status);
         return response.json();
       })
       .catch(function () {
-        return {};
+        // file:// (Android WebView) blocks fetch — use the <script> companion.
+        return loadJsonViaScript(manifestJsonpUrl, "__STORE_LOGO_MANIFEST__").catch(function () {
+          return {};
+        });
       })
       .then(function (data) {
         storeLogoManifest = data && typeof data === "object" ? data : {};
@@ -159,8 +231,20 @@ window.MapVxBridge = (function () {
     return storeLogoManifestPromise;
   }
 
-  function getLocalStoreLogoFilename(place, manifest) {
-    if (!place || !manifest) return "";
+  // Match only when the manifest key equals the candidate or is its leading
+  // word(s). Avoids "Rincón Jumbo" borrowing the "jumbo" logo, etc.
+  function brandKeyMatches(candidate, manifestKey) {
+    if (!candidate || !manifestKey) return false;
+    if (candidate === manifestKey) return true;
+    if (candidate.indexOf(manifestKey + " ") !== 0) return false;
+    // Sub-brands like "Paris Deporte" must not inherit the "Paris" anchor logo.
+    var rest = candidate.slice(manifestKey.length + 1);
+    if (/^deporte\b/.test(rest)) return false;
+    return true;
+  }
+
+  function getLocalStoreLogoEntry(place, manifest) {
+    if (!place || !manifest) return null;
     var keys = [
       getStoreLogoOverrideKey(place),
       place.clientId,
@@ -171,14 +255,22 @@ window.MapVxBridge = (function () {
 
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i];
-      if (manifest[key]) return String(manifest[key]).trim();
+      if (manifest[key]) return manifest[key];
       for (var manifestKey in manifest) {
         if (!manifestKey || manifestKey.charAt(0) === "_") continue;
-        if (key === manifestKey || key.indexOf(manifestKey) >= 0 || manifestKey.indexOf(key) >= 0) {
-          return String(manifest[manifestKey]).trim();
+        if (brandKeyMatches(key, manifestKey)) {
+          return manifest[manifestKey];
         }
       }
     }
+    return null;
+  }
+
+  function getLocalStoreLogoFilename(place, manifest) {
+    var entry = getLocalStoreLogoEntry(place, manifest);
+    if (!entry) return "";
+    if (typeof entry === "string") return String(entry).trim();
+    if (typeof entry === "object" && entry.file) return String(entry.file).trim();
     return "";
   }
 
@@ -186,6 +278,23 @@ window.MapVxBridge = (function () {
     var filename = getLocalStoreLogoFilename(place, manifest || storeLogoManifest);
     if (!filename) return "";
     return storeLogosBase(config) + filename;
+  }
+
+  function getLocalStoreLogoTreatment(place, manifest) {
+    var entry = getLocalStoreLogoEntry(place, manifest || storeLogoManifest);
+    if (!entry || typeof entry !== "object") return null;
+    var scale = Number(entry.scale);
+    if (!isFinite(scale) || scale <= 0) scale = 1;
+    var offsetY = Number(entry.offsetY);
+    if (!isFinite(offsetY)) offsetY = 0;
+    if (!entry.backgroundColor && !entry.className && scale === 1 && offsetY === 0) return null;
+    return {
+      backgroundColor: entry.backgroundColor ? String(entry.backgroundColor).trim() : "",
+      className: entry.className ? String(entry.className).trim() : "",
+      padded: entry.padded !== false && !!entry.backgroundColor,
+      scale: scale,
+      offsetY: offsetY,
+    };
   }
 
   function isConfigured(config) {
@@ -565,9 +674,6 @@ window.MapVxBridge = (function () {
 
   function getStoreLogoUrl(place, config, manifest) {
     config = config || getConfig();
-    var fromPlace = getPlaceLogoUrl(place);
-    if (fromPlace) return fromPlace;
-
     var overrides = config.storeLogoOverrides || {};
     var keys = [
       place && place.mapvxId,
@@ -585,7 +691,10 @@ window.MapVxBridge = (function () {
       if (overrides[normalized]) return String(overrides[normalized]).trim();
     }
 
-    return getLocalStoreLogoUrl(place, config, manifest);
+    var localLogo = getLocalStoreLogoUrl(place, config, manifest);
+    if (localLogo) return localLogo;
+
+    return getPlaceLogoUrl(place);
   }
 
   function getAnchorBrandStyle(place) {
@@ -644,12 +753,43 @@ window.MapVxBridge = (function () {
     wrap.style.justifyContent = "center";
     wrap.style.pointerEvents = "none";
 
+    var treatment = getLocalStoreLogoTreatment(place);
+    if (treatment) {
+      // Only draw the colored badge (background + shadow) when a backgroundColor
+      // is defined. Scale-only logos stay fully transparent (no box/shadow).
+      if (treatment.backgroundColor) {
+        wrap.className = "mapvx-anchor-logo-backdrop" + (treatment.className ? " " + treatment.className : "");
+        wrap.style.backgroundColor = treatment.backgroundColor;
+      } else if (treatment.className) {
+        wrap.className = treatment.className;
+      }
+      // Hug the logo (and optional badge) instead of filling the full marker box.
+      wrap.style.display = "inline-flex";
+      wrap.style.width = "auto";
+      wrap.style.height = "auto";
+      if (treatment.padded) {
+        wrap.style.boxSizing = "border-box";
+        wrap.style.padding = Math.max(3, Math.round(height * 0.1)) + "px " + Math.max(8, Math.round(height * 0.2)) + "px";
+      }
+      // Small vertical nudge (px, positive = down) to fine-tune placement.
+      if (treatment.offsetY) {
+        wrap.style.transform = "translateY(" + treatment.offsetY + "px)";
+      }
+    }
+
     if (logoUrl) {
       var img = document.createElement("img");
       img.className = "mapvx-anchor-logo";
       img.alt = "";
       img.loading = "lazy";
       img.src = logoUrl;
+      if (treatment) {
+        // Size the logo by a target height (scaled) and let width follow the aspect ratio.
+        var baseHeight = treatment.backgroundColor ? height * 0.62 : height;
+        img.style.width = "auto";
+        img.style.height = Math.round(baseHeight * treatment.scale) + "px";
+        img.style.maxWidth = "none";
+      }
       img.onerror = function () {
         if (!img.parentNode) return;
         var brand = buildAnchorBrandElement(getAnchorBrandStyle(place));
@@ -888,6 +1028,18 @@ window.MapVxBridge = (function () {
     }
   }
 
+  function resolvePlaceLabelPosition(mapInstance, place) {
+    if (!place || !place.position) return null;
+    var libreMap = getLibreMap(mapInstance);
+    if (libreMap && place.mapvxId) {
+      var centroids = queryPOICentroids(libreMap);
+      if (centroids[place.mapvxId]) {
+        return centroids[place.mapvxId];
+      }
+    }
+    return place.position;
+  }
+
   function updatePlacePopOverPosition() {
     if (!placePopOverState.map || !placePopOverState.node || !placePopOverState.place) {
       return;
@@ -898,9 +1050,14 @@ window.MapVxBridge = (function () {
 
     try {
       renderPlacePopOverContent(placePopOverState.place, root);
+      var labelPos = resolvePlaceLabelPosition(placePopOverState.map, placePopOverState.place);
+      if (!labelPos || labelPos.lat == null || labelPos.lng == null) {
+        root.classList.add("hidden");
+        return;
+      }
       var point = placePopOverState.map.project({
-        lng: placePopOverState.place.position.lng,
-        lat: placePopOverState.place.position.lat,
+        lng: labelPos.lng,
+        lat: labelPos.lat,
       });
       if (!point || point.x == null || point.y == null) {
         root.classList.add("hidden");
@@ -970,6 +1127,23 @@ window.MapVxBridge = (function () {
   function showPlacePopOver(mapInstance, place, floorId) {
     if (!mapInstance || !place || !place.position || place.position.lat == null || place.position.lng == null) {
       clearPlacePopOver();
+      return null;
+    }
+
+    var config = getConfig();
+    var labelMode = resolveStoreLabelModeForZoom(
+      mapInstance,
+      config,
+      storeLabelState.zoomBaseline
+    );
+    // When the anchor logo is already rendered on-map, skip the card popover
+    // to avoid a duplicate logo stuck in a corner.
+    if (
+      labelMode === "featured"
+      && isFeaturedStore(place, config)
+      && getStoreLogoUrl(place, config)
+    ) {
+      hidePlacePopOver();
       return null;
     }
 
@@ -1043,6 +1217,10 @@ window.MapVxBridge = (function () {
 
   function clearStoreLabelMarkers() {
     // Detach centroid listener
+    if (centroidUpdateTimer) {
+      clearTimeout(centroidUpdateTimer);
+      centroidUpdateTimer = null;
+    }
     if (storeLabelState.centroidListener) {
       try {
         var cl = storeLabelState.centroidListener;
@@ -1274,15 +1452,19 @@ window.MapVxBridge = (function () {
     }
 
     function runUpdate() {
-      if (map !== mapInst) return; // map changed
-      var centroids = queryPOICentroids(libreMap);
-      applyFeaturedCentroids(mapInst, centroids);
-      // Once all featured places have centroids, remove the listener
-      var remaining = storeLabelState.labelPlaceMarkers.filter(function (e) { return !e.centroidApplied; });
-      if (!remaining.length && storeLabelState.centroidListener) {
-        try { libreMap.off("moveend", storeLabelState.centroidListener.fn); } catch (e) {}
-        storeLabelState.centroidListener = null;
-      }
+      if (centroidUpdateTimer) clearTimeout(centroidUpdateTimer);
+      centroidUpdateTimer = setTimeout(function () {
+        centroidUpdateTimer = null;
+        if (map !== mapInst) return;
+        var centroids = queryPOICentroids(libreMap);
+        applyFeaturedCentroids(mapInst, centroids);
+        // Once all featured places have centroids, remove the listener
+        var remaining = storeLabelState.labelPlaceMarkers.filter(function (e) { return !e.centroidApplied; });
+        if (!remaining.length && storeLabelState.centroidListener) {
+          try { libreMap.off("moveend", storeLabelState.centroidListener.fn); } catch (e) {}
+          storeLabelState.centroidListener = null;
+        }
+      }, 150);
     }
 
     storeLabelState.centroidListener = { libreMap: libreMap, fn: runUpdate };
@@ -1332,15 +1514,33 @@ window.MapVxBridge = (function () {
 
   function getStoreLabelZoomDelta(config) {
     config = config || getConfig();
-    var delta = config.storeLabelZoomDelta != null ? Number(config.storeLabelZoomDelta) : 2;
-    if (!isFinite(delta) || delta <= 0) return 2;
+    var delta = config.storeLabelZoomDelta != null ? Number(config.storeLabelZoomDelta) : 1.2;
+    if (!isFinite(delta) || delta <= 0) return 1.2;
     return delta;
   }
 
-  function shouldExpandStoreLabels(mapInstance, config, baselineZoom) {
+  function getZoomAboveBaseline(mapInstance, baselineZoom) {
     var currentZoom = getMapZoom(mapInstance);
-    if (!isFinite(currentZoom) || !isFinite(baselineZoom)) return false;
-    return (currentZoom - baselineZoom) >= getStoreLabelZoomDelta(config);
+    if (!isFinite(currentZoom) || !isFinite(baselineZoom)) return 0;
+    return currentZoom - baselineZoom;
+  }
+
+  function resolveStoreLabelModeForZoom(mapInstance, config, baselineZoom) {
+    config = config || getConfig();
+    var configuredMode = getStoreLabelMode(config);
+    if (configuredMode !== "featured") return configuredMode;
+
+    // Baseline + moderate zoom: anchor logos only. Strong zoom in: all titles + logos.
+    var zoomAbove = getZoomAboveBaseline(mapInstance, baselineZoom);
+    if (zoomAbove < getStoreLabelZoomDelta(config)) return "featured";
+    return "all";
+  }
+
+  function getStoreLabelZoomTier(mapInstance, config, baselineZoom) {
+    var mode = resolveStoreLabelModeForZoom(mapInstance, config, baselineZoom);
+    if (mode === "featured") return 0;
+    if (mode === "all") return 1;
+    return -1;
   }
 
   function evaluateStoreLabelZoom(mapInstance, selectedPlace, baselineZoom) {
@@ -1353,21 +1553,25 @@ window.MapVxBridge = (function () {
       storeLabelState.zoomBaseline = baseline;
     }
 
-    var shouldExpand = shouldExpandStoreLabels(mapInstance, baseConfig, baseline);
-    if (shouldExpand === _zoomLabelExpanded) return;
+    var tier = getStoreLabelZoomTier(mapInstance, baseConfig, baseline);
+    if (tier === _zoomLabelTier) return;
 
-    _zoomLabelExpanded = shouldExpand;
+    _zoomLabelTier = tier;
+    var mode = resolveStoreLabelModeForZoom(mapInstance, baseConfig, baseline);
     var cfg = Object.assign({}, baseConfig, {
-      showStoreLabels: shouldExpand ? "all" : "featured",
-      storeLabelMax: shouldExpand ? 0 : baseConfig.storeLabelMax,
+      showStoreLabels: mode,
+      storeLabelMax: mode === "all" ? 0 : baseConfig.storeLabelMax,
     });
     storeLabelState.parentPlaceId = null;
     log("info", "evaluateStoreLabelZoom", {
       currentZoom: getMapZoom(mapInstance),
       baselineZoom: baseline,
-      mode: cfg.showStoreLabels,
+      zoomAbove: getZoomAboveBaseline(mapInstance, baseline),
+      tier: tier,
+      mode: mode,
     });
     refreshStoreLabels(mapInstance, cfg, cfg.parentPlace, selectedPlace);
+    return mode;
   }
 
   function getStoreLabelTextProperties(featured, config) {
@@ -1413,6 +1617,7 @@ window.MapVxBridge = (function () {
       "Falabella",
       "Ripley",
       "Paris",
+      "Jumbo",
       "Casa Ideas",
       "La Polar",
       "Nike Rise",
@@ -1445,7 +1650,7 @@ window.MapVxBridge = (function () {
       for (var j = 0; j < tokens.length; j++) {
         var token = tokens[j];
         if (!token) continue;
-        if (candidates[i] === token || candidates[i].indexOf(token) >= 0 || token.indexOf(candidates[i]) >= 0) {
+        if (brandKeyMatches(candidates[i], token)) {
           return true;
         }
       }
@@ -1472,7 +1677,7 @@ window.MapVxBridge = (function () {
     return ids;
   }
 
-  function buildStoreLabelMarkers(place, fallbackFloorId, featured, config) {
+  function buildStoreLabelMarkers(place, fallbackFloorId, featured, config, showAllLogos) {
     config = config || getConfig();
     var title = resolveStoreLabelDisplayName(place);
     var position = place && place.position;
@@ -1484,58 +1689,57 @@ window.MapVxBridge = (function () {
     var markerBaseId = String(place.mapvxId || place.clientId || title).replace(/[^A-Za-z0-9_-]/g, "_");
     var markers = [];
     var labelTextProps = getStoreLabelTextProperties(featured, config);
-
-    var logoUrl = featured ? getStoreLogoUrl(place, config) : "";
     var logoDims = getFeaturedLogoDimensions(config);
-    var anchorElement = featured
+    var logoUrl = (featured || showAllLogos) ? getStoreLogoUrl(place, config) : "";
+    var anchorElement = logoUrl
       ? buildAnchorLogoElement(place, logoUrl, logoDims, config)
       : null;
 
     for (var i = 0; i < floorIds.length; i++) {
       var floorId = floorIds[i];
       var markerId = "store-label-" + markerBaseId + "-" + floorId.replace(/[^A-Za-z0-9_-]/g, "_");
-      if (featured && anchorElement) {
-        markers.push({
-          id: markerId,
-          coordinate: { lat: position.lat, lng: position.lng },
-          floorId: floorId,
-          text: "",
-          element: anchorElement.cloneNode(true),
-          iconProperties: { width: logoDims.width, height: logoDims.height },
-          anchor: "center",
-          rotationAlignment: "viewport",
-          pitchAlignment: "viewport",
-        });
-      } else if (featured && logoUrl) {
-        markers.push({
-          id: markerId,
-          coordinate: { lat: position.lat, lng: position.lng },
-          floorId: floorId,
-          text: "",
-          icon: logoUrl,
-          textPosition: MapVX.TextPosition.top,
-          iconProperties: { width: logoDims.width, height: logoDims.height },
-          anchor: "center",
-          rotationAlignment: "viewport",
-          pitchAlignment: "viewport",
-        });
-      } else if (featured) {
-        // Zoom out / featured: no text-only labels — logos and anchor marks only.
+      if (featured) {
+        if (anchorElement) {
+          markers.push({
+            id: markerId,
+            coordinate: { lat: position.lat, lng: position.lng },
+            floorId: floorId,
+            text: "",
+            element: anchorElement.cloneNode(true),
+            iconProperties: { width: logoDims.width, height: logoDims.height },
+            anchor: "center",
+            rotationAlignment: "viewport",
+            pitchAlignment: "viewport",
+          });
+        } else if (logoUrl) {
+          markers.push({
+            id: markerId,
+            coordinate: { lat: position.lat, lng: position.lng },
+            floorId: floorId,
+            text: "",
+            icon: logoUrl,
+            textPosition: MapVX.TextPosition.top,
+            iconProperties: { width: logoDims.width, height: logoDims.height },
+            anchor: "center",
+            rotationAlignment: "viewport",
+            pitchAlignment: "viewport",
+          });
+        }
         continue;
-      } else {
-        markers.push({
-          id: markerId,
-          coordinate: { lat: position.lat, lng: position.lng },
-          floorId: floorId,
-          text: title,
-          textPosition: MapVX.TextPosition.top,
-          iconProperties: { width: 0, height: 0 },
-          textProperties: labelTextProps,
-          anchor: "center",
-          rotationAlignment: "viewport",
-          pitchAlignment: "viewport",
-        });
       }
+
+      markers.push({
+        id: markerId,
+        coordinate: { lat: position.lat, lng: position.lng },
+        floorId: floorId,
+        text: title,
+        textPosition: MapVX.TextPosition.top,
+        iconProperties: { width: 0, height: 0 },
+        textProperties: labelTextProps,
+        anchor: "center",
+        rotationAlignment: "viewport",
+        pitchAlignment: "viewport",
+      });
     }
 
     return markers;
@@ -1548,7 +1752,13 @@ window.MapVxBridge = (function () {
 
   async function refreshStoreLabels(mapInstance, config, parentPlace, selectedPlace) {
     config = config || getConfig();
-    if (!mapInstance || !config || !config.parentPlace || !shouldRenderStoreLabels(config)) {
+    if (!mapInstance || !config || !config.parentPlace) {
+      return 0;
+    }
+
+    if (!shouldRenderStoreLabels(config)) {
+      clearStoreLabelMarkers();
+      storeLabelState.parentPlaceId = null;
       return 0;
     }
 
@@ -1569,11 +1779,12 @@ window.MapVxBridge = (function () {
       }
 
       await loadStoreLogoManifest(config);
-      await prefetchMarketCatalogIfAvailable();
+      // Catalog names are optional for labels; load in background to avoid blocking markers.
+      prefetchMarketCatalogIfAvailable();
 
       var subPlaces = [];
       try {
-        subPlaces = await sdk.getSubPlaces(config.parentPlace);
+        subPlaces = await getSubPlacesCached(config.parentPlace);
       } catch (e) {
         log("warn", "refreshStoreLabels getSubPlaces failed", {
           parentPlace: config.parentPlace,
@@ -1606,28 +1817,47 @@ window.MapVxBridge = (function () {
           seen[selectedKey] = true;
         }
 
+        var featuredQueue = [];
         for (var fi = 0; fi < (subPlaces || []).length; fi++) {
-          if (!canAddMore()) break;
-          var featuredPlace = subPlaces[fi];
-          var featuredTitle = storeLabelTitle(featuredPlace);
-          if (!featuredTitle || !featuredPlace || !featuredPlace.position || featuredPlace.position.lat == null || featuredPlace.position.lng == null) {
+          var candidatePlace = subPlaces[fi];
+          var candidateTitle = storeLabelTitle(candidatePlace);
+          if (!candidateTitle || !candidatePlace || !candidatePlace.position || candidatePlace.position.lat == null || candidatePlace.position.lng == null) {
             continue;
           }
-          if (!isFeaturedStore(featuredPlace, config)) {
+          if (!isFeaturedStore(candidatePlace, config)) {
             continue;
           }
+          featuredQueue.push({ place: candidatePlace, title: candidateTitle });
+        }
 
-          featuredPlace = await enrichPlaceLogo(featuredPlace, config);
+        var enrichedFeatured = await Promise.all(featuredQueue.map(function (item) {
+          return enrichPlaceLogo(item.place, config).then(function (place) {
+            return { place: place, title: item.title };
+          });
+        }));
+
+        for (var ef = 0; ef < enrichedFeatured.length; ef++) {
+          if (!canAddMore()) break;
+          var featuredEntry = enrichedFeatured[ef];
+          var featuredPlace = featuredEntry.place;
+          var featuredTitle = featuredEntry.title;
 
           var featuredKey = String(featuredPlace.mapvxId || featuredPlace.clientId || featuredTitle);
           if (seen[featuredKey]) continue;
           seen[featuredKey] = true;
 
+          // Dedup by brand within a floor: MapVX may return several subplaces of
+          // the same anchor (e.g. two "JUMBO") on one floor. Only one logo each.
+          var featuredBrand = normalizeText(resolveStoreLabelDisplayName(featuredPlace) || featuredTitle);
+
           var featuredMarkers = buildStoreLabelMarkers(featuredPlace, currentFloorId, true, config);
           featuredMarkers.forEach(function (markerConfig) {
+            var brandFloorKey = "featbrand:" + featuredBrand + "|" + markerConfig.floorId;
+            if (seen[brandFloorKey]) return;
             try {
               var markerId = mapInstance.addMarker(markerConfig);
               if (markerId) {
+                seen[brandFloorKey] = true;
                 storeLabelState.markerIds.push(markerId);
                 trackLabelMarker(featuredPlace, markerConfig, markerId, true);
                 added++;
@@ -1645,26 +1875,34 @@ window.MapVxBridge = (function () {
 
         attachCentroidUpdater(mapInstance);
       } else {
-        (subPlaces || []).forEach(function (place) {
-          if (!canAddMore()) return;
-          var title = resolveStoreLabelDisplayName(place);
-          if (!title || !place || !place.position || place.position.lat == null || place.position.lng == null) {
-            return;
+        var allQueue = [];
+        for (var ai = 0; ai < (subPlaces || []).length; ai++) {
+          var candidate = subPlaces[ai];
+          var candidateName = resolveStoreLabelDisplayName(candidate);
+          if (!candidateName || !candidate || !candidate.position || candidate.position.lat == null || candidate.position.lng == null) {
+            continue;
           }
-          if (isAuxiliaryLabel(place)) {
-            return;
+          if (isAuxiliaryLabel(candidate)) {
+            continue;
           }
+          var candidateKey = String(candidate.mapvxId || candidate.clientId || candidateName);
+          if (seen[candidateKey]) continue;
+          seen[candidateKey] = true;
+          allQueue.push({ place: candidate, title: candidateName, placeKey: candidateKey });
+        }
 
-          var placeKey = String(place.mapvxId || place.clientId || title);
-          if (seen[placeKey]) return;
-          seen[placeKey] = true;
+        for (var ea = 0; ea < allQueue.length; ea++) {
+          if (!canAddMore()) break;
+          var allEntry = allQueue[ea];
+          var place = allEntry.place;
+          var title = allEntry.title;
 
-          var isFeatured = isFeaturedStore(place, config);
           var markers = buildStoreLabelMarkers(
             place,
             currentFloorId,
             false,
-            config
+            config,
+            false
           );
           markers.forEach(function (markerConfig) {
             try {
@@ -1682,7 +1920,7 @@ window.MapVxBridge = (function () {
               });
             }
           });
-        });
+        }
 
         attachCentroidUpdater(mapInstance);
       }
@@ -1759,7 +1997,7 @@ window.MapVxBridge = (function () {
     }
 
     try {
-      var subPlaces = await sdk.getSubPlaces(config.parentPlace);
+      var subPlaces = await getSubPlacesCached(config.parentPlace);
       if (subPlaces && subPlaces.length) {
         subPlaces.forEach(function (p) {
           if (p && p.position && p.position.lat != null && p.position.lng != null) {
@@ -1866,7 +2104,11 @@ window.MapVxBridge = (function () {
     }
 
     await fitMapToIndoorContext(mapInstance, config, parentPlace);
-    await refreshStoreLabels(mapInstance, config, parentPlace);
+    var baselineZoom = getMapZoom(mapInstance);
+    storeLabelState.zoomBaseline = baselineZoom;
+    _zoomLabelTier = -1;
+    attachZoomLabelSwitcher(mapInstance, null, baselineZoom);
+    evaluateStoreLabelZoom(mapInstance, null, baselineZoom);
     scheduleRetailPoiIconFilter(mapInstance, config);
     return parentPlace;
   }
@@ -2063,7 +2305,7 @@ window.MapVxBridge = (function () {
 
     try {
       log("info", "try getSubPlaces", { parentPlace: getConfig().parentPlace });
-      var subPlaces = await sdk.getSubPlaces(getConfig().parentPlace);
+      var subPlaces = await getSubPlacesCached(getConfig().parentPlace);
       log("info", "getSubPlaces count", { count: subPlaces ? subPlaces.length : 0 });
       if (subPlaces && subPlaces.length) {
         var match = subPlaces.find(function (p) {
@@ -2186,14 +2428,12 @@ window.MapVxBridge = (function () {
     }
     await applyPlaceFloorAndWait(map, config, floorId, parentPlace);
     scheduleRetailPoiIconFilter(map, config);
-    await refreshStoreLabels(map, config, parentPlace, place);
 
     if (typeof map.clearColoredPlaces === "function") map.clearColoredPlaces();
     if (typeof map.setPlacesAsSelected === "function") {
       map.setPlacesAsSelected([mapvxId], "#5B2D8E");
       log("info", "setPlacesAsSelected", { mapvxId: mapvxId });
     }
-    showPlacePopOver(map, place, floorId);
 
     await waitForMapContainerLayout(containerEl);
     if (!place.position) {
@@ -2209,10 +2449,11 @@ window.MapVxBridge = (function () {
 
     var baselineZoom = getMapZoom(map);
     storeLabelState.zoomBaseline = baselineZoom;
-    _zoomLabelExpanded = false;
+    _zoomLabelTier = -1;
     storeLabelState.parentPlaceId = null;
-    await refreshStoreLabels(map, config, parentPlace, place);
     attachZoomLabelSwitcher(map, place, baselineZoom);
+    evaluateStoreLabelZoom(map, place, baselineZoom);
+    showPlacePopOver(map, place, floorId);
 
     var result = {
       mapvxId: mapvxId,
@@ -2273,7 +2514,7 @@ window.MapVxBridge = (function () {
   }
 
   var _zoomLabelListener = null;
-  var _zoomLabelExpanded = false;
+  var _zoomLabelTier = -1;
 
   function attachZoomLabelSwitcher(mapInstance, selectedPlace, baselineZoom) {
     detachZoomLabelListener();
@@ -2286,19 +2527,24 @@ window.MapVxBridge = (function () {
     storeLabelState.zoomBaseline = isFinite(baselineZoom) ? baselineZoom : getMapZoom(mapInstance);
 
     _zoomLabelListener = function () {
-      evaluateStoreLabelZoom(mapInstance, selectedPlace, storeLabelState.zoomBaseline);
+      if (_zoomLabelDebounceTimer) clearTimeout(_zoomLabelDebounceTimer);
+      _zoomLabelDebounceTimer = setTimeout(function () {
+        _zoomLabelDebounceTimer = null;
+        evaluateStoreLabelZoom(mapInstance, selectedPlace, storeLabelState.zoomBaseline);
+      }, 120);
     };
 
-    var unbindZoom = bindMapViewListener(mapInstance, "zoom", _zoomLabelListener);
+    // Only zoomend: binding "zoom" fires many times per pinch and retriggers label rebuilds.
     var unbindZoomEnd = bindMapViewListener(mapInstance, "zoomend", _zoomLabelListener);
     storeLabelState.zoomListenerCleanup = function () {
-      if (typeof unbindZoom === "function") unbindZoom();
       if (typeof unbindZoomEnd === "function") unbindZoomEnd();
     };
 
-    if (!unbindZoom && !unbindZoomEnd) {
+    if (!unbindZoomEnd) {
       log("warn", "attachZoomLabelSwitcher could not bind map zoom listeners");
     }
+
+    evaluateStoreLabelZoom(mapInstance, selectedPlace, storeLabelState.zoomBaseline);
   }
 
   async function loadFloorsForParent(config) {
@@ -2380,7 +2626,7 @@ window.MapVxBridge = (function () {
     var selectedPlace = lastMapSession && lastMapSession.result
       ? lastMapSession.result.selectedPlace
       : null;
-    await refreshStoreLabels(map, config, null, selectedPlace);
+    evaluateStoreLabelZoom(map, selectedPlace, storeLabelState.zoomBaseline);
     scheduleRetailPoiIconFilter(map, config);
 
     if (selectedPlace) {
