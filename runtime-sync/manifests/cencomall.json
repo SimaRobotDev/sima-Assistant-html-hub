@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.02-1",
+  "version": "2026.07.03-1",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-03T19:38:42.163Z",
+  "generatedAt": "2026-07-03T20:00:25.484Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
