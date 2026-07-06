@@ -285,14 +285,17 @@ window.MapVxBridge = (function () {
     if (!entry || typeof entry !== "object") return null;
     var scale = Number(entry.scale);
     if (!isFinite(scale) || scale <= 0) scale = 1;
+    var offsetX = Number(entry.offsetX);
+    if (!isFinite(offsetX)) offsetX = 0;
     var offsetY = Number(entry.offsetY);
     if (!isFinite(offsetY)) offsetY = 0;
-    if (!entry.backgroundColor && !entry.className && scale === 1 && offsetY === 0) return null;
+    if (!entry.backgroundColor && !entry.className && scale === 1 && offsetX === 0 && offsetY === 0) return null;
     return {
       backgroundColor: entry.backgroundColor ? String(entry.backgroundColor).trim() : "",
       className: entry.className ? String(entry.className).trim() : "",
       padded: entry.padded !== false && !!entry.backgroundColor,
       scale: scale,
+      offsetX: offsetX,
       offsetY: offsetY,
     };
   }
@@ -672,6 +675,25 @@ window.MapVxBridge = (function () {
     );
   }
 
+  function isBlockedLegacyMapVxLogo(place) {
+    if (!place) return false;
+    var keys = [
+      place.mapvxId,
+      place.clientId,
+      place.title,
+      place.shortName,
+      place.name,
+    ].map(normalizeText).filter(Boolean);
+
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      if (brandKeyMatches(key, "nike") || brandKeyMatches(key, "nike rise")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function getStoreLogoUrl(place, config, manifest) {
     config = config || getConfig();
     var overrides = config.storeLogoOverrides || {};
@@ -693,6 +715,9 @@ window.MapVxBridge = (function () {
 
     var localLogo = getLocalStoreLogoUrl(place, config, manifest);
     if (localLogo) return localLogo;
+
+    // Explicitly block Nike legacy logos coming from MapVX remote payloads.
+    if (isBlockedLegacyMapVxLogo(place)) return "";
 
     return getPlaceLogoUrl(place);
   }
@@ -763,17 +788,18 @@ window.MapVxBridge = (function () {
       } else if (treatment.className) {
         wrap.className = treatment.className;
       }
-      // Hug the logo (and optional badge) instead of filling the full marker box.
-      wrap.style.display = "inline-flex";
-      wrap.style.width = "auto";
-      wrap.style.height = "auto";
+      // Keep a stable marker box so logo size/placement remains consistent
+      // across zoom changes (avoid auto-size wrapper jitter).
+      wrap.style.display = "flex";
+      wrap.style.width = width + "px";
+      wrap.style.height = height + "px";
       if (treatment.padded) {
         wrap.style.boxSizing = "border-box";
         wrap.style.padding = Math.max(3, Math.round(height * 0.1)) + "px " + Math.max(8, Math.round(height * 0.2)) + "px";
       }
-      // Small vertical nudge (px, positive = down) to fine-tune placement.
-      if (treatment.offsetY) {
-        wrap.style.transform = "translateY(" + treatment.offsetY + "px)";
+      // Fine-tune logo placement (px): +X right / -X left, +Y down / -Y up.
+      if (treatment.offsetX || treatment.offsetY) {
+        wrap.style.transform = "translate(" + (treatment.offsetX || 0) + "px, " + (treatment.offsetY || 0) + "px)";
       }
     }
 
@@ -1127,23 +1153,6 @@ window.MapVxBridge = (function () {
   function showPlacePopOver(mapInstance, place, floorId) {
     if (!mapInstance || !place || !place.position || place.position.lat == null || place.position.lng == null) {
       clearPlacePopOver();
-      return null;
-    }
-
-    var config = getConfig();
-    var labelMode = resolveStoreLabelModeForZoom(
-      mapInstance,
-      config,
-      storeLabelState.zoomBaseline
-    );
-    // When the anchor logo is already rendered on-map, skip the card popover
-    // to avoid a duplicate logo stuck in a corner.
-    if (
-      labelMode === "featured"
-      && isFeaturedStore(place, config)
-      && getStoreLogoUrl(place, config)
-    ) {
-      hidePlacePopOver();
       return null;
     }
 
@@ -1623,12 +1632,6 @@ window.MapVxBridge = (function () {
       "Nike Rise",
       "ZARA",
       "H&M",
-      "Mango",
-      "Levi's",
-      "Steve Madden",
-      "BIMBA",
-      "Aldo",
-      "Adidas",
       "Cencosud",
     ];
   }
@@ -2499,6 +2502,39 @@ window.MapVxBridge = (function () {
 
   var lastMapSession = null;
 
+  // Route animation tuning. MapVX's default (stepTime: 3, minimumSpeed: 40,
+  // changeFloorTime: 0) draws routes too fast for low-power totems and jumps
+  // straight into the next floor's render while still moving, causing visible
+  // stutter ("tirones"). These defaults slow the pace down and add a short
+  // pause on floor changes (stairs/escalators) so the new floor has time to
+  // render before the route continues. Values are overridable via
+  // MAPVX_CONFIG so they can be tuned per device without code changes.
+  var ROUTE_ANIMATION_DEFAULTS = {
+    stepTime: 4.5,
+    minimumSpeed: 25,
+    changeFloorTime: 1.4,
+    iconRotationTime: 0.35,
+    keepFixedBearing: false,
+  };
+
+  function numOr(value, fallback) {
+    var n = Number(value);
+    return value != null && isFinite(n) ? n : fallback;
+  }
+
+  function getRouteAnimationConfig(config) {
+    config = config || getConfig();
+    return {
+      stepTime: numOr(config.routeStepTime, ROUTE_ANIMATION_DEFAULTS.stepTime),
+      minimumSpeed: numOr(config.routeMinimumSpeed, ROUTE_ANIMATION_DEFAULTS.minimumSpeed),
+      changeFloorTime: numOr(config.routeChangeFloorTime, ROUTE_ANIMATION_DEFAULTS.changeFloorTime),
+      iconRotationTime: numOr(config.routeIconRotationTime, ROUTE_ANIMATION_DEFAULTS.iconRotationTime),
+      keepFixedBearing: config.routeKeepFixedBearing != null
+        ? !!config.routeKeepFixedBearing
+        : ROUTE_ANIMATION_DEFAULTS.keepFixedBearing,
+    };
+  }
+
   function hasRouteOrigin(config) {
     config = config || getConfig();
     return !!(config.totemPlaceId || config.originPlaceId);
@@ -2694,7 +2730,8 @@ window.MapVxBridge = (function () {
       ? "en"
       : "es";
 
-    log("info", "drawRouteToTarget", { from: originId, to: destId, originRaw: originRaw });
+    var routeAnimCfg = getRouteAnimationConfig(config);
+    log("info", "drawRouteToTarget", { from: originId, to: destId, originRaw: originRaw, animation: routeAnimCfg });
     hidePlacePopOver();
     routeAnimationToken += 1;
     var currentToken = routeAnimationToken;
@@ -2712,6 +2749,11 @@ window.MapVxBridge = (function () {
           behindPathStyle: { type: "Solid", color: "#E4007C" },
         },
         {
+          stepTime: routeAnimCfg.stepTime,
+          minimumSpeed: routeAnimCfg.minimumSpeed,
+          changeFloorTime: routeAnimCfg.changeFloorTime,
+          iconRotationTime: routeAnimCfg.iconRotationTime,
+          keepFixedBearing: routeAnimCfg.keepFixedBearing,
           callBack: function (payload) {
             if (currentToken !== routeAnimationToken) {
               return;

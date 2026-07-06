@@ -1,12 +1,6 @@
 /* AUTO-GENERATED from projects/cencomall/Assets/StreamingAssets/sima_services/shared/store-logos/store-logos.manifest.json by tools/build-jsonp-assets.mjs. Do not edit by hand. */
 window.__STORE_LOGO_MANIFEST__ = {
   "_comment": "Logos PNG transparentes para tiendas ancla. La clave es el nombre normalizado (minúsculas, sin tildes).",
-  "adidas": "adidas.png",
-  "adidas originals": "adidas.png",
-  "aldo": "aldo.png",
-  "bimba": "bimba.png",
-  "bimba lola": "bimba.png",
-  "bimba y lola": "bimba.png",
   "casaideas": "casa-ideas.png",
   "casa ideas": "casa-ideas.png",
   "falabella": "falabella.png",
@@ -20,16 +14,14 @@ window.__STORE_LOGO_MANIFEST__ = {
   },
   "la polar": "la-polar.png",
   "lapolar": "la-polar.png",
-  "levi s": "levis.png",
-  "levis": "levis.png",
-  "mango": "mango.png",
-  "nike": "nike-rise.png",
-  "nike rise": "nike-rise.png",
-  "paris": "paris.png",
+  "paris": {
+    "file": "paris.png",
+    "scale": 1.18
+  },
   "ripley": "ripley.png",
-  "steve madden": "steve-madden.png",
   "zara": {
     "file": "zara.png",
-    "backgroundColor": "#4A4A4A"
+    "offsetX": -35,
+    "scale": 1.18
   }
 };
