@@ -97,6 +97,26 @@ MapVxBridge._refreshStoreLabels("all")  // forzar modo etiquetas
 - `showPlacePopOver` — popup HTML sobre la tienda seleccionada
 - Límites de zoom y `fitMapToPlace` para encuadrar locales
 
+### 1.5 Velocidad de la ruta animada (`drawRouteToTarget`)
+
+Los defaults del SDK de MapVX (`stepTime: 3`, `minimumSpeed: 40`, `changeFloorTime: 0`) hacían que la
+ruta se trazara muy rápido y que el cambio de piso (escaleras/ascensores) ocurriera sin pausa, lo que en
+tótems de bajo rendimiento se veía a tirones porque el mapa del nuevo piso aún no terminaba de renderizar.
+
+El bridge ahora aplica valores más lentos y agrega una pausa en cada cambio de piso antes de continuar.
+Son overrideables desde `MAPVX_CONFIG` sin tocar código:
+
+```js
+MAPVX_CONFIG.routeStepTime = 4.5;        // seg. por tramo recto (SDK default: 3, mayor = más lento)
+MAPVX_CONFIG.routeMinimumSpeed = 25;      // velocidad mínima para tramos cortos (SDK default: 40)
+MAPVX_CONFIG.routeChangeFloorTime = 1.4;  // seg. de pausa al subir/bajar piso (SDK default: 0)
+MAPVX_CONFIG.routeIconRotationTime = 0.35; // seg. de transición al girar el ícono en curvas (SDK default: 0)
+MAPVX_CONFIG.routeKeepFixedBearing = false;
+```
+
+Si en el tótem real la ruta sigue viéndose entrecortada, subir `routeChangeFloorTime` (p.ej. a `2`) da más
+margen para que el piso siguiente termine de dibujarse antes de reanudar la animación.
+
 ---
 
 ## 2. Búsqueda de tiendas (`market-search.js`)

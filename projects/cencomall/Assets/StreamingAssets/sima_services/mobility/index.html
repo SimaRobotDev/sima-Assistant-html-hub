@@ -227,6 +227,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .store-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
   gap: 10px;
   padding-bottom: 24px;
 }
@@ -338,6 +339,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .btn-remodelacion { background: #B7B0C2; color: #fff; cursor: not-allowed; }
 
 .store-card-group { grid-column: span 1; }
+.store-card-group .store-card-top { flex: 0 0 auto; }
 
 .store-badge-locales {
   background: #FFF3E0;
@@ -383,6 +385,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 }
 
 .store-group-row:last-child { border-bottom: none; }
+.store-group-row.map-only {
+  justify-content: center;
+  padding: 8px;
+}
 
 .store-group-row-info { flex: 1; min-width: 0; }
 
@@ -420,11 +426,29 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   flex: 1 1 auto;
   flex-shrink: 1;
   min-height: 42px;
+  text-align: center;
+}
+.store-group-row.map-only .btn-ver-mapa-sm {
+  margin: 0 auto;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .cm-empty { text-align: center; padding: 20px 10px; }
 .cm-empty-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
 .cm-empty-copy { color: var(--cm-muted); font-size: 13px; line-height: 1.4; }
+.cm-empty-actions { margin-top: 12px; display: flex; justify-content: center; }
+.cm-empty-btn {
+  border: 1px solid var(--cm-purple);
+  background: #fff;
+  color: var(--cm-purple);
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.cm-empty-btn:active { transform: scale(0.98); }
 
 .cm-speak-fab {
   position: fixed;
@@ -953,6 +977,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   align-items: stretch;
 }
 
+.cm-search-row-inline {
+  margin-top: 10px;
+}
+
 .cm-search-input {
   flex: 1;
   min-width: 0;
@@ -1157,7 +1185,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA market-search v1";
+const MOBILITY_UI_VERSION = "OTA route-speed v1";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -1231,7 +1259,10 @@ const MOBILITY_I18N = {
     categoriesLoading: "Cargando categorías…",
     backCategories: "← Ver categorías",
     backSearch: "← Buscar tiendas",
-    storesInCategory: "tiendas"
+    storesInCategory: "tiendas",
+    relatedResultsFor: "Resultados relacionados para",
+    retrySearch: "Intentar otra búsqueda",
+    searchTryAgain: "Revisa cómo escribiste el nombre e inténtalo nuevamente."
   },
   en: {
     results: "Results",
@@ -1296,7 +1327,10 @@ const MOBILITY_I18N = {
     categoriesLoading: "Loading categories…",
     backCategories: "← Browse categories",
     backSearch: "← Search stores",
-    storesInCategory: "stores"
+    storesInCategory: "stores",
+    relatedResultsFor: "Related results for",
+    retrySearch: "Try another search",
+    searchTryAgain: "Check the spelling and try another search."
   },
   pt: {
     results: "Resultados",
@@ -1361,7 +1395,10 @@ const MOBILITY_I18N = {
     categoriesLoading: "Carregando categorias…",
     backCategories: "← Ver categorias",
     backSearch: "← Buscar lojas",
-    storesInCategory: "lojas"
+    storesInCategory: "lojas",
+    relatedResultsFor: "Resultados relacionados para",
+    retrySearch: "Tentar outra busca",
+    searchTryAgain: "Revise como escreveu o nome e tente novamente."
   }
 };
 
@@ -1510,6 +1547,26 @@ function submitStoreSearch() {
   }
 }
 
+function submitInlineStoreSearch() {
+  const input = document.getElementById("storeSearchInlineInput");
+  const query = input ? String(input.value || "").trim() : "";
+  if (!query) {
+    if (input) input.focus();
+    return;
+  }
+
+  const landing = document.getElementById("store-search-landing");
+  if (landing) landing.classList.remove("visible");
+
+  marketSearchSeq++;
+  if (shouldNotifyUnityMarketSearch()) {
+    SimaBridge.send("market_search", { text: query });
+  }
+  if (shouldUseLocalMarketCatalog()) {
+    runMarketCatalogSearch(query, { seq: marketSearchSeq });
+  }
+}
+
 async function runMarketCatalogSearch(query, options) {
   options = options || {};
   if (!shouldUseLocalMarketCatalog()) return null;
@@ -1531,6 +1588,8 @@ async function runMarketCatalogSearch(query, options) {
       totalMatches: searchResult.totalMatches || 0,
       catalogSize: searchResult.catalogSize || MarketSearch.getCatalogSize(),
       source: "market-catalog",
+      resultType: searchResult.resultType || "search",
+      isFallbackRelated: !!searchResult.isFallbackRelated,
     };
 
     if (!options.skipRender) {
@@ -1577,6 +1636,9 @@ function initStoreSearchLanding() {
 function applyMobilityLocale() {
   mobilityLocale = getMobilityLocale();
   MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || MAP_SERVICE_BASE_URL || "";
+  if (window.MAPVX_CONFIG && !window.MAPVX_CONFIG.lang) {
+    window.MAPVX_CONFIG.lang = mobilityLocale;
+  }
 
   const welcome = document.getElementById("welcome-hint");
   if (welcome) welcome.textContent = t("welcomeHint");
@@ -1611,6 +1673,7 @@ function ingestPayload(data) {
 window.runMarketCatalogSearch = runMarketCatalogSearch;
 window.openStoreCategories = openStoreCategories;
 window.selectStoreCategory = selectStoreCategory;
+window.submitInlineStoreSearch = submitInlineStoreSearch;
 
 function returnToStoreSearchLanding() {
   const container = document.getElementById("resultado");
@@ -1622,7 +1685,19 @@ function returnToStoreSearchLanding() {
   if (input) window.setTimeout(() => input.focus(), 200);
 }
 
+function retryStoreSearch(query) {
+  returnToStoreSearchLanding();
+  const input = document.getElementById("storeSearchInput");
+  if (!input) return;
+  input.value = String(query || "");
+  window.setTimeout(() => {
+    input.focus();
+    input.select();
+  }, 220);
+}
+
 window.returnToStoreSearchLanding = returnToStoreSearchLanding;
+window.retryStoreSearch = retryStoreSearch;
 
 async function openStoreCategories() {
   if (!shouldUseLocalMarketCatalog()) return;
@@ -1726,7 +1801,27 @@ function renderMarketResultsLabel(payload) {
   if (payload.resultType === "category") {
     return `${escapeHtml(t("category"))}: <strong>${escapeHtml(query)}</strong>`;
   }
+  if (payload.resultType === "related") {
+    return `${escapeHtml(t("relatedResultsFor"))}: <strong>${escapeHtml(query)}</strong>`;
+  }
   return `${escapeHtml(t("search"))}: <strong>${escapeHtml(query)}</strong>`;
+}
+
+function renderResultsSearchBar(query) {
+  return `
+    <div class="cm-search-row cm-search-row-inline">
+      <input
+        class="cm-search-input"
+        id="storeSearchInlineInput"
+        type="search"
+        autocomplete="off"
+        enterkeyhint="search"
+        placeholder="${escapeHtml(t("storeSearchPlaceholder"))}"
+        value="${escapeHtml(String(query || ""))}"
+        onkeydown="if(event.key==='Enter'){submitInlineStoreSearch();}"
+      />
+      <button class="cm-search-btn" type="button" onclick="submitInlineStoreSearch()">${escapeHtml(t("storeSearchBtn"))}</button>
+    </div>`;
 }
 
 window.pushMallContentFromUnity = function(data) {
@@ -1756,6 +1851,7 @@ if (typeof SimaBridge === "undefined") {
 
 document.addEventListener("DOMContentLoaded", () => {
   applyMobilityLocale();
+  applyMapVxDefaultsFromMapPage();
   initStoreSearchLanding();
   prefetchMarketCatalog();
   SimaBridge.ready("mobility");
@@ -2008,6 +2104,12 @@ function formatNivel(floor) {
   return f;
 }
 
+function getMapButtonLabelForFloor(floor) {
+  const nivel = formatNivel(floor);
+  if (!nivel || nivel === "—") return t("viewMap");
+  return `${t("viewMap")} · ${nivel}`;
+}
+
 function formatServiceFloors(floors) {
   if (!floors || !floors.length) return "";
   if (floors.includes("ALL")) return t("allLevels");
@@ -2048,6 +2150,15 @@ function summarizeFloors(locations) {
     .map((loc) => formatNivel(loc.floor))
     .filter((f) => f && f !== "—");
   return [...new Set(floors)].join(" · ");
+}
+
+function countDistinctFloors(locations) {
+  if (!locations || !locations.length) return 0;
+  const floorKeys = locations
+    .map((loc) => formatNivel(loc && loc.floor))
+    .map((f) => String(f || "").trim().toLowerCase())
+    .filter(Boolean);
+  return new Set(floorKeys).size;
 }
 
 function resolveStore(groupIndex, locationIndex) {
@@ -2187,26 +2298,78 @@ function toggleGroup(groupIndex) {
 
 function renderStoreCard(result, idx) {
   if (result.isGroup && result.locations && result.locations.length > 1) {
+    const distinctFloors = countDistinctFloors(result.locations);
+    if (distinctFloors <= 1) {
+      const primaryIndex = result.locations.findIndex((loc) => loc && loc.available !== false);
+      const locIdx = primaryIndex >= 0 ? primaryIndex : 0;
+      const loc = result.locations[locIdx] || {};
+      const available = loc.available !== false;
+      const btn = available
+        ? `<button class="btn-ver-mapa" type="button" onclick="event.stopPropagation(); openStoreMap(${idx}, ${locIdx})">${escapeHtml(getMapButtonLabelForFloor(loc.floor))}</button>`
+        : `<button class="btn-remodelacion" disabled>${escapeHtml(t("renovation"))}</button>`;
+      const category = firstCategory(loc.category || result.category);
+      const categoryBadge = category
+        ? `<span class="store-badge" title="${escapeHtml(loc.category || result.category || "")}">${escapeHtml(truncate(category, 14))}</span>`
+        : "";
+      const floor = `<span class="store-badge store-badge-floor">${escapeHtml(formatNivel(loc.floor || result.floor))}</span>`;
+      const displayName = result.name || result.brand || loc.name || "Tienda";
+
+      return `
+        <article class="store-card fade-in" role="button" tabindex="0" onclick="openStoreMap(${idx}, ${locIdx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); openStoreMap(${idx}, ${locIdx});}">
+          <div class="store-card-top">
+            ${renderStoreAvatar(result)}
+            <div class="store-name">${escapeHtml(displayName)}</div>
+            <div class="store-meta">${categoryBadge}${floor}</div>
+          </div>
+          ${btn}
+        </article>`;
+    }
+
     const displayName = result.name || result.brand || "Tienda";
     const category = firstCategory(result.category);
     const categoryBadge = category
       ? `<span class="store-badge" title="${escapeHtml(result.category)}">${escapeHtml(truncate(category, 14))}</span>`
       : "";
     const floorsSummary = summarizeFloors(result.locations);
-    const subRows = result.locations.map((loc, locIdx) => {
+    const uniqueFloorRows = [];
+    const seenFloorKeys = {};
+    result.locations.forEach((loc, locIdx) => {
+      const floorLabel = formatNivel(loc && loc.floor);
+      const floorKey = String(floorLabel || "").trim().toLowerCase();
+      if (!floorKey || floorKey === "—") return;
+      const available = loc && loc.available !== false;
+      const prevIdx = seenFloorKeys[floorKey];
+      if (prevIdx == null) {
+        seenFloorKeys[floorKey] = uniqueFloorRows.length;
+        uniqueFloorRows.push({ loc: loc, locIdx: locIdx, floorLabel: floorLabel, available: available });
+        return;
+      }
+      // If there are duplicate entries for the same floor, prefer an available one.
+      if (available && !uniqueFloorRows[prevIdx].available) {
+        uniqueFloorRows[prevIdx] = { loc: loc, locIdx: locIdx, floorLabel: floorLabel, available: available };
+      }
+    });
+
+    const rowsSource = uniqueFloorRows.length
+      ? uniqueFloorRows
+      : result.locations.map((loc, locIdx) => ({
+          loc: loc,
+          locIdx: locIdx,
+          floorLabel: formatNivel(loc && loc.floor),
+          available: loc && loc.available !== false,
+        }));
+
+    const subRows = rowsSource.map((row) => {
+      const loc = row.loc || {};
+      const locIdx = row.locIdx;
       const available = loc.available !== false;
+      const mapLabel = getMapButtonLabelForFloor(loc.floor);
       const mapBtn = available
-        ? `<button class="btn-ver-mapa-sm" type="button" onclick="openStoreMap(${idx}, ${locIdx})">${escapeHtml(t("viewMap"))}</button>`
-        : `<button class="btn-ver-mapa-sm" type="button" disabled style="background:#B7B0C2">${escapeHtml(t("renovation"))}</button>`;
+        ? `<button class="btn-ver-mapa-sm" type="button" onclick="openStoreMap(${idx}, ${locIdx})">${escapeHtml(mapLabel)}</button>`
+        : `<button class="btn-ver-mapa-sm" type="button" disabled style="background:#B7B0C2">${escapeHtml(t("renovation"))} · ${escapeHtml(formatNivel(loc.floor))}</button>`;
 
       return `
-        <div class="store-group-row">
-          <div class="store-group-row-info">
-            <div class="store-group-row-name">${escapeHtml(loc.name || displayName)}</div>
-            <div class="store-group-row-meta">
-              <span class="store-badge store-badge-floor">${escapeHtml(formatNivel(loc.floor))}</span>
-            </div>
-          </div>
+        <div class="store-group-row map-only">
           ${mapBtn}
         </div>`;
     }).join("");
@@ -2532,6 +2695,7 @@ function renderMarketResults(payload) {
         <div class="cm-empty">
           <div class="cm-empty-title">${escapeHtml(query || t("search"))}</div>
           <div class="cm-empty-copy">${escapeHtml(payload.message)}</div>
+          ${renderResultsSearchBar(query)}
         </div>
       </div>`;
     SimaBridge.speak(payload.message);
@@ -2547,7 +2711,8 @@ function renderMarketResults(payload) {
         ${backLink ? `<div class="cm-results-sticky">${backLink}</div>` : ""}
         <div class="cm-empty">
           <div class="cm-empty-title">${escapeHtml(t("noResults"))}</div>
-          <div class="cm-empty-copy">${escapeHtml(t("storesNotFound"))} "${escapeHtml(query)}".</div>
+          <div class="cm-empty-copy">${escapeHtml(t("storesNotFound"))} "${escapeHtml(query)}". ${escapeHtml(t("searchTryAgain"))}</div>
+          ${renderResultsSearchBar(query)}
         </div>
       </div>`;
     SimaBridge.speak(t("storesFoundNone") + " " + query);
@@ -2571,6 +2736,7 @@ function renderMarketResults(payload) {
           </div>
         </div>
         <p class="cm-results-query">${renderMarketResultsLabel(payload)}</p>
+        ${renderResultsSearchBar(query)}
       </div>
       <div class="store-grid">${cardsHtml}</div>
     </div>`;
@@ -2623,6 +2789,27 @@ function logMapVxConfig(context) {
   });
 }
 
+function applyMapVxDefaultsFromMapPage() {
+  if (!window.MAPVX_CONFIG) window.MAPVX_CONFIG = {};
+  const cfg = window.MAPVX_CONFIG;
+
+  // Keep mobility map behavior aligned with map/index defaults while
+  // respecting Unity-injected values (e.g. totemPlaceId for route mode).
+  if (!cfg.showStoreLabels) cfg.showStoreLabels = "featured";
+  if (cfg.storeLabelMax == null) cfg.storeLabelMax = 0;
+  if (cfg.storeLabelZoomDelta == null || !isFinite(Number(cfg.storeLabelZoomDelta))) {
+    cfg.storeLabelZoomDelta = 1.2;
+  }
+  if (!cfg.lang && mobilityLocale) cfg.lang = mobilityLocale;
+  if (cfg.totemPlaceId == null) cfg.totemPlaceId = "";
+
+  if (!window.MAPVX_ASSETS_BASE) {
+    window.MAPVX_ASSETS_BASE = "../shared/mapvx/";
+  }
+
+  return cfg;
+}
+
 function isMapVxConfigured() {
   return typeof MapVxBridge !== "undefined" && MapVxBridge.isConfigured && MapVxBridge.isConfigured();
 }
@@ -2630,7 +2817,7 @@ function isMapVxConfigured() {
 async function warmupMapVxInBackground() {
   if (mapVxWarmupPromise || !isMapVxConfigured()) return mapVxWarmupPromise;
 
-  const cfg = window.MAPVX_CONFIG || {};
+  const cfg = applyMapVxDefaultsFromMapPage();
   if (!cfg.apiKey || !cfg.parentPlace || !cfg.institutionId) return null;
 
   mapVxWarmupPromise = MapVxBridge.ensureReady(cfg)
@@ -2650,7 +2837,7 @@ async function warmupMapVxInBackground() {
 async function preloadMapVxBaseMap() {
   if (mapVxPreloadPromise || !isMapVxConfigured()) return mapVxPreloadPromise;
 
-  const cfg = window.MAPVX_CONFIG || {};
+  const cfg = applyMapVxDefaultsFromMapPage();
   if (!cfg.apiKey || !cfg.parentPlace || !cfg.institutionId) return null;
 
   const mapView = document.getElementById("map-view");
@@ -2854,11 +3041,7 @@ async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode 
   logMapVxConfig("openPoiMapViaMapVx");
   warmupMapVxInBackground();
 
-  if (window.MAPVX_CONFIG) {
-    window.MAPVX_CONFIG.showStoreLabels = "featured";
-    window.MAPVX_CONFIG.storeLabelMax = 0;
-    window.MAPVX_CONFIG.storeLabelZoomDelta = 1.2;
-  }
+  applyMapVxDefaultsFromMapPage();
 
   iframe.classList.add("hidden");
   iframe.src = "";

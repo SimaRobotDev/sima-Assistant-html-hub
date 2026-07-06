@@ -194,6 +194,52 @@ window.MarketSearch = (function () {
       .filter(Boolean);
   }
 
+  function isSneakerIntentToken(token) {
+    var t = normalizeText(token);
+    if (!t) return false;
+    return (
+      t === "zapatillas" ||
+      t === "zapatilla" ||
+      t === "sneakers" ||
+      t === "sneaker" ||
+      t === "calzado" ||
+      t === "nike" ||
+      t === "adidas" ||
+      t === "puma" ||
+      t === "reebok" ||
+      t === "converse" ||
+      t === "vans" ||
+      t === "asics" ||
+      t === "fila" ||
+      t === "newbalance" ||
+      t === "new" ||
+      t === "balance" ||
+      t === "skechers" ||
+      t === "jordan" ||
+      t === "umbro"
+    );
+  }
+
+  function entryHasSneakerContext(entry, keywordList) {
+    var categoryNorm = normalizeText(entry && entry.category);
+    var categoryMatch =
+      categoryNorm.indexOf("calzado") >= 0 ||
+      categoryNorm.indexOf("deportes") >= 0 ||
+      categoryNorm.indexOf("outdoor") >= 0;
+    if (categoryMatch) return true;
+
+    var kwBlob = (keywordList || []).join(" ");
+    return (
+      kwBlob.indexOf("zapatilla") >= 0 ||
+      kwBlob.indexOf("sneaker") >= 0 ||
+      kwBlob.indexOf("running") >= 0 ||
+      kwBlob.indexOf("trekking") >= 0 ||
+      kwBlob.indexOf("futbol") >= 0 ||
+      kwBlob.indexOf("basket") >= 0 ||
+      kwBlob.indexOf("deporte") >= 0
+    );
+  }
+
   function parseCategoryList(rawCategories) {
     var seen = {};
     var list = [];
@@ -249,6 +295,8 @@ window.MarketSearch = (function () {
     if (brandScore >= 700) return score + brandScore + 200;
 
     var keywordList = parseKeywordList(entry.keywords);
+    var sneakerIntentQuery = tokens.some(isSneakerIntentToken);
+    var sneakerContextEntry = entryHasSneakerContext(entry, keywordList);
 
     if (queryNorm.indexOf(" ") >= 0 && blob.indexOf(queryNorm) >= 0) score += 300;
 
@@ -266,15 +314,21 @@ window.MarketSearch = (function () {
       else best = Math.max(best, wordScore(brandNorm, token, 320, 220));
 
       var keywordHit = 0;
+      var sneakerReferralHit = false;
       keywordList.forEach(function (keyword) {
         var hit = wordScore(keyword, token, 280, 180);
         if (hit <= 0) return;
         // Multimarca resellers list many brand names in keywords (Block, etc.).
-        if (keywordList.length > 12 && !brandContainsToken(brandNorm, token)) return;
+        if (keywordList.length > 12 && !brandContainsToken(brandNorm, token)) {
+          if (!(sneakerIntentQuery && sneakerContextEntry)) return;
+          sneakerReferralHit = true;
+        }
         if (brandContainsToken(brandNorm, token) || keyword === brandNorm) {
           keywordHit = Math.max(keywordHit, hit);
         } else if (keywordList.length <= 12) {
           keywordHit = Math.max(keywordHit, hit);
+        } else if (sneakerReferralHit) {
+          keywordHit = Math.max(keywordHit, hit + 140);
         }
       });
       best = Math.max(best, keywordHit);
@@ -455,12 +509,170 @@ window.MarketSearch = (function () {
       .filter(Boolean)
       .slice(0, limit);
 
+    if (!results.length && options.allowRelated !== false) {
+      var related = searchRelated(query, { limit: limit });
+      if (related.results && related.results.length) {
+        related.exactTotalMatches = matches.length;
+        return related;
+      }
+    }
+
     return {
       query: query,
       results: results,
       totalMatches: matches.length,
       catalogLoaded: true,
       catalogSize: catalog ? catalog.length : 0,
+    };
+  }
+
+  function levenshteinWithin(a, b, maxDistance) {
+    if (a === b) return 0;
+    if (!a || !b) return Math.max(a ? a.length : 0, b ? b.length : 0);
+
+    var lenA = a.length;
+    var lenB = b.length;
+    if (Math.abs(lenA - lenB) > maxDistance) return null;
+
+    var prev = new Array(lenB + 1);
+    var curr = new Array(lenB + 1);
+    for (var j = 0; j <= lenB; j++) prev[j] = j;
+
+    for (var i = 1; i <= lenA; i++) {
+      curr[0] = i;
+      var rowMin = curr[0];
+      var ai = a.charAt(i - 1);
+      for (j = 1; j <= lenB; j++) {
+        var cost = ai === b.charAt(j - 1) ? 0 : 1;
+        var del = prev[j] + 1;
+        var ins = curr[j - 1] + 1;
+        var sub = prev[j - 1] + cost;
+        var val = Math.min(del, ins, sub);
+        curr[j] = val;
+        if (val < rowMin) rowMin = val;
+      }
+      if (rowMin > maxDistance) return null;
+      var tmp = prev;
+      prev = curr;
+      curr = tmp;
+    }
+
+    return prev[lenB] <= maxDistance ? prev[lenB] : null;
+  }
+
+  function scoreRelatedEntry(indexedEntry, queryNorm, tokens) {
+    var entry = indexedEntry.entry;
+    if (!entry) return 0;
+    if (entry.available === false) return 0;
+
+    var score = 0;
+    var hasBrandSignal = false;
+    var queryCompact = queryNorm.replace(/ /g, "");
+    if (!queryCompact) return 0;
+
+    var brandNorm = normalizeText(entry.brand || entry.name);
+    var brandCompact = brandNorm.replace(/ /g, "");
+    if (!brandCompact) return 0;
+
+    if (brandCompact.indexOf(queryCompact) >= 0 || queryCompact.indexOf(brandCompact) >= 0) {
+      score = Math.max(score, 460 - Math.min(120, Math.abs(brandCompact.length - queryCompact.length) * 8));
+      hasBrandSignal = true;
+    }
+
+    var maxBrandDistance = queryCompact.length <= 5 ? 1 : (queryCompact.length <= 10 ? 2 : 3);
+    var brandDistance = levenshteinWithin(brandCompact, queryCompact, maxBrandDistance);
+    if (brandDistance != null) {
+      score = Math.max(score, 440 - brandDistance * 90);
+      hasBrandSignal = true;
+    }
+
+    var brandWords = brandNorm.split(" ").filter(Boolean);
+    var keywordWords = parseKeywordList(entry.keywords)
+      .join(" ")
+      .split(" ")
+      .filter(Boolean);
+    var matchedTokens = 0;
+
+    tokens.forEach(function (token) {
+      if (!token || token.length < 3) return;
+      var best = 0;
+      var brandBest = 0;
+      var keywordBest = 0;
+
+      brandWords.forEach(function (word) {
+        if (word === token) brandBest = Math.max(brandBest, 250);
+        else if (word.indexOf(token) === 0 || token.indexOf(word) === 0) brandBest = Math.max(brandBest, 210);
+        else {
+          var d = levenshteinWithin(word, token, token.length <= 4 ? 1 : 2);
+          if (d != null) brandBest = Math.max(brandBest, 170 - d * 40);
+        }
+      });
+
+      keywordWords.forEach(function (word) {
+        if (word === token) keywordBest = Math.max(keywordBest, 160);
+        else if (word.indexOf(token) === 0 || token.indexOf(word) === 0) keywordBest = Math.max(keywordBest, 130);
+        else {
+          var d = levenshteinWithin(word, token, 1);
+          if (d != null) keywordBest = Math.max(keywordBest, 105 - d * 30);
+        }
+      });
+
+      best = Math.max(brandBest, keywordBest);
+      if (best > 0) {
+        score += best;
+        matchedTokens += 1;
+      }
+      if (brandBest > 0) hasBrandSignal = true;
+    });
+
+    if (tokens.length > 1 && matchedTokens === 0) return 0;
+    if (!hasBrandSignal) return 0;
+    if (score < 160) return 0;
+    return score;
+  }
+
+  function searchRelated(query, options) {
+    options = options || {};
+    var limit = options.limit != null ? Number(options.limit) : 10;
+    if (!isFinite(limit) || limit <= 0) limit = 10;
+
+    if (!indexed || !indexed.length) {
+      return { query: query, results: [], totalMatches: 0, catalogLoaded: false };
+    }
+
+    var queryNorm = normalizeText(query);
+    var tokens = tokenizeQuery(query);
+    if (!queryNorm) {
+      return { query: query, results: [], totalMatches: 0, catalogLoaded: true };
+    }
+
+    var matches = [];
+    indexed.forEach(function (indexedEntry) {
+      var score = scoreRelatedEntry(indexedEntry, queryNorm, tokens);
+      if (score > 0) {
+        matches.push({ entry: indexedEntry.entry, score: score });
+      }
+    });
+
+    matches.sort(function (a, b) {
+      if (b.score !== a.score) return b.score - a.score;
+      return String(a.entry.name).localeCompare(String(b.entry.name), "es");
+    });
+
+    var grouped = groupByBrand(matches);
+    var results = grouped
+      .map(toResultCard)
+      .filter(Boolean)
+      .slice(0, limit);
+
+    return {
+      query: query,
+      results: results,
+      totalMatches: matches.length,
+      catalogLoaded: true,
+      catalogSize: catalog ? catalog.length : 0,
+      resultType: "related",
+      isFallbackRelated: true,
     };
   }
 
@@ -574,6 +786,7 @@ window.MarketSearch = (function () {
   return {
     loadCatalog: loadCatalog,
     search: search,
+    searchRelated: searchRelated,
     listCategories: listCategories,
     searchByCategory: searchByCategory,
     isReady: isReady,
