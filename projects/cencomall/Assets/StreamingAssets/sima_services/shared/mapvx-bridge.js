@@ -1156,23 +1156,6 @@ window.MapVxBridge = (function () {
       return null;
     }
 
-    var config = getConfig();
-    var labelMode = resolveStoreLabelModeForZoom(
-      mapInstance,
-      config,
-      storeLabelState.zoomBaseline
-    );
-    // When the anchor logo is already rendered on-map, skip the card popover
-    // to avoid a duplicate logo stuck in a corner.
-    if (
-      labelMode === "featured"
-      && isFeaturedStore(place, config)
-      && getStoreLogoUrl(place, config)
-    ) {
-      hidePlacePopOver();
-      return null;
-    }
-
     if (typeof mapInstance.removePopOver === "function") {
       try {
         mapInstance.removePopOver(placePopOverState.placeId);
