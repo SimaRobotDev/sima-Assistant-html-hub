@@ -117,6 +117,162 @@ MAPVX_CONFIG.routeKeepFixedBearing = false;
 Si en el tótem real la ruta sigue viéndose entrecortada, subir `routeChangeFloorTime` (p.ej. a `2`) da más
 margen para que el piso siguiente termine de dibujarse antes de reanudar la animación.
 
+### 1.6 Optimización de performance para tótems (etiquetas por piso + timeline de logs)
+
+**Problema detectado:** en modo de etiquetas `"all"` (zoom profundo), el bridge construía un marcador
+DOM por cada tienda de **todo el mall** (~400+) de una sola vez, sin importar el piso visible. Revisando
+el SDK (`shared/mapvx/index.js`) se confirmó que **cada cambio de piso** (`updateFiltersTo` /
+`updateMarkersTo`) itera **todos** los markers vivos (`this.markers.forEach(...changeFloor...)`), y
+además remueve/vuelve a agregar capas de MapLibre GL para el piso nuevo — un costo real de GPU/CPU
+propio del SDK que no podemos evitar desde el bridge. Con cientos de markers vivos, cada cambio de piso
+se volvía más lento de lo necesario, y la primera vez que se activaba el modo `"all"` (p. ej. al abrir
+una tienda con zoom profundo) generaba una ráfaga de creación de markers notoria en tótems de bajo
+rendimiento.
+
+**Fix:** el modo `"all"` ahora sólo construye etiquetas para el **piso actualmente activo**
+(`storeLabelState.allModeFloorId`), no para todo el mall. Al cambiar de piso mientras se está en modo
+`"all"`, `switchFloor` fuerza un rebuild acotado al nuevo piso (`evaluateStoreLabelZoom(..., true)`).
+Visualmente no cambia nada (las tiendas de otros pisos no se veían de todas formas hasta cambiar de
+piso), pero reduce drásticamente el total de markers vivos que el SDK debe reposicionar/iterar.
+
+**Timeline de performance real:** todas las líneas de `log()` del bridge ahora incluyen el tiempo
+transcurrido desde que se cargó el script (`+1234ms mensaje`), así que el logging ya existente
+(`ensureReady`, `createMap`, `ensureIndoorMapReady`, `refreshStoreLabels`, `switchFloor`, etc.) sirve
+como línea de tiempo real de dónde se va el tiempo en el tótem, sin adivinar. Activar con
+`MAPVX_CONFIG.debugMapvx = true` (o `mapvxVerboseLog`) para verlo en consola / `SimaBridge`.
+
+**Tope de markers en modo "all" (antes ignorado):** se detectó que el código forzaba
+`storeLabelMax: 0` (sin límite) cada vez que se entraba a modo `"all"`, sin importar lo que se
+configurara en Unity. Ahora respeta `MAPVX_CONFIG.storeLabelMax` si viene seteado, y si no, usa un
+default de **60** markers (`getAllModeLabelLimit`) — pensado para el hardware real del tótem (ver
+`4. Hardware del tótem` abajo). Ajustable sin tocar código.
+
+### 1.7 Hardware real del tótem (ficha técnica Dimacofi KS-IOT550RA-W)
+
+La ficha técnica del proveedor solo especifica la **CPU** (`RK3576 / KR3566`, dos variantes de SoC
+Rockchip posibles), no la GPU. La GPU se infirió y se verificó contra las datasheets oficiales de
+Rockchip (no es un dato del fabricante del tótem, es conocimiento del SoC):
+
+| SoC | CPU | GPU (datasheet Rockchip) | Fill rate |
+|---|---|---|---|
+| RK3566 | Quad-core Cortex-A55 @ 1.8GHz | Mali-G52 **1-Core-2EE** @ hasta 800MHz | 1600 Mpix/s, 38.4 GFLOPS |
+| RK3576 | 4x Cortex-A72 + 4x Cortex-A53 | Mali-G52 **MC3** (3 núcleos) @ hasta 1GHz | Notablemente más potente que la variante RK3566 |
+
+Ambas son GPUs de gama baja/media pensadas para señalética digital (UI 2D, video), no para
+renderizado 3D/WebGL pesado — pero hay una diferencia real entre las dos variantes (RK3576 es bastante
+más capaz, con NPU de 6 TOPS vs 0.8 TOPS). Vale la pena confirmar con el proveedor **cuál de las dos
+llega finalmente**, porque cambia el margen de maniobra.
+
+Confirmado directamente por Juan (no inferido):
+
+| Componente | Confirmado |
+|---|---|
+| Pantalla | **1080p (Full HD) al 100%**, no 4K — descarta la preocupación de fill-rate 4x por 4K |
+| Red | Probablemente Ethernet, pero **hay que asumir que algunos tótems pueden estar por Wi-Fi 2.4GHz** |
+
+Resto de la ficha (sin cambios): 4 GB RAM, 32 GB almacenamiento, Android, Wi-Fi 802.11 b/g/n 2.4GHz +
+Ethernet RJ-45 disponible.
+
+### 1.8 Logos ancla mal centrados en tiendas multi-piso (Falabella, Ripley, H&M, Jumbo...)
+
+**Causa raíz encontrada:** MapVX solo expone **un punto (`place.position`) por tienda**, no uno por
+piso. `buildStoreLabelMarkers` reutilizaba esa misma coordenada para el marker de **cada** piso que
+ocupa la tienda — por eso el logo quedaba bien centrado en un piso (el que coincidía con esa
+coordenada) y desalineado en el resto.
+
+Ya existía un sistema de corrección (`queryPOICentroids` / `applyFeaturedCentroids`) que ajusta la
+posición leyendo el punto real de la capa `indoor-poi-rank1` una vez el mapa termina de renderizar,
+pero tenía dos bugs que lo inutilizaban para multi-piso:
+
+1. Usaba `querySourceFeatures` (lee **todos** los tiles cargados, ignorando el filtro de piso activo).
+   Si el mismo `ref`/mapvxId aparecía en más de un piso, la corrección podía aplicar la coordenada de
+   **otro piso** por error.
+2. La corrección se aplicaba a todos los markers de esa tienda sin distinguir piso, y una vez el
+   contador global de "aplicados" llegaba a completarse (aunque fuera con datos cruzados), el listener
+   se desconectaba — sin reintentar nunca en los pisos que el usuario aún no había visitado.
+
+**Fix:** `queryPOICentroids` ahora usa solo `queryRenderedFeatures` (respeta el filtro de piso activo
+del SDK), `applyFeaturedCentroids` recibe el `floorId` consultado y solo corrige markers de **ese**
+piso, y `switchFloor` vuelve a armar el listener de corrección (`attachCentroidUpdater`) en cada
+cambio de piso — así cada piso de una tienda ancla se centra con el punto real de **su propio**
+polígono la primera vez que el usuario lo visita, sin tocar el tamaño fijo del logo (eso no cambió).
+
+**Límite honesto:** esto depende de que el piso tenga un punto POI mapeado en `indoor-poi-rank1` para
+esa tienda. Si el dataset del mall no tiene ese punto para un piso específico, ese piso se queda con el
+`place.position` genérico (igual que antes — no empeora, pero tampoco mejora ese caso puntual).
+Verificable en vivo con `MapVxBridge._debugCentroids()` (piso por piso, revisando `featuredPlaces` y
+si `applied: true`).
+
+**Recomendaciones de infraestructura (no requieren cambios de código):**
+
+- Como no podemos garantizar que todos los tótems estén por Ethernet, el bridge debe asumir el
+  escenario más lento (Wi-Fi 2.4GHz) al decidir timeouts/reintentos de red — revisar que las esperas
+  de `ensureIndoorMapReady`/`getSubPlacesCached` tengan margen suficiente para eso (ver timeline de
+  logs, sección 1.6).
+- Ya no aplica la recomendación de bajar a 1080p — está confirmado que ya se despliega así, por lo que
+  el fill-rate de la GPU no se ve exigido por 4K.
+
+---
+
+### 1.9 Rotación fija por marca en logos ancla (para calzar con el ángulo del polígono)
+
+Comparando con el mapa oficial de Cencosud (referencia visual del usuario), varias anclas no solo
+necesitan reposicionarse — su logo está **rotado** para seguir el ángulo del contorno de la tienda
+(ej. "RIPLEY" se lee vertical, de arriba hacia abajo). Los markers del bridge se construyen siempre con
+`rotationAlignment: "viewport"` (se mantienen "de pie" en pantalla sin importar el bearing del mapa), así
+que no existía forma de inclinar un logo de forma fija por marca.
+
+**Fix:** se agregó un campo `rotation` (grados, sentido horario) al tratamiento de logo en
+`store-logos.manifest.json`, resuelto en `getLocalStoreLogoTreatment` y aplicado en
+`buildAnchorLogoElement` como parte del mismo `transform` que ya maneja `offsetX`/`offsetY`
+(`translate(...) rotate(...)` — el translate ocurre primero, así que offsetX/offsetY se siguen leyendo
+en px de pantalla sin importar si además hay rotación). Es puramente cosmético: no toca el anclaje
+geográfico (`place.position` / corrección de centroide por piso de la sección 1.8), solo la orientación
+visual del logo dentro de su caja.
+
+**Aplicado:** `ripley` → `rotation: 90` (texto pasa de horizontal a vertical, R arriba / Y abajo).
+
+**Límite importante encontrado al revisar los PNG actuales:**
+
+| Marca | Asset actual | ¿Rotar sirve? |
+|-------|--------------|----------------|
+| Ripley | Wordmark plano "RIPLEY" | Sí — ya es solo texto, rotar 90° lo deja vertical como la referencia |
+| H&M / Zara | Wordmark plano horizontal | No hace falta — en la referencia también están horizontales |
+| Paris | Círculo "paris cencosud" | No hace falta — ya es centrado/circular, sin orientación que calzar |
+| Falabella | ~~Ícono cuadrado verde con "f." cursiva~~ → reemplazado por el wordmark "falabella." (PNG entregado por el usuario, `falabella-wordmark.png`) | Sí — con el wordmark correcto, `rotation` sí logra el efecto diagonal de la referencia. |
+
+---
+
+### 1.10 Ajustes de offset/rotation por piso (`perFloor`) para anclas multi-piso
+
+Aun con la corrección de centroide de la sección 1.8 (que ubica el punto **geográfico** correcto por
+piso), el tratamiento **cosmético** del logo (`offsetX`/`offsetY`/`scale`/`rotation`) seguía siendo un
+solo valor fijo por marca aplicado a todos sus pisos por igual. Como el polígono de una tienda no tiene
+la misma forma en cada piso (ej. H&M es más angosto del lado derecho en Nivel 2 que en Nivel 3), un
+`offsetX` afinado a ojo para un piso podía sacar el logo del polígono en otro piso — caso reportado:
+H&M se veía bien centrado en Nivel 3 pero muy corrido a la derecha (casi saliéndose del mapa) en Nivel 2.
+
+**Fix:** `store-logos.manifest.json` ahora acepta un campo opcional `perFloor` dentro de cada entrada,
+con overrides de `offsetX`/`offsetY`/`scale`/`rotation` para un piso específico (clave = label del piso,
+ej. `"Nivel 2"`). `getLocalStoreLogoTreatment` combina primero los valores base de la marca y luego
+aplica el override del piso activo si existe. El match de la clave es tolerante: compara el texto
+normalizado y, si no calza literal, compara solo el número de piso extraído (para no depender del
+formato exacto que entregue MapVX — "Nivel 2", "N2", "Piso 2" matchean igual).
+
+Como consecuencia, `buildAnchorLogoElement` ahora recibe el label del piso activo y
+`buildStoreLabelMarkers` construye el elemento del logo **por piso** (antes se construía una sola vez
+por tienda y se clonaba para cada piso) — necesario para que el override por piso realmente tenga efecto
+en cada marker. Sin impacto de performance relevante: solo aplica a tiendas `featured` (anclas), que son
+un puñado por mall.
+
+**Aplicado:** `h&m` (y sus alias `h m`/`hm`) → `perFloor: { "Nivel 2": { offsetX: 20 } }` (base
+`offsetX: 110`, pensado para Nivel 3).
+
+**Cómo depurar/ajustar en terreno:** con `MAPVX_CONFIG.debugMapvx = true`, cada vez que se construye el
+logo de una tienda featured se loguea `anchorLogo floor treatment` con el label exacto del piso y los
+valores resueltos — así se sabe con certeza qué string usar como clave de `perFloor` sin adivinar el
+formato que entrega el SDK para ese mall.
+
 ---
 
 ## 2. Búsqueda de tiendas (`market-search.js`)

@@ -16,6 +16,12 @@ window.MapVxBridge = (function () {
     centroidListener: null,   // {libreMap, fn} for cleanup
     zoomListenerCleanup: null,
     zoomBaseline: null,
+    // "all" mode (deep zoom) only builds markers for this floor at a time —
+    // building every store in the whole mall at once was creating 300-400+
+    // live DOM markers on totems, which is heavy to reposition on every
+    // pan/zoom frame. Perf, not a visual change (other floors aren't shown
+    // anyway until you switch to them).
+    allModeFloorId: null,
   };
   var storeLogoManifest = null;
   var storeLogoManifestPromise = null;
@@ -34,6 +40,7 @@ window.MapVxBridge = (function () {
   var subPlacesCache = { key: null, data: null, loading: null };
   var _zoomLabelDebounceTimer = null;
   var centroidUpdateTimer = null;
+  var BRIDGE_LOAD_TIME = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
 
   function shouldBridgeLog(level) {
     if (level === "error" || level === "warn") return true;
@@ -41,8 +48,17 @@ window.MapVxBridge = (function () {
     return !!(cfg.mapvxVerboseLog || cfg.debugMapvx);
   }
 
+  // Elapsed ms since the bridge script loaded. Every log line already covers
+  // the whole init/load/floor-switch flow, so stamping them turns the
+  // existing logging into a real performance timeline on the totem (no need
+  // to add ad-hoc Date.now() calls all over the file to see where time goes).
+  function elapsedMs() {
+    var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    return Math.round(now - BRIDGE_LOAD_TIME);
+  }
+
   function log(level, message, data) {
-    var line = LOG_PREFIX + " " + message;
+    var line = LOG_PREFIX + " +" + elapsedMs() + "ms " + message;
     if (data !== undefined) {
       try { line += " " + JSON.stringify(data); } catch (e) { line += " [data]"; }
     }
@@ -280,16 +296,59 @@ window.MapVxBridge = (function () {
     return storeLogosBase(config) + filename;
   }
 
-  function getLocalStoreLogoTreatment(place, manifest) {
+  function getLocalStoreLogoTreatment(place, manifest, floorLabel) {
     var entry = getLocalStoreLogoEntry(place, manifest || storeLogoManifest);
     if (!entry || typeof entry !== "object") return null;
-    var scale = Number(entry.scale);
+
+    // A multi-floor anchor (H&M, Falabella, Ripley...) can have a differently
+    // shaped polygon on each floor, so the same fixed offset that looks right
+    // on one floor can push the logo off the edge on another. `perFloor` lets
+    // the manifest override offsetX/offsetY/scale/rotation for one specific
+    // floor (keyed by its display label, e.g. "Nivel 2"), on top of the base
+    // values below.
+    var floorOverride = null;
+    if (entry.perFloor && floorLabel) {
+      var floorKey = normalizeText(floorLabel);
+      // The exact floor label text coming from MapVX can vary ("Nivel 2",
+      // "N2", "Piso 2"...), so besides a literal match also compare just the
+      // floor number — much less fragile for whoever edits the manifest.
+      var floorDigitsMatch = floorKey.match(/\d+/);
+      var floorDigits = floorDigitsMatch ? floorDigitsMatch[0] : null;
+      for (var key in entry.perFloor) {
+        var normalizedKey = normalizeText(key);
+        if (normalizedKey === floorKey) {
+          floorOverride = entry.perFloor[key];
+          break;
+        }
+        if (floorDigits) {
+          var keyDigitsMatch = normalizedKey.match(/\d+/);
+          if (keyDigitsMatch && keyDigitsMatch[0] === floorDigits) {
+            floorOverride = entry.perFloor[key];
+            break;
+          }
+        }
+      }
+    }
+    function pick(field, fallback) {
+      if (floorOverride && floorOverride[field] != null) return floorOverride[field];
+      if (entry[field] != null) return entry[field];
+      return fallback;
+    }
+
+    var scale = Number(pick("scale", 1));
     if (!isFinite(scale) || scale <= 0) scale = 1;
-    var offsetX = Number(entry.offsetX);
+    var offsetX = Number(pick("offsetX", 0));
     if (!isFinite(offsetX)) offsetX = 0;
-    var offsetY = Number(entry.offsetY);
+    var offsetY = Number(pick("offsetY", 0));
     if (!isFinite(offsetY)) offsetY = 0;
-    if (!entry.backgroundColor && !entry.className && scale === 1 && offsetX === 0 && offsetY === 0) return null;
+    // Fixed cosmetic tilt (deg, clockwise) so a logo can follow the angle of
+    // its store's polygon shape (e.g. Ripley reads vertically on the official
+    // Cencosud map). Independent of map bearing/zoom — markers are always
+    // built with rotationAlignment "viewport", so without this they'd stay
+    // screen-upright forever regardless of the polygon's orientation.
+    var rotation = Number(pick("rotation", 0));
+    if (!isFinite(rotation)) rotation = 0;
+    if (!entry.backgroundColor && !entry.className && scale === 1 && offsetX === 0 && offsetY === 0 && rotation === 0) return null;
     return {
       backgroundColor: entry.backgroundColor ? String(entry.backgroundColor).trim() : "",
       className: entry.className ? String(entry.className).trim() : "",
@@ -297,6 +356,7 @@ window.MapVxBridge = (function () {
       scale: scale,
       offsetX: offsetX,
       offsetY: offsetY,
+      rotation: rotation,
     };
   }
 
@@ -766,7 +826,7 @@ window.MapVxBridge = (function () {
     return wrap;
   }
 
-  function buildAnchorLogoElement(place, logoUrl, logoDims, config) {
+  function buildAnchorLogoElement(place, logoUrl, logoDims, config, floorLabel) {
     config = config || getConfig();
     var width = logoDims && logoDims.width ? logoDims.width : 140;
     var height = logoDims && logoDims.height ? logoDims.height : 56;
@@ -778,7 +838,18 @@ window.MapVxBridge = (function () {
     wrap.style.justifyContent = "center";
     wrap.style.pointerEvents = "none";
 
-    var treatment = getLocalStoreLogoTreatment(place);
+    var treatment = getLocalStoreLogoTreatment(place, null, floorLabel);
+    if (floorLabel && getConfig().debugMapvx) {
+      // Lets whoever is tuning offsets in the manifest see exactly what
+      // string to use as a `perFloor` key for this store/floor combo.
+      log("info", "anchorLogo floor treatment", {
+        place: getPlaceDisplayTitle(place),
+        floorLabel: floorLabel,
+        offsetX: treatment ? treatment.offsetX : 0,
+        offsetY: treatment ? treatment.offsetY : 0,
+        rotation: treatment ? treatment.rotation : 0,
+      });
+    }
     if (treatment) {
       // Only draw the colored badge (background + shadow) when a backgroundColor
       // is defined. Scale-only logos stay fully transparent (no box/shadow).
@@ -798,8 +869,18 @@ window.MapVxBridge = (function () {
         wrap.style.padding = Math.max(3, Math.round(height * 0.1)) + "px " + Math.max(8, Math.round(height * 0.2)) + "px";
       }
       // Fine-tune logo placement (px): +X right / -X left, +Y down / -Y up.
+      // Translate first, then rotate around the (already-translated) box
+      // center — keeps offsetX/offsetY meaning "screen px" regardless of
+      // whether a rotation is also applied.
+      var transformParts = [];
       if (treatment.offsetX || treatment.offsetY) {
-        wrap.style.transform = "translate(" + (treatment.offsetX || 0) + "px, " + (treatment.offsetY || 0) + "px)";
+        transformParts.push("translate(" + (treatment.offsetX || 0) + "px, " + (treatment.offsetY || 0) + "px)");
+      }
+      if (treatment.rotation) {
+        transformParts.push("rotate(" + treatment.rotation + "deg)");
+      }
+      if (transformParts.length) {
+        wrap.style.transform = transformParts.join(" ");
       }
     }
 
@@ -860,7 +941,12 @@ window.MapVxBridge = (function () {
 
   function getPlaceDisplayTitle(place) {
     if (!place) return "";
-    return String(place.title || place.shortName || place.name || place.clientId || "").trim();
+    var raw = String(place.title || place.shortName || place.name || place.clientId || "").trim();
+    // Some MapVX place titles arrive suffixed like "Brand - mallCC".
+    // Strip that noisy suffix for cleaner store labels/popovers.
+    raw = raw.replace(/\s*-\s*mall\s*cc\s*$/i, "");
+    raw = raw.replace(/\s*-\s*mallcc\s*$/i, "");
+    return raw.trim();
   }
 
   function getPlaceDisplaySubtitle(place) {
@@ -1172,7 +1258,7 @@ window.MapVxBridge = (function () {
       mapInstance.addPopOver({
         placeId: placePopOverState.placeId,
         content: buildPlacePopOverContent(place, placePopOverState.floorId),
-        maxWidth: "224px",
+        maxWidth: "380px",
         className: "mapvx-sdk-popover",
       });
     } else {
@@ -1224,6 +1310,19 @@ window.MapVxBridge = (function () {
     return Math.floor(limit);
   }
 
+  // Totem hardware is a Rockchip RK3566/RK3576 with a Mali-G52 GPU and 4GB RAM
+  // (confirmed spec sheet) — even scoped to a single floor, a very dense
+  // floor (food court, anchor level) could still create a lot of live
+  // markers. Respect an explicit MAPVX_CONFIG.storeLabelMax if Unity sets
+  // one; otherwise fall back to a safe default instead of "unlimited".
+  var DEFAULT_ALL_MODE_LABEL_LIMIT = 60;
+  function getAllModeLabelLimit(config) {
+    config = config || getConfig();
+    var explicit = Number(config.storeLabelMax);
+    if (isFinite(explicit) && explicit > 0) return Math.floor(explicit);
+    return DEFAULT_ALL_MODE_LABEL_LIMIT;
+  }
+
   function clearStoreLabelMarkers() {
     // Detach centroid listener
     if (centroidUpdateTimer) {
@@ -1238,6 +1337,7 @@ window.MapVxBridge = (function () {
       storeLabelState.centroidListener = null;
     }
     storeLabelState.labelPlaceMarkers = [];
+    storeLabelState.allModeFloorId = null;
 
     if (!map || !storeLabelState.markerIds.length) {
       storeLabelState.markerIds = [];
@@ -1382,18 +1482,16 @@ window.MapVxBridge = (function () {
   function queryPOICentroids(libreMap) {
     var result = {};
     try {
-      // querySourceFeatures reads all loaded tiles, not just the viewport
-      var poiLayer = libreMap.getLayer("indoor-poi-rank1");
-      var features = [];
-      if (poiLayer && poiLayer.source && poiLayer.sourceLayer) {
-        features = libreMap.querySourceFeatures(poiLayer.source, {
-          sourceLayer: poiLayer.sourceLayer,
-        });
-      }
-      // Fallback to rendered features if source query returned nothing
-      if (!features.length) {
-        features = libreMap.queryRenderedFeatures(undefined, { layers: ["indoor-poi-rank1"] });
-      }
+      // Deliberately use ONLY rendered features (respects the SDK's active
+      // per-floor style filter from filterByFloorKey), not querySourceFeatures.
+      // querySourceFeatures ignores that filter and reads every loaded tile,
+      // which meant a multi-floor anchor (Falabella, Ripley, H&M, Jumbo...)
+      // sharing the same "ref" across floors could get its OTHER floor's
+      // point here — anchors would end up centered correctly on one floor
+      // and off-center on the rest. Rendered features are always scoped to
+      // whichever floor is currently active, so callers must treat this
+      // result as "centroids for the floor that's currently showing".
+      var features = libreMap.queryRenderedFeatures(undefined, { layers: ["indoor-poi-rank1"] });
       features.forEach(function (f) {
         if (f.geometry.type !== "Point") return;
         var coords = f.geometry.coordinates;
@@ -1406,10 +1504,13 @@ window.MapVxBridge = (function () {
     return result;
   }
 
-  function applyFeaturedCentroids(mapInst, centroids) {
-    if (!mapInst || !centroids || !storeLabelState.labelPlaceMarkers.length) return;
+  function applyFeaturedCentroids(mapInst, centroids, floorId) {
+    if (!mapInst || !centroids || !floorId || !storeLabelState.labelPlaceMarkers.length) return;
+    // Only touch markers that belong to the floor these centroids were
+    // queried for — a shared mapvxId across floors must not overwrite a
+    // different floor's marker with this floor's point (see queryPOICentroids).
     var toUpdate = storeLabelState.labelPlaceMarkers.filter(function (entry) {
-      return entry.place && entry.place.mapvxId && centroids[entry.place.mapvxId];
+      return entry.place && entry.place.mapvxId && entry.floorId === floorId && centroids[entry.place.mapvxId];
     });
     if (!toUpdate.length) return;
 
@@ -1465,9 +1566,21 @@ window.MapVxBridge = (function () {
       centroidUpdateTimer = setTimeout(function () {
         centroidUpdateTimer = null;
         if (map !== mapInst) return;
+        var floorId = mapInst.currentFloor;
+        if (!floorId) return;
+        // Skip the query entirely if this floor's markers are already
+        // corrected — avoids needless queryRenderedFeatures work on every
+        // moveend once there's nothing left to fix for the active floor.
+        var pending = storeLabelState.labelPlaceMarkers.some(function (e) {
+          return e.floorId === floorId && !e.centroidApplied;
+        });
+        if (!pending) return;
         var centroids = queryPOICentroids(libreMap);
-        applyFeaturedCentroids(mapInst, centroids);
-        // Once all featured places have centroids, remove the listener
+        applyFeaturedCentroids(mapInst, centroids, floorId);
+        // Once every tracked marker (across every floor visited so far) has
+        // a centroid, remove the listener. Floors not visited yet simply
+        // haven't had a chance to query their POIs — switchFloor() re-arms
+        // this so they get corrected the first time the user opens them.
         var remaining = storeLabelState.labelPlaceMarkers.filter(function (e) { return !e.centroidApplied; });
         if (!remaining.length && storeLabelState.centroidListener) {
           try { libreMap.off("moveend", storeLabelState.centroidListener.fn); } catch (e) {}
@@ -1552,7 +1665,7 @@ window.MapVxBridge = (function () {
     return -1;
   }
 
-  function evaluateStoreLabelZoom(mapInstance, selectedPlace, baselineZoom) {
+  function evaluateStoreLabelZoom(mapInstance, selectedPlace, baselineZoom, forceFloorCheck) {
     var baseConfig = getConfig();
     if (getStoreLabelMode(baseConfig) !== "featured") return;
 
@@ -1563,13 +1676,20 @@ window.MapVxBridge = (function () {
     }
 
     var tier = getStoreLabelZoomTier(mapInstance, baseConfig, baseline);
-    if (tier === _zoomLabelTier) return;
+    var modeForFloorCheck = forceFloorCheck ? resolveStoreLabelModeForZoom(mapInstance, baseConfig, baseline) : null;
+    // "all" mode labels are floor-scoped now (perf) — force a rebuild on floor
+    // change even if the zoom tier itself didn't move, so the new floor's
+    // labels actually appear.
+    var floorMismatch = forceFloorCheck
+      && modeForFloorCheck === "all"
+      && storeLabelState.allModeFloorId !== (mapInstance && mapInstance.currentFloor);
+    if (tier === _zoomLabelTier && !floorMismatch) return;
 
     _zoomLabelTier = tier;
-    var mode = resolveStoreLabelModeForZoom(mapInstance, baseConfig, baseline);
+    var mode = modeForFloorCheck || resolveStoreLabelModeForZoom(mapInstance, baseConfig, baseline);
     var cfg = Object.assign({}, baseConfig, {
       showStoreLabels: mode,
-      storeLabelMax: mode === "all" ? 0 : baseConfig.storeLabelMax,
+      storeLabelMax: mode === "all" ? getAllModeLabelLimit(baseConfig) : baseConfig.storeLabelMax,
     });
     storeLabelState.parentPlaceId = null;
     log("info", "evaluateStoreLabelZoom", {
@@ -1680,7 +1800,7 @@ window.MapVxBridge = (function () {
     return ids;
   }
 
-  function buildStoreLabelMarkers(place, fallbackFloorId, featured, config, showAllLogos) {
+  function buildStoreLabelMarkers(place, fallbackFloorId, featured, config, showAllLogos, restrictFloorId) {
     config = config || getConfig();
     var title = resolveStoreLabelDisplayName(place);
     var position = place && place.position;
@@ -1689,26 +1809,32 @@ window.MapVxBridge = (function () {
     }
 
     var floorIds = storeLabelFloorIds(place, fallbackFloorId);
+    if (restrictFloorId) {
+      floorIds = floorIds.filter(function (id) { return id === restrictFloorId; });
+    }
     var markerBaseId = String(place.mapvxId || place.clientId || title).replace(/[^A-Za-z0-9_-]/g, "_");
     var markers = [];
     var labelTextProps = getStoreLabelTextProperties(featured, config);
     var logoDims = getFeaturedLogoDimensions(config);
     var logoUrl = (featured || showAllLogos) ? getStoreLogoUrl(place, config) : "";
-    var anchorElement = logoUrl
-      ? buildAnchorLogoElement(place, logoUrl, logoDims, config)
-      : null;
 
     for (var i = 0; i < floorIds.length; i++) {
       var floorId = floorIds[i];
       var markerId = "store-label-" + markerBaseId + "-" + floorId.replace(/[^A-Za-z0-9_-]/g, "_");
       if (featured) {
+        // Rebuilt per floor (not hoisted/cloned) because `perFloor` overrides
+        // in the logo manifest mean the same store's logo treatment can
+        // legitimately differ from one floor to the next (see getLocalStoreLogoTreatment).
+        var anchorElement = logoUrl
+          ? buildAnchorLogoElement(place, logoUrl, logoDims, config, getFloorDisplayLabel(floorId))
+          : null;
         if (anchorElement) {
           markers.push({
             id: markerId,
             coordinate: { lat: position.lat, lng: position.lng },
             floorId: floorId,
             text: "",
-            element: anchorElement.cloneNode(true),
+            element: anchorElement,
             iconProperties: { width: logoDims.width, height: logoDims.height },
             anchor: "center",
             rotationAlignment: "viewport",
@@ -1768,7 +1894,13 @@ window.MapVxBridge = (function () {
     var mode = getStoreLabelMode(config);
     var limit = getStoreLabelLimit(config);
     var currentParentPlaceId = String(config.parentPlace);
-    if (mode === "all" && storeLabelState.parentPlaceId === currentParentPlaceId && storeLabelState.markerIds.length) {
+    var floorIdForAllMode = mapInstance.currentFloor || (parentPlace && pickDefaultFloorKey(parentPlace)) || null;
+    if (
+      mode === "all"
+      && storeLabelState.parentPlaceId === currentParentPlaceId
+      && storeLabelState.allModeFloorId === floorIdForAllMode
+      && storeLabelState.markerIds.length
+    ) {
       return storeLabelState.markerIds.length;
     }
 
@@ -1878,6 +2010,13 @@ window.MapVxBridge = (function () {
 
         attachCentroidUpdater(mapInstance);
       } else {
+        // Only build labels for the currently active floor. Building all ~400
+        // stores across every floor of the mall at once (previous behavior)
+        // created that many live DOM markers simultaneously, which is heavy
+        // to reposition on pan/zoom for low-power totem hardware. Other
+        // floors aren't visible anyway until the user switches to them —
+        // see attachZoomLabelSwitcher/switchFloor for the floor-change
+        // re-trigger that rebuilds this for the new floor.
         var allQueue = [];
         for (var ai = 0; ai < (subPlaces || []).length; ai++) {
           var candidate = subPlaces[ai];
@@ -1886,6 +2025,9 @@ window.MapVxBridge = (function () {
             continue;
           }
           if (isAuxiliaryLabel(candidate)) {
+            continue;
+          }
+          if (currentFloorId && storeLabelFloorIds(candidate, currentFloorId).indexOf(currentFloorId) === -1) {
             continue;
           }
           var candidateKey = String(candidate.mapvxId || candidate.clientId || candidateName);
@@ -1905,7 +2047,8 @@ window.MapVxBridge = (function () {
             currentFloorId,
             false,
             config,
-            false
+            false,
+            currentFloorId
           );
           markers.forEach(function (markerConfig) {
             try {
@@ -1929,6 +2072,7 @@ window.MapVxBridge = (function () {
       }
 
       storeLabelState.parentPlaceId = currentParentPlaceId;
+      storeLabelState.allModeFloorId = mode === "all" ? currentFloorId : null;
       log("info", "refreshStoreLabels done", {
         mode: mode,
         parentPlace: currentParentPlaceId,
@@ -2464,7 +2608,7 @@ window.MapVxBridge = (function () {
       local: options.local || null,
       catalogId: options.id || null,
       lookupKey: resolved.lookupKey || options.local || options.id || null,
-      title: place.title,
+      title: getPlaceDisplayTitle(place),
       resolvedBy: resolved.resolvedBy,
       candidates: resolved.candidates || 1,
       attempts: resolved.attempts || [],
@@ -2662,8 +2806,14 @@ window.MapVxBridge = (function () {
     var selectedPlace = lastMapSession && lastMapSession.result
       ? lastMapSession.result.selectedPlace
       : null;
-    evaluateStoreLabelZoom(map, selectedPlace, storeLabelState.zoomBaseline);
+    evaluateStoreLabelZoom(map, selectedPlace, storeLabelState.zoomBaseline, true);
     scheduleRetailPoiIconFilter(map, config);
+    // Anchor logos (Falabella, Ripley, H&M, Jumbo...) reuse the same
+    // place.position across every floor they occupy, since MapVX only
+    // exposes one point per place — re-arm the centroid correction so THIS
+    // floor's anchors get centered on their own polygon, not the floor
+    // where the marker happened to be created.
+    attachCentroidUpdater(map);
 
     if (selectedPlace) {
       showPlacePopOver(map, selectedPlace, floorKey);
@@ -2932,11 +3082,12 @@ window.MapVxBridge = (function () {
     },
     _refreshStoreLabels: function (mode, mapResult) {
       if (!map) return;
-      // storeLabelMax 0 = unlimited, so SDK creates markers for all floors and
-      // only renders those matching the active floor
+      // "all" mode is floor-scoped (see refreshStoreLabels) and capped by
+      // getAllModeLabelLimit — not truly unlimited, to protect the totem's
+      // Mali-G52 GPU / 4GB RAM on dense floors.
       var cfg = Object.assign({}, getConfig(), {
         showStoreLabels: mode,
-        storeLabelMax: mode === "all" ? 0 : getConfig().storeLabelMax,
+        storeLabelMax: mode === "all" ? getAllModeLabelLimit(getConfig()) : getConfig().storeLabelMax,
       });
       storeLabelState.parentPlaceId = null;
       storeLabelState.loading = null;

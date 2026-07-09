@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.06-3",
+  "version": "2026.07.09-1",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-06T18:13:47.066Z",
+  "generatedAt": "2026-07-09T18:22:28.095Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -111,8 +111,8 @@
     },
     {
       "path": "IMPLEMENTACION-MAPVX-COSTANERA.md",
-      "size": 9802,
-      "sha256": "a5c22ad4723e372522d524686aed595d44900bc74a69738b4920e90b434c5dd7"
+      "size": 20585,
+      "sha256": "f98c34bc470d63a1f24b6ef6fc2b614887fa6b5993f01000783f8f833b0cd260"
     },
     {
       "path": "INFORME-CENCO-COSTANERA.md",
@@ -126,8 +126,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 101166,
-      "sha256": "6882da8aaed4034e8e7288f5c51f3dcf08ddb5f35666bea1ffa5615721a87d7b"
+      "size": 114178,
+      "sha256": "0f1376a8608f10de6e5e3e6862bf776f62707226b8b3f7d708d0f52540ae44f7"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -166,8 +166,8 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 99418,
-      "sha256": "9516a7927fe445427de64ce944b0cebccb0d0d24ac7a519ffa6303bccb16053d"
+      "size": 108067,
+      "sha256": "b1f8ad63f323056e47dab537e3b86259f9fbbe8bb4926a2b8074cc87bed50dda"
     },
     {
       "path": "shared/mapvx/index.js",
@@ -176,13 +176,13 @@
     },
     {
       "path": "shared/mapvx/styles.css",
-      "size": 76350,
-      "sha256": "8fb469b60986549ba6178c4ac72f4f06b17639a3bfb033f410bb041cdd062e64"
+      "size": 76607,
+      "sha256": "4348f204968955fd9530d7f55c8bfacb5517192dc100eef196449e9c109ab327"
     },
     {
       "path": "shared/market-search.js",
-      "size": 24421,
-      "sha256": "627b4e0d90d11b6f1c3aabd355f7ea3f1bfcef0043173766cf3d72010e8ea98e"
+      "size": 24914,
+      "sha256": "0faf4f6f4c5cf5b9c9077a7fa41605a8e975807b05d6ea29df48ce3d94f8d93b"
     },
     {
       "path": "shared/qrcode.min.js",
@@ -190,24 +190,14 @@
       "sha256": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36"
     },
     {
-      "path": "shared/store-logos/adidas.png",
-      "size": 130291,
-      "sha256": "0d0bfb5a317c41e2d7c98067ea06538b2045b72727d7fccab5b2e8d8cb44de25"
-    },
-    {
-      "path": "shared/store-logos/aldo.png",
-      "size": 28518,
-      "sha256": "0fe320eafe0cc565c9dc860832d07e7dce3b9401b6b3f4c1b475961bdc0295d0"
-    },
-    {
-      "path": "shared/store-logos/bimba.png",
-      "size": 127287,
-      "sha256": "1df22682c0fb1dbfa1f7678998d581914da37f2d73349b42e6c6210860d93a27"
-    },
-    {
       "path": "shared/store-logos/casa-ideas.png",
       "size": 40165,
       "sha256": "f3be847cf63d0985dd96d367450f9186f3108791fd9203f6d7a73817b27a08e1"
+    },
+    {
+      "path": "shared/store-logos/falabella-wordmark.png",
+      "size": 85264,
+      "sha256": "9f61c718596eff41a9b979678336596de69d06e21a79dbdead636a76c3859544"
     },
     {
       "path": "shared/store-logos/falabella.png",
@@ -230,21 +220,6 @@
       "sha256": "ff50287dc2afa096413a16ea8e1cbbe46e6fa3365623a62718ff40dc8440666e"
     },
     {
-      "path": "shared/store-logos/levis.png",
-      "size": 59864,
-      "sha256": "2310596d8ee1af79391850e4ea09e3f24bb576cba1bd6017d73da7ad46eb0806"
-    },
-    {
-      "path": "shared/store-logos/mango.png",
-      "size": 39359,
-      "sha256": "a1a018c2f2a0162ffe702819ec9fb25ee1bd894b0e126e2ca0d0cb6494081320"
-    },
-    {
-      "path": "shared/store-logos/nike-rise.png",
-      "size": 4214,
-      "sha256": "1d5c98bfb28ba43403ebf4261f3fd22c77502afd1633c25885ac3f4ead8b8b46"
-    },
-    {
       "path": "shared/store-logos/paris.png",
       "size": 144563,
       "sha256": "93c5ca5483d9db7fdae9e2c6c9b3974e375ea753c50584012634e7ba4f7af634"
@@ -255,19 +230,14 @@
       "sha256": "c51039f5b03704e7ca736999cb34ea82e69ac855459c9047ac1ff30d90e518d4"
     },
     {
-      "path": "shared/store-logos/steve-madden.png",
-      "size": 78395,
-      "sha256": "31f82b9f2e5e82fe12e9165ecd2a9d1e86413f54ce2ec38841e36f24ee4d59ae"
-    },
-    {
       "path": "shared/store-logos/store-logos.manifest.json",
-      "size": 585,
-      "sha256": "2967f3e18c8a436c8dd1674eeadbe2bc462883f729ba007f5141d4992bb843ff"
+      "size": 1201,
+      "sha256": "a89fa690ce445b0727e5709250361a00aa4e276fa78b7df1b1d36707c961cb5d"
     },
     {
       "path": "shared/store-logos/store-logos.manifest.jsonp.js",
-      "size": 800,
-      "sha256": "271512b04ac1fe5fde149660f53686fb17100f337dc061bfc930e89c68dde120"
+      "size": 1416,
+      "sha256": "f88a99454a94ece4aff9deb5348c248d79f8aad0fca64fc5c0d599306b644d8d"
     },
     {
       "path": "shared/store-logos/zara.png",

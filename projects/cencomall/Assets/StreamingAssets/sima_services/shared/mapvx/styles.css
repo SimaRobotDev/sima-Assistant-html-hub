@@ -111,7 +111,10 @@
 }
 
 .mapvx-place-popover-content {
-  width: 220px;
+  display: inline-block;
+  width: fit-content;
+  min-width: 168px;
+  max-width: 360px;
   box-sizing: border-box;
 }
 
@@ -126,13 +129,15 @@
 
 .mapvx-place-popover-card {
   position: relative;
-  width: 220px;
+  width: fit-content;
+  min-width: 168px;
+  max-width: 360px;
   min-height: 80px;
   padding: 14px 14px 12px;
   box-sizing: border-box;
   background: #ffffff;
   border: none;
-  border-radius: 14px;
+  border-radius: 20px;
   box-shadow: 0 6px 28px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
   transform: translate(-50%, calc(-100% - 14px));
 }
@@ -189,6 +194,12 @@
   font-weight: 800;
   line-height: 1.2;
   margin: 0 0 3px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.maplibregl-popup.mapvx-sdk-popover .maplibregl-popup-content {
+  border-radius: 20px;
 }
 
 .mapvx-place-popover-subtitle {

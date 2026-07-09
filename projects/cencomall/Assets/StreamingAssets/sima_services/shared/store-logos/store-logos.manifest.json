@@ -2,10 +2,37 @@
   "_comment": "Logos PNG transparentes para tiendas ancla. La clave es el nombre normalizado (minúsculas, sin tildes).",
   "casaideas": "casa-ideas.png",
   "casa ideas": "casa-ideas.png",
-  "falabella": "falabella.png",
-  "h&m": "hm.png",
-  "h m": "hm.png",
-  "hm": "hm.png",
+  "falabella": {
+    "file": "falabella-wordmark.png",
+    "offsetX": -60,
+    "offsetY": 60,
+    "scale": 1.6,
+    "rotation": 30
+  },
+  "h&m": {
+    "file": "hm.png",
+    "offsetX": 110,
+    "offsetY": -40,
+    "perFloor": {
+      "Nivel 2": { "offsetX": 20 }
+    }
+  },
+  "h m": {
+    "file": "hm.png",
+    "offsetX": 110,
+    "offsetY": -40,
+    "perFloor": {
+      "Nivel 2": { "offsetX": 20 }
+    }
+  },
+  "hm": {
+    "file": "hm.png",
+    "offsetX": 110,
+    "offsetY": -40,
+    "perFloor": {
+      "Nivel 2": { "offsetX": 20 }
+    }
+  },
   "jumbo": {
     "file": "jumbo.png",
     "scale": 2.2,
@@ -15,12 +42,21 @@
   "lapolar": "la-polar.png",
   "paris": {
     "file": "paris.png",
-    "scale": 1.18
+    "scale": 1.18,
+    "offsetX": 25,
+    "offsetY": 160
   },
-  "ripley": "ripley.png",
+  "ripley": {
+    "file": "ripley.png",
+    "offsetX": -150,
+    "offsetY": -55,
+    "scale": 0.35,
+    "rotation": -55
+  },
   "zara": {
     "file": "zara.png",
-    "offsetX": -35,
+    "offsetX": 20,
+    "offsetY": -125,
     "scale": 1.18
   }
 }
