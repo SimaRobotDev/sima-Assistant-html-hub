@@ -423,6 +423,8 @@ window.MarketSearch = (function () {
       brand_logo: head.brand_logo,
       description: head.description,
       keywords: head.keywords,
+      schedule: head.schedule,
+      schedules: head.schedules,
       available: entries.some(function (e) { return e.available !== false; }),
       locationCount: entries.length,
       locations: entries.map(function (entry) {
@@ -435,6 +437,8 @@ window.MarketSearch = (function () {
           category: entry.category,
           logoUrl: entry.logoUrl,
           brand_logo: entry.brand_logo,
+          schedule: entry.schedule,
+          schedules: entry.schedules,
         };
       }),
       _searchScore: group.score,
@@ -601,8 +605,12 @@ window.MarketSearch = (function () {
 
       brandWords.forEach(function (word) {
         if (word === token) brandBest = Math.max(brandBest, 250);
-        else if (word.indexOf(token) === 0 || token.indexOf(word) === 0) brandBest = Math.max(brandBest, 210);
-        else {
+        // Guard prefix matches with a minimum word length so stray short
+        // tokens (e.g. the "s" left behind by "Chili's" -> "chili s") don't
+        // falsely match as a prefix of every query that starts with the
+        // same letter (e.g. "satrbucks").
+        else if (word.length >= 3 && (word.indexOf(token) === 0 || token.indexOf(word) === 0)) brandBest = Math.max(brandBest, 210);
+        else if (word.length >= 3) {
           var d = levenshteinWithin(word, token, token.length <= 4 ? 1 : 2);
           if (d != null) brandBest = Math.max(brandBest, 170 - d * 40);
         }
@@ -610,8 +618,8 @@ window.MarketSearch = (function () {
 
       keywordWords.forEach(function (word) {
         if (word === token) keywordBest = Math.max(keywordBest, 160);
-        else if (word.indexOf(token) === 0 || token.indexOf(word) === 0) keywordBest = Math.max(keywordBest, 130);
-        else {
+        else if (word.length >= 3 && (word.indexOf(token) === 0 || token.indexOf(word) === 0)) keywordBest = Math.max(keywordBest, 130);
+        else if (word.length >= 3) {
           var d = levenshteinWithin(word, token, 1);
           if (d != null) keywordBest = Math.max(keywordBest, 105 - d * 30);
         }

@@ -477,6 +477,52 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 .cm-speak-btn:active { transform: scale(0.98); }
 
+.cm-speak-fab-actions {
+  display: none;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.cm-speak-fab.is-typing .cm-speak-btn {
+  display: none;
+}
+
+.cm-speak-fab.is-typing .cm-speak-fab-actions {
+  display: flex;
+}
+
+.cm-speak-search-btn {
+  flex: 1;
+  border: none;
+  border-radius: 16px;
+  padding: 16px 18px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--cm-purple) 0%, var(--cm-pink) 100%);
+  box-shadow: 0 8px 24px rgba(91, 45, 142, 0.3);
+}
+
+.cm-speak-mic-btn {
+  width: 56px;
+  min-width: 56px;
+  border: none;
+  border-radius: 16px;
+  padding: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--cm-purple-dark) 0%, var(--cm-purple) 100%);
+  box-shadow: 0 8px 24px rgba(91, 45, 142, 0.3);
+}
+
+.cm-speak-search-btn:active,
+.cm-speak-mic-btn:active {
+  transform: scale(0.98);
+}
+
 .cm-speak-version {
   margin-top: 6px;
   padding-right: 6px;
@@ -626,6 +672,13 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   font-size: 18px;
   font-weight: 800;
   line-height: 1.2;
+}
+
+.store-detail-schedule {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--cm-muted);
+  line-height: 1.3;
 }
 
 .store-detail-desc {
@@ -1025,6 +1078,45 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .cm-categories-btn:active,
 .cm-search-btn:active { transform: scale(0.98); }
 
+.cm-popular-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cm-popular-categories-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--cm-muted);
+  letter-spacing: 0.01em;
+}
+
+.cm-popular-categories-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cm-popular-category-chip {
+  border: 1px solid #DFCFF3;
+  background: #F6F1FB;
+  color: var(--cm-purple-dark);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cm-popular-category-chip:active { transform: scale(0.98); }
+
+.cm-popular-category-chip.is-loading {
+  border-style: dashed;
+  opacity: 0.85;
+  cursor: default;
+}
+
 .cm-results-actions {
   display: flex;
   align-items: center;
@@ -1117,7 +1209,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
         <p class="cm-star-hint" id="survey-hint">1 = muy mala · 5 = excelente</p>
       </div>
       <div class="cm-star-rating" id="survey-stars"></div>
-      <button class="cm-survey-dismiss" type="button" aria-label="Omitir encuesta" onclick="dismissSurvey()">×</button>
+      <button class="cm-survey-dismiss" id="survey-dismiss-btn" type="button" aria-label="Omitir encuesta" onclick="dismissSurvey()">×</button>
     </div>
   </section>
 
@@ -1140,6 +1232,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
           <button class="cm-search-btn" id="storeSearchBtn" type="button">Buscar</button>
         </div>
         <button class="cm-categories-btn" id="storeCategoriesBtn" type="button">Categorías</button>
+        <div class="cm-popular-categories" id="popularCategoriesWrap">
+          <p class="cm-popular-categories-title" id="popularCategoriesTitle">Populares</p>
+          <div class="cm-popular-categories-chips" id="popularCategoriesChips"></div>
+        </div>
         <p class="cm-search-voice-hint" id="store-search-voice-hint">
           También puedes usar el botón de voz abajo.
         </p>
@@ -1151,8 +1247,12 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   </div>
 </div>
 
-<div class="cm-speak-fab">
+<div class="cm-speak-fab" id="speakFab">
   <button class="cm-speak-btn" id="btnSpeak" type="button">🎤 Hablar con Cami</button>
+  <div class="cm-speak-fab-actions" id="typingFabActions">
+    <button class="cm-speak-search-btn" id="btnSpeakSearch" type="button">Buscar</button>
+    <button class="cm-speak-mic-btn" id="btnSpeakMini" type="button" aria-label="Hablar con Cami" title="Hablar con Cami">🎤</button>
+  </div>
   <div class="cm-speak-version" aria-hidden="true">OTA 22/06</div>
 </div>
 
@@ -1194,6 +1294,7 @@ let mapVxWarmupPromise = null;
 let mapVxPreloadPromise = null;
 let marketSearchSeq = 0;
 let lastLocalMarketSearch = { query: "", seq: -1 };
+let lastFocusedStoreInputId = "";
 
 const MOBILITY_I18N = {
   es: {
@@ -1257,12 +1358,20 @@ const MOBILITY_I18N = {
     categoriesHint: "Elige una categoría para ver sus tiendas.",
     categoriesEmpty: "No hay categorías disponibles.",
     categoriesLoading: "Cargando categorías…",
+    popularCategoriesTitle: "Categorías populares",
+    popularCategoriesLoading: "Cargando…",
     backCategories: "← Ver categorías",
     backSearch: "← Buscar tiendas",
     storesInCategory: "tiendas",
     relatedResultsFor: "Resultados relacionados para",
     retrySearch: "Intentar otra búsqueda",
-    searchTryAgain: "Revisa cómo escribiste el nombre e inténtalo nuevamente."
+    searchTryAgain: "Revisa cómo escribiste el nombre e inténtalo nuevamente.",
+    surveyAriaLabel: "Evaluación de atención",
+    surveyDismiss: "Omitir encuesta",
+    starLabels: ["Muy mala", "Mala", "Regular", "Buena", "Excelente"],
+    starUnit: "estrella",
+    starUnitPlural: "estrellas",
+    zoomMeterLabel: "Zoom {zoom} · aprox. {distance} visibles"
   },
   en: {
     results: "Results",
@@ -1325,12 +1434,20 @@ const MOBILITY_I18N = {
     categoriesHint: "Pick a category to browse its stores.",
     categoriesEmpty: "No categories available.",
     categoriesLoading: "Loading categories…",
+    popularCategoriesTitle: "Popular categories",
+    popularCategoriesLoading: "Loading…",
     backCategories: "← Browse categories",
     backSearch: "← Search stores",
     storesInCategory: "stores",
     relatedResultsFor: "Related results for",
     retrySearch: "Try another search",
-    searchTryAgain: "Check the spelling and try another search."
+    searchTryAgain: "Check the spelling and try another search.",
+    surveyAriaLabel: "Service rating",
+    surveyDismiss: "Skip survey",
+    starLabels: ["Very poor", "Poor", "Fair", "Good", "Excellent"],
+    starUnit: "star",
+    starUnitPlural: "stars",
+    zoomMeterLabel: "Zoom {zoom} · approx. {distance} visible"
   },
   pt: {
     results: "Resultados",
@@ -1393,12 +1510,20 @@ const MOBILITY_I18N = {
     categoriesHint: "Escolha uma categoria para ver as lojas.",
     categoriesEmpty: "Não há categorias disponíveis.",
     categoriesLoading: "Carregando categorias…",
+    popularCategoriesTitle: "Categorias populares",
+    popularCategoriesLoading: "Carregando…",
     backCategories: "← Ver categorias",
     backSearch: "← Buscar lojas",
     storesInCategory: "lojas",
     relatedResultsFor: "Resultados relacionados para",
     retrySearch: "Tentar outra busca",
-    searchTryAgain: "Revise como escreveu o nome e tente novamente."
+    searchTryAgain: "Revise como escreveu o nome e tente novamente.",
+    surveyAriaLabel: "Avaliação do atendimento",
+    surveyDismiss: "Pular pesquisa",
+    starLabels: ["Muito ruim", "Ruim", "Regular", "Bom", "Excelente"],
+    starUnit: "estrela",
+    starUnitPlural: "estrelas",
+    zoomMeterLabel: "Zoom {zoom} · aprox. {distance} visíveis"
   }
 };
 
@@ -1477,11 +1602,132 @@ function applyStoreSearchLandingLocale() {
   const btn = document.getElementById("storeSearchBtn");
   if (btn) btn.textContent = t("storeSearchBtn");
 
+  const fabSearchBtn = document.getElementById("btnSpeakSearch");
+  if (fabSearchBtn) fabSearchBtn.textContent = t("storeSearchBtn");
+
+  const fabMini = document.getElementById("btnSpeakMini");
+  if (fabMini) {
+    fabMini.title = t("speakWithCami");
+    fabMini.setAttribute("aria-label", t("speakWithCami"));
+  }
+
   const categoriesBtn = document.getElementById("storeCategoriesBtn");
   if (categoriesBtn) categoriesBtn.textContent = t("categories");
 
+  const popularTitle = document.getElementById("popularCategoriesTitle");
+  if (popularTitle) popularTitle.textContent = t("popularCategoriesTitle");
+
   const voiceHint = document.getElementById("store-search-voice-hint");
   if (voiceHint) voiceHint.textContent = t("storeSearchVoiceHint");
+}
+
+function normalizeCategoryKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function matchesPopularCategoryToken(categoryKey, token) {
+  if (!categoryKey || !token) return false;
+  return categoryKey === token || categoryKey.indexOf(token + " ") === 0 || categoryKey.indexOf(" " + token) >= 0 || categoryKey.indexOf(token) >= 0;
+}
+
+function getPopularCategoryPriorityTokens() {
+  return [
+    "deportes",
+    "sport",
+    "moda",
+    "fashion",
+    "calzado",
+    "tecnologia",
+    "hogar",
+    "gastronomia",
+    "belleza",
+    "salud",
+    "infantil",
+  ];
+}
+
+function pickPopularCategories(categories, limit) {
+  const list = Array.isArray(categories) ? categories.slice() : [];
+  const max = Math.max(1, Number(limit) || 6);
+  if (!list.length) return [];
+
+  const ordered = list.slice().sort((a, b) => {
+    if ((b.storeCount || 0) !== (a.storeCount || 0)) return (b.storeCount || 0) - (a.storeCount || 0);
+    return String(a.name || "").localeCompare(String(b.name || ""), "es");
+  });
+
+  const selected = [];
+  const seen = {};
+  const tokens = getPopularCategoryPriorityTokens();
+
+  tokens.forEach((token) => {
+    if (selected.length >= max) return;
+    const match = ordered.find((cat) => {
+      const key = normalizeCategoryKey(cat && (cat.key || cat.name));
+      if (!key || seen[key]) return false;
+      return matchesPopularCategoryToken(key, token);
+    });
+    if (!match) return;
+    const key = normalizeCategoryKey(match.key || match.name);
+    seen[key] = true;
+    selected.push(match);
+  });
+
+  ordered.forEach((cat) => {
+    if (selected.length >= max) return;
+    const key = normalizeCategoryKey(cat && (cat.key || cat.name));
+    if (!key || seen[key]) return;
+    seen[key] = true;
+    selected.push(cat);
+  });
+
+  return selected.slice(0, max);
+}
+
+async function renderPopularCategoriesLanding() {
+  const wrap = document.getElementById("popularCategoriesWrap");
+  const chips = document.getElementById("popularCategoriesChips");
+  if (!wrap || !chips) return;
+
+  if (!shouldUseLocalMarketCatalog()) {
+    wrap.style.display = "none";
+    return;
+  }
+
+  wrap.style.display = "";
+  chips.innerHTML = `<span class="cm-popular-category-chip is-loading">${escapeHtml(t("popularCategoriesLoading"))}</span>`;
+
+  if (typeof MarketSearch === "undefined" || !MarketSearch.loadCatalog || !MarketSearch.listCategories) {
+    wrap.style.display = "none";
+    chips.innerHTML = "";
+    return;
+  }
+
+  try {
+    await MarketSearch.loadCatalog();
+    const data = MarketSearch.listCategories();
+    const popular = pickPopularCategories(data.categories || [], 6);
+    if (!popular.length) {
+      wrap.style.display = "none";
+      chips.innerHTML = "";
+      return;
+    }
+
+    chips.innerHTML = popular.map((cat) => {
+      const safeName = escapeHtml(cat.name);
+      const jsName = encodeURIComponent(String(cat.name || ""));
+      return `<button class="cm-popular-category-chip" type="button" onclick="selectStoreCategory(decodeURIComponent('${jsName}'))">${safeName}</button>`;
+    }).join("");
+  } catch (e) {
+    console.warn("renderPopularCategoriesLanding failed", e);
+    wrap.style.display = "none";
+    chips.innerHTML = "";
+  }
 }
 
 function buildStoreSearchLandingHtml() {
@@ -1501,6 +1747,10 @@ function buildStoreSearchLandingHtml() {
           <button class="cm-search-btn" id="storeSearchBtn" type="button">${escapeHtml(t("storeSearchBtn"))}</button>
         </div>
         <button class="cm-categories-btn" id="storeCategoriesBtn" type="button">${escapeHtml(t("categories"))}</button>
+        <div class="cm-popular-categories" id="popularCategoriesWrap">
+          <p class="cm-popular-categories-title" id="popularCategoriesTitle">${escapeHtml(t("popularCategoriesTitle"))}</p>
+          <div class="cm-popular-categories-chips" id="popularCategoriesChips"></div>
+        </div>
         <p class="cm-search-voice-hint" id="store-search-voice-hint">${escapeHtml(t("storeSearchVoiceHint"))}</p>
       </div>`;
 }
@@ -1518,6 +1768,38 @@ function wireStoreSearchLandingEvents() {
       if (event.key === "Enter") submitStoreSearch();
     };
   }
+}
+
+function isStoreSearchInput(el) {
+  if (!el || !el.id) return false;
+  return el.id === "storeSearchInput" || el.id === "storeSearchInlineInput";
+}
+
+function setSearchTypingMode(active) {
+  const fab = document.getElementById("speakFab");
+  if (!fab) return;
+  fab.classList.toggle("is-typing", !!active);
+}
+
+function submitSearchFromFab() {
+  const preferred = lastFocusedStoreInputId;
+  const inlineInput = document.getElementById("storeSearchInlineInput");
+  const landingInput = document.getElementById("storeSearchInput");
+
+  if (preferred === "storeSearchInlineInput" && inlineInput) {
+    submitInlineStoreSearch();
+    return;
+  }
+  if (preferred === "storeSearchInput" && landingInput) {
+    submitStoreSearch();
+    return;
+  }
+
+  if (inlineInput) {
+    submitInlineStoreSearch();
+    return;
+  }
+  submitStoreSearch();
 }
 
 function showStoreSearchLanding(visible) {
@@ -1627,6 +1909,7 @@ function initStoreSearchLanding() {
 
   applyStoreSearchLandingLocale();
   wireStoreSearchLandingEvents();
+  renderPopularCategoriesLanding();
   showStoreSearchLanding(true);
 
   const input = document.getElementById("storeSearchInput");
@@ -1656,6 +1939,12 @@ function applyMobilityLocale() {
   const surveyHint = document.getElementById("survey-hint");
   if (surveyHint) surveyHint.textContent = t("surveyHint");
 
+  const surveyStrip = document.getElementById("survey-strip");
+  if (surveyStrip) surveyStrip.setAttribute("aria-label", t("surveyAriaLabel"));
+
+  const surveyDismissBtn = document.getElementById("survey-dismiss-btn");
+  if (surveyDismissBtn) surveyDismissBtn.setAttribute("aria-label", t("surveyDismiss"));
+
   const mapBack = document.getElementById("map-back-btn");
   if (mapBack) mapBack.textContent = t("back");
 
@@ -1679,7 +1968,9 @@ function returnToStoreSearchLanding() {
   const container = document.getElementById("resultado");
   if (!container) return;
   container.innerHTML = buildStoreSearchLandingHtml();
+  applyStoreSearchLandingLocale();
   wireStoreSearchLandingEvents();
+  renderPopularCategoriesLanding();
   showStoreSearchLanding(true);
   const input = document.getElementById("storeSearchInput");
   if (input) window.setTimeout(() => input.focus(), 200);
@@ -1864,13 +2155,37 @@ document.addEventListener("DOMContentLoaded", () => {
   warmupMapVxInBackground();
   renderEntrySurvey();
   document.getElementById("btnSpeak").onclick = startVoiceInput;
+  document.getElementById("btnSpeakMini").onclick = startVoiceInput;
+  document.getElementById("btnSpeakSearch").onclick = submitSearchFromFab;
+
+  document.addEventListener("focusin", (event) => {
+    const target = event.target;
+    if (!isStoreSearchInput(target)) return;
+    lastFocusedStoreInputId = target.id;
+    setSearchTypingMode(true);
+  });
+
+  document.addEventListener("focusout", () => {
+    window.setTimeout(() => {
+      const active = document.activeElement;
+      if (isStoreSearchInput(active)) {
+        lastFocusedStoreInputId = active.id;
+        setSearchTypingMode(true);
+        return;
+      }
+      setSearchTypingMode(false);
+    }, 40);
+  });
 });
 
 window.handleUnityData = function(raw) {
   buscarDesdeVoz(raw);
 };
 
-const STAR_LABELS = ["Muy mala", "Mala", "Regular", "Buena", "Excelente"];
+function getStarLabels() {
+  const labels = t("starLabels");
+  return Array.isArray(labels) ? labels : ["Muy mala", "Mala", "Regular", "Buena", "Excelente"];
+}
 
 function setSurveyVisible(visible) {
   const strip = document.getElementById("survey-strip");
@@ -1887,12 +2202,16 @@ function renderEntrySurvey() {
   const starsWrap = document.getElementById("survey-stars");
   if (!starsWrap) return;
 
+  const starLabels = getStarLabels();
+  const starUnit = t("starUnit");
+  const starUnitPlural = t("starUnitPlural");
+
   starsWrap.innerHTML = [1, 2, 3, 4, 5].map((score) => `
     <button
       class="cm-star-btn"
       type="button"
       data-score="${score}"
-      aria-label="${score} estrella${score > 1 ? "s" : ""} — ${STAR_LABELS[score - 1]}"
+      aria-label="${score} ${score > 1 ? starUnitPlural : starUnit} — ${escapeHtml(starLabels[score - 1] || "")}"
     >★</button>`).join("");
 
   starsWrap.querySelectorAll(".cm-star-btn").forEach((btn) => {
@@ -1911,7 +2230,7 @@ function highlightStars(upToScore) {
 
   const hint = document.getElementById("survey-hint");
   if (hint && upToScore >= 1 && upToScore <= 5)
-    hint.textContent = STAR_LABELS[upToScore - 1];
+    hint.textContent = getStarLabels()[upToScore - 1];
 }
 
 function submitEntrySurvey(score, buttonEl) {
@@ -2146,10 +2465,7 @@ function escapeHtml(str) {
 
 function summarizeFloors(locations) {
   if (!locations || !locations.length) return "";
-  const floors = locations
-    .map((loc) => formatNivel(loc.floor))
-    .filter((f) => f && f !== "—");
-  return [...new Set(floors)].join(" · ");
+  return getSortedFloorLabelsFromLocations(locations).join(" · ");
 }
 
 function countDistinctFloors(locations) {
@@ -2159,6 +2475,91 @@ function countDistinctFloors(locations) {
     .map((f) => String(f || "").trim().toLowerCase())
     .filter(Boolean);
   return new Set(floorKeys).size;
+}
+
+function sanitizeStoreDisplayName(name) {
+  let clean = String(name || "").trim();
+  if (!clean) return "";
+
+  // Common noisy suffixes coming from some navigation payloads.
+  clean = clean.replace(/\s*-\s*(nivel(?:es)?|level(?:s)?)\s*[\d,\s]+\s*-\s*mall\s*cc\s*$/i, "");
+  clean = clean.replace(/\s*-\s*(nivel(?:es)?|level(?:s)?)\s*[\d,\s]+$/i, "");
+  clean = clean.replace(/\s*-\s*mall\s*cc\s*$/i, "");
+  clean = clean.replace(/\s*-\s*mallcc\s*$/i, "");
+
+  return clean.trim();
+}
+
+function formatStoreScheduleText(store) {
+  if (!store) return "";
+
+  const direct = store.schedule;
+  if (typeof direct === "string" && direct.trim()) {
+    return direct.trim();
+  }
+
+  let list = [];
+  if (Array.isArray(store.schedules)) list = store.schedules;
+  else if (Array.isArray(store.schedule)) list = store.schedule;
+  else if (Array.isArray(store.market_schedules)) list = store.market_schedules;
+
+  if (!list.length) return "";
+
+  const parts = list.map((item) => {
+    if (typeof item === "string") return item.trim();
+    if (!item || typeof item !== "object") return "";
+    const days = String(item.dias_txhorarios || item.days || item.day || "").trim();
+    const hours = String(item.horas_txhorarios || item.hours || item.time || "").trim();
+    if (days && hours) return `${days}: ${hours}`;
+    return days || hours;
+  }).filter(Boolean);
+
+  return parts.join(" · ");
+}
+
+function getFloorSortMeta(floor) {
+  const label = formatNivel(floor);
+  const raw = String(floor || "").trim();
+
+  if (!label || label === "—") {
+    return { label: "", hasNumber: false, order: Number.POSITIVE_INFINITY };
+  }
+
+  if (/^pb$/i.test(raw) || /planta baja/i.test(raw)) {
+    return { label: label, hasNumber: true, order: 0 };
+  }
+
+  const rawMatch = raw.match(/-?\d+/);
+  const labelMatch = String(label).match(/-?\d+/);
+  const numberText = rawMatch ? rawMatch[0] : (labelMatch ? labelMatch[0] : "");
+  const order = numberText ? Number(numberText) : Number.POSITIVE_INFINITY;
+  const hasNumber = isFinite(order);
+
+  return { label: label, hasNumber: hasNumber, order: hasNumber ? order : Number.POSITIVE_INFINITY };
+}
+
+function compareFloorMeta(a, b) {
+  if (a.hasNumber && b.hasNumber && a.order !== b.order) return a.order - b.order;
+  if (a.hasNumber !== b.hasNumber) return a.hasNumber ? -1 : 1;
+  return String(a.label || "").localeCompare(String(b.label || ""), "es");
+}
+
+function getSortedFloorLabelsFromLocations(locations) {
+  if (!locations || !locations.length) return [];
+
+  const seen = {};
+  const metas = [];
+
+  locations.forEach((loc) => {
+    const meta = getFloorSortMeta(loc && loc.floor);
+    const key = String(meta.label || "").trim().toLowerCase();
+    if (!key || key === "—" || seen[key]) return;
+    seen[key] = true;
+    metas.push(meta);
+  });
+
+  metas.sort(compareFloorMeta);
+  return metas.map((m) => m.label);
 }
 
 function resolveStore(groupIndex, locationIndex) {
@@ -2172,6 +2573,7 @@ function resolveStore(groupIndex, locationIndex) {
     category: result.category,
     local: result.local,
     schedule: result.schedule,
+    schedules: result.schedules,
     brand: result.brand,
     mall: result.mall,
     logoUrl: result.logoUrl,
@@ -2195,6 +2597,7 @@ function resolveStore(groupIndex, locationIndex) {
       category: loc.category || base.category,
       local: loc.local || base.local,
       schedule: loc.schedule || base.schedule,
+      schedules: Array.isArray(loc.schedules) && loc.schedules.length ? loc.schedules : base.schedules,
       available: loc.available !== false
     };
   }
@@ -2211,13 +2614,15 @@ function renderStoreDetailPanel(store) {
     return;
   }
 
-  const displayName = store.name || store.brand || t("results");
+  const displayName = sanitizeStoreDisplayName(store.name || store.brand || t("results"));
+  const scheduleText = formatStoreScheduleText(store);
   const description = String(store.description || "").trim();
   panel.innerHTML = `
     <div class="store-detail-header">
       ${renderStoreAvatar(store, true)}
       <div class="store-detail-head-text">
         <h2 class="store-detail-name">${escapeHtml(displayName)}</h2>
+        ${scheduleText ? `<div class="store-detail-schedule"><strong>${escapeHtml(t("schedule"))}:</strong> ${escapeHtml(scheduleText)}</div>` : ""}
       </div>
     </div>
     ${description ? `<p class="store-detail-desc">${escapeHtml(description)}</p>` : ""}`;
@@ -2358,6 +2763,8 @@ function renderStoreCard(result, idx) {
           floorLabel: formatNivel(loc && loc.floor),
           available: loc && loc.available !== false,
         }));
+
+    rowsSource.sort((a, b) => compareFloorMeta(getFloorSortMeta(a && a.loc && a.loc.floor), getFloorSortMeta(b && b.loc && b.loc.floor)));
 
     const subRows = rowsSource.map((row) => {
       const loc = row.loc || {};
@@ -2916,7 +3323,9 @@ function updateMapZoomMeter() {
   }
   const lat = state.center && state.center.lat != null ? state.center.lat : 0;
   const visibleMeters = getMetersPerPixel(state.zoom, lat) * (wrap.clientWidth || 0);
-  meter.textContent = "Zoom " + state.zoom.toFixed(1) + " · aprox. " + formatVisibleWidthMeters(visibleMeters) + " visibles";
+  meter.textContent = String(t("zoomMeterLabel") || "")
+    .replace("{zoom}", state.zoom.toFixed(1))
+    .replace("{distance}", formatVisibleWidthMeters(visibleMeters));
   meter.classList.remove("hidden");
 }
 
@@ -3209,9 +3618,10 @@ window.pushNavigationFromUnity = function(data) {
   try {
     const payload = typeof data === "string" ? JSON.parse(data) : data;
     logMap("info", "pushNavigationFromUnity", payload);
+    const cleanName = sanitizeStoreDisplayName(payload.name);
     const mapKey = payload.local || payload.placeId || payload.id;
     const storeDetail = findStoreInMarketPayload(mapKey) || {
-      name: payload.name,
+      name: cleanName,
       floor: payload.floor,
       mall: payload.mall,
       local: mapKey,
@@ -3222,7 +3632,7 @@ window.pushNavigationFromUnity = function(data) {
       id: mapKey,
       floor: payload.floor,
       mall: payload.mall,
-      name: payload.name,
+      name: cleanName,
       local: mapKey,
       mode: "navigation",
       storeDetail
