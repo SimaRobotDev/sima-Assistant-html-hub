@@ -3,9 +3,9 @@
   "project": "cencomall",
   "version": "2026.07.13-1",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-13T18:54:34.412Z",
+  "generatedAt": "2026-07-13T18:55:33.747Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "HEAD",
+  "rollbackTo": null,
   "entryPoints": [
     {
       "service": "agenda",
