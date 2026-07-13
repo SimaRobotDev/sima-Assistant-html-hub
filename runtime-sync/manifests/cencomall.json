@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.13-1",
+  "version": "2026.07.13-2",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-13T18:55:33.747Z",
+  "generatedAt": "2026-07-13T19:17:05.643Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -166,8 +166,8 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 120114,
-      "sha256": "e3a00b4b7e1735c5cf3818752566ae3015de4b0522aee653cfce0fcd10f4eeab"
+      "size": 120650,
+      "sha256": "6f8cdc4681ab03ec5a53f2dd8fc7db63590e5e9b9b11b4679584592c15cb5c9f"
     },
     {
       "path": "shared/mapvx/index.js",
@@ -231,13 +231,13 @@
     },
     {
       "path": "shared/store-logos/store-logos.manifest.json",
-      "size": 1260,
-      "sha256": "9e5233cc64c0d0c8f4e826da4c1d3a4cd2858bb5626ad805d1c7f71a658c9847"
+      "size": 1261,
+      "sha256": "c39e0150ee92612d3293f2c7b3880e897f7d88fd25fe3ec829f0285e77e72579"
     },
     {
       "path": "shared/store-logos/store-logos.manifest.jsonp.js",
-      "size": 1475,
-      "sha256": "85289083b3e15454685826594b58fd91333b4e6ff547e8c09e83be82937570e3"
+      "size": 1476,
+      "sha256": "72e7f6a8b1f31d3765fd0902bcdb4b69a569886a086475c653afd1c272d40429"
     },
     {
       "path": "shared/store-logos/zara.png",
