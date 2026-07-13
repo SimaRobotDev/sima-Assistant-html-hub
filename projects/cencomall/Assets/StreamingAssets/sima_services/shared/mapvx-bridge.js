@@ -40,6 +40,147 @@ window.MapVxBridge = (function () {
   var subPlacesCache = { key: null, data: null, loading: null };
   var _zoomLabelDebounceTimer = null;
   var centroidUpdateTimer = null;
+  var poiCentroidCache = {};
+
+  function clearPoiCentroidCache() {
+    poiCentroidCache = {};
+  }
+
+  function poiFeatureMatchesFloor(feature, floorId) {
+    if (!floorId || !feature || !feature.properties) return true;
+    var floorKey = feature.properties.floor_key;
+    if (floorKey == null || floorKey === "") return true;
+    var target = String(floorId);
+    if (String(floorKey) === target) return true;
+    if (Array.isArray(floorKey)) {
+      for (var i = 0; i < floorKey.length; i++) {
+        if (String(floorKey[i]) === target) return true;
+      }
+    }
+    return false;
+  }
+
+  function ingestPoiCentroidFeatures(features, floorId, result) {
+    if (!features || !features.length) return;
+    features.forEach(function (f) {
+      if (!f || !f.geometry || f.geometry.type !== "Point") return;
+      if (!f.properties || !f.properties.ref) return;
+      if (floorId && !poiFeatureMatchesFloor(f, floorId)) return;
+      var coords = f.geometry.coordinates;
+      result[f.properties.ref] = { lat: coords[1], lng: coords[0] };
+    });
+  }
+
+  function queryPOICentroids(libreMap, floorId) {
+    var result = {};
+    if (!libreMap) return result;
+    try {
+      // Prefer rendered features (respects the SDK's active per-floor filter).
+      ingestPoiCentroidFeatures(
+        libreMap.queryRenderedFeatures(undefined, { layers: ["indoor-poi-rank1"] }),
+        floorId,
+        result
+      );
+    } catch (e) { /* noop */ }
+
+    // At zoom-out, rank1 POI symbols may not be in the render tree yet, so
+    // queryRenderedFeatures returns nothing and anchor logos stay on the wrong
+    // subPlace.position until the user zooms in. Source features are still
+    // available once tiles load; filter by floor_key so multi-floor anchors
+    // (same ref on several floors) only pick up the active floor's point.
+    try {
+      var poiLayer = libreMap.getLayer("indoor-poi-rank1");
+      if (poiLayer && poiLayer.source && poiLayer.sourceLayer) {
+        ingestPoiCentroidFeatures(
+          libreMap.querySourceFeatures(poiLayer.source, { sourceLayer: poiLayer.sourceLayer }),
+          floorId,
+          result
+        );
+      }
+    } catch (e) { /* noop */ }
+
+    return result;
+  }
+
+  function getCentroidsForFloor(libreMap, floorId) {
+    var key = String(floorId || "");
+    if (!key) return {};
+    if (poiCentroidCache[key]) return poiCentroidCache[key];
+    poiCentroidCache[key] = queryPOICentroids(libreMap, floorId);
+    return poiCentroidCache[key];
+  }
+
+  function resolveAnchorPosition(place, floorId, libreMap) {
+    if (!place || !place.position) return null;
+    if (libreMap && place.mapvxId && floorId) {
+      var centroids = getCentroidsForFloor(libreMap, floorId);
+      if (centroids[place.mapvxId]) return centroids[place.mapvxId];
+    }
+    return place.position;
+  }
+
+  // Manifest offsetX/offsetY are tuned in screen pixels. When applied as CSS
+  // translate on the marker DOM, they stay fixed in px while the store polygon
+  // grows/shrinks with zoom — logos look "corridos" at zoom-out and only align
+  // after zoom-in. Baking the offset into lat/lng via project/unproject keeps
+  // the logo glued to the polygon at every zoom level and screen size (55" totem,
+  // BlueStacks, localhost) as long as the centroid anchor is correct.
+  function applyScreenOffsetToCoordinate(libreMap, coordinate, offsetX, offsetY) {
+    if (!libreMap || !coordinate || coordinate.lat == null || coordinate.lng == null) {
+      return coordinate;
+    }
+    var ox = Number(offsetX) || 0;
+    var oy = Number(offsetY) || 0;
+    if (!ox && !oy) return coordinate;
+    if (typeof libreMap.project !== "function" || typeof libreMap.unproject !== "function") {
+      return coordinate;
+    }
+    try {
+      var point = libreMap.project([coordinate.lng, coordinate.lat]);
+      var shifted = libreMap.unproject([point.x + ox, point.y + oy]);
+      return { lng: shifted.lng, lat: shifted.lat };
+    } catch (e) {
+      return coordinate;
+    }
+  }
+
+  function resolveFeaturedMarkerCoordinate(libreMap, place, floorId, floorLabel) {
+    var centroid = resolveAnchorPosition(place, floorId, libreMap);
+    if (!centroid) return null;
+    var treatment = getLocalStoreLogoTreatment(place, null, floorLabel);
+    if (!treatment || treatment.offsetInCss) return centroid;
+    return applyScreenOffsetToCoordinate(
+      libreMap,
+      centroid,
+      treatment.offsetX,
+      treatment.offsetY
+    );
+  }
+
+  function syncFeaturedLogoPositions(mapInst) {
+    if (!mapInst || !storeLabelState.labelPlaceMarkers.length) return;
+    var libreMap = getLibreMap(mapInst);
+    if (!libreMap || typeof mapInst.updateMarkerPosition !== "function") return;
+
+    storeLabelState.labelPlaceMarkers.forEach(function (entry) {
+      if (!entry.featured || !entry.markerId || !entry.place) return;
+      var floorId = entry.floorId;
+      var floorLabel = entry.floorLabel || getFloorDisplayLabel(floorId);
+      var treatment = getLocalStoreLogoTreatment(entry.place, null, floorLabel);
+      // Legacy CSS-pixel nudge (Zara) — marker stays on centroid; offset is DOM translate.
+      if (treatment && treatment.offsetInCss) return;
+      var centroid = resolveAnchorPosition(entry.place, floorId, libreMap);
+      if (centroid) entry.anchorCentroid = centroid;
+      var base = entry.anchorCentroid || centroid;
+      if (!base || base.lat == null || base.lng == null) return;
+      var finalPos = treatment
+        ? applyScreenOffsetToCoordinate(libreMap, base, treatment.offsetX, treatment.offsetY)
+        : base;
+      try {
+        mapInst.updateMarkerPosition(entry.markerId, [finalPos.lng, finalPos.lat]);
+      } catch (e) { /* noop */ }
+    });
+  }
   var BRIDGE_LOAD_TIME = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
 
   function shouldBridgeLog(level) {
@@ -114,6 +255,36 @@ window.MapVxBridge = (function () {
     return mapInstance;
   }
 
+  // Requerimiento de Cenco: el mapa NUNCA debe poder rotar (debe mantenerse
+  // siempre "norte arriba"), tanto por gesto del usuario (dos dedos en touch,
+  // clic derecho/ctrl+arrastre en mouse) como por el bearing automático que
+  // MapVX aplica durante la animación de rutas ("heading-up" navigation).
+  // Esto último se controla aparte vía ROUTE_ANIMATION_DEFAULTS.keepFixedBearing.
+  // `config.allowMapRotation === true` es una válvula de escape por si algún
+  // día se necesita revertir esto sin tocar código.
+  function lockMapRotation(mapInstance, config) {
+    config = config || getConfig();
+    if (config.allowMapRotation === true) return;
+    var libreMap = getLibreMap(mapInstance);
+    if (!libreMap) return;
+    try {
+      if (libreMap.dragRotate && typeof libreMap.dragRotate.disable === "function") {
+        libreMap.dragRotate.disable();
+      }
+    } catch (e) { /* noop */ }
+    try {
+      if (libreMap.touchZoomRotate && typeof libreMap.touchZoomRotate.disableRotation === "function") {
+        libreMap.touchZoomRotate.disableRotation();
+      }
+    } catch (e) { /* noop */ }
+    try {
+      if (typeof libreMap.getBearing === "function" && libreMap.getBearing() !== 0 && typeof libreMap.setBearing === "function") {
+        libreMap.setBearing(0);
+      }
+    } catch (e) { /* noop */ }
+    log("info", "lockMapRotation applied (north-up only, per Cenco requirement)");
+  }
+
   function getMapZoom(mapInstance) {
     if (!mapInstance) return null;
     if (typeof mapInstance.getZoom === "function") {
@@ -186,10 +357,29 @@ window.MapVxBridge = (function () {
     return base;
   }
 
+  function isFileProtocol() {
+    return typeof location !== "undefined" && location.protocol === "file:";
+  }
+
+  // Resolve a relative asset path to an absolute URL. On Android WebView
+  // (file://) some img/script loads fail unless the href is fully qualified.
+  function resolveAssetUrl(relativeUrl) {
+    if (!relativeUrl) return relativeUrl;
+    if (/^(https?:|data:|blob:|file:)/i.test(String(relativeUrl))) return String(relativeUrl);
+    try {
+      var anchor = document.createElement("a");
+      anchor.href = relativeUrl;
+      return anchor.href;
+    } catch (e) {
+      return relativeUrl;
+    }
+  }
+
   function storeLogosBase(config) {
     config = config || getConfig();
     var base = config.storeLogosBase || "../shared/store-logos/";
     if (base.charAt(base.length - 1) !== "/") base += "/";
+    if (isFileProtocol()) base = resolveAssetUrl(base);
     return base;
   }
 
@@ -203,7 +393,7 @@ window.MapVxBridge = (function () {
       }
       var script = document.createElement("script");
       script.async = true;
-      script.src = url;
+      script.src = resolveAssetUrl(url);
       script.onload = function () {
         if (window[globalName] != null) resolve(window[globalName]);
         else reject(new Error("logo manifest jsonp loaded but global missing"));
@@ -222,27 +412,52 @@ window.MapVxBridge = (function () {
     var manifestBase = storeLogosBase(config);
     var manifestUrl = manifestBase + "store-logos.manifest.json";
     var manifestJsonpUrl = manifestBase + "store-logos.manifest.jsonp.js";
+
+    function finalizeManifest(data) {
+      storeLogoManifest = data && typeof data === "object" ? data : {};
+      var entryCount = Object.keys(storeLogoManifest).filter(function (key) {
+        return key.charAt(0) !== "_";
+      }).length;
+      log("info", "store logo manifest loaded", {
+        entries: entryCount,
+        manifestUrl: manifestUrl,
+        protocol: typeof location !== "undefined" ? location.protocol : "",
+      });
+      if (!entryCount) {
+        log("warn", "store logo manifest empty — anchor PNG logos will not resolve on this device; check OTA includes shared/store-logos/ and .jsonp.js companion", {
+          manifestUrl: manifestUrl,
+          jsonpUrl: manifestJsonpUrl,
+        });
+      }
+      return storeLogoManifest;
+    }
+
+    // Totem WebView loads via file:// — skip fetch (always fails) and go straight
+    // to the JSONP companion, same pattern as market-catalog.jsonp.js.
+    if (isFileProtocol()) {
+      storeLogoManifestPromise = loadJsonViaScript(manifestJsonpUrl, "__STORE_LOGO_MANIFEST__")
+        .catch(function (err) {
+          log("warn", "store logo manifest jsonp failed on file://", {
+            error: String(err && err.message ? err.message : err),
+            jsonpUrl: manifestJsonpUrl,
+          });
+          return {};
+        })
+        .then(finalizeManifest);
+      return storeLogoManifestPromise;
+    }
+
     storeLogoManifestPromise = fetch(manifestUrl, { cache: "no-cache" })
       .then(function (response) {
         if (!response.ok) throw new Error("store logo manifest HTTP " + response.status);
         return response.json();
       })
       .catch(function () {
-        // file:// (Android WebView) blocks fetch — use the <script> companion.
         return loadJsonViaScript(manifestJsonpUrl, "__STORE_LOGO_MANIFEST__").catch(function () {
           return {};
         });
       })
-      .then(function (data) {
-        storeLogoManifest = data && typeof data === "object" ? data : {};
-        log("info", "store logo manifest loaded", {
-          entries: Object.keys(storeLogoManifest).filter(function (key) {
-            return key.charAt(0) !== "_";
-          }).length,
-          manifestUrl: manifestUrl,
-        });
-        return storeLogoManifest;
-      });
+      .then(finalizeManifest);
 
     return storeLogoManifestPromise;
   }
@@ -293,7 +508,7 @@ window.MapVxBridge = (function () {
   function getLocalStoreLogoUrl(place, config, manifest) {
     var filename = getLocalStoreLogoFilename(place, manifest || storeLogoManifest);
     if (!filename) return "";
-    return storeLogosBase(config) + filename;
+    return resolveAssetUrl(storeLogosBase(config) + filename);
   }
 
   function getLocalStoreLogoTreatment(place, manifest, floorLabel) {
@@ -348,7 +563,7 @@ window.MapVxBridge = (function () {
     // screen-upright forever regardless of the polygon's orientation.
     var rotation = Number(pick("rotation", 0));
     if (!isFinite(rotation)) rotation = 0;
-    if (!entry.backgroundColor && !entry.className && scale === 1 && offsetX === 0 && offsetY === 0 && rotation === 0) return null;
+    if (!entry.backgroundColor && !entry.className && scale === 1 && offsetX === 0 && offsetY === 0 && rotation === 0 && !entry.offsetInCss) return null;
     return {
       backgroundColor: entry.backgroundColor ? String(entry.backgroundColor).trim() : "",
       className: entry.className ? String(entry.className).trim() : "",
@@ -357,6 +572,7 @@ window.MapVxBridge = (function () {
       offsetX: offsetX,
       offsetY: offsetY,
       rotation: rotation,
+      offsetInCss: !!pick("offsetInCss", false),
     };
   }
 
@@ -868,13 +1084,14 @@ window.MapVxBridge = (function () {
         wrap.style.boxSizing = "border-box";
         wrap.style.padding = Math.max(3, Math.round(height * 0.1)) + "px " + Math.max(8, Math.round(height * 0.2)) + "px";
       }
-      // Fine-tune logo placement (px): +X right / -X left, +Y down / -Y up.
-      // Translate first, then rotate around the (already-translated) box
-      // center — keeps offsetX/offsetY meaning "screen px" regardless of
-      // whether a rotation is also applied.
+      // Cosmetic rotation only for map-baked offsets. When offsetInCss is set
+      // (Zara), positional nudge stays as DOM translate like before the
+      // zoom-independent coordinate bake — that brand was already tuned that way.
       var transformParts = [];
-      if (treatment.offsetX || treatment.offsetY) {
-        transformParts.push("translate(" + (treatment.offsetX || 0) + "px, " + (treatment.offsetY || 0) + "px)");
+      if (treatment.offsetInCss && (treatment.offsetX || treatment.offsetY)) {
+        transformParts.push(
+          "translate(" + (treatment.offsetX || 0) + "px, " + (treatment.offsetY || 0) + "px)"
+        );
       }
       if (treatment.rotation) {
         transformParts.push("rotate(" + treatment.rotation + "deg)");
@@ -888,7 +1105,8 @@ window.MapVxBridge = (function () {
       var img = document.createElement("img");
       img.className = "mapvx-anchor-logo";
       img.alt = "";
-      img.loading = "lazy";
+      img.loading = "eager";
+      img.decoding = "async";
       img.src = logoUrl;
       if (treatment) {
         // Size the logo by a target height (scaled) and let width follow the aspect ratio.
@@ -898,6 +1116,10 @@ window.MapVxBridge = (function () {
         img.style.maxWidth = "none";
       }
       img.onerror = function () {
+        log("warn", "anchor logo image failed to load", {
+          place: getPlaceDisplayTitle(place),
+          logoUrl: logoUrl,
+        });
         if (!img.parentNode) return;
         var brand = buildAnchorBrandElement(getAnchorBrandStyle(place));
         if (brand) {
@@ -933,10 +1155,18 @@ window.MapVxBridge = (function () {
 
   function getFeaturedLogoDimensions(config) {
     config = config || getConfig();
-    return {
-      width: config.featuredLogoWidth != null ? Number(config.featuredLogoWidth) : 140,
-      height: config.featuredLogoHeight != null ? Number(config.featuredLogoHeight) : 56,
-    };
+    var width = config.featuredLogoWidth != null ? Number(config.featuredLogoWidth) : 140;
+    var height = config.featuredLogoHeight != null ? Number(config.featuredLogoHeight) : 56;
+    // Scale logo box to the map viewport (55" totem ≈ 1080px design width).
+    var designWidth = config.anchorLogoDesignWidth != null ? Number(config.anchorLogoDesignWidth) : 1080;
+    var mapEl = document.getElementById("mapvx-container") || document.getElementById("map-container");
+    if (mapEl && mapEl.clientWidth > 0 && isFinite(designWidth) && designWidth > 0) {
+      var viewportScale = mapEl.clientWidth / designWidth;
+      viewportScale = Math.max(0.7, Math.min(1.4, viewportScale));
+      width = Math.round(width * viewportScale);
+      height = Math.round(height * viewportScale);
+    }
+    return { width: width, height: height };
   }
 
   function getPlaceDisplayTitle(place) {
@@ -1140,11 +1370,12 @@ window.MapVxBridge = (function () {
     }
   }
 
-  function resolvePlaceLabelPosition(mapInstance, place) {
+  function resolvePlaceLabelPosition(mapInstance, place, floorId) {
     if (!place || !place.position) return null;
     var libreMap = getLibreMap(mapInstance);
-    if (libreMap && place.mapvxId) {
-      var centroids = queryPOICentroids(libreMap);
+    var activeFloorId = floorId || (mapInstance && mapInstance.currentFloor) || null;
+    if (libreMap && place.mapvxId && activeFloorId) {
+      var centroids = getCentroidsForFloor(libreMap, activeFloorId);
       if (centroids[place.mapvxId]) {
         return centroids[place.mapvxId];
       }
@@ -1162,7 +1393,7 @@ window.MapVxBridge = (function () {
 
     try {
       renderPlacePopOverContent(placePopOverState.place, root);
-      var labelPos = resolvePlaceLabelPosition(placePopOverState.map, placePopOverState.place);
+      var labelPos = resolvePlaceLabelPosition(placePopOverState.map, placePopOverState.place, placePopOverState.floorId);
       if (!labelPos || labelPos.lat == null || labelPos.lng == null) {
         root.classList.add("hidden");
         return;
@@ -1333,11 +1564,14 @@ window.MapVxBridge = (function () {
       try {
         var cl = storeLabelState.centroidListener;
         cl.libreMap.off("moveend", cl.fn);
+        cl.libreMap.off("zoomend", cl.fn);
+        cl.libreMap.off("resize", cl.fn);
       } catch (e) {}
       storeLabelState.centroidListener = null;
     }
     storeLabelState.labelPlaceMarkers = [];
     storeLabelState.allModeFloorId = null;
+    clearPoiCentroidCache();
 
     if (!map || !storeLabelState.markerIds.length) {
       storeLabelState.markerIds = [];
@@ -1479,29 +1713,8 @@ window.MapVxBridge = (function () {
     }, 650);
   }
 
-  function queryPOICentroids(libreMap) {
-    var result = {};
-    try {
-      // Deliberately use ONLY rendered features (respects the SDK's active
-      // per-floor style filter from filterByFloorKey), not querySourceFeatures.
-      // querySourceFeatures ignores that filter and reads every loaded tile,
-      // which meant a multi-floor anchor (Falabella, Ripley, H&M, Jumbo...)
-      // sharing the same "ref" across floors could get its OTHER floor's
-      // point here — anchors would end up centered correctly on one floor
-      // and off-center on the rest. Rendered features are always scoped to
-      // whichever floor is currently active, so callers must treat this
-      // result as "centroids for the floor that's currently showing".
-      var features = libreMap.queryRenderedFeatures(undefined, { layers: ["indoor-poi-rank1"] });
-      features.forEach(function (f) {
-        if (f.geometry.type !== "Point") return;
-        var coords = f.geometry.coordinates;
-        var pos = { lat: coords[1], lng: coords[0] };
-        if (f.properties && f.properties.ref) {
-          result[f.properties.ref] = pos;
-        }
-      });
-    } catch (e) {}
-    return result;
+  function queryPOICentroidsForDebug(libreMap) {
+    return queryPOICentroids(libreMap, map && map.currentFloor ? map.currentFloor : null);
   }
 
   function applyFeaturedCentroids(mapInst, centroids, floorId) {
@@ -1534,7 +1747,10 @@ window.MapVxBridge = (function () {
         Object.assign({}, entry.place, { position: centroidPos }),
         entry.floorId,
         entry.featured,
-        getConfig()
+        getConfig(),
+        false,
+        null,
+        getLibreMap(mapInst)
       );
       markerConfigs.forEach(function (cfg) {
         if (cfg.floorId !== entry.floorId) return;
@@ -1544,10 +1760,12 @@ window.MapVxBridge = (function () {
             storeLabelState.markerIds.push(newId);
             entry.markerId = newId;
             entry.centroidApplied = true;
+            entry.anchorCentroid = centroidPos;
           }
         } catch (e) {}
       });
     });
+    syncFeaturedLogoPositions(mapInst);
   }
 
   function attachCentroidUpdater(mapInst) {
@@ -1558,6 +1776,8 @@ window.MapVxBridge = (function () {
     // Detach any previous listener
     if (storeLabelState.centroidListener) {
       try { storeLabelState.centroidListener.libreMap.off("moveend", storeLabelState.centroidListener.fn); } catch (e) {}
+      try { storeLabelState.centroidListener.libreMap.off("zoomend", storeLabelState.centroidListener.fn); } catch (e) {}
+      try { storeLabelState.centroidListener.libreMap.off("resize", storeLabelState.centroidListener.fn); } catch (e) {}
       storeLabelState.centroidListener = null;
     }
 
@@ -1568,35 +1788,32 @@ window.MapVxBridge = (function () {
         if (map !== mapInst) return;
         var floorId = mapInst.currentFloor;
         if (!floorId) return;
-        // Skip the query entirely if this floor's markers are already
-        // corrected — avoids needless queryRenderedFeatures work on every
-        // moveend once there's nothing left to fix for the active floor.
+
+        // Re-project manifest pixel offsets whenever the map zoom or viewport
+        // changes so anchor logos stay on their polygons (totem 55", emulators, dev).
+        syncFeaturedLogoPositions(mapInst);
+
         var pending = storeLabelState.labelPlaceMarkers.some(function (e) {
           return e.floorId === floorId && !e.centroidApplied;
         });
-        if (!pending) return;
-        var centroids = queryPOICentroids(libreMap);
-        applyFeaturedCentroids(mapInst, centroids, floorId);
-        // Once every tracked marker (across every floor visited so far) has
-        // a centroid, remove the listener. Floors not visited yet simply
-        // haven't had a chance to query their POIs — switchFloor() re-arms
-        // this so they get corrected the first time the user opens them.
-        var remaining = storeLabelState.labelPlaceMarkers.filter(function (e) { return !e.centroidApplied; });
-        if (!remaining.length && storeLabelState.centroidListener) {
-          try { libreMap.off("moveend", storeLabelState.centroidListener.fn); } catch (e) {}
-          storeLabelState.centroidListener = null;
+        if (pending) {
+          clearPoiCentroidCache();
+          var centroids = queryPOICentroids(libreMap, floorId);
+          applyFeaturedCentroids(mapInst, centroids, floorId);
         }
-      }, 150);
+      }, 120);
     }
 
     storeLabelState.centroidListener = { libreMap: libreMap, fn: runUpdate };
     libreMap.on("moveend", runUpdate);
-    // Wait for map to be fully idle (all tiles loaded) before first query
+    libreMap.on("zoomend", runUpdate);
+    libreMap.on("resize", runUpdate);
     try {
       libreMap.once("idle", runUpdate);
     } catch (e) {
       setTimeout(runUpdate, 500);
     }
+    runUpdate();
   }
 
   function storeLabelTitle(place) {
@@ -1721,13 +1938,15 @@ window.MapVxBridge = (function () {
     };
   }
 
-  function trackLabelMarker(place, markerConfig, markerId, featured) {
+  function trackLabelMarker(place, markerConfig, markerId, featured, centroidApplied) {
     storeLabelState.labelPlaceMarkers.push({
       place: place,
       floorId: markerConfig.floorId,
+      floorLabel: getFloorDisplayLabel(markerConfig.floorId),
       markerId: markerId,
       featured: !!featured,
-      centroidApplied: false,
+      centroidApplied: !!centroidApplied,
+      anchorCentroid: markerConfig._anchorCentroid || null,
     });
   }
 
@@ -1738,26 +1957,59 @@ window.MapVxBridge = (function () {
     return /(salida|ascensor|elevador|escalera|stair|totem|toten|ba[nñ]o|wc|toilet|parking|estacionamiento|sala de lact|informacion|info point|torre|bus|taxi)/.test(text);
   }
 
+  function manifestEntryHasLogoFile(entry) {
+    if (!entry) return false;
+    if (typeof entry === "string") return !!String(entry).trim();
+    if (typeof entry === "object" && entry.file) return !!String(entry.file).trim();
+    return false;
+  }
+
+  // Derive the anchor-brand list from store-logos.manifest.json so the map
+  // never tries to show a "featured" slot for a brand we don't have a PNG for
+  // (e.g. the old hardcoded Nike Rise / Cencosud entries with no local asset).
+  function getManifestFeaturedTokens(manifest) {
+    manifest = manifest || storeLogoManifest;
+    if (!manifest) return [];
+    var tokens = [];
+    var seen = {};
+    for (var key in manifest) {
+      if (!key || key.charAt(0) === "_") continue;
+      if (!manifestEntryHasLogoFile(manifest[key])) continue;
+      var norm = normalizeText(key);
+      if (!norm || seen[norm]) continue;
+      seen[norm] = true;
+      tokens.push(key);
+    }
+    return tokens;
+  }
+
+  // Used when store-logos.manifest.json/jsonp failed to load (common on totem
+  // if OTA is stale or JSONP companion missing). Keeps anchor markers alive so
+  // at least typographic fallbacks render instead of nothing.
+  var FALLBACK_FEATURED_TOKENS = [
+    "Falabella",
+    "Ripley",
+    "Paris",
+    "Jumbo",
+    "Casa Ideas",
+    "La Polar",
+    "ZARA",
+    "H&M",
+  ];
+
   function getFeaturedLabelTokens(config) {
     config = config || getConfig();
     var tokens = Array.isArray(config.storeLabelFeatured) ? config.storeLabelFeatured : [];
     if (tokens.length) return tokens;
-    return [
-      "Falabella",
-      "Ripley",
-      "Paris",
-      "Jumbo",
-      "Casa Ideas",
-      "La Polar",
-      "Nike Rise",
-      "ZARA",
-      "H&M",
-      "Cencosud",
-    ];
+    var fromManifest = getManifestFeaturedTokens();
+    if (fromManifest.length) return fromManifest;
+    return FALLBACK_FEATURED_TOKENS.slice();
   }
 
   function isFeaturedStore(place, config) {
     if (!place || isAuxiliaryLabel(place)) return false;
+    // Primary signal: we have a local PNG (or override) for this brand.
+    if (getLocalStoreLogoFilename(place, storeLogoManifest)) return true;
     var tokens = getFeaturedLabelTokens(config).map(normalizeText);
     if (!tokens.length) return false;
     var candidates = [
@@ -1800,7 +2052,7 @@ window.MapVxBridge = (function () {
     return ids;
   }
 
-  function buildStoreLabelMarkers(place, fallbackFloorId, featured, config, showAllLogos, restrictFloorId) {
+  function buildStoreLabelMarkers(place, fallbackFloorId, featured, config, showAllLogos, restrictFloorId, libreMap) {
     config = config || getConfig();
     var title = resolveStoreLabelDisplayName(place);
     var position = place && place.position;
@@ -1821,17 +2073,36 @@ window.MapVxBridge = (function () {
     for (var i = 0; i < floorIds.length; i++) {
       var floorId = floorIds[i];
       var markerId = "store-label-" + markerBaseId + "-" + floorId.replace(/[^A-Za-z0-9_-]/g, "_");
+      var floorLabel = getFloorDisplayLabel(floorId);
+      var anchorCentroid = null;
+      var markerPosition = position;
+      if (featured) {
+        anchorCentroid = resolveAnchorPosition(place, floorId, libreMap) || position;
+        markerPosition = resolveFeaturedMarkerCoordinate(libreMap, place, floorId, floorLabel) || anchorCentroid;
+      }
+      var usedCentroid = false;
+      if (featured && libreMap && place.mapvxId) {
+        var cents = getCentroidsForFloor(libreMap, floorId);
+        usedCentroid = !!cents[place.mapvxId];
+      }
       if (featured) {
         // Rebuilt per floor (not hoisted/cloned) because `perFloor` overrides
         // in the logo manifest mean the same store's logo treatment can
         // legitimately differ from one floor to the next (see getLocalStoreLogoTreatment).
-        var anchorElement = logoUrl
-          ? buildAnchorLogoElement(place, logoUrl, logoDims, config, getFloorDisplayLabel(floorId))
-          : null;
+        // Always call buildAnchorLogoElement — when logoUrl is empty it falls back
+        // to the typographic brand badge (Falabella, Ripley, Paris...) instead of
+        // silently skipping the marker.
+        var anchorElement = buildAnchorLogoElement(
+          place,
+          logoUrl || "",
+          logoDims,
+          config,
+          floorLabel
+        );
         if (anchorElement) {
           markers.push({
             id: markerId,
-            coordinate: { lat: position.lat, lng: position.lng },
+            coordinate: { lat: markerPosition.lat, lng: markerPosition.lng },
             floorId: floorId,
             text: "",
             element: anchorElement,
@@ -1839,11 +2110,13 @@ window.MapVxBridge = (function () {
             anchor: "center",
             rotationAlignment: "viewport",
             pitchAlignment: "viewport",
+            _centroidApplied: usedCentroid,
+            _anchorCentroid: anchorCentroid,
           });
         } else if (logoUrl) {
           markers.push({
             id: markerId,
-            coordinate: { lat: position.lat, lng: position.lng },
+            coordinate: { lat: markerPosition.lat, lng: markerPosition.lng },
             floorId: floorId,
             text: "",
             icon: logoUrl,
@@ -1852,6 +2125,8 @@ window.MapVxBridge = (function () {
             anchor: "center",
             rotationAlignment: "viewport",
             pitchAlignment: "viewport",
+            _centroidApplied: usedCentroid,
+            _anchorCentroid: anchorCentroid,
           });
         }
         continue;
@@ -1971,6 +2246,8 @@ window.MapVxBridge = (function () {
           });
         }));
 
+        var libreMapForLabels = getLibreMap(mapInstance);
+
         for (var ef = 0; ef < enrichedFeatured.length; ef++) {
           if (!canAddMore()) break;
           var featuredEntry = enrichedFeatured[ef];
@@ -1985,7 +2262,15 @@ window.MapVxBridge = (function () {
           // the same anchor (e.g. two "JUMBO") on one floor. Only one logo each.
           var featuredBrand = normalizeText(resolveStoreLabelDisplayName(featuredPlace) || featuredTitle);
 
-          var featuredMarkers = buildStoreLabelMarkers(featuredPlace, currentFloorId, true, config);
+          var featuredMarkers = buildStoreLabelMarkers(
+            featuredPlace,
+            currentFloorId,
+            true,
+            config,
+            false,
+            null,
+            libreMapForLabels
+          );
           featuredMarkers.forEach(function (markerConfig) {
             var brandFloorKey = "featbrand:" + featuredBrand + "|" + markerConfig.floorId;
             if (seen[brandFloorKey]) return;
@@ -1994,7 +2279,13 @@ window.MapVxBridge = (function () {
               if (markerId) {
                 seen[brandFloorKey] = true;
                 storeLabelState.markerIds.push(markerId);
-                trackLabelMarker(featuredPlace, markerConfig, markerId, true);
+                trackLabelMarker(
+                  featuredPlace,
+                  markerConfig,
+                  markerId,
+                  true,
+                  markerConfig._centroidApplied
+                );
                 added++;
               }
             } catch (e) {
@@ -2372,6 +2663,7 @@ window.MapVxBridge = (function () {
           tileCache: { enabled: true, persistToServiceWorker: false },
           onMapReady: function () {
             log("info", "onMapReady — loading Costanera indoor context");
+            lockMapRotation(map, config);
             ensureIndoorMapReady(map, config).finally(finish);
           },
           onParentPlaceChange: function (parentPlaceId) {
@@ -2653,12 +2945,19 @@ window.MapVxBridge = (function () {
   // pause on floor changes (stairs/escalators) so the new floor has time to
   // render before the route continues. Values are overridable via
   // MAPVX_CONFIG so they can be tuned per device without code changes.
+  //
+  // keepFixedBearing: true because Cenco requires the map to never rotate.
+  // MapVX's own default is `false`, which makes the camera swing its bearing
+  // to "face" the direction of travel during step-by-step route playback
+  // (heading-up navigation, like a car GPS) — that rotates the whole map
+  // away from north-up. Forcing this to `true` keeps the camera bearing
+  // fixed at 0 for the entire route animation.
   var ROUTE_ANIMATION_DEFAULTS = {
     stepTime: 4.5,
     minimumSpeed: 25,
     changeFloorTime: 1.4,
     iconRotationTime: 0.35,
-    keepFixedBearing: false,
+    keepFixedBearing: true,
   };
 
   function numOr(value, fallback) {
@@ -3052,7 +3351,7 @@ window.MapVxBridge = (function () {
         renderedCount: renderedFeatures.length,
         featuredTracked: storeLabelState.labelPlaceMarkers.length,
         featuredApplied: storeLabelState.labelPlaceMarkers.filter(function(e){ return e.centroidApplied; }).length,
-        centroids: queryPOICentroids(libreMap),
+        centroids: queryPOICentroidsForDebug(libreMap),
         featuredPlaces: storeLabelState.labelPlaceMarkers.map(function(e){
           return { title: e.place && (e.place.title || e.place.name), mapvxId: e.place && e.place.mapvxId, floorId: e.floorId, applied: e.centroidApplied };
         }),

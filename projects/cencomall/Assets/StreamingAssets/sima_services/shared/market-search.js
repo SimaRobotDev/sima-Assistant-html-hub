@@ -94,6 +94,9 @@ window.MarketSearch = (function () {
       local: String(item.local || "").trim(),
       logoUrl: String(item.brand_logo || "").trim(),
       brand_logo: String(item.brand_logo || "").trim(),
+      market_photos: Array.isArray(item.market_photos)
+        ? item.market_photos.map(function (url) { return String(url || "").trim(); }).filter(Boolean)
+        : [],
       description: String(item.brand_description || "").trim(),
       keywords: String(item.keywords || "").trim(),
       mall: String(item.mall || "").trim(),
@@ -421,6 +424,7 @@ window.MarketSearch = (function () {
       category: head.category,
       logoUrl: head.logoUrl,
       brand_logo: head.brand_logo,
+      market_photos: head.market_photos,
       description: head.description,
       keywords: head.keywords,
       schedule: head.schedule,
@@ -437,6 +441,7 @@ window.MarketSearch = (function () {
           category: entry.category,
           logoUrl: entry.logoUrl,
           brand_logo: entry.brand_logo,
+          market_photos: entry.market_photos,
           schedule: entry.schedule,
           schedules: entry.schedules,
         };

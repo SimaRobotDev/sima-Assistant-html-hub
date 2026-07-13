@@ -1,63 +1,64 @@
 /* AUTO-GENERATED from projects/cencomall/Assets/StreamingAssets/sima_services/shared/store-logos/store-logos.manifest.json by tools/build-jsonp-assets.mjs. Do not edit by hand. */
 window.__STORE_LOGO_MANIFEST__ = {
-  "_comment": "Logos PNG transparentes para tiendas ancla. La clave es el nombre normalizado (minúsculas, sin tildes).",
+  "_comment": "Logos PNG transparentes para tiendas ancla. offsetX/offsetY: px desde centroide (map-baked). offsetInCss: true = translate DOM (solo Zara, ya calibrado).",
   "casaideas": "casa-ideas.png",
   "casa ideas": "casa-ideas.png",
   "falabella": {
     "file": "falabella-wordmark.png",
-    "offsetX": -60,
-    "offsetY": 60,
-    "scale": 1.6,
+    "offsetX": 0,
+    "offsetY": 0,
+    "scale": 1.5,
     "rotation": 30
   },
   "h&m": {
     "file": "hm.png",
-    "offsetX": 110,
-    "offsetY": -40,
+    "offsetX": 0,
+    "offsetY": -15,
     "perFloor": {
-      "Nivel 2": { "offsetX": 20 }
+      "Nivel 2": { "offsetY": -10 }
     }
   },
   "h m": {
     "file": "hm.png",
-    "offsetX": 110,
-    "offsetY": -40,
+    "offsetX": 0,
+    "offsetY": -15,
     "perFloor": {
-      "Nivel 2": { "offsetX": 20 }
+      "Nivel 2": { "offsetY": -10 }
     }
   },
   "hm": {
     "file": "hm.png",
-    "offsetX": 110,
-    "offsetY": -40,
+    "offsetX": 0,
+    "offsetY": -15,
     "perFloor": {
-      "Nivel 2": { "offsetX": 20 }
+      "Nivel 2": { "offsetY": -10 }
     }
   },
   "jumbo": {
     "file": "jumbo.png",
-    "scale": 2.2,
-    "offsetY": 190
+    "scale": 2.0,
+    "offsetY": 150
   },
   "la polar": "la-polar.png",
   "lapolar": "la-polar.png",
   "paris": {
     "file": "paris.png",
     "scale": 1.18,
-    "offsetX": 25,
-    "offsetY": 160
+    "offsetX": 0,
+    "offsetY": 0
   },
   "ripley": {
     "file": "ripley.png",
-    "offsetX": -150,
-    "offsetY": -55,
-    "scale": 0.35,
-    "rotation": -55
+    "offsetX": 0,
+    "offsetY": 0,
+    "scale": 0.38,
+    "rotation": -50
   },
   "zara": {
     "file": "zara.png",
-    "offsetX": 20,
-    "offsetY": -125,
-    "scale": 1.18
+    "offsetX": -35,
+    "offsetY": 15,
+    "scale": 1.18,
+    "offsetInCss": true
   }
 };

@@ -111,7 +111,7 @@ MAPVX_CONFIG.routeStepTime = 4.5;        // seg. por tramo recto (SDK default: 3
 MAPVX_CONFIG.routeMinimumSpeed = 25;      // velocidad mínima para tramos cortos (SDK default: 40)
 MAPVX_CONFIG.routeChangeFloorTime = 1.4;  // seg. de pausa al subir/bajar piso (SDK default: 0)
 MAPVX_CONFIG.routeIconRotationTime = 0.35; // seg. de transición al girar el ícono en curvas (SDK default: 0)
-MAPVX_CONFIG.routeKeepFixedBearing = false;
+MAPVX_CONFIG.routeKeepFixedBearing = true; // bridge default: true (ver 1.11 — Cenco exige que el mapa no rote)
 ```
 
 Si en el tótem real la ruta sigue viéndose entrecortada, subir `routeChangeFloorTime` (p.ej. a `2`) da más
@@ -272,6 +272,37 @@ un puñado por mall.
 logo de una tienda featured se loguea `anchorLogo floor treatment` con el label exacto del piso y los
 valores resueltos — así se sabe con certeza qué string usar como clave de `perFloor` sin adivinar el
 formato que entrega el SDK para ese mall.
+
+### 1.11 El mapa no debe rotar (requerimiento de Cenco)
+
+Cenco pidió explícitamente que el mapa **nunca** pueda quedar rotado: debe mantenerse siempre
+"norte arriba", alineado 1:1 con la orientación física del mall impresa en la señalética del tótem. Se
+detectaron **dos** fuentes distintas de rotación, ambas corregidas en `mapvx-bridge.js`:
+
+1. **Gesto del usuario.** MapLibre GL trae habilitado por defecto tanto `dragRotate` (clic derecho o
+   ctrl+arrastre con mouse) como la rotación dentro de `touchZoomRotate` (gesto de dos dedos girando en
+   pantalla táctil), y nuestro `createMap` nunca los deshabilitaba. En un tótem táctil, un gesto accidental
+   de dos dedos bastaba para desalinear el mapa.
+2. **Bearing automático durante la animación de ruta.** El SDK de MapVX tiene un modo "heading-up"
+   (como un GPS de auto) que gira la cámara para que el ícono de ruta siempre "apunte hacia arriba" en
+   pantalla mientras camina. Esto se activa/desactiva con `animationConfig.keepFixedBearing`, y el
+   **default del SDK es `false`** (o sea, rota). Nuestro bridge ya exponía este flag como
+   `ROUTE_ANIMATION_DEFAULTS.keepFixedBearing` (ver 1.5) pero heredaba ese mismo default `false`.
+
+**Fix:**
+
+- Nueva función `lockMapRotation(mapInstance, config)` en `mapvx-bridge.js`, llamada dentro de
+  `onMapReady` cada vez que se crea una instancia del mapa (incluye recreaciones). Deshabilita
+  `map.dragRotate` y `map.touchZoomRotate.disableRotation()` (esta última deja el pinch-to-zoom intacto,
+  solo bloquea el giro) y, por seguridad, si el bearing no está en 0 lo resetea con `setBearing(0)`.
+- `ROUTE_ANIMATION_DEFAULTS.keepFixedBearing` cambiado de `false` a `true`: la cámara ya no gira para
+  "seguir" la dirección de la ruta durante la animación paso a paso; el ícono rota sobre sí mismo, pero
+  el mapa se mantiene fijo en norte arriba.
+
+**Válvula de escape:** si alguna vez se necesitara permitir rotación (no debería, por el requerimiento
+de Cenco), se puede setear `MAPVX_CONFIG.allowMapRotation = true` sin tocar código — `lockMapRotation`
+se salta por completo si encuentra ese flag en `true`. El override puntual de la ruta sigue siendo
+`MAPVX_CONFIG.routeKeepFixedBearing` (ver 1.5).
 
 ---
 

@@ -594,7 +594,8 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .map-current-floor {
   position: absolute;
   top: 10px;
-  right: 10px;
+  left: 10px;
+  right: auto;
   z-index: 10;
   background: rgba(255,255,255,0.92);
   color: var(--cm-purple-dark);
@@ -606,6 +607,12 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   border: 1px solid rgba(61,29,92,0.1);
   pointer-events: none;
   user-select: none;
+}
+
+/* MapLibre +/- zoom controls — sit slightly lower so they don't crowd the header */
+#map-view .maplibregl-ctrl-top-right {
+  top: 58px;
+  right: 10px;
 }
 
 .map-current-floor.hidden { display: none; }
@@ -655,7 +662,21 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .store-detail-header {
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
+}
+
+.store-detail-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.store-detail-photo {
+  width: 156px;
+  height: 117px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f0eaf8;
 }
 
 .store-detail-logo.store-logo,
@@ -682,10 +703,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 }
 
 .store-detail-desc {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   font-size: 13px;
   color: var(--cm-muted);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .map-embed-wrap {
@@ -2393,6 +2414,34 @@ function resolveStoreLogoUrl(result) {
   return resolveMediaUrl(raw);
 }
 
+function resolveStorePhotos(result) {
+  if (!result) return [];
+  const raw = result.market_photos || result.marketPhotos || result["market-photos"];
+  if (Array.isArray(raw)) {
+    return raw.map((url) => String(url || "").trim()).filter(Boolean);
+  }
+  if (typeof raw === "string" && raw.trim()) return [raw.trim()];
+  return [];
+}
+
+function resolveStorePhotoUrl(result) {
+  const photos = resolveStorePhotos(result);
+  return photos.length ? resolveMediaUrl(photos[0]) : "";
+}
+
+function onStoreDetailMediaError(img) {
+  const fallbackLogo = img.getAttribute("data-fallback-logo") || "";
+  if (fallbackLogo && img.classList.contains("store-detail-photo")) {
+    img.classList.remove("store-detail-photo");
+    img.classList.add("store-logo", "store-detail-logo");
+    img.src = fallbackLogo;
+    img.removeAttribute("data-fallback-logo");
+    img.onerror = function () { onStoreLogoError(img); };
+    return;
+  }
+  onStoreLogoError(img);
+}
+
 function onStoreLogoError(img) {
   const initials = img.getAttribute("data-initials") || "?";
   const hadDetail = img.classList.contains("store-detail-logo");
@@ -2411,6 +2460,24 @@ function renderStoreAvatar(result, detail) {
     return `<div class="store-initials${extraClass}">${escapeHtml(initials)}</div>`;
   }
   return `<img class="store-logo${extraClass}" src="${escapeHtml(logoUrl)}" alt="" loading="lazy" data-initials="${escapeHtml(initials)}" onerror="onStoreLogoError(this)" />`;
+}
+
+function renderStoreDetailMedia(store) {
+  const name = store.name || store.brand || "Tienda";
+  const initials = getStoreInitials(name);
+  const photoUrl = resolveStorePhotoUrl(store);
+  const logoUrl = resolveStoreLogoUrl(store);
+  const mediaUrl = photoUrl || logoUrl;
+
+  if (!mediaUrl) {
+    return `<div class="store-initials store-detail-logo">${escapeHtml(initials)}</div>`;
+  }
+
+  if (photoUrl) {
+    return `<img class="store-detail-photo" src="${escapeHtml(photoUrl)}" alt="" loading="eager" data-initials="${escapeHtml(initials)}" data-fallback-logo="${escapeHtml(logoUrl)}" onerror="onStoreDetailMediaError(this)" />`;
+  }
+
+  return renderStoreAvatar(store, true);
 }
 
 function formatNivel(floor) {
@@ -2577,6 +2644,8 @@ function resolveStore(groupIndex, locationIndex) {
     brand: result.brand,
     mall: result.mall,
     logoUrl: result.logoUrl,
+    brand_logo: result.brand_logo,
+    market_photos: result.market_photos,
     keywords: result.keywords,
     description: result.description,
     available: result.available !== false
@@ -2598,6 +2667,7 @@ function resolveStore(groupIndex, locationIndex) {
       local: loc.local || base.local,
       schedule: loc.schedule || base.schedule,
       schedules: Array.isArray(loc.schedules) && loc.schedules.length ? loc.schedules : base.schedules,
+      market_photos: loc.market_photos || base.market_photos,
       available: loc.available !== false
     };
   }
@@ -2619,13 +2689,13 @@ function renderStoreDetailPanel(store) {
   const description = String(store.description || "").trim();
   panel.innerHTML = `
     <div class="store-detail-header">
-      ${renderStoreAvatar(store, true)}
+      ${renderStoreDetailMedia(store)}
       <div class="store-detail-head-text">
         <h2 class="store-detail-name">${escapeHtml(displayName)}</h2>
         ${scheduleText ? `<div class="store-detail-schedule"><strong>${escapeHtml(t("schedule"))}:</strong> ${escapeHtml(scheduleText)}</div>` : ""}
+        ${description ? `<p class="store-detail-desc">${escapeHtml(description)}</p>` : ""}
       </div>
-    </div>
-    ${description ? `<p class="store-detail-desc">${escapeHtml(description)}</p>` : ""}`;
+    </div>`;
   panel.classList.remove("hidden");
 }
 
