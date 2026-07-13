@@ -36,7 +36,7 @@ window.__STORE_LOGO_MANIFEST__ = {
   },
   "jumbo": {
     "file": "jumbo.png",
-    "scale": 2.0,
+    "scale": 2.15,
     "offsetY": 150
   },
   "la polar": "la-polar.png",
@@ -51,7 +51,7 @@ window.__STORE_LOGO_MANIFEST__ = {
     "file": "ripley.png",
     "offsetX": 0,
     "offsetY": 0,
-    "scale": 0.38,
+    "scale": 0.35,
     "rotation": -50
   },
   "zara": {

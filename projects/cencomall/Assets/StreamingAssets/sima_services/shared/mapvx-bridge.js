@@ -1595,60 +1595,46 @@ window.MapVxBridge = (function () {
     });
   }
 
-  // IndoorEqual: rank1 = shops/restaurants + most POIs; rank2 = vending, info, etc.
-  var RETAIL_FOOD_POI_CLASSES = [
-    "shop",
-    "clothing_store",
-    "grocery",
-    "cafe",
-    "fast_food",
-    "bar",
-    "beer",
-    "alcohol_shop",
-    "attraction",
-    "art_gallery",
-    "music",
-    "lodging",
-    "park",
-    "stadium",
-    "swimming",
-    "hospital",
-    "school",
-    "college",
-    "library",
-    "office",
-    "laundry",
-    "car",
-    "fuel",
-    "harbor",
-    "bus",
-    "golf",
-    "cemetery",
-    "castle",
-    "campsite",
-    "town_hall",
+  // IndoorEqual: rank1 = shops/restaurants + mixed POIs; rank2 = vending, info;
+  // indoor-transportation-poi = stairs/elevators/escalators (always visible).
+  // Allowlist on rank1 — exclusion missed classes and style reloads during routes
+  // restored retail icons (t-shirt, cart, etc.).
+  var ESSENTIAL_POI_CLASSES = [
+    "information",
+    "entrance",
+    "telephone",
+  ];
+  var ESSENTIAL_POI_SUBCLASSES = [
+    "toilets",
+    "toilet",
+    "restroom",
+    "drinking_water",
+    "wheelchair",
+    "first_aid",
+    "defibrillator",
+    "changing_table",
+    "reception",
+    "information",
+    "help_point",
+    "lost_property",
   ];
   var retailPoiFilterTimer = null;
+  var retailPoiFilterDelays = [200, 650, 1500, 3000];
 
   function shouldHideRetailPoiIcons(config) {
     config = config || getConfig();
     return config.hideRetailPoiIcons !== false;
   }
 
-  function retailPoiExclusionFilter() {
-    return ["!", ["in", ["get", "class"], ["literal", RETAIL_FOOD_POI_CLASSES]]];
+  function essentialPoiAllowFilter() {
+    return [
+      "any",
+      ["in", ["get", "class"], ["literal", ESSENTIAL_POI_CLASSES]],
+      ["in", ["get", "subclass"], ["literal", ESSENTIAL_POI_SUBCLASSES]],
+    ];
   }
 
-  function mergeMapFilter(existing, extra) {
-    if (!extra) return existing;
-    if (!existing) return extra;
-    if (Array.isArray(existing) && existing[0] === "all") {
-      return existing.concat([extra]);
-    }
-    return ["all", existing, extra];
-  }
-
-  function filterIncludesRetailExclusion(filter) {
+  function filterIsEssentialAllowlist(filter) {
     if (!filter) return false;
     var json;
     try {
@@ -1656,7 +1642,7 @@ window.MapVxBridge = (function () {
     } catch (e) {
       return false;
     }
-    return json.indexOf('"clothing_store"') >= 0 && json.indexOf('"fast_food"') >= 0;
+    return json.indexOf('"information"') >= 0 && json.indexOf('"toilets"') >= 0;
   }
 
   function isRetailPoiRankLayer(layer) {
@@ -1676,15 +1662,14 @@ window.MapVxBridge = (function () {
 
     var style = libreMap.getStyle();
     var layers = (style && style.layers) || [];
-    var exclusion = retailPoiExclusionFilter();
+    var allow = essentialPoiAllowFilter();
     var updated = [];
 
     layers.filter(isRetailPoiRankLayer).forEach(function (layer) {
       try {
         var current = libreMap.getFilter(layer.id);
-        if (filterIncludesRetailExclusion(current)) return;
-        var next = mergeMapFilter(current, exclusion);
-        libreMap.setFilter(layer.id, next);
+        if (filterIsEssentialAllowlist(current)) return;
+        libreMap.setFilter(layer.id, allow);
         updated.push(layer.id);
       } catch (e) {
         log("warn", "applyRetailPoiIconFilter layer failed", {
@@ -1695,8 +1680,18 @@ window.MapVxBridge = (function () {
     });
 
     if (updated.length) {
-      log("info", "applyRetailPoiIconFilter", { layers: updated });
+      log("info", "applyRetailPoiIconFilter allowlist", { layers: updated });
     }
+  }
+
+  function attachPoiFilterStyleGuard(mapInstance, config) {
+    var libreMap = getLibreMap(mapInstance);
+    if (!libreMap || typeof libreMap.on !== "function") return;
+    if (libreMap.__mapvxPoiFilterGuard) return;
+    libreMap.__mapvxPoiFilterGuard = true;
+    libreMap.on("styledata", function () {
+      scheduleRetailPoiIconFilter(mapInstance, config || getConfig());
+    });
   }
 
   function scheduleRetailPoiIconFilter(mapInstance, config) {
@@ -1707,10 +1702,12 @@ window.MapVxBridge = (function () {
     retailPoiFilterTimer = setTimeout(function () {
       retailPoiFilterTimer = null;
       applyRetailPoiIconFilter(mapInstance, config);
-    }, 200);
-    setTimeout(function () {
-      applyRetailPoiIconFilter(mapInstance, config);
-    }, 650);
+    }, retailPoiFilterDelays[0]);
+    retailPoiFilterDelays.forEach(function (delay) {
+      setTimeout(function () {
+        applyRetailPoiIconFilter(mapInstance, config);
+      }, delay);
+    });
   }
 
   function queryPOICentroidsForDebug(libreMap) {
@@ -2547,6 +2544,7 @@ window.MapVxBridge = (function () {
     _zoomLabelTier = -1;
     attachZoomLabelSwitcher(mapInstance, null, baselineZoom);
     evaluateStoreLabelZoom(mapInstance, null, baselineZoom);
+    attachPoiFilterStyleGuard(mapInstance, config);
     scheduleRetailPoiIconFilter(mapInstance, config);
     return parentPlace;
   }
@@ -3182,6 +3180,7 @@ window.MapVxBridge = (function () {
     var routeAnimCfg = getRouteAnimationConfig(config);
     log("info", "drawRouteToTarget", { from: originId, to: destId, originRaw: originRaw, animation: routeAnimCfg });
     hidePlacePopOver();
+    scheduleRetailPoiIconFilter(map, config);
     routeAnimationToken += 1;
     var currentToken = routeAnimationToken;
 
@@ -3207,6 +3206,7 @@ window.MapVxBridge = (function () {
             if (currentToken !== routeAnimationToken) {
               return;
             }
+            scheduleRetailPoiIconFilter(map, config);
             if (payload && payload.isFinished) {
               if (lastMapSession && lastMapSession.result && lastMapSession.result.selectedPlace) {
                 showPlacePopOver(map, lastMapSession.result.selectedPlace, lastMapSession.floorId);
