@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.14-2",
+  "version": "2026.07.14-3",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-14T16:12:21.332Z",
+  "generatedAt": "2026-07-14T16:23:31.680Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -136,8 +136,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 121996,
-      "sha256": "be5e38ff51de3477bf12a24dcc0e6d7374bda51f436c97017996e1e22fd096a0"
+      "size": 125047,
+      "sha256": "d49f7d9f22acf64104909a15fa859176efc39fd57c121e0a0dc90a8483184c58"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -176,8 +176,8 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 121057,
-      "sha256": "9307580f06a06e7c85f44901dc385ecc94d3450ddaa8f8ad5093dd310c8e645e"
+      "size": 124487,
+      "sha256": "7b8e802392e108b5926d50dacd8c4605952ee01e4617e2fd04da9f7777613744"
     },
     {
       "path": "shared/mapvx/index.js",
