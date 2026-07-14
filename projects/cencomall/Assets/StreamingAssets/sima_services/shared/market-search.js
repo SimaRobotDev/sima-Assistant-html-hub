@@ -98,6 +98,11 @@ window.MarketSearch = (function () {
         ? item.market_photos.map(function (url) { return String(url || "").trim(); }).filter(Boolean)
         : [],
       description: String(item.brand_description || "").trim(),
+      descriptionLocales: {
+        es: String(item.brand_description || "").trim(),
+        en: String(item.brand_description_en || item.brand_description_en_us || "").trim(),
+        pt: String(item.brand_description_pt || item.brand_description_pt_br || "").trim(),
+      },
       keywords: String(item.keywords || "").trim(),
       mall: String(item.mall || "").trim(),
       available: isAvailable(item),
@@ -426,6 +431,7 @@ window.MarketSearch = (function () {
       brand_logo: head.brand_logo,
       market_photos: head.market_photos,
       description: head.description,
+      descriptionLocales: head.descriptionLocales,
       keywords: head.keywords,
       schedule: head.schedule,
       schedules: head.schedules,

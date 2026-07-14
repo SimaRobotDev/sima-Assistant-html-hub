@@ -20,6 +20,11 @@ const targets = [
     "__MARKET_CATALOG__",
   ],
   [
+    "projects/cencomall/Assets/StreamingAssets/sima_services/data/market-catalog-i18n.json",
+    "projects/cencomall/Assets/StreamingAssets/sima_services/data/market-catalog-i18n.jsonp.js",
+    "__MARKET_CATALOG_I18N__",
+  ],
+  [
     "projects/cencomall/Assets/StreamingAssets/sima_services/shared/store-logos/store-logos.manifest.json",
     "projects/cencomall/Assets/StreamingAssets/sima_services/shared/store-logos/store-logos.manifest.jsonp.js",
     "__STORE_LOGO_MANIFEST__",

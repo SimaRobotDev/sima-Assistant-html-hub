@@ -290,6 +290,8 @@
     }
 
     function applyLocale() {
+      const locale = getLocale();
+      document.documentElement.lang = locale;
       document.getElementById("page-title").textContent = t("pageTitle");
       document.getElementById("page-subtitle").textContent = t("pageSubtitle");
       document.getElementById("rodados-title").textContent = t("rodadosTitle");
@@ -339,11 +341,11 @@
       }
 
       if (data.extra) whatsappNumber = String(data.extra).replace(/\D/g, "");
-      if (data.language) window.MALL_LOCALE = data.language;
-
       applyLocale();
       SimaBridge.speak(t("speakIntro"));
     };
+
+    SimaLocale.bindPageLocale(applyLocale);
 
     document.getElementById("btnCall").onclick = startCustomerCall;
 

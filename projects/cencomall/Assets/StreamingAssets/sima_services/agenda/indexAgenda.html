@@ -5,6 +5,7 @@
 <title>SIMA Agenda</title>
 
 <link rel="stylesheet" href="../shared/app.css" />
+<script src="../shared/locale.js"></script>
 <script src="../shared/bridge.js"></script>
 
 <style>
@@ -54,14 +55,14 @@
 <div class="app-shell">
 
 <div class="header">
-  <div class="brand">SIMA Agenda</div>
-  <div class="status-chip">Evento en vivo</div>
+  <div class="brand" id="brandTitle">SIMA Agenda</div>
+  <div class="status-chip" id="statusChip">Evento en vivo</div>
 </div>
 
 <div class="card">
 
-<div class="title">Demo Day CosmoLab</div>
-<div class="subtitle">Sky Costanera · Piso 62</div>
+<div class="title" id="eventTitle">Demo Day CosmoLab</div>
+<div class="subtitle" id="eventSubtitle">Sky Costanera · Piso 62</div>
 
 <div class="timeline" id="timeline">
 
@@ -123,9 +124,9 @@
 </div>
 
 <div class="actions">
-  <button class="btn btn-primary" onclick="modoVivo()">Modo en vivo</button>
-  <button class="btn btn-secondary" onclick="focusSima()">Ver SIMA</button>
-  <button class="btn btn-secondary" onclick="closeView()">Cerrar</button>
+  <button class="btn btn-primary" id="btnLive" onclick="modoVivo()">Modo en vivo</button>
+  <button class="btn btn-secondary" id="btnSima" onclick="focusSima()">Ver SIMA</button>
+  <button class="btn btn-secondary" id="btnClose" onclick="closeView()">Cerrar</button>
 </div>
 
 </div>
@@ -133,10 +134,73 @@
 
 <script>
 
+let agendaLocale = SimaLocale.readLocaleFromPage();
+
+const AGENDA_I18N = {
+  es: {
+    brand: "SIMA Agenda",
+    status: "Evento en vivo",
+    eventTitle: "Demo Day CosmoLab",
+    eventSubtitle: "Sky Costanera · Piso 62",
+    btnLive: "Modo en vivo",
+    btnSima: "Ver SIMA",
+    btnClose: "Cerrar",
+    speakIntro: "Te mostraré la agenda del evento y lo que está ocurriendo en tiempo real.",
+    speakNow: "Actualmente está ocurriendo: {text}",
+    speakSima: "La presentación de SIMA está programada para las 18:24 dentro del primer bloque."
+  },
+  en: {
+    brand: "SIMA Agenda",
+    status: "Live event",
+    eventTitle: "Demo Day CosmoLab",
+    eventSubtitle: "Sky Costanera · Floor 62",
+    btnLive: "Live mode",
+    btnSima: "View SIMA",
+    btnClose: "Close",
+    speakIntro: "I'll show you the event agenda and what's happening in real time.",
+    speakNow: "Currently happening: {text}",
+    speakSima: "The SIMA presentation is scheduled for 18:24 in the first block."
+  },
+  pt: {
+    brand: "SIMA Agenda",
+    status: "Evento ao vivo",
+    eventTitle: "Demo Day CosmoLab",
+    eventSubtitle: "Sky Costanera · Piso 62",
+    btnLive: "Modo ao vivo",
+    btnSima: "Ver SIMA",
+    btnClose: "Fechar",
+    speakIntro: "Vou mostrar a agenda do evento e o que está acontecendo em tempo real.",
+    speakNow: "Acontecendo agora: {text}",
+    speakSima: "A apresentação da SIMA está programada para 18:24 no primeiro bloco."
+  }
+};
+
+function t(key, vars) {
+  let text = SimaLocale.t(AGENDA_I18N, key, agendaLocale);
+  if (vars) Object.keys(vars).forEach((k) => { text = text.replace("{" + k + "}", vars[k]); });
+  return text;
+}
+
+function applyLocale() {
+  agendaLocale = SimaLocale.readLocaleFromPage();
+  document.documentElement.lang = agendaLocale;
+  document.getElementById("brandTitle").textContent = t("brand");
+  document.getElementById("statusChip").textContent = t("status");
+  document.getElementById("eventTitle").textContent = t("eventTitle");
+  document.getElementById("eventSubtitle").textContent = t("eventSubtitle");
+  document.getElementById("btnLive").textContent = t("btnLive");
+  document.getElementById("btnSima").textContent = t("btnSima");
+  document.getElementById("btnClose").textContent = t("btnClose");
+}
+
+SimaLocale.bindPageLocale(applyLocale);
+
 function handleUnityData(data){
-  SimaBridge.speak("Te mostraré la agenda del evento y lo que está ocurriendo en tiempo real.");
+  SimaBridge.speak(t("speakIntro"));
   setTimeout(updateTimeline, 500);
 }
+
+window.handleUnityData = handleUnityData;
 
 
 // 🔥 DETECTA EVENTO ACTUAL
@@ -172,7 +236,7 @@ function updateTimeline(){
 
     // 🔥 avatar habla
     const text = closest.innerText;
-    SimaBridge.speak("Actualmente está ocurriendo: " + text);
+    SimaBridge.speak(t("speakNow", { text: text }));
   }
 }
 
@@ -190,7 +254,7 @@ function focusSima(){
   sima.classList.add("active");
   sima.scrollIntoView({ behavior: "smooth", block: "center" });
 
-  SimaBridge.speak("La presentación de SIMA está programada para las 18:24 dentro del primer bloque.");
+  SimaBridge.speak(t("speakSima"));
 }
 
 
@@ -203,6 +267,7 @@ function closeView(){
 }
 
 window.onload = () => {
+  applyLocale();
   SimaBridge.ready("agenda");
 };
 

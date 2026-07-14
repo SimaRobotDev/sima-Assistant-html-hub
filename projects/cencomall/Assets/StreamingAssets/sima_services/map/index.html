@@ -396,9 +396,18 @@ document.addEventListener("DOMContentLoaded", () => {
     en: { title: "MapVX test — local Cenco catalog" },
     pt: { title: "Teste MapVX — catálogo local Cenco" }
   };
-  const mapLocale = SimaLocale.resolveLocale(window.MALL_LOCALE || params.get("locale") || "es");
-  const mapTitle = document.getElementById("map-page-title");
-  if (mapTitle) mapTitle.textContent = SimaLocale.t(MAP_I18N, "title", mapLocale);
+  let mapLocale = SimaLocale.readLocaleFromPage();
+
+  function applyMapLocale() {
+    mapLocale = SimaLocale.readLocaleFromPage();
+    document.documentElement.lang = mapLocale;
+    if (window.MAPVX_CONFIG) window.MAPVX_CONFIG.lang = mapLocale;
+    const mapTitle = document.getElementById("map-page-title");
+    if (mapTitle) mapTitle.textContent = SimaLocale.t(MAP_I18N, "title", mapLocale);
+  }
+
+  SimaLocale.bindPageLocale(applyMapLocale);
+  applyMapLocale();
   renderTestVersionBadge();
 
   if (params.get("id")) document.getElementById("catalog-id").value = params.get("id");

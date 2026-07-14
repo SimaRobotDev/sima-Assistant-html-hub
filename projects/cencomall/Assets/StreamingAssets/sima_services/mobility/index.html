@@ -8,6 +8,9 @@
 <link rel="stylesheet" href="../shared/app.css" />
 <link rel="stylesheet" href="../shared/mapvx/styles.css" />
 <script src="../shared/locale.js"></script>
+<script src="../shared/native-payload.js"></script>
+<script src="../shared/market-query-i18n.js"></script>
+<script src="../shared/market-i18n.js"></script>
 <script src="../shared/bridge.js"></script>
 <script src="../shared/market-search.js"></script>
 <script src="../shared/mapvx/index.js"></script>
@@ -1560,6 +1563,35 @@ function t(key) {
   return SimaLocale.t(MOBILITY_I18N, key, mobilityLocale);
 }
 
+function localizeCategoryName(name) {
+  if (typeof MarketI18n !== "undefined" && MarketI18n.translateCategory) {
+    return MarketI18n.translateCategory(name, mobilityLocale);
+  }
+  return name;
+}
+
+function localizeCategoryField(category) {
+  if (!category) return "";
+  if (typeof MarketI18n !== "undefined" && MarketI18n.translateCategoryList) {
+    return MarketI18n.translateCategoryList(category, mobilityLocale);
+  }
+  return String(category);
+}
+
+function localizeStoreDescription(store) {
+  const desc = store && (store.description || "");
+  const id = store && (store.id != null ? store.id : "");
+  const locales = store && store.descriptionLocales;
+  if (typeof MarketI18n !== "undefined" && MarketI18n.translateDescription) {
+    return MarketI18n.translateDescription(id, desc, mobilityLocale, locales);
+  }
+  return desc;
+}
+
+function firstCategoryLocalized(category) {
+  return localizeCategoryName(firstCategory(category));
+}
+
 function getMobilityMode() {
   const params = new URLSearchParams(window.location.search);
   return params.get("mode") || "";
@@ -1740,9 +1772,10 @@ async function renderPopularCategoriesLanding() {
     }
 
     chips.innerHTML = popular.map((cat) => {
-      const safeName = escapeHtml(cat.name);
-      const jsName = encodeURIComponent(String(cat.name || ""));
-      return `<button class="cm-popular-category-chip" type="button" onclick="selectStoreCategory(decodeURIComponent('${jsName}'))">${safeName}</button>`;
+      const canonicalName = String(cat.name || "");
+      const displayName = escapeHtml(localizeCategoryName(canonicalName));
+      const jsName = encodeURIComponent(canonicalName);
+      return `<button class="cm-popular-category-chip" type="button" onclick="selectStoreCategory(decodeURIComponent('${jsName}'))">${displayName}</button>`;
     }).join("");
   } catch (e) {
     console.warn("renderPopularCategoriesLanding failed", e);
@@ -1883,7 +1916,19 @@ async function runMarketCatalogSearch(query, options) {
 
   try {
     await MarketSearch.loadCatalog();
-    const searchResult = MarketSearch.search(q, { limit: options.limit || 30 });
+    let searchResult = MarketSearch.search(q, { limit: options.limit || 30 });
+
+    if ((!searchResult.results || !searchResult.results.length) && typeof MarketQueryI18n !== "undefined") {
+      const expanded = MarketQueryI18n.expandForCatalogSearch(q, mobilityLocale);
+      if (expanded && normalizeMarketQuery(expanded) !== normalizeMarketQuery(q)) {
+        const retry = MarketSearch.search(expanded, { limit: options.limit || 30 });
+        if (retry.results && retry.results.length) {
+          searchResult = retry;
+          SimaBridge.log("market_search expanded locale=" + mobilityLocale + " q=" + q + " -> " + expanded);
+        }
+      }
+    }
+
     const payload = {
       type: "market_search",
       query: q,
@@ -1914,6 +1959,15 @@ async function runMarketCatalogSearch(query, options) {
 
 function prefetchMarketCatalog() {
   if (!shouldUseLocalMarketCatalog()) return;
+  if (typeof MarketI18n !== "undefined" && MarketI18n.loadOverlay) {
+    MarketI18n.loadOverlay()
+      .then(function () {
+        if (mobilityLocale !== "es") applyMobilityLocale();
+      })
+      .catch(function (e) {
+        console.warn("market i18n prefetch failed", e);
+      });
+  }
   if (typeof MarketSearch === "undefined" || !MarketSearch.loadCatalog) return;
   MarketSearch.loadCatalog()
     .then(function () {
@@ -1939,8 +1993,9 @@ function initStoreSearchLanding() {
 
 function applyMobilityLocale() {
   mobilityLocale = getMobilityLocale();
+  document.documentElement.lang = mobilityLocale;
   MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || MAP_SERVICE_BASE_URL || "";
-  if (window.MAPVX_CONFIG && !window.MAPVX_CONFIG.lang) {
+  if (window.MAPVX_CONFIG) {
     window.MAPVX_CONFIG.lang = mobilityLocale;
   }
 
@@ -1948,11 +2003,20 @@ function applyMobilityLocale() {
   if (welcome) welcome.textContent = t("welcomeHint");
 
   applyStoreSearchLandingLocale();
-  if (getMobilityMode() === "store_search" || isLocalHtmlMode())
+  const hasResults = !!(lastMarketPayload && Array.isArray(lastMarketPayload.results) && lastMarketPayload.results.length);
+  const landingVisible = document.getElementById("store-search-landing");
+  if ((getMobilityMode() === "store_search" || isLocalHtmlMode()) && !hasResults && landingVisible) {
     showStoreSearchLanding(true);
+  }
 
   const speakBtn = document.getElementById("btnSpeak");
   if (speakBtn) speakBtn.textContent = t("speakWithCami");
+
+  const speakMini = document.getElementById("btnSpeakMini");
+  if (speakMini) speakMini.setAttribute("aria-label", t("speakWithCami"));
+
+  const speakSearch = document.getElementById("btnSpeakSearch");
+  if (speakSearch) speakSearch.setAttribute("aria-label", t("speakWithCami"));
 
   const surveyTitle = document.getElementById("survey-title");
   if (surveyTitle) surveyTitle.textContent = t("surveyTitle");
@@ -1970,10 +2034,40 @@ function applyMobilityLocale() {
   if (mapBack) mapBack.textContent = t("back");
 
   const mapTitle = document.getElementById("map-view-title-text");
-  if (mapTitle && !mapTitle.textContent) mapTitle.textContent = t("map");
+  if (mapTitle) mapTitle.textContent = t("map");
+
+  const mapRouteBtn = document.getElementById("map-route-btn");
+  if (mapRouteBtn && !mapRouteBtn.classList.contains("hidden")) {
+    mapRouteBtn.textContent = t("viewRoute");
+  }
+
+  if (lastMarketPayload) renderMarketResults(lastMarketPayload);
+  if (lastPromotionPayload) renderPromotionResults(lastPromotionPayload);
+  if (lastServicesPayload) renderServicesResults(lastServicesPayload);
+
+  const landing = document.getElementById("store-search-landing");
+  if (landing && landing.classList.contains("visible")) {
+    renderPopularCategoriesLanding();
+  }
+
+  const categoriesGrid = document.querySelector(".cm-category-grid");
+  if (categoriesGrid && typeof MarketSearch !== "undefined" && MarketSearch.listCategories) {
+    try {
+      const data = MarketSearch.listCategories();
+      if (data.categories && data.categories.length) renderStoreCategories(data.categories);
+    } catch (e) { /* noop */ }
+  }
+
+  const surveyStripEl = document.getElementById("survey-strip");
+  if (surveyStripEl && !surveyStripEl.classList.contains("hidden") && !surveyStripEl.classList.contains("is-thanks")) {
+    renderEntrySurvey();
+  }
+
+  updateMapZoomMeter();
 }
 
 window.applyMobilityLocale = applyMobilityLocale;
+SimaLocale.bindPageLocale(applyMobilityLocale);
 
 function ingestPayload(data) {
   const payload = typeof data === "string" ? JSON.parse(data) : data;
@@ -2055,11 +2149,12 @@ function renderStoreCategories(categories) {
   }
 
   const chips = categories.map(function (cat) {
-    const safeName = escapeHtml(cat.name);
-    const jsName = encodeURIComponent(String(cat.name || ""));
+    const canonicalName = String(cat.name || "");
+    const displayName = escapeHtml(localizeCategoryName(canonicalName));
+    const jsName = encodeURIComponent(canonicalName);
     return `
       <button class="cm-category-chip" type="button" onclick="selectStoreCategory(decodeURIComponent('${jsName}'))">
-        <span class="cm-category-chip-name">${safeName}</span>
+        <span class="cm-category-chip-name">${displayName}</span>
         <span class="cm-category-chip-count">${cat.storeCount} ${escapeHtml(t("storesInCategory"))}</span>
       </button>`;
   }).join("");
@@ -2111,7 +2206,7 @@ function renderMarketResultsActions() {
 function renderMarketResultsLabel(payload) {
   const query = payload.query || "";
   if (payload.resultType === "category") {
-    return `${escapeHtml(t("category"))}: <strong>${escapeHtml(query)}</strong>`;
+    return `${escapeHtml(t("category"))}: <strong>${escapeHtml(localizeCategoryName(query))}</strong>`;
   }
   if (payload.resultType === "related") {
     return `${escapeHtml(t("relatedResultsFor"))}: <strong>${escapeHtml(query)}</strong>`;
@@ -2291,10 +2386,49 @@ function showSearchError(message) {
     </div>`;
 }
 
+function dispatchVoiceSearch(query, source) {
+  const q = String(query || "").trim();
+  if (!q) return false;
+
+  const inputEl = document.getElementById("storeSearchInput");
+  if (inputEl) inputEl.value = q;
+  const landing = document.getElementById("store-search-landing");
+  if (landing) landing.classList.remove("visible");
+
+  marketSearchSeq++;
+  SimaBridge.log("voice_search q=" + q + " source=" + (source || "native") + " locale=" + mobilityLocale);
+
+  if (shouldNotifyUnityMarketSearch()) {
+    SimaBridge.send("market_search", { text: q, source: source || "voice" });
+  }
+  if (shouldUseLocalMarketCatalog()) {
+    runMarketCatalogSearch(q, { seq: marketSearchSeq });
+  }
+  return true;
+}
+
 function buscarDesdeVoz(raw) {
   if (raw == null) return;
+
   if (typeof raw === "object") {
-    renderIncomingPayload(raw);
+    const data = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.normalize)
+      ? SimaNativePayload.normalize(raw)
+      : raw;
+
+    if (data && data.type) {
+      renderIncomingPayload(data);
+      return;
+    }
+
+    const query = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.extractSearchQuery)
+      ? SimaNativePayload.extractSearchQuery(data)
+      : String(data.query || data.text || data.q || "").trim();
+    if (query) {
+      dispatchVoiceSearch(query, data.source || "voice");
+      return;
+    }
+
+    SimaBridge.log("buscarDesdeVoz ignored payload without query/type");
     return;
   }
 
@@ -2310,53 +2444,71 @@ function buscarDesdeVoz(raw) {
   }
 
   if (input.startsWith("{") || input.startsWith("[")) {
-    try { renderIncomingPayload(JSON.parse(input)); }
-    catch (e) { showSearchError("Error al mostrar los resultados."); }
+    try {
+      const parsed = JSON.parse(input);
+      buscarDesdeVoz(parsed);
+    } catch (e) { showSearchError("Error al mostrar los resultados."); }
     return;
   }
 
-  const inputEl = document.getElementById("storeSearchInput");
-  if (inputEl) inputEl.value = input;
-  const landing = document.getElementById("store-search-landing");
-  if (landing) landing.classList.remove("visible");
-  marketSearchSeq++;
-  if (shouldNotifyUnityMarketSearch()) {
-    SimaBridge.send("market_search", { text: input, source: "voice" });
-  }
-  if (shouldUseLocalMarketCatalog()) {
-    runMarketCatalogSearch(input, { seq: marketSearchSeq });
-  }
+  dispatchVoiceSearch(input, "voice");
 }
 
 function renderIncomingPayload(dataJson) {
-  if (!dataJson || !dataJson.type) return;
-  switch (dataJson.type) {
-    case "market_search": {
-      const incomingQuery = String(dataJson.query || dataJson.text || dataJson.q || "").trim();
-      const hasResultsArray = Array.isArray(dataJson.results);
+  if (!dataJson) return;
 
-      if (hasResultsArray && dataJson.results.length > 0) {
-        renderMarketResults(Object.assign({}, dataJson, {
-          source: dataJson.source || "unity",
+  const data = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.normalize)
+    ? SimaNativePayload.normalize(dataJson)
+    : dataJson;
+
+  if (!data.type) {
+    const fallbackQuery = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.extractSearchQuery)
+      ? SimaNativePayload.extractSearchQuery(data)
+      : String(data.query || data.text || data.q || "").trim();
+    if (fallbackQuery) {
+      dispatchVoiceSearch(fallbackQuery, data.source || "native");
+      return;
+    }
+    SimaBridge.log("renderIncomingPayload ignored: no type/query");
+    return;
+  }
+
+  switch (data.type) {
+    case "market_search": {
+      const incomingQuery = String(
+        (typeof SimaNativePayload !== "undefined" && SimaNativePayload.extractSearchQuery)
+          ? SimaNativePayload.extractSearchQuery(data)
+          : (data.query || data.text || data.q || "")
+      ).trim();
+      const hasResultsArray = Array.isArray(data.results);
+
+      if (hasResultsArray && data.results.length > 0) {
+        renderMarketResults(Object.assign({}, data, {
+          source: data.source || "unity",
         }));
         break;
       }
 
-      if (hasResultsArray && dataJson.results.length === 0) {
+      if (hasResultsArray && data.results.length === 0) {
         if (localMarketSearchAlreadyResolved(incomingQuery, marketSearchSeq)) {
           SimaBridge.log(
             "market_search unity empty kept local results: " + incomingQuery
           );
           break;
         }
-        renderMarketResults(Object.assign({}, dataJson, {
-          source: dataJson.source || "unity",
+        renderMarketResults(Object.assign({}, data, {
+          source: data.source || "unity",
         }));
         break;
       }
 
       if (isMarketSearchUnityOnlyMode()) {
-        renderMarketResults(dataJson);
+        renderMarketResults(data);
+        break;
+      }
+
+      if (!incomingQuery) {
+        SimaBridge.log("market_search missing query in payload");
         break;
       }
 
@@ -2365,25 +2517,26 @@ function renderIncomingPayload(dataJson) {
         break;
       }
 
+      marketSearchSeq++;
       if (shouldUseLocalMarketCatalog()) {
         runMarketCatalogSearch(incomingQuery, { skipRender: false, seq: marketSearchSeq });
         break;
       }
 
-      renderMarketResults(dataJson);
+      renderMarketResults(data);
       break;
     }
     case "promotion_search":
-      renderPromotionResults(dataJson);
+      renderPromotionResults(data);
       break;
     case "services_search":
-      renderServicesResults(dataJson);
+      renderServicesResults(data);
       break;
     case "parking_info":
-      renderParkingInfo(dataJson);
+      renderParkingInfo(data);
       break;
     default:
-      console.warn("Unknown payload type", dataJson.type);
+      console.warn("Unknown payload type", data.type);
   }
 }
 
@@ -2686,7 +2839,7 @@ function renderStoreDetailPanel(store) {
 
   const displayName = sanitizeStoreDisplayName(store.name || store.brand || t("results"));
   const scheduleText = formatStoreScheduleText(store);
-  const description = String(store.description || "").trim();
+  const description = String(localizeStoreDescription(store)).trim();
   panel.innerHTML = `
     <div class="store-detail-header">
       ${renderStoreDetailMedia(store)}
@@ -2757,7 +2910,7 @@ function shortenSpeechText(text, maxWords, maxChars) {
 function speakStoreDetail(store) {
   if (!store || !SimaBridge || typeof SimaBridge.speak !== "function") return;
 
-  const description = shortenSpeechText(store.description || store.keywords || "", 14, 110);
+  const description = shortenSpeechText(localizeStoreDescription(store) || store.keywords || "", 14, 110);
   if (description) SimaBridge.speak(description);
 }
 
@@ -2782,9 +2935,9 @@ function renderStoreCard(result, idx) {
       const btn = available
         ? `<button class="btn-ver-mapa" type="button" onclick="event.stopPropagation(); openStoreMap(${idx}, ${locIdx})">${escapeHtml(getMapButtonLabelForFloor(loc.floor))}</button>`
         : `<button class="btn-remodelacion" disabled>${escapeHtml(t("renovation"))}</button>`;
-      const category = firstCategory(loc.category || result.category);
+      const category = firstCategoryLocalized(loc.category || result.category);
       const categoryBadge = category
-        ? `<span class="store-badge" title="${escapeHtml(loc.category || result.category || "")}">${escapeHtml(truncate(category, 14))}</span>`
+        ? `<span class="store-badge" title="${escapeHtml(localizeCategoryField(loc.category || result.category || ""))}">${escapeHtml(truncate(category, 14))}</span>`
         : "";
       const floor = `<span class="store-badge store-badge-floor">${escapeHtml(formatNivel(loc.floor || result.floor))}</span>`;
       const displayName = result.name || result.brand || loc.name || "Tienda";
@@ -2801,9 +2954,9 @@ function renderStoreCard(result, idx) {
     }
 
     const displayName = result.name || result.brand || "Tienda";
-    const category = firstCategory(result.category);
+    const category = firstCategoryLocalized(result.category);
     const categoryBadge = category
-      ? `<span class="store-badge" title="${escapeHtml(result.category)}">${escapeHtml(truncate(category, 14))}</span>`
+      ? `<span class="store-badge" title="${escapeHtml(localizeCategoryField(result.category))}">${escapeHtml(truncate(category, 14))}</span>`
       : "";
     const floorsSummary = summarizeFloors(result.locations);
     const uniqueFloorRows = [];
@@ -2872,9 +3025,9 @@ function renderStoreCard(result, idx) {
   const btn = available
     ? `<button class="btn-ver-mapa" type="button" onclick="event.stopPropagation(); openStoreMap(${idx})">${escapeHtml(t("viewMap"))}</button>`
     : `<button class="btn-remodelacion" disabled>${escapeHtml(t("renovation"))}</button>`;
-  const category = firstCategory(result.category);
+  const category = firstCategoryLocalized(result.category);
   const categoryBadge = category
-    ? `<span class="store-badge" title="${escapeHtml(result.category)}">${escapeHtml(truncate(category, 14))}</span>`
+    ? `<span class="store-badge" title="${escapeHtml(localizeCategoryField(result.category))}">${escapeHtml(truncate(category, 14))}</span>`
     : "";
   const promoBadge = result.promoBadge
     ? `<span class="store-badge store-badge-promo" title="${escapeHtml(result.promoTitle || "")}">Promo</span>`

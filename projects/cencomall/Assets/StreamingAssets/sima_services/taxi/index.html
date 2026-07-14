@@ -108,6 +108,7 @@
     }
   </style>
 
+  <script src="../shared/locale.js"></script>
   <script src="../shared/bridge.js"></script>
 </head>
 
@@ -116,10 +117,10 @@
   <div class="modal">
     <div class="header">
       <div class="back" onclick="closeView()">←</div>
-      <div class="title">Reserva de taxi</div>
+      <div class="title" id="pageTitle">Reserva de taxi</div>
     </div>
 
-    <div class="subtitle">Buscando disponibilidad</div>
+    <div class="subtitle" id="pageSubtitle">Buscando disponibilidad</div>
 
     <div class="progress-bar">
       <div id="progressFill" class="progress-fill"></div>
@@ -138,11 +139,11 @@
 
 
 <div id="successPanel" class="driver-card hidden" style="text-align:center">
-  <div style="font-size:22px; font-weight:700; color:#2d1f5e; margin-bottom:10px;">
+  <div id="successTitle" style="font-size:22px; font-weight:700; color:#2d1f5e; margin-bottom:10px;">
     ✅ Taxi solicitado
   </div>
 
-  <div style="font-size:16px; color:#555; margin-bottom:12px;">
+  <div id="successHint" style="font-size:16px; color:#555; margin-bottom:12px;">
     📱 Escanea el QR para continuar en tu teléfono
   </div>
 
@@ -158,17 +159,96 @@
 
   <script>
     let ticketId = "";
+    let taxiLocale = SimaLocale.readLocaleFromPage();
+    let lastEta = 4;
+    let lastPlate = "CJXL52";
+    let lastDriver = "Camila S.";
+
+    const TAXI_I18N = {
+      es: {
+        pageTitle: "Reserva de taxi",
+        pageSubtitle: "Buscando disponibilidad",
+        eta: "Tiempo estimado: {n} minutos",
+        plate: "Patente: {plate}",
+        location: "Dirígete al PISO -2",
+        confirm: "Listo",
+        successTitle: "✅ Taxi solicitado",
+        successHint: "📱 Escanea el QR para continuar en tu teléfono",
+        ticketId: "ID: {id}",
+        speakSearching: "Estoy buscando taxis disponibles.",
+        speakFound: "Taxi encontrado. Llega en aproximadamente {n} minutos.",
+        speakReserved: "Taxi solicitado correctamente. Escanea el código QR para continuar."
+      },
+      en: {
+        pageTitle: "Taxi booking",
+        pageSubtitle: "Checking availability",
+        eta: "Estimated time: {n} minutes",
+        plate: "Plate: {plate}",
+        location: "Go to FLOOR -2",
+        confirm: "Done",
+        successTitle: "✅ Taxi requested",
+        successHint: "📱 Scan the QR code to continue on your phone",
+        ticketId: "ID: {id}",
+        speakSearching: "I'm looking for available taxis.",
+        speakFound: "Taxi found. It arrives in about {n} minutes.",
+        speakReserved: "Taxi requested successfully. Scan the QR code to continue."
+      },
+      pt: {
+        pageTitle: "Reserva de táxi",
+        pageSubtitle: "Buscando disponibilidade",
+        eta: "Tempo estimado: {n} minutos",
+        plate: "Placa: {plate}",
+        location: "Dirija-se ao PISO -2",
+        confirm: "Pronto",
+        successTitle: "✅ Táxi solicitado",
+        successHint: "📱 Escaneie o QR para continuar no seu telefone",
+        ticketId: "ID: {id}",
+        speakSearching: "Estou procurando táxis disponíveis.",
+        speakFound: "Táxi encontrado. Chega em aproximadamente {n} minutos.",
+        speakReserved: "Táxi solicitado com sucesso. Escaneie o código QR para continuar."
+      }
+    };
+
+    function t(key, vars) {
+      var text = SimaLocale.t(TAXI_I18N, key, taxiLocale);
+      if (vars) {
+        Object.keys(vars).forEach(function(k) {
+          text = text.replace("{" + k + "}", vars[k]);
+        });
+      }
+      return text;
+    }
+
+    function applyLocale() {
+      taxiLocale = SimaLocale.readLocaleFromPage();
+      document.documentElement.lang = taxiLocale;
+      document.getElementById("pageTitle").textContent = t("pageTitle");
+      document.getElementById("pageSubtitle").textContent = t("pageSubtitle");
+      document.getElementById("confirmBtn").textContent = t("confirm");
+      document.getElementById("successTitle").textContent = t("successTitle");
+      document.getElementById("successHint").textContent = t("successHint");
+      document.getElementById("driverName").innerText = lastDriver;
+      document.getElementById("etaInfo").innerText = t("eta", { n: lastEta });
+      document.getElementById("plateInfo").innerText = t("plate", { plate: lastPlate });
+      document.getElementById("locationText").textContent = t("location");
+      if (ticketId) {
+        document.getElementById("ticketIdText").innerText = t("ticketId", { id: ticketId });
+      }
+    }
 
     function handleUnityData(data) {
       simulate();
     }
+
+    window.handleUnityData = handleUnityData;
+    SimaLocale.bindPageLocale(applyLocale);
 
     function setProgress(v) {
       document.getElementById("progressFill").style.width = v + "%";
     }
 
     function simulate() {
-      SimaBridge.speak("Estoy buscando taxis disponibles.");
+      SimaBridge.speak(t("speakSearching"));
 
       document.getElementById("driverCard").classList.add("hidden");
       document.getElementById("confirmBtn").classList.add("hidden");
@@ -188,18 +268,18 @@
 
         const plate = randomPlate();
 
+        lastDriver = driver;
+        lastEta = eta;
+        lastPlate = plate;
+
         document.getElementById("driverName").innerText = driver;
-        document.getElementById("etaInfo").innerText =
-          "Tiempo estimado: " + eta + " minutos";
-        document.getElementById("plateInfo").innerText =
-          "Patente: " + plate;
+        document.getElementById("etaInfo").innerText = t("eta", { n: eta });
+        document.getElementById("plateInfo").innerText = t("plate", { plate: plate });
 
         document.getElementById("driverCard").classList.remove("hidden");
         document.getElementById("confirmBtn").classList.remove("hidden");
 
-        SimaBridge.speak(
-          "Taxi encontrado. Llega en aproximadamente " + eta + " minutos."
-        );
+        SimaBridge.speak(t("speakFound", { n: eta }));
       }, 1800);
     }
 
@@ -228,10 +308,10 @@ const sessionId = "usuario_" + Date.now();
 
   // 🟢 UI: mostrar éxito
   document.getElementById("successPanel").classList.remove("hidden");
-  document.getElementById("ticketIdText").innerText = "ID: " + ticketId;
+  document.getElementById("ticketIdText").innerText = t("ticketId", { id: ticketId });
 
   // 🔊 voz
-  SimaBridge.speak("Taxi solicitado correctamente. Escanea el código QR para continuar.");
+  SimaBridge.speak(t("speakReserved"));
 
   // 📤 enviar a Unity (QR + evento)
   SimaBridge.send("generate_qr", {
@@ -257,6 +337,7 @@ const sessionId = "usuario_" + Date.now();
     }
 
     window.onload = () => {
+      applyLocale();
       SimaBridge.ready("taxi");
       // simulate();
     };

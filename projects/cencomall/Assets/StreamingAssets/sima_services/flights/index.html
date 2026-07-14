@@ -394,6 +394,8 @@
       }
     }
   </style>
+  <script src="../shared/locale.js"></script>
+  <script src="../shared/bridge.js"></script>
 </head>
 
 <body>
@@ -785,6 +787,15 @@
         case "close": closeWebview(); break;
       }
     }
+
+    window.handleUnityData = handleUnityData;
+
+    function applyAirportLocale() {
+      document.documentElement.lang = SimaLocale.readLocaleFromPage();
+    }
+
+    SimaLocale.bindPageLocale(applyAirportLocale);
+    applyAirportLocale();
   </script>
 </body>
 </html>

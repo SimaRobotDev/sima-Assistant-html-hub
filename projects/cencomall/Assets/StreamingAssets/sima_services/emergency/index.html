@@ -298,12 +298,13 @@
         try { data = JSON.parse(data); } catch (e) { return; }
       }
 
-      if (data.language) window.MALL_LOCALE = data.language;
       if (data.floor) floorLabel = data.floor;
       if (data.sessionId) window.EMERGENCY_SESSION_ID = data.sessionId;
 
       applyLocale();
     };
+
+    SimaLocale.bindPageLocale(applyLocale);
 
     document.getElementById("btnImmediate").onclick = function() {
       selectOption(IMMEDIATE.id, optionLabel(IMMEDIATE));

@@ -34,10 +34,24 @@ window.SimaBridge = window.SimaBridge || {};
     };
 
     bridge.__lastMessage = message;
-
-    var encoded = encodeURIComponent(JSON.stringify(message));
-    var url = "uniwebview://message?data=" + encoded;
+    var serialized = JSON.stringify(message);
     var sent = false;
+
+    // React Native WebView (react-native-webview)
+    try {
+      if (global.ReactNativeWebView && typeof global.ReactNativeWebView.postMessage === "function") {
+        global.ReactNativeWebView.postMessage(serialized);
+        sent = true;
+      }
+    } catch (error) {
+      sent = false;
+    }
+
+    if (sent) return true;
+
+    // Legacy UniWebView / Unity iframe channel
+    var encoded = encodeURIComponent(serialized);
+    var url = "uniwebview://message?data=" + encoded;
 
     try {
       if (global.document && global.document.body && global.document.createElement) {
@@ -138,6 +152,29 @@ window.SimaBridge = window.SimaBridge || {};
   bridge.onUnityData = function (raw) {
     var data = tryParse(raw);
 
+    if (global.SimaNativePayload && global.SimaNativePayload.normalize) {
+      data = global.SimaNativePayload.normalize(data);
+    }
+
+    var deferredLocale = null;
+
+    if (global.SimaLocale && data && typeof data === "object") {
+      if (global.SimaLocale.isLocaleCommand && global.SimaLocale.isLocaleCommand(data)) {
+        global.SimaLocale.setLocale(
+          global.SimaLocale.extractLocaleFromPayload(data) || "es"
+        );
+      } else if (global.SimaLocale.extractLocaleFromPayload) {
+        var localeHint = global.SimaLocale.extractLocaleFromPayload(data);
+        if (localeHint != null) {
+          var isSearch = global.SimaNativePayload
+            && global.SimaNativePayload.isSearchPayload
+            && global.SimaNativePayload.isSearchPayload(data);
+          if (isSearch) deferredLocale = localeHint;
+          else global.SimaLocale.setLocale(localeHint);
+        }
+      }
+    }
+
     if (typeof global.handleUnityData === "function") {
       try {
         global.handleUnityData(data);
@@ -146,6 +183,10 @@ window.SimaBridge = window.SimaBridge || {};
           global.console.error("handleUnityData failed", error);
         }
       }
+    }
+
+    if (deferredLocale != null && global.SimaLocale && global.SimaLocale.setLocale) {
+      global.SimaLocale.setLocale(deferredLocale);
     }
 
     if (typeof global.handleUnityCommand === "function") {
@@ -164,5 +205,32 @@ window.SimaBridge = window.SimaBridge || {};
 
     return data;
   };
+
+  // Alias for React Native / native hosts (onUnityData name is legacy from Unity).
+  bridge.onNativeData = bridge.onUnityData;
+  bridge.receiveNativeMessage = bridge.onUnityData;
+
+  function bindNativeMessageListener() {
+    if (global.__simaNativeMessageBound) return;
+    global.__simaNativeMessageBound = true;
+    function onMessage(event) {
+      if (!event || event.data == null || event.data === "") return;
+      try {
+        bridge.onNativeData(event.data);
+      } catch (error) {
+        if (global.console && global.console.error) {
+          global.console.error("SimaBridge native message failed", error);
+        }
+      }
+    }
+    if (global.document && typeof global.document.addEventListener === "function") {
+      global.document.addEventListener("message", onMessage);
+    }
+    if (typeof global.addEventListener === "function") {
+      global.addEventListener("message", onMessage);
+    }
+  }
+
+  bindNativeMessageListener();
 })(window);
 

@@ -99,10 +99,12 @@
       }
 
       function handleUnityData(data) {
-        if (data && data.language) window.MALL_LOCALE = data.language;
         applyLocale();
         SimaBridge.speak(SimaLocale.t(I18N, "speakIntro", locale));
       }
+
+      window.handleUnityData = handleUnityData;
+      SimaLocale.bindPageLocale(applyLocale);
 
       function startCall() {
         SimaBridge.speak(SimaLocale.t(I18N, "speakConnecting", locale));

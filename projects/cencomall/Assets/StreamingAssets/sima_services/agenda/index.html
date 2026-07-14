@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 
 <link rel="stylesheet" href="../shared/app.css" />
+<script src="../shared/locale.js"></script>
 <script src="../shared/bridge.js"></script>
 
 <style>
@@ -158,8 +159,8 @@
   </div>
 
   <div class="card">
-    <div class="title">Busca tu vuelo</div>
-    <div class="subtitle">Aeropuerto La Serena · LSC</div>
+    <div class="title" id="pageTitle">Busca tu vuelo</div>
+    <div class="subtitle" id="pageSubtitle">Aeropuerto La Serena · LSC</div>
 
     <input id="searchInput" class="search-box" type="text" placeholder="Buscar vuelo, ciudad, hora o aerolínea" oninput="onSearchInput()" />
 
@@ -173,9 +174,9 @@
     <div class="flights-list" id="flightsList"></div>
 
     <div class="actions">
-      <button class="btn btn-primary" onclick="speakCurrentSummary()">Resumen</button>
-      <button class="btn btn-secondary" onclick="clearFilters()">Limpiar</button>
-      <button class="btn btn-secondary" onclick="closeView()">Cerrar</button>
+      <button class="btn btn-primary" id="btnSummary" onclick="speakCurrentSummary()">Resumen</button>
+      <button class="btn btn-secondary" id="btnClear" onclick="clearFilters()">Limpiar</button>
+      <button class="btn btn-secondary" id="btnClose" onclick="closeView()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -186,6 +187,121 @@ const LOCAL_FLIGHTS_DATA = {"ok":true,"airport":{"name":"Aeropuerto La Serena","
 let allFlightsData = { arrivals: [], departures: [], results: [] };
 let currentType = "all";
 let currentQuery = "";
+let uiLocale = SimaLocale.readLocaleFromPage();
+
+const FLIGHTS_I18N = {
+  es: {
+    pageTitle: "Busca tu vuelo",
+    pageSubtitle: "Aeropuerto La Serena · LSC",
+    searchPlaceholder: "Buscar vuelo, ciudad, hora o aerolínea",
+    tabAll: "Todos",
+    tabDepartures: "Salidas",
+    tabArrivals: "Llegadas",
+    loading: "Cargando información de vuelos...",
+    demoLocal: "Demo local",
+    summary: "{count} resultados · {dep} salidas · {arr} llegadas · Demo {time}",
+    empty: "No encontré vuelos con ese filtro.",
+    departure: "Salida",
+    arrival: "Llegada",
+    destination: "Destino: {value}",
+    origin: "Origen: {value}",
+    gate: "Puerta {value}",
+    belt: "Cinta {value}",
+    boarding: "Embarque {value}",
+    noStatus: "Sin estado",
+    btnSummary: "Resumen",
+    btnClear: "Limpiar",
+    btnClose: "Cerrar",
+    speakLoaded: "Información de vuelos cargada.",
+    speakEmpty: "No encontré vuelos con ese filtro.",
+    speakOneDeparture: "Encontré un vuelo. {airline} {flight} sale hacia {place} a las {time}. Estado {status}.",
+    speakOneArrival: "Encontré un vuelo. {airline} {flight} llega desde {place} a las {time}. Estado {status}.",
+    speakCleared: "Filtros limpiados. Te muestro todos los vuelos disponibles."
+  },
+  en: {
+    pageTitle: "Find your flight",
+    pageSubtitle: "La Serena Airport · LSC",
+    searchPlaceholder: "Search flight, city, time or airline",
+    tabAll: "All",
+    tabDepartures: "Departures",
+    tabArrivals: "Arrivals",
+    loading: "Loading flight information...",
+    demoLocal: "Local demo",
+    summary: "{count} results · {dep} departures · {arr} arrivals · Demo {time}",
+    empty: "No flights matched that filter.",
+    departure: "Departure",
+    arrival: "Arrival",
+    destination: "Destination: {value}",
+    origin: "Origin: {value}",
+    gate: "Gate {value}",
+    belt: "Belt {value}",
+    boarding: "Boarding {value}",
+    noStatus: "No status",
+    btnSummary: "Summary",
+    btnClear: "Clear",
+    btnClose: "Close",
+    speakLoaded: "Flight information loaded.",
+    speakEmpty: "No flights matched that filter.",
+    speakOneDeparture: "I found one flight. {airline} {flight} departs to {place} at {time}. Status {status}.",
+    speakOneArrival: "I found one flight. {airline} {flight} arrives from {place} at {time}. Status {status}.",
+    speakCleared: "Filters cleared. Showing all available flights."
+  },
+  pt: {
+    pageTitle: "Busque seu voo",
+    pageSubtitle: "Aeroporto La Serena · LSC",
+    searchPlaceholder: "Buscar voo, cidade, hora ou companhia",
+    tabAll: "Todos",
+    tabDepartures: "Partidas",
+    tabArrivals: "Chegadas",
+    loading: "Carregando informações de voos...",
+    demoLocal: "Demo local",
+    summary: "{count} resultados · {dep} partidas · {arr} chegadas · Demo {time}",
+    empty: "Não encontrei voos com esse filtro.",
+    departure: "Partida",
+    arrival: "Chegada",
+    destination: "Destino: {value}",
+    origin: "Origem: {value}",
+    gate: "Portão {value}",
+    belt: "Esteira {value}",
+    boarding: "Embarque {value}",
+    noStatus: "Sem status",
+    btnSummary: "Resumo",
+    btnClear: "Limpar",
+    btnClose: "Fechar",
+    speakLoaded: "Informações de voos carregadas.",
+    speakEmpty: "Não encontrei voos com esse filtro.",
+    speakOneDeparture: "Encontrei um voo. {airline} {flight} parte para {place} às {time}. Status {status}.",
+    speakOneArrival: "Encontrei um voo. {airline} {flight} chega de {place} às {time}. Status {status}.",
+    speakCleared: "Filtros limpos. Mostrando todos os voos disponíveis."
+  }
+};
+
+function t(key, vars) {
+  let text = SimaLocale.t(FLIGHTS_I18N, key, uiLocale);
+  if (vars) {
+    Object.keys(vars).forEach((k) => {
+      text = text.replace("{" + k + "}", vars[k]);
+    });
+  }
+  return text;
+}
+
+function applyLocale() {
+  uiLocale = SimaLocale.readLocaleFromPage();
+  document.documentElement.lang = uiLocale;
+  document.getElementById("pageTitle").textContent = t("pageTitle");
+  document.getElementById("pageSubtitle").textContent = t("pageSubtitle");
+  document.getElementById("searchInput").placeholder = t("searchPlaceholder");
+  document.getElementById("tabAll").textContent = t("tabAll");
+  document.getElementById("tabDepartures").textContent = t("tabDepartures");
+  document.getElementById("tabArrivals").textContent = t("tabArrivals");
+  document.getElementById("btnSummary").textContent = t("btnSummary");
+  document.getElementById("btnClear").textContent = t("btnClear");
+  document.getElementById("btnClose").textContent = t("btnClose");
+  renderFlights();
+}
+
+SimaLocale.bindPageLocale(applyLocale);
 
 function safeBridgeSpeak(text) {
   try { if (window.SimaBridge && typeof SimaBridge.speak === "function") SimaBridge.speak(text); } catch (e) { console.log(e); }
@@ -229,9 +345,9 @@ function loadLocalFlights(speak = false) {
     departures: LOCAL_FLIGHTS_DATA.departures || [],
     results: [...(LOCAL_FLIGHTS_DATA.departures || []), ...(LOCAL_FLIGHTS_DATA.arrivals || [])]
   };
-  document.getElementById("statusChip").innerText = "Demo local";
+  document.getElementById("statusChip").innerText = t("demoLocal");
   renderFlights();
-  if (speak) safeBridgeSpeak("Información de vuelos cargada.");
+  if (speak) safeBridgeSpeak(t("speakLoaded"));
 }
 function getVisibleFlights() {
   let flights = [];
@@ -262,11 +378,11 @@ function renderFlights() {
   const flights = getVisibleFlights();
   const list = document.getElementById("flightsList");
   const summary = document.getElementById("summary");
-  const updated = allFlightsData.updatedAt ? new Date(allFlightsData.updatedAt).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+  const updated = allFlightsData.updatedAt ? new Date(allFlightsData.updatedAt).toLocaleTimeString(uiLocale === "en" ? "en-US" : uiLocale === "pt" ? "pt-BR" : "es-CL", { hour: "2-digit", minute: "2-digit" }) : "--:--";
   const depCount = allFlightsData.departures?.length || 0;
   const arrCount = allFlightsData.arrivals?.length || 0;
-  summary.innerText = `${flights.length} resultados · ${depCount} salidas · ${arrCount} llegadas · Demo ${updated}`;
-  if (!flights.length) { list.innerHTML = `<div class="empty">No encontré vuelos con ese filtro.</div>`; return; }
+  summary.innerText = t("summary", { count: flights.length, dep: depCount, arr: arrCount, time: updated });
+  if (!flights.length) { list.innerHTML = `<div class="empty">${t("empty")}</div>`; return; }
   list.innerHTML = flights.map((flight, idx) => renderFlightCard(flight, idx === 0 && currentQuery)).join("");
   if (currentQuery && flights.length) {
     setTimeout(() => {
@@ -277,15 +393,15 @@ function renderFlights() {
 }
 function renderFlightCard(f, shouldHighlight) {
   const isDeparture = f.type === "departure";
-  const typeLabel = isDeparture ? "Salida" : "Llegada";
+  const typeLabel = isDeparture ? t("departure") : t("arrival");
   const airline = f.airline || f.aerolinea || "";
   const flight = f.flight || f.vuelo || "";
   const destination = f.destination || f.destino || "";
   const origin = f.origin || f.origen || "";
-  const route = isDeparture ? `Destino: ${destination || "-"}` : `Origen: ${origin || "-"}`;
+  const route = isDeparture ? t("destination", { value: destination || "-" }) : t("origin", { value: origin || "-" });
   const mainTime = isDeparture ? (f.departureTime || f.salida || f.time || "-") : (f.arrivalTime || f.llegada || f.time || "-");
-  const gateOrBelt = isDeparture ? `Puerta ${f.gate || f.puerta || "-"}` : `Cinta ${f.baggageBelt || f.cinta || "-"}`;
-  const boarding = isDeparture && (f.boardingTime || f.embarque) ? `<span class="pill">Embarque ${escapeHtml(f.boardingTime || f.embarque)}</span>` : "";
+  const gateOrBelt = isDeparture ? t("gate", { value: f.gate || f.puerta || "-" }) : t("belt", { value: f.baggageBelt || f.cinta || "-" });
+  const boarding = isDeparture && (f.boardingTime || f.embarque) ? `<span class="pill">${escapeHtml(t("boarding", { value: f.boardingTime || f.embarque }))}</span>` : "";
   const statusClass = isDeparture ? "status" : "status arrival-status";
   return `
     <div class="flight-card ${isDeparture ? "departure" : "arrival"} ${shouldHighlight ? "highlight" : ""}">
@@ -300,17 +416,17 @@ function renderFlightCard(f, shouldHighlight) {
         <span class="pill">${typeLabel}</span>
         <span class="pill">${escapeHtml(gateOrBelt)}</span>
         ${boarding}
-        <span class="pill ${statusClass}">${escapeHtml(f.status || f.estado || "Sin estado")}</span>
+        <span class="pill ${statusClass}">${escapeHtml(f.status || f.estado || t("noStatus"))}</span>
       </div>
     </div>`;
 }
 function speakCurrentSummary() {
   const flights = getVisibleFlights();
-  if (!flights.length) { safeBridgeSpeak("No encontré vuelos con ese filtro."); return; }
+  if (!flights.length) { safeBridgeSpeak(t("speakEmpty")); return; }
   const first = flights[0];
   if (flights.length === 1) {
-    if (first.type === "departure") safeBridgeSpeak(`Encontré un vuelo. ${first.airline} ${first.flight} sale hacia ${first.destination} a las ${first.departureTime || first.time}. Estado ${first.status}.`);
-    else safeBridgeSpeak(`Encontré un vuelo. ${first.airline} ${first.flight} llega desde ${first.origin} a las ${first.arrivalTime || first.time}. Estado ${first.status}.`);
+    if (first.type === "departure") safeBridgeSpeak(t("speakOneDeparture", { airline: first.airline, flight: first.flight, place: first.destination, time: first.departureTime || first.time, status: first.status }));
+    else safeBridgeSpeak(t("speakOneArrival", { airline: first.airline, flight: first.flight, place: first.origin, time: first.arrivalTime || first.time, status: first.status }));
     return;
   }
   const sample = flights.slice(0, 3).map(f => {
@@ -324,7 +440,7 @@ function clearFilters() {
   currentType = "all";
   document.getElementById("searchInput").value = "";
   setType("all");
-  safeBridgeSpeak("Filtros limpiados. Te muestro todos los vuelos disponibles.");
+  safeBridgeSpeak(t("speakCleared"));
 }
 function applyInitialParams() {
   const q = getQueryParam("q") || getQueryParam("query");
@@ -352,8 +468,10 @@ function handleUnityData(data) {
     setTimeout(() => speakCurrentSummary(), 300);
   } catch (e) { console.error("handleUnityData error", e); }
 }
+window.handleUnityData = handleUnityData;
 function closeView() { safeBridgeClose(); }
 window.onload = () => {
+  applyLocale();
   safeBridgeReady("flights");
   applyInitialParams();
   loadLocalFlights(false);

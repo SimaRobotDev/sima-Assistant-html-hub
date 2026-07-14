@@ -66,10 +66,11 @@
         if (typeof data === "string") {
           try { data = JSON.parse(data); } catch (e) { return; }
         }
-        if (data.language) window.MALL_LOCALE = data.language;
         applyLocale();
         SimaBridge.speak(SimaLocale.t(I18N, "speak", SimaLocale.readLocaleFromPage()));
       };
+
+      SimaLocale.bindPageLocale(applyLocale);
 
       window.addEventListener("load", () => {
         applyLocale();
