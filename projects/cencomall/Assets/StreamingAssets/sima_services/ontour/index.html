@@ -17,7 +17,8 @@
       --cm-muted: #6B6280;
     }
 
-    body { background: var(--cm-surface); color: var(--cm-text); }
+    html, body { background: var(--cm-surface); color: var(--cm-text); }
+    body::before { display: none; }
 
     .app-shell {
       background: var(--cm-surface);
