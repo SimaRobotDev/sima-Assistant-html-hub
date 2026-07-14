@@ -1179,15 +1179,25 @@ window.MapVxBridge = (function () {
     return raw.trim();
   }
 
+  function looksLikeInternalPlaceId(value) {
+    var s = String(value || "").trim();
+    if (!s || /\s/.test(s)) return false;
+    // Pure hex tokens (Foursquare/Firebase-style).
+    if (/^[0-9a-f]{16,}$/i.test(s)) return true;
+    // Opaque MapVX ids: long single-token strings mixing letters and digits.
+    if (s.length >= 12 && /^[a-z0-9_-]+$/i.test(s) && /\d/.test(s) && /[a-z]/i.test(s)) {
+      return true;
+    }
+    return false;
+  }
+
   function getPlaceDisplaySubtitle(place) {
     if (!place) return "";
-    // Skip Foursquare/Firebase hex IDs (24+ hex chars)
     var cat = String(place.categoryName || place.category || "").trim();
-    if (cat && /^[0-9a-f]{16,}$/i.test(cat)) cat = "";
-    if (cat) return cat;
-    // Use shortDescription only if short enough to be a label
+    if (cat && !looksLikeInternalPlaceId(cat)) return cat;
+    // Use shortDescription only if short enough to be a human label.
     var sd = String(place.shortDescription || "").trim();
-    if (sd && sd.length <= 60) return sd;
+    if (sd && sd.length <= 60 && !looksLikeInternalPlaceId(sd)) return sd;
     return "";
   }
 
