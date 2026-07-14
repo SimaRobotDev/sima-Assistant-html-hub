@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.14-10",
+  "version": "2026.07.14-11",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-14T18:07:03.305Z",
+  "generatedAt": "2026-07-14T18:16:08.721Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -136,8 +136,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 127700,
-      "sha256": "1e87eac7c0b27c6ccef15cc1f37750ccd5001d0dba93105a61e9e3479965d00e"
+      "size": 129215,
+      "sha256": "8e61b6195e995683c093a5c50a844d81f1081477cb481db37124757ae36004f9"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -161,8 +161,8 @@
     },
     {
       "path": "shared/bridge.js",
-      "size": 6752,
-      "sha256": "8a567013867e2e6c537ad597701adfc7ac11d789ffb814f9563db6d69a423f97"
+      "size": 6932,
+      "sha256": "00c7df7bc99321db5d92942dd773e11ae218ce99962a2467b7ed2b5a9fa6fd0f"
     },
     {
       "path": "shared/fragment.js",
@@ -196,18 +196,18 @@
     },
     {
       "path": "shared/market-query-i18n.js",
-      "size": 6555,
-      "sha256": "eb8d338ff2097e5ef9def9bc7861ca37b52882d4f3142348467d57442f618bd7"
+      "size": 7387,
+      "sha256": "2630490eb61c17e6e02537b8998229b85e0b89b38ea0a083208b3acf4d3ebda4"
     },
     {
       "path": "shared/market-search.js",
-      "size": 25501,
-      "sha256": "ddfda9631b54ae9543337f521eab633ae62cdc418a096ea35f7e54a3e1df27be"
+      "size": 27812,
+      "sha256": "dde574accf9ff3e21064fc80dfc8438ae5e033e1853052f02bc56f67455966f8"
     },
     {
       "path": "shared/native-payload.js",
-      "size": 4944,
-      "sha256": "38320e54dca68fbb1d356356903de90f13be353cfcb0f6def94d3da52d8f77fc"
+      "size": 6250,
+      "sha256": "47ebec2c08e68b2c4635dd116c24f3a7d6643faaa9917b8dcb4425d64016dd62"
     },
     {
       "path": "shared/qrcode.min.js",
