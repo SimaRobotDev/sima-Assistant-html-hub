@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.14-8",
+  "version": "2026.07.14-9",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-14T17:38:32.004Z",
+  "generatedAt": "2026-07-14T17:41:48.630Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -146,8 +146,8 @@
     },
     {
       "path": "ontour/index.html",
-      "size": 7878,
-      "sha256": "0c14f911c922ad30c9f891c7b155bb4981ae171fc174e83193afe20d0471308d"
+      "size": 7920,
+      "sha256": "0f8f1316b21caef0440b96a917fa920746445cd5c3b64ef323016f59122639fb"
     },
     {
       "path": "servicios/index.html",
