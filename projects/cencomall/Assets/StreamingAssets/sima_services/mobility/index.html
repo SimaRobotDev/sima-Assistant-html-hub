@@ -2440,7 +2440,8 @@ document.addEventListener("DOMContentLoaded", () => {
   SimaBridge.log(
     "mobility DOM ready " + MOBILITY_UI_VERSION +
     " locale=" + mobilityLocale +
-    " marketSearch=" + getMarketSearchMode()
+    " marketSearch=" + getMarketSearchMode() +
+    " host=" + (SimaBridge.isReactNativeHost && SimaBridge.isReactNativeHost() ? "react-native" : "legacy")
   );
   logMapVxConfig("DOMContentLoaded");
   warmupMapVxInBackground();
@@ -4313,6 +4314,7 @@ function startVoiceInput() {
     screen: "mobility",
     mode: getMobilityMode() || "store_search",
     locale: mobilityLocale,
+    host: (SimaBridge.isReactNativeHost && SimaBridge.isReactNativeHost()) ? "react-native" : "legacy",
   });
 }
 </script>

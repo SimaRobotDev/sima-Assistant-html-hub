@@ -35,7 +35,15 @@ window.SimaNativePayload = (function () {
   function tryParseJson(value) {
     if (typeof value !== "string") return value;
     try {
-      return JSON.parse(value);
+      var parsed = JSON.parse(value);
+      if (typeof parsed === "string") {
+        try {
+          return JSON.parse(parsed);
+        } catch (nestedError) {
+          return parsed;
+        }
+      }
+      return parsed;
     } catch (e) {
       return value;
     }
@@ -175,20 +183,22 @@ window.SimaNativePayload = (function () {
     var out = mergeObjects({}, parsed);
 
     if (out.data && typeof out.data === "object" && !Array.isArray(out.data)) {
-      out = mergeObjects(out.data, out);
+      out = mergeObjects(out, out.data);
     }
 
     if (out.payload != null) {
       var payload = tryParseJson(out.payload);
       if (payload && typeof payload === "object" && !Array.isArray(payload)) {
-        out = mergeObjects(payload, out);
+        // React Native WebView often wraps the real event as { type, payload }.
+        // Prefer inner payload fields over the outer wrapper.
+        out = mergeObjects(out, payload);
       }
     }
 
     if (out.extra != null) {
       var extra = tryParseJson(out.extra);
       if (extra && typeof extra === "object" && !Array.isArray(extra)) {
-        out = mergeObjects(extra, out);
+        out = mergeObjects(out, extra);
       } else if (typeof extra === "string" && extra.trim()) {
         out.extraText = extra.trim();
       }
@@ -197,19 +207,19 @@ window.SimaNativePayload = (function () {
     if (out.args != null) {
       var args = tryParseJson(out.args);
       if (args && typeof args === "object" && !Array.isArray(args)) {
-        out = mergeObjects(args, out);
+        out = mergeObjects(out, args);
       }
     }
 
     if (out.parameters != null) {
       var parameters = tryParseJson(out.parameters);
       if (parameters && typeof parameters === "object" && !Array.isArray(parameters)) {
-        out = mergeObjects(parameters, out);
+        out = mergeObjects(out, parameters);
       }
     }
 
     if (out.message && typeof out.message === "object" && !Array.isArray(out.message)) {
-      out = mergeObjects(out.message, out);
+      out = mergeObjects(out, out.message);
     }
 
     if (!out.type && out.command) out.type = out.command;

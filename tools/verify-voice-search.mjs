@@ -70,8 +70,13 @@ const payloadCases = [
     expectQuery: "Zara",
   },
   {
-    name: "plain string query",
-    input: "nike",
+    name: "RN WebView wrapper envelope",
+    input: { type: "webview_message", payload: { type: "market_search", query: "zara" } },
+    expectQuery: "zara",
+  },
+  {
+    name: "RN double-stringified transcript",
+    input: JSON.stringify(JSON.stringify({ type: "voice_search", transcript: "nike" })),
     expectQuery: "nike",
   },
 ];
