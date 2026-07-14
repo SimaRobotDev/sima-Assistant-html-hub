@@ -70,6 +70,24 @@ El bridge intenta primero un canal seguro basado en iframe oculto y deja fallbac
 - Si un proyecto necesita un nombre distinto, agregar alias en el bridge común.
 - Mantener el bridge compatible con `file://`, WKWebView y UniWebView.
 
+## Mobility: búsqueda inicial al abrir la pantalla
+
+Cuando Unity abre `mobility/index.html` con una URL nueva (en vez de reutilizar
+un WebView ya cargado y llamar a `handleUnityData`/`pushMarketSearchFromUnity`
+por JS), no hay forma de invocar funciones JS antes de que la página cargue.
+Para esos casos, `mobility/index.html` lee, en este orden, una búsqueda
+inicial y la dispara automáticamente en `DOMContentLoaded` (mismo flujo que
+usa la búsqueda por voz, incluyendo texto en el buscador y TTS de
+confirmación):
+
+1. `window.MALL_SEARCH_QUERY` / `window.MALL_INITIAL_QUERY` / `window.MALL_VOICE_QUERY`
+   (igual convención que `window.MALL_LOCALE`, inyectado antes de cargar la página).
+2. Parámetros de URL: `?q=`, `?query=`, `?search=` o `?text=`.
+
+Si Unity ya conoce la marca/tienda que el usuario pidió por voz o texto antes
+de navegar a `mobility`, debe pasarla por alguno de estos canales para que
+quede reflejada en el buscador y dispare la búsqueda local/híbrida.
+
 ## Eventos observados
 
 | type | uso |

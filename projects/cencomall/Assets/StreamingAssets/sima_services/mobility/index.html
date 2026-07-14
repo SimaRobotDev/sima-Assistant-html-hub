@@ -1373,6 +1373,9 @@ const MOBILITY_I18N = {
     validUntil: "Vigente hasta",
     appOnly: "Solo APP",
     storesFoundNone: "No encontré tiendas para",
+    storesFoundOne: "Encontré {name}.",
+    storesFoundOneFloor: "Encontré {name} en el {floor}.",
+    storesFoundMany: "Encontré {count} tiendas para {query}.",
     storeSearchTitle: "Buscar tiendas",
     storeSearchHint: "Di el nombre de una tienda o escríbelo abajo.",
     storeSearchPlaceholder: "Ej: Nike, Zara…",
@@ -1449,6 +1452,9 @@ const MOBILITY_I18N = {
     validUntil: "Valid until",
     appOnly: "App only",
     storesFoundNone: "I couldn't find stores for",
+    storesFoundOne: "I found {name}.",
+    storesFoundOneFloor: "I found {name} on {floor}.",
+    storesFoundMany: "I found {count} stores for {query}.",
     storeSearchTitle: "Search stores",
     storeSearchHint: "Say a store name or type it below.",
     storeSearchPlaceholder: "E.g. Nike, Zara…",
@@ -1525,6 +1531,9 @@ const MOBILITY_I18N = {
     validUntil: "Válido até",
     appOnly: "Somente APP",
     storesFoundNone: "Não encontrei lojas para",
+    storesFoundOne: "Encontrei {name}.",
+    storesFoundOneFloor: "Encontrei {name} no {floor}.",
+    storesFoundMany: "Encontrei {count} lojas para {query}.",
     storeSearchTitle: "Buscar lojas",
     storeSearchHint: "Diga o nome de uma loja ou digite abaixo.",
     storeSearchPlaceholder: "Ex: Nike, Zara…",
@@ -1602,6 +1611,26 @@ function isLocalHtmlMode() {
   return window.location.protocol === "file:";
 }
 
+function getInitialSearchQuery() {
+  const globalQuery = String(
+    window.MALL_SEARCH_QUERY
+    || window.MALL_INITIAL_QUERY
+    || window.MALL_VOICE_QUERY
+    || ""
+  ).trim();
+  if (globalQuery) return globalQuery;
+
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = String(
+    params.get("q")
+    || params.get("query")
+    || params.get("search")
+    || params.get("text")
+    || ""
+  ).trim();
+  return fromUrl;
+}
+
 function getMarketSearchMode() {
   if (window.MARKET_SEARCH_UNITY_ONLY === true) return "unity-only";
   if (window.MARKET_SEARCH_LEGACY === true) return "unity-only";
@@ -1625,6 +1654,34 @@ function shouldUseLocalMarketCatalog() {
 
 function shouldNotifyUnityMarketSearch() {
   return getMarketSearchMode() !== "catalog-only";
+}
+
+function formatSpeakTemplate(template, values) {
+  let out = String(template || "");
+  Object.keys(values || {}).forEach((key) => {
+    out = out.split("{" + key + "}").join(String(values[key] != null ? values[key] : ""));
+  });
+  return out;
+}
+
+function speakMarketResultsFound(payload) {
+  if (typeof SimaBridge === "undefined" || typeof SimaBridge.speak !== "function") return;
+  const results = payload.results || [];
+  if (!results.length) return;
+  const query = payload.query || "";
+
+  if (results.length === 1) {
+    const store = results[0];
+    const name = store.brand || store.name || query;
+    const floor = String(store.floor || "").trim();
+    const message = floor
+      ? formatSpeakTemplate(t("storesFoundOneFloor"), { name, floor })
+      : formatSpeakTemplate(t("storesFoundOne"), { name });
+    SimaBridge.speak(message);
+    return;
+  }
+
+  SimaBridge.speak(formatSpeakTemplate(t("storesFoundMany"), { count: results.length, query }));
 }
 
 function normalizeMarketQuery(query) {
@@ -2332,6 +2389,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnSpeak").onclick = startVoiceInput;
   document.getElementById("btnSpeakMini").onclick = startVoiceInput;
   document.getElementById("btnSpeakSearch").onclick = submitSearchFromFab;
+
+  const initialQuery = getInitialSearchQuery();
+  if (initialQuery) {
+    SimaBridge.log("mobility initial query from launch params: " + initialQuery);
+    dispatchVoiceSearch(initialQuery, "launch");
+  }
 
   document.addEventListener("focusin", (event) => {
     const target = event.target;
@@ -3533,6 +3596,13 @@ function renderMarketResults(payload) {
   const query = payload.query || "";
   hideWelcome();
 
+  if (query) {
+    const inputEl = document.getElementById("storeSearchInput");
+    if (inputEl && inputEl.value !== query) inputEl.value = query;
+    const inlineEl = document.getElementById("storeSearchInlineInput");
+    if (inlineEl && inlineEl.value !== query) inlineEl.value = query;
+  }
+
   if (payload.message && results.length === 0) {
     document.getElementById("resultado").innerHTML = `
       <div class="cm-panel fade-in">
@@ -3585,6 +3655,9 @@ function renderMarketResults(payload) {
       <div class="store-grid">${cardsHtml}</div>
     </div>`;
   preloadMapVxBaseMap();
+  if (payload.source !== "unity") {
+    speakMarketResultsFound(payload);
+  }
 }
 
 function setMapStatus(text, isError) {
