@@ -285,7 +285,14 @@ async function runResolveOnly() {
   }
   try {
     await MapVxBridge.ensureReady();
-    const resolved = await MapVxBridge.resolvePlace({ local, id, name, floor });
+    const resolved = await MapVxBridge.resolvePlace({
+      local,
+      catalogId: id && /^\d+$/.test(String(id)) ? String(id) : "",
+      id,
+      name,
+      floor,
+      strictLocal: !!local,
+    });
     logLine("✓ Resuelto por: " + resolved.resolvedBy, "ok");
     logLine("  mapvxId: " + resolved.place.mapvxId);
     logLine("  clientId: " + (resolved.place.clientId || "(null)"));

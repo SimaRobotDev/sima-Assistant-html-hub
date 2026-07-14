@@ -2822,9 +2822,12 @@ function pickBestLocationForFloor(locations, referenceLoc) {
   return best;
 }
 
+function isMultiFloorLocal(local) {
+  return parseLocalFloorLevels(local).length > 1;
+}
+
 function buildUniqueFloorRows(locations) {
   const rows = [];
-  const seenFloorKeys = {};
 
   (locations || []).forEach((loc, locIdx) => {
     const floorLabel = formatNivel(loc && loc.floor);
@@ -2833,30 +2836,54 @@ function buildUniqueFloorRows(locations) {
 
     const available = loc && loc.available !== false;
     const candidate = { loc: loc, locIdx: locIdx, floorLabel: floorLabel, available: available };
-    const prevIdx = seenFloorKeys[floorKey];
-
-    if (prevIdx == null) {
-      seenFloorKeys[floorKey] = rows.length;
+    const floorMeta = getFloorSortMeta(loc && loc.floor);
+    const localCode = String(loc && loc.local || "").trim().toUpperCase();
+    if (!localCode) {
       rows.push(candidate);
       return;
     }
 
-    const prev = rows[prevIdx];
-    const prevScore = localSpecificityScore(prev.loc && prev.loc.local, getFloorSortMeta(prev.loc && prev.loc.floor));
-    const nextScore = localSpecificityScore(loc && loc.local, getFloorSortMeta(loc && loc.floor));
-    if (nextScore > prevScore || (available && !prev.available)) {
-      rows[prevIdx] = candidate;
+    const duplicateIdx = rows.findIndex(function (row) {
+      return row.floorLabel.toLowerCase() === floorKey
+        && String(row.loc && row.loc.local || "").trim().toUpperCase() === localCode;
+    });
+    if (duplicateIdx >= 0) return;
+
+    const sameFloorIdx = rows.findIndex(function (row) {
+      return row.floorLabel.toLowerCase() === floorKey;
+    });
+    if (sameFloorIdx < 0) {
+      rows.push(candidate);
+      return;
     }
+
+    const prev = rows[sameFloorIdx];
+    const prevMulti = isMultiFloorLocal(prev.loc && prev.loc.local);
+    const nextMulti = isMultiFloorLocal(loc && loc.local);
+
+    if (prevMulti || nextMulti) {
+      const prevScore = localSpecificityScore(prev.loc && prev.loc.local, floorMeta);
+      const nextScore = localSpecificityScore(loc && loc.local, floorMeta);
+      if (nextScore > prevScore || (available && !prev.available)) {
+        rows[sameFloorIdx] = candidate;
+      }
+      return;
+    }
+
+    // Distinct single-floor stores on the same level (e.g. two Claro on PB).
+    rows.push(candidate);
   });
 
   return rows.length
     ? rows
-    : (locations || []).map((loc, locIdx) => ({
-        loc: loc,
-        locIdx: locIdx,
-        floorLabel: formatNivel(loc && loc.floor),
-        available: loc && loc.available !== false,
-      }));
+    : (locations || []).map(function (loc, locIdx) {
+        return {
+          loc: loc,
+          locIdx: locIdx,
+          floorLabel: formatNivel(loc && loc.floor),
+          available: loc && loc.available !== false,
+        };
+      });
 }
 
 function getSortedFloorLabelsFromLocations(locations) {
@@ -3926,22 +3953,24 @@ window.pushNavigationFromUnity = function(data) {
     logMap("info", "pushNavigationFromUnity", payload);
     const cleanName = sanitizeStoreDisplayName(payload.name);
     const mapKey = payload.local || payload.placeId || payload.id;
+    const catalogId = payload.catalogId || (payload.id && /^\d+$/.test(String(payload.id)) ? String(payload.id) : "");
     const storeDetail = findStoreInMarketPayload(mapKey) || {
       name: cleanName,
       floor: payload.floor,
       mall: payload.mall,
       local: mapKey,
-      id: payload.id
+      id: catalogId || payload.id
     };
     openPoiMap({
       poiType: "store",
-      id: mapKey,
+      id: catalogId || mapKey,
+      catalogId: catalogId || storeCatalogId(storeDetail),
       floor: payload.floor,
       mall: payload.mall,
       name: cleanName,
       local: mapKey,
       mode: "navigation",
-      storeDetail
+      storeDetail: storeDetail
     });
   } catch (e) {
     logMap("error", "pushNavigationFromUnity failed", { message: e.message });

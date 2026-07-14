@@ -2950,6 +2950,19 @@ window.MapVxBridge = (function () {
       strictLocal: options.strictLocal,
     });
     var place = resolved.place;
+    if (options.strictLocal !== false && options.local) {
+      if (!clientIdMatchesCatalogLocal(place.clientId, options.local)) {
+        var mismatchErr = new Error(
+          "MapVX devolvió otro local (clientId="
+          + (place.clientId || "?")
+          + ", esperado="
+          + options.local
+          + ")"
+        );
+        mismatchErr.attempts = resolved.attempts || [];
+        throw mismatchErr;
+      }
+    }
     var mapvxId = place.mapvxId;
 
     var parentPlace = null;
