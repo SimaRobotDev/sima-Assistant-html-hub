@@ -34,9 +34,10 @@
 .app-shell.has-survey { --cm-survey-strip-height: 76px; }
 
 html, body {
-  background: transparent;
+  background: var(--cm-surface);
   scroll-padding-bottom: calc(var(--cm-speak-bar) + env(safe-area-inset-bottom, 0px));
 }
+body.cencomall-theme::before { display: none; }
 body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 .cencomall-theme .app-shell {
@@ -1272,10 +1273,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 </div>
 
 <div class="cm-speak-fab" id="speakFab">
-  <button class="cm-speak-btn" id="btnSpeak" type="button">🎤 Hablar con Cami</button>
+  <button class="cm-speak-btn" id="btnSpeak" type="button">Hablar 🎤</button>
   <div class="cm-speak-fab-actions" id="typingFabActions">
     <button class="cm-speak-search-btn" id="btnSpeakSearch" type="button">Buscar</button>
-    <button class="cm-speak-mic-btn" id="btnSpeakMini" type="button" aria-label="Hablar con Cami" title="Hablar con Cami">🎤</button>
+    <button class="cm-speak-mic-btn" id="btnSpeakMini" type="button" aria-label="Hablar" title="Hablar">🎤</button>
   </div>
   <div class="cm-speak-version" aria-hidden="true">OTA 22/06</div>
 </div>
@@ -1337,7 +1338,7 @@ const MOBILITY_I18N = {
     mapComingSoon: "Mapa próximamente",
     mapLoading: "Cargando mapa…",
     mapError: "No se pudo cargar el mapa",
-    speakWithCami: "🎤 Hablar con Cami",
+    speakWithCami: "Hablar 🎤",
     redeemInApp: "Canjear en la app",
     noResults: "Sin resultados",
     storesNotFound: "No encontramos tiendas para",
@@ -1413,7 +1414,7 @@ const MOBILITY_I18N = {
     mapComingSoon: "Map coming soon",
     mapLoading: "Loading map…",
     mapError: "Could not load map",
-    speakWithCami: "🎤 Talk to Cami",
+    speakWithCami: "Talk 🎤",
     redeemInApp: "Redeem in app",
     noResults: "No results",
     storesNotFound: "We couldn't find stores for",
@@ -1489,7 +1490,7 @@ const MOBILITY_I18N = {
     mapComingSoon: "Mapa em breve",
     mapLoading: "Carregando mapa…",
     mapError: "Não foi possível carregar o mapa",
-    speakWithCami: "🎤 Falar com Cami",
+    speakWithCami: "Falar 🎤",
     redeemInApp: "Resgatar no app",
     noResults: "Sem resultados",
     storesNotFound: "Não encontramos lojas para",
