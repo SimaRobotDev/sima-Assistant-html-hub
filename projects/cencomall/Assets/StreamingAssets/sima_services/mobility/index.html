@@ -1905,6 +1905,10 @@ function submitInlineStoreSearch() {
 }
 
 function buildMarketSearchAttempts(query) {
+  if (typeof MarketQueryI18n !== "undefined" && MarketQueryI18n.buildSearchAttempts) {
+    return MarketQueryI18n.buildSearchAttempts(query, mobilityLocale);
+  }
+
   const attempts = [];
   const seen = new Set();
   const add = (value) => {
@@ -1916,14 +1920,20 @@ function buildMarketSearchAttempts(query) {
   };
 
   add(query);
-  if (typeof MarketQueryI18n !== "undefined") {
-    add(MarketQueryI18n.prepareVoiceQuery(query, mobilityLocale));
-    add(MarketQueryI18n.expandForCatalogSearch(query, mobilityLocale));
-    if (MarketQueryI18n.extractSignificantTokens) {
-      add(MarketQueryI18n.extractSignificantTokens(query));
-    }
-  }
   return attempts;
+}
+
+function ensureStoreSearchReady() {
+  const mapView = document.getElementById("map-view");
+  if (mapView && !mapView.classList.contains("hidden") && typeof closeMapView === "function") {
+    closeMapView();
+  }
+  const landing = document.getElementById("store-search-landing");
+  if (landing) landing.classList.remove("visible");
+  const body = document.querySelector(".cm-body");
+  if (body) body.style.display = "";
+  const fab = document.getElementById("speakFab");
+  if (fab) fab.style.display = "";
 }
 
 async function runMarketCatalogSearch(query, options) {
@@ -1939,18 +1949,31 @@ async function runMarketCatalogSearch(query, options) {
 
   try {
     await MarketSearch.loadCatalog();
+    if (!MarketSearch.getCatalogSize()) {
+      SimaBridge.log("market catalog empty after load");
+      if (!options.silent) showSearchError(t("loadError"));
+      return null;
+    }
+
     const attempts = buildMarketSearchAttempts(q);
+    const searchFn = (options.voice && typeof MarketSearch.searchVoice === "function")
+      ? MarketSearch.searchVoice.bind(MarketSearch)
+      : MarketSearch.search.bind(MarketSearch);
+
     let searchResult = null;
     let usedQuery = q;
 
     for (let i = 0; i < attempts.length; i++) {
       const attempt = attempts[i];
-      const result = MarketSearch.search(attempt, { limit: options.limit || 30 });
+      const result = searchFn(attempt, { limit: options.limit || 30 });
       searchResult = result;
       if (result.results && result.results.length) {
         usedQuery = attempt;
         if (attempt !== q) {
-          SimaBridge.log("market_search retry q=" + q + " -> " + attempt);
+          SimaBridge.log(
+            "market_search retry q=" + q + " -> " + attempt +
+            (result.searchMode ? " mode=" + result.searchMode : "")
+          );
         }
         break;
       }
@@ -2275,6 +2298,14 @@ window.pushMarketSearchFromUnity = function(data) {
   }
 };
 
+window.pushVoiceSearchFromUnity = function(data) {
+  try { buscarDesdeVoz(data); }
+  catch (e) {
+    console.error("pushVoiceSearchFromUnity failed", e);
+    showSearchError(t("loadError"));
+  }
+};
+
 if (typeof SimaBridge === "undefined") {
   window.SimaBridge = {
     send: (t, p) => console.log("[DEV]", t, p),
@@ -2418,6 +2449,8 @@ function dispatchVoiceSearch(query, source) {
   const q = String(query || "").trim();
   if (!q) return false;
 
+  ensureStoreSearchReady();
+
   const prepared = (typeof MarketQueryI18n !== "undefined" && MarketQueryI18n.prepareVoiceQuery)
     ? String(MarketQueryI18n.prepareVoiceQuery(q, mobilityLocale) || "").trim()
     : q;
@@ -2425,15 +2458,16 @@ function dispatchVoiceSearch(query, source) {
 
   const inputEl = document.getElementById("storeSearchInput");
   if (inputEl) inputEl.value = q;
-  const landing = document.getElementById("store-search-landing");
-  if (landing) landing.classList.remove("visible");
+  const inlineEl = document.getElementById("storeSearchInlineInput");
+  if (inlineEl) inlineEl.value = q;
 
   marketSearchSeq++;
   SimaBridge.log(
     "voice_search q=" + q +
     (searchText !== q ? " prepared=" + searchText : "") +
     " source=" + (source || "native") +
-    " locale=" + mobilityLocale
+    " locale=" + mobilityLocale +
+    " catalogReady=" + (typeof MarketSearch !== "undefined" && MarketSearch.isReady && MarketSearch.isReady())
   );
 
   if (shouldNotifyUnityMarketSearch()) {
@@ -2445,7 +2479,7 @@ function dispatchVoiceSearch(query, source) {
     });
   }
   if (shouldUseLocalMarketCatalog()) {
-    runMarketCatalogSearch(q, { seq: marketSearchSeq });
+    runMarketCatalogSearch(q, { seq: marketSearchSeq, voice: true });
   }
   return true;
 }
@@ -2458,6 +2492,16 @@ function buscarDesdeVoz(raw) {
       ? SimaNativePayload.normalize(raw)
       : raw;
 
+    if (typeof data === "string") {
+      dispatchVoiceSearch(data, "voice");
+      return;
+    }
+
+    if (!data || typeof data !== "object") {
+      SimaBridge.log("buscarDesdeVoz ignored invalid object payload");
+      return;
+    }
+
     const query = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.extractSearchQuery)
       ? SimaNativePayload.extractSearchQuery(data)
       : String(data.query || data.text || data.q || "").trim();
@@ -2469,7 +2513,7 @@ function buscarDesdeVoz(raw) {
       parking_info: true,
     };
 
-    if (data && data.type && knownTypes[data.type]) {
+    if (data.type && knownTypes[data.type]) {
       renderIncomingPayload(data);
       return;
     }
@@ -2479,7 +2523,8 @@ function buscarDesdeVoz(raw) {
       return;
     }
 
-    if (data && data.type) {
+    if (data.type) {
+      SimaBridge.log("buscarDesdeVoz unknown type without query type=" + data.type);
       renderIncomingPayload(data);
       return;
     }
@@ -2578,7 +2623,11 @@ function renderIncomingPayload(dataJson) {
 
       marketSearchSeq++;
       if (shouldUseLocalMarketCatalog()) {
-        runMarketCatalogSearch(incomingQuery, { skipRender: false, seq: marketSearchSeq });
+        runMarketCatalogSearch(incomingQuery, {
+          skipRender: false,
+          seq: marketSearchSeq,
+          voice: true,
+        });
         break;
       }
 

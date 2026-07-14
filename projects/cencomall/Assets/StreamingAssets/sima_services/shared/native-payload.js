@@ -64,13 +64,32 @@ window.SimaNativePayload = (function () {
     return type;
   }
 
+  function looksLikeTtsResponse(text) {
+    var value = String(text || "").trim();
+    if (!value) return true;
+    if (value.length > 120) return true;
+    return /^(te muestro|te llevo|aqui tienes|aquí tienes|claro|perfecto|encontre|encontré|encontrei|voy a|sure|here you|i found|vou te|i'll show|let me show)/i.test(value);
+  }
+
+  function pickQueryString(value) {
+    if (typeof value !== "string") return "";
+    var text = value.trim();
+    if (!text || looksLikeTtsResponse(text)) return "";
+    return text;
+  }
+
   function extractSearchQuery(data) {
     if (!data || typeof data !== "object") return "";
     if (data.args && typeof data.args === "object" && !Array.isArray(data.args)) {
       var fromArgs = extractSearchQuery(data.args);
       if (fromArgs) return fromArgs;
     }
-    return String(
+    if (data.parameters && typeof data.parameters === "object" && !Array.isArray(data.parameters)) {
+      var fromParams = extractSearchQuery(data.parameters);
+      if (fromParams) return fromParams;
+    }
+
+    var direct = String(
       data.query
       || data.text
       || data.q
@@ -82,6 +101,7 @@ window.SimaNativePayload = (function () {
       || data.voiceText
       || data.voice_text
       || data.transcript
+      || data.transcription
       || data.utterance
       || data.spokenText
       || data.spoken_text
@@ -98,16 +118,35 @@ window.SimaNativePayload = (function () {
       || data.term
       || data.keyword
       || data.value
+      || data.stt
+      || data.content
+      || data.body
       || (typeof data.extra === "string" ? data.extra : "")
-      || (typeof data.result === "string" ? data.result : "")
       || ""
     ).trim();
+
+    if (direct) return direct;
+
+    return (
+      pickQueryString(data.result)
+      || pickQueryString(data.message)
+      || ""
+    );
   }
 
   function normalize(data) {
     var parsed = tryParseJson(data);
     if (parsed == null) return null;
-    if (typeof parsed !== "object" || Array.isArray(parsed)) {
+
+    if (Array.isArray(parsed)) {
+      if (parsed.length === 1 && parsed[0] && typeof parsed[0] === "object") {
+        parsed = parsed[0];
+      } else {
+        return parsed;
+      }
+    }
+
+    if (typeof parsed !== "object") {
       return parsed;
     }
 
@@ -137,6 +176,13 @@ window.SimaNativePayload = (function () {
       var args = tryParseJson(out.args);
       if (args && typeof args === "object" && !Array.isArray(args)) {
         out = mergeObjects(args, out);
+      }
+    }
+
+    if (out.parameters != null) {
+      var parameters = tryParseJson(out.parameters);
+      if (parameters && typeof parameters === "object" && !Array.isArray(parameters)) {
+        out = mergeObjects(parameters, out);
       }
     }
 

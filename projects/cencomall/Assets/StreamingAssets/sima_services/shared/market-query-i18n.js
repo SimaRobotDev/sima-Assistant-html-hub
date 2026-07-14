@@ -165,11 +165,40 @@ window.MarketQueryI18n = (function () {
     var norm = normalizeToken(stripVoicePhrases(query));
     if (!norm) return "";
     var tokens = norm.split(" ").filter(function (token) {
-      return token.length >= 2 && !STOP_TOKENS[token];
+      return token.length >= 2 && !STOP_TOKENS[token] && !TOKEN_ALIASES[token];
     });
     if (!tokens.length) return "";
     if (tokens.length === 1) return tokens[0];
     return tokens.join(" ");
+  }
+
+  function buildSearchAttempts(query, locale) {
+    var attempts = [];
+    var seen = {};
+    function add(value) {
+      var text = String(value || "").trim();
+      var key = normalizeToken(text);
+      if (!text || seen[key]) return;
+      seen[key] = true;
+      attempts.push(text);
+    }
+
+    add(prepareVoiceQuery(query, locale));
+    add(extractSignificantTokens(query));
+    add(expandForCatalogSearch(query, locale));
+
+    normalizeToken(stripVoicePhrases(query))
+      .split(" ")
+      .filter(function (token) {
+        return token.length >= 3 && !STOP_TOKENS[token] && !TOKEN_ALIASES[token];
+      })
+      .sort(function (a, b) { return b.length - a.length; })
+      .slice(0, 4)
+      .forEach(add);
+
+    add(query);
+
+    return attempts;
   }
 
   function prepareVoiceQuery(query, locale) {
@@ -222,6 +251,7 @@ window.MarketQueryI18n = (function () {
     expandForCatalogSearch: expandForCatalogSearch,
     prepareVoiceQuery: prepareVoiceQuery,
     extractSignificantTokens: extractSignificantTokens,
+    buildSearchAttempts: buildSearchAttempts,
     normalizeToken: normalizeToken,
   };
 })();

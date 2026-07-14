@@ -219,8 +219,16 @@ window.SimaBridge = window.SimaBridge || {};
     global.__simaNativeMessageBound = true;
     function onMessage(event) {
       if (!event || event.data == null || event.data === "") return;
+      var raw = event.data;
+      if (typeof raw === "object") {
+        try {
+          raw = JSON.stringify(raw);
+        } catch (stringifyError) {
+          return;
+        }
+      }
       try {
-        bridge.onNativeData(event.data);
+        bridge.onNativeData(raw);
       } catch (error) {
         if (global.console && global.console.error) {
           global.console.error("SimaBridge native message failed", error);

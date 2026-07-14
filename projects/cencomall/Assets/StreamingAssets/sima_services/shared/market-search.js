@@ -363,6 +363,22 @@ window.MarketSearch = (function () {
     );
   }
 
+  function scoreEntryRelaxed(indexedEntry, queryNorm, tokens) {
+    var strict = scoreEntry(indexedEntry, queryNorm, tokens);
+    if (strict > 0) return strict;
+    if (!tokens || tokens.length <= 1) return 0;
+
+    var best = 0;
+    tokens.forEach(function (token) {
+      if (!token || token.length < 3) return;
+      var single = scoreEntry(indexedEntry, token, [token]);
+      if (single > best) best = single;
+    });
+
+    if (best >= 680) return best - 40;
+    return 0;
+  }
+
   function applyRelevanceFilter(matches, queryNorm, tokens) {
     if (!matches.length || tokens.length !== 1) return matches;
 
@@ -503,9 +519,10 @@ window.MarketSearch = (function () {
       return { query: query, results: [], totalMatches: 0, catalogLoaded: true };
     }
 
+    var scoreFn = options.relaxed ? scoreEntryRelaxed : scoreEntry;
     var matches = [];
     indexed.forEach(function (indexedEntry) {
-      var score = scoreEntry(indexedEntry, queryNorm, tokens);
+      var score = scoreFn(indexedEntry, queryNorm, tokens);
       if (score > 0) {
         matches.push({ entry: indexedEntry.entry, score: score });
       }
@@ -539,6 +556,72 @@ window.MarketSearch = (function () {
       catalogLoaded: true,
       catalogSize: catalog ? catalog.length : 0,
     };
+  }
+
+  var GENERIC_VOICE_TOKENS = {
+    shoes: true,
+    shoe: true,
+    food: true,
+    pharmacy: true,
+    restaurant: true,
+    clothes: true,
+    clothing: true,
+    store: true,
+    shop: true,
+    zapatillas: true,
+    calzado: true,
+  };
+
+  function searchVoice(query, options) {
+    options = options || {};
+    var seen = {};
+    var attempts = [];
+    function addAttempt(value) {
+      var text = String(value || "").trim();
+      var key = normalizeText(text);
+      if (!text || seen[key]) return;
+      seen[key] = true;
+      attempts.push(text);
+    }
+
+    addAttempt(query);
+    tokenizeQuery(query)
+      .filter(function (token) {
+        return token.length >= 3 && !GENERIC_VOICE_TOKENS[token];
+      })
+      .sort(function (a, b) { return b.length - a.length; })
+      .forEach(addAttempt);
+
+    var lastResult = null;
+    for (var i = 0; i < attempts.length; i++) {
+      var attempt = attempts[i];
+      var result = search(attempt, options);
+      lastResult = result;
+      if (result.results && result.results.length) {
+        result.searchMode = attempt === String(query || "").trim() ? "voice-exact" : "voice-token";
+        if (attempt !== String(query || "").trim()) result.voiceFallbackQuery = attempt;
+        return result;
+      }
+    }
+
+    if (tokenizeQuery(query).length > 1) {
+      var relaxed = search(query, {
+        limit: options.limit,
+        allowRelated: options.allowRelated,
+        relaxed: true,
+      });
+      if (relaxed.results && relaxed.results.length) {
+        relaxed.searchMode = "voice-relaxed";
+        return relaxed;
+      }
+    }
+
+    if (lastResult) {
+      lastResult.searchMode = "voice-empty";
+      return lastResult;
+    }
+
+    return search(query, options);
   }
 
   function levenshteinWithin(a, b, maxDistance) {
@@ -805,6 +888,7 @@ window.MarketSearch = (function () {
   return {
     loadCatalog: loadCatalog,
     search: search,
+    searchVoice: searchVoice,
     searchRelated: searchRelated,
     listCategories: listCategories,
     searchByCategory: searchByCategory,
