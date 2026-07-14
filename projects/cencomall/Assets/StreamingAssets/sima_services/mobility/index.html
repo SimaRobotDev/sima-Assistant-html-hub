@@ -2764,6 +2764,101 @@ function compareFloorMeta(a, b) {
   return String(a.label || "").localeCompare(String(b.label || ""), "es");
 }
 
+function parseLocalFloorLevels(local) {
+  const match = String(local || "").trim().match(/^CC_([^_]+)_/i);
+  if (!match) return [];
+  const segment = String(match[1] || "").trim().toUpperCase();
+  if (!segment) return [];
+  if (segment === "PB") return [0];
+  return segment.split(",").map((part) => {
+    const token = String(part || "").trim().toUpperCase();
+    const nMatch = token.match(/^N(\d+)$/);
+    if (nMatch) return Number(nMatch[1]);
+    if (/^\d+$/.test(token)) return Number(token);
+    return null;
+  }).filter((n) => n != null);
+}
+
+function localSpecificityScore(local, floorMeta) {
+  const floors = parseLocalFloorLevels(local);
+  let score = 0;
+  if (floors.length === 1) score += 200;
+  if (floors.length > 1) score -= 40;
+  if (floorMeta.hasNumber) {
+    if (floors.length === 1 && floors[0] === floorMeta.order) score += 300;
+    if (floors.indexOf(floorMeta.order) >= 0) score += 80;
+    const exactToken = `N${floorMeta.order}_`;
+    const localUpper = String(local || "").toUpperCase();
+    if (localUpper.indexOf(`_${exactToken}`) >= 0 || localUpper.indexOf(`_${exactToken.replace("_", "")}`) >= 0) {
+      score += 120;
+    }
+    if (new RegExp(`^CC_N${floorMeta.order}_`, "i").test(String(local || ""))) score += 180;
+  }
+  return score;
+}
+
+function locationMatchesFloor(loc, floorMeta) {
+  if (!loc) return false;
+  const locMeta = getFloorSortMeta(loc.floor);
+  if (floorMeta.label && locMeta.label) {
+    return floorMeta.label.toLowerCase() === locMeta.label.toLowerCase();
+  }
+  if (floorMeta.hasNumber && locMeta.hasNumber) {
+    return floorMeta.order === locMeta.order;
+  }
+  return false;
+}
+
+function pickBestLocationForFloor(locations, referenceLoc) {
+  const floorMeta = getFloorSortMeta(referenceLoc && referenceLoc.floor);
+  let best = null;
+  (locations || []).forEach((loc, locIdx) => {
+    if (!locationMatchesFloor(loc, floorMeta)) return;
+    const score = localSpecificityScore(loc.local, floorMeta);
+    if (!best || score > best.score) {
+      best = { loc: loc, locIdx: locIdx, score: score };
+    }
+  });
+  return best;
+}
+
+function buildUniqueFloorRows(locations) {
+  const rows = [];
+  const seenFloorKeys = {};
+
+  (locations || []).forEach((loc, locIdx) => {
+    const floorLabel = formatNivel(loc && loc.floor);
+    const floorKey = String(floorLabel || "").trim().toLowerCase();
+    if (!floorKey || floorKey === "—") return;
+
+    const available = loc && loc.available !== false;
+    const candidate = { loc: loc, locIdx: locIdx, floorLabel: floorLabel, available: available };
+    const prevIdx = seenFloorKeys[floorKey];
+
+    if (prevIdx == null) {
+      seenFloorKeys[floorKey] = rows.length;
+      rows.push(candidate);
+      return;
+    }
+
+    const prev = rows[prevIdx];
+    const prevScore = localSpecificityScore(prev.loc && prev.loc.local, getFloorSortMeta(prev.loc && prev.loc.floor));
+    const nextScore = localSpecificityScore(loc && loc.local, getFloorSortMeta(loc && loc.floor));
+    if (nextScore > prevScore || (available && !prev.available)) {
+      rows[prevIdx] = candidate;
+    }
+  });
+
+  return rows.length
+    ? rows
+    : (locations || []).map((loc, locIdx) => ({
+        loc: loc,
+        locIdx: locIdx,
+        floorLabel: formatNivel(loc && loc.floor),
+        available: loc && loc.available !== false,
+      }));
+}
+
 function getSortedFloorLabelsFromLocations(locations) {
   if (!locations || !locations.length) return [];
 
@@ -2929,8 +3024,13 @@ function renderStoreCard(result, idx) {
     const distinctFloors = countDistinctFloors(result.locations);
     if (distinctFloors <= 1) {
       const primaryIndex = result.locations.findIndex((loc) => loc && loc.available !== false);
-      const locIdx = primaryIndex >= 0 ? primaryIndex : 0;
-      const loc = result.locations[locIdx] || {};
+      const fallbackIdx = primaryIndex >= 0 ? primaryIndex : 0;
+      const bestSingle = pickBestLocationForFloor(result.locations, result.locations[fallbackIdx]) || {
+        loc: result.locations[fallbackIdx] || {},
+        locIdx: fallbackIdx,
+      };
+      const locIdx = bestSingle.locIdx;
+      const loc = bestSingle.loc || {};
       const available = loc.available !== false;
       const btn = available
         ? `<button class="btn-ver-mapa" type="button" onclick="event.stopPropagation(); openStoreMap(${idx}, ${locIdx})">${escapeHtml(getMapButtonLabelForFloor(loc.floor))}</button>`
@@ -2959,33 +3059,7 @@ function renderStoreCard(result, idx) {
       ? `<span class="store-badge" title="${escapeHtml(localizeCategoryField(result.category))}">${escapeHtml(truncate(category, 14))}</span>`
       : "";
     const floorsSummary = summarizeFloors(result.locations);
-    const uniqueFloorRows = [];
-    const seenFloorKeys = {};
-    result.locations.forEach((loc, locIdx) => {
-      const floorLabel = formatNivel(loc && loc.floor);
-      const floorKey = String(floorLabel || "").trim().toLowerCase();
-      if (!floorKey || floorKey === "—") return;
-      const available = loc && loc.available !== false;
-      const prevIdx = seenFloorKeys[floorKey];
-      if (prevIdx == null) {
-        seenFloorKeys[floorKey] = uniqueFloorRows.length;
-        uniqueFloorRows.push({ loc: loc, locIdx: locIdx, floorLabel: floorLabel, available: available });
-        return;
-      }
-      // If there are duplicate entries for the same floor, prefer an available one.
-      if (available && !uniqueFloorRows[prevIdx].available) {
-        uniqueFloorRows[prevIdx] = { loc: loc, locIdx: locIdx, floorLabel: floorLabel, available: available };
-      }
-    });
-
-    const rowsSource = uniqueFloorRows.length
-      ? uniqueFloorRows
-      : result.locations.map((loc, locIdx) => ({
-          loc: loc,
-          locIdx: locIdx,
-          floorLabel: formatNivel(loc && loc.floor),
-          available: loc && loc.available !== false,
-        }));
+    const rowsSource = buildUniqueFloorRows(result.locations);
 
     rowsSource.sort((a, b) => compareFloorMeta(getFloorSortMeta(a && a.loc && a.loc.floor), getFloorSortMeta(b && b.loc && b.loc.floor)));
 
@@ -3782,9 +3856,16 @@ function storeMapKey(store) {
   return local || id;
 }
 
-function openPoiMap({ poiType, id, floor, mall, name, local, mode, storeDetail }) {
+function storeCatalogId(store) {
+  if (!store || store.id == null) return "";
+  return String(store.id).trim();
+}
+
+function openPoiMap({ poiType, id, floor, mall, name, local, catalogId, mode, storeDetail }) {
   const mapLocal = (local != null && String(local).trim()) || (id != null && String(id).trim()) || "";
-  logMap("info", "openPoiMap called", { poiType, id, floor, mall, name, local: mapLocal, mode });
+  const mapCatalogId = (catalogId != null && String(catalogId).trim())
+    || (id != null && /^\d+$/.test(String(id).trim()) ? String(id).trim() : "");
+  logMap("info", "openPoiMap called", { poiType, id, catalogId: mapCatalogId, floor, mall, name, local: mapLocal, mode });
 
   if (!mapLocal) {
     logMap("error", "openPoiMap aborted: missing local/id", { name, poiType });
@@ -3810,11 +3891,13 @@ function openPoiMap({ poiType, id, floor, mall, name, local, mode, storeDetail }
 
   const mapOptions = {
     poiType,
-    id: mapLocal,
+    id: mapCatalogId || mapLocal,
+    catalogId: mapCatalogId,
     floor,
     mall,
     name,
     local: mapLocal,
+    strictLocal: poiType === "store" && !!mapLocal,
     mode
   };
 
@@ -3887,8 +3970,10 @@ function waitForMapVxReady(fn, attempt) {
 
 function openStoreMap(groupIndex, locationIndex) {
   const store = resolveStore(groupIndex, locationIndex);
-  const mapKey = storeMapKey(store);
-  logMap("info", "openStoreMap", { groupIndex, locationIndex, store, mapKey });
+  const mapLocal = store && store.local != null ? String(store.local).trim() : "";
+  const mapCatalogId = storeCatalogId(store);
+  const mapKey = mapLocal || mapCatalogId;
+  logMap("info", "openStoreMap", { groupIndex, locationIndex, store, mapLocal, mapCatalogId, mapKey });
   if (!store || store.available === false) {
     logMap("warn", "openStoreMap skipped", { reason: !store ? "no store" : "unavailable" });
     return;
@@ -3900,11 +3985,12 @@ function openStoreMap(groupIndex, locationIndex) {
 
   openPoiMap({
     poiType: "store",
-    id: mapKey,
+    id: mapCatalogId || mapLocal,
+    catalogId: mapCatalogId,
     floor: store.floor,
     mall: store.mall,
-    name: store.name,
-    local: mapKey,
+    name: store.name || store.brand,
+    local: mapLocal,
     mode: "place",
     storeDetail: store
   });

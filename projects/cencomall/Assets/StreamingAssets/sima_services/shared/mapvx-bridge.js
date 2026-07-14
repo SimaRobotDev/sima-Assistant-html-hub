@@ -617,15 +617,46 @@ window.MapVxBridge = (function () {
 
   function parseFloorFromLocal(local) {
     if (!local) return null;
-    var m = String(local).trim().match(/^CC_([A-Za-z]+\d*|\d+|PB)_/i);
+    var m = String(local).trim().match(/^CC_([A-Za-z0-9,]+)_/i);
     if (!m) return null;
     return String(m[1]).toUpperCase();
+  }
+
+  function parseLevelsFromLocal(local) {
+    var segment = parseFloorFromLocal(local);
+    if (!segment) return [];
+    if (segment === "PB") return [0];
+    return segment.split(",").map(function (part) {
+      var token = String(part || "").trim().toUpperCase();
+      var nMatch = token.match(/^N(\d+)$/);
+      if (nMatch) return parseInt(nMatch[1], 10);
+      if (/^\d+$/.test(token)) return parseInt(token, 10);
+      return null;
+    }).filter(function (n) { return n != null; });
+  }
+
+  function clientIdMatchesCatalogLocal(clientId, catalogLocal) {
+    var left = String(clientId || "").trim();
+    var right = String(catalogLocal || "").trim();
+    if (!left || !right) return false;
+    if (left === right) return true;
+    return left.toUpperCase() === right.toUpperCase();
+  }
+
+  function isCatalogNumericId(value) {
+    return /^\d+$/.test(String(value || "").trim());
   }
 
   function parseLevelFromHint(hint) {
     if (!hint) return null;
     var h = normalizeText(hint);
     if (h === "pb" || h.indexOf("planta baja") >= 0) return 0;
+    var nivelMatch = h.match(/nivel\s*(\d+)/);
+    if (nivelMatch) return parseInt(nivelMatch[1], 10);
+    var pisoMatch = h.match(/piso\s*(\d+)/);
+    if (pisoMatch) return parseInt(pisoMatch[1], 10);
+    var levelMatch = h.match(/level\s*(\d+)/);
+    if (levelMatch) return parseInt(levelMatch[1], 10);
     var nMatch = h.match(/^n(\d+)$/);
     if (nMatch) return parseInt(nMatch[1], 10);
     if (/^-?\d+$/.test(h)) return parseInt(h, 10);
@@ -642,9 +673,22 @@ window.MapVxBridge = (function () {
       seen[n] = true;
       hints.push(n);
     }
+    function addLevel(level) {
+      if (level == null || !isFinite(level)) return;
+      if (level === 0) add("pb");
+      add("n" + level);
+      add(String(level));
+    }
+
     var fromLocal = parseFloorFromLocal(localCode);
     if (fromLocal) add(fromLocal);
-    if (floorHint) add(floorHint);
+    parseLevelsFromLocal(localCode).forEach(addLevel);
+
+    if (floorHint) {
+      add(floorHint);
+      var fromHint = parseLevelFromHint(floorHint);
+      if (fromHint != null) addLevel(fromHint);
+    }
     return hints;
   }
 
@@ -2697,6 +2741,65 @@ window.MapVxBridge = (function () {
     return map;
   }
 
+  function findSubPlaceMatch(subPlaces, local, catalogId, name, floor) {
+    if (!subPlaces || !subPlaces.length) return null;
+
+    if (local) {
+      var exactLocal = subPlaces.find(function (p) {
+        return clientIdMatchesCatalogLocal(p.clientId, local);
+      });
+      if (exactLocal) {
+        return { place: exactLocal, method: "subPlaces(local→clientId)" };
+      }
+    }
+
+    if (catalogId) {
+      var exactCatalog = subPlaces.find(function (p) {
+        return clientIdMatchesCatalogLocal(p.clientId, catalogId)
+          || String(p.mapvxId || "") === String(catalogId);
+      });
+      if (exactCatalog) {
+        return { place: exactCatalog, method: "subPlaces(catalogId)" };
+      }
+    }
+
+    if (name) {
+      var targetName = normalizeText(name);
+      var named = subPlaces.filter(function (p) {
+        return normalizeText(p.title) === targetName;
+      });
+      if (named.length === 1) {
+        return { place: named[0], method: "subPlaces(title)" };
+      }
+      if (named.length > 1) {
+        var floorLevel = parseLevelFromHint(floor);
+        if (floorLevel != null) {
+          var byFloor = named.find(function (p) {
+            var levels = parseLevelsFromLocal(p.clientId);
+            return levels.indexOf(floorLevel) >= 0;
+          });
+          if (byFloor) {
+            return { place: byFloor, method: "subPlaces(title+floor)" };
+          }
+        }
+        if (local) {
+          var suffixMatch = String(local).match(/_(\d+)\s*$/);
+          if (suffixMatch) {
+            var suffix = suffixMatch[1];
+            var bySuffix = named.find(function (p) {
+              return String(p.clientId || "").indexOf("_" + suffix) >= 0;
+            });
+            if (bySuffix) {
+              return { place: bySuffix, method: "subPlaces(title+localSuffix)" };
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
   async function resolvePlace(options, nameArg, floorArg) {
     if (typeof options === "string" || options == null) {
       options = {
@@ -2707,46 +2810,50 @@ window.MapVxBridge = (function () {
     }
     options = options || {};
     var local = options.local ? String(options.local).trim() : "";
-    var catalogId = options.id ? String(options.id).trim() : "";
+    var catalogId = options.catalogId
+      ? String(options.catalogId).trim()
+      : (options.id && isCatalogNumericId(options.id) ? String(options.id).trim() : "");
     var name = options.name;
     var floor = options.floor;
+    var strictLocal = options.strictLocal !== false && !!local;
     var attempts = [];
     log("info", "resolvePlace start", {
       local: local,
       catalogId: catalogId,
       name: name,
       floor: floor,
+      strictLocal: strictLocal,
     });
 
-    var lookupKeys = [];
-    if (local) lookupKeys.push({ key: local, label: "local(clientId)" });
-    if (catalogId && catalogId !== local) {
-      lookupKeys.push({ key: catalogId, label: "catalogId" });
-    }
-
-    for (var i = 0; i < lookupKeys.length; i++) {
-      var lookup = lookupKeys[i];
+    if (local) {
       try {
-        log("info", "try getPlaceDetail", lookup);
-        var byId = await sdk.getPlaceDetail(lookup.key);
-        if (byId) {
+        log("info", "try getPlaceDetail", { key: local, label: "local(clientId)" });
+        var byLocal = await sdk.getPlaceDetail(local);
+        if (byLocal && (!byLocal.clientId || clientIdMatchesCatalogLocal(byLocal.clientId, local))) {
           log("info", "resolved by getPlaceDetail", {
-            source: lookup.label,
-            mapvxId: byId.mapvxId,
-            clientId: byId.clientId,
-            title: byId.title,
+            source: "local(clientId)",
+            mapvxId: byLocal.mapvxId,
+            clientId: byLocal.clientId,
+            title: byLocal.title,
           });
           return {
-            place: byId,
-            resolvedBy: "getPlaceDetail(" + lookup.label + ")",
-            lookupKey: lookup.key,
+            place: byLocal,
+            resolvedBy: "getPlaceDetail(local)",
+            lookupKey: local,
             attempts: attempts,
           };
         }
+        if (byLocal) {
+          log("warn", "getPlaceDetail(local) clientId mismatch", {
+            requested: local,
+            clientId: byLocal.clientId,
+            title: byLocal.title,
+          });
+        }
       } catch (e) {
-        var errLookup = String(e.message || e);
-        attempts.push({ method: "getPlaceDetail(" + lookup.label + ")", error: errLookup });
-        log("warn", "getPlaceDetail failed", { source: lookup.label, error: errLookup });
+        var errLocal = String(e.message || e);
+        attempts.push({ method: "getPlaceDetail(local)", error: errLocal });
+        log("warn", "getPlaceDetail(local) failed", { error: errLocal });
       }
     }
 
@@ -2754,38 +2861,28 @@ window.MapVxBridge = (function () {
       log("info", "try getSubPlaces", { parentPlace: getConfig().parentPlace });
       var subPlaces = await getSubPlacesCached(getConfig().parentPlace);
       log("info", "getSubPlaces count", { count: subPlaces ? subPlaces.length : 0 });
-      if (subPlaces && subPlaces.length) {
-        var match = subPlaces.find(function (p) {
-          if (local && p.clientId === local) return true;
-          if (catalogId && (p.clientId === catalogId || p.mapvxId === catalogId)) {
-            return true;
-          }
-          return name && normalizeText(p.title) === normalizeText(name);
+      var subMatch = findSubPlaceMatch(subPlaces, local, catalogId, name, floor);
+      if (subMatch) {
+        log("info", "resolved by " + subMatch.method, {
+          mapvxId: subMatch.place.mapvxId,
+          clientId: subMatch.place.clientId,
+          title: subMatch.place.title,
         });
-        if (match) {
-          var method = local && match.clientId === local
-            ? "subPlaces(local→clientId)"
-            : catalogId && match.clientId === catalogId
-              ? "subPlaces(catalogId→clientId)"
-              : catalogId && match.mapvxId === catalogId
-                ? "subPlaces(catalogId→mapvxId)"
-                : "subPlaces(title)";
-          log("info", "resolved by " + method, {
-            mapvxId: match.mapvxId,
-            clientId: match.clientId,
-            title: match.title,
-          });
-          return { place: match, resolvedBy: method, attempts: attempts };
-        }
-        log("warn", "no match in subPlaces", { local: local, catalogId: catalogId, name: name });
+        return {
+          place: subMatch.place,
+          resolvedBy: subMatch.method,
+          lookupKey: local || catalogId || null,
+          attempts: attempts,
+        };
       }
+      log("warn", "no match in subPlaces", { local: local, catalogId: catalogId, name: name, floor: floor });
     } catch (e) {
       var err2 = String(e.message || e);
       attempts.push({ method: "getSubPlaces", error: err2 });
       log("warn", "getSubPlaces failed", { error: err2 });
     }
 
-    if (name) {
+    if (!strictLocal && name) {
       try {
         var floorParam = floor ? String(floor) : undefined;
         log("info", "try getPlacesByInput", { name: name, floor: floorParam });
@@ -2818,6 +2915,8 @@ window.MapVxBridge = (function () {
         attempts.push({ method: "getPlacesByInput", error: err3 });
         log("warn", "getPlacesByInput failed", { error: err3 });
       }
+    } else if (strictLocal && name) {
+      log("warn", "skipping getPlacesByInput because strictLocal is enabled", { local: local });
     }
 
     log("error", "resolvePlace failed", {
@@ -2844,9 +2943,11 @@ window.MapVxBridge = (function () {
 
     var resolved = await resolvePlace({
       local: options.local,
+      catalogId: options.catalogId || (options.id && /^\d+$/.test(String(options.id)) ? options.id : ""),
       id: options.id,
       name: options.name,
       floor: options.floor,
+      strictLocal: options.strictLocal,
     });
     var place = resolved.place;
     var mapvxId = place.mapvxId;
