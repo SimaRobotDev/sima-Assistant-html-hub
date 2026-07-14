@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.14-12",
+  "version": "2026.07.14-13",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-14T18:38:48.373Z",
+  "generatedAt": "2026-07-14T18:40:41.377Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -136,8 +136,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 133647,
-      "sha256": "fadbe916d822ae84f2347f39cc9c7df1781c343021fa5adcaf0ed69b1f8331b3"
+      "size": 133861,
+      "sha256": "27fd9b2365c82c78f0a685acd302fc2a2c7d62e928fd65842300146b9c5e5fe3"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -161,8 +161,8 @@
     },
     {
       "path": "shared/bridge.js",
-      "size": 6932,
-      "sha256": "00c7df7bc99321db5d92942dd773e11ae218ce99962a2467b7ed2b5a9fa6fd0f"
+      "size": 8392,
+      "sha256": "87b5cbb9a836d19024646cbcd9d9c948bf24207c22ed6f0d5d540cc85e6bf048"
     },
     {
       "path": "shared/fragment.js",
@@ -206,8 +206,8 @@
     },
     {
       "path": "shared/native-payload.js",
-      "size": 6993,
-      "sha256": "05c03c61723b67843faa1d12482d0fd6bd93245fd4c7553a83b6a04a135a3713"
+      "size": 7330,
+      "sha256": "77db230a672445c755258a91c19710e17d3476032a2cfb145f478c8c8238c44a"
     },
     {
       "path": "shared/qrcode.min.js",
