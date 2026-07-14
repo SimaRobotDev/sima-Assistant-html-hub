@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.13-2",
+  "version": "2026.07.14-1",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-13T19:17:05.643Z",
+  "generatedAt": "2026-07-14T15:47:30.620Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -51,18 +51,28 @@
   "files": [
     {
       "path": "agenda/index.html",
-      "size": 52079,
-      "sha256": "92ccdddebd87c268910043bb79cf2722e3fa7730d5af867bb8c9f9ed2e15a479"
+      "size": 56893,
+      "sha256": "4187ea22a979a74308f66064ceb25fec17988b4da8522377de1ca860ee1b9385"
     },
     {
       "path": "agenda/indexAgenda.html",
-      "size": 4399,
-      "sha256": "cc9702db00d7a668fd69aa074ebf7cb9379dd013c72fa5603f25ada4cb0a1a67"
+      "size": 6759,
+      "sha256": "915fb41dcce3a70c64db5d39b745a43a2f675f8a19f8db190abc9b5e50b3123a"
     },
     {
       "path": "call/index.html",
-      "size": 5567,
-      "sha256": "356bffe9ff57d2b383dd854142ad04ed1f8f08a6ced63070e6f2d5d7fb128fe0"
+      "size": 5591,
+      "sha256": "98c7dbb68b4274456057484c8aefe95e691d2ed33504e891c3fc955d173a5887"
+    },
+    {
+      "path": "data/market-catalog-i18n.json",
+      "size": 150391,
+      "sha256": "3a46d0e4e4079ff871b0fe96e14d8390bd5a3a7075fc12a9876ec925591ed5de"
+    },
+    {
+      "path": "data/market-catalog-i18n.jsonp.js",
+      "size": 387267,
+      "sha256": "3d322a950f53ca4f4afa6618c9e18a2132f969e9b01c79c3fd73093f3680c8d6"
     },
     {
       "path": "data/market-catalog.json",
@@ -76,8 +86,8 @@
     },
     {
       "path": "emergency/index.html",
-      "size": 10211,
-      "sha256": "3913a4f4c6840cab8bbccaa6433cc579919e955a600cdc5a6f6cf953aec505e6"
+      "size": 10196,
+      "sha256": "e9e088e3899e1a40f75706820167aeebf5ccfaae19b2893ca0cfc943745d7118"
     },
     {
       "path": "FIX-BUSQUEDA-CATALOGO.md",
@@ -86,8 +96,8 @@
     },
     {
       "path": "flights/index.html",
-      "size": 23212,
-      "sha256": "dd0a87506d8d106db8e8807c1e181e32305a3cfdc6a2ea4de0fa55b0cd414482"
+      "size": 23543,
+      "sha256": "b6fda82807a415364167dbaf2c264c9eb9620deea14787c5b8dd988c134bbf7a"
     },
     {
       "path": "human/img.zip",
@@ -106,8 +116,8 @@
     },
     {
       "path": "human/index.html",
-      "size": 3115,
-      "sha256": "4c17ab4ac4008c6f8990b26e3d3245f09a3498d33934fd6e141e213c3684a0dd"
+      "size": 3099,
+      "sha256": "a3298733353e120e1ae0bcc97caad090095b78cd20c4d71b398e72810a4cc457"
     },
     {
       "path": "IMPLEMENTACION-MAPVX-COSTANERA.md",
@@ -121,13 +131,13 @@
     },
     {
       "path": "map/index.html",
-      "size": 15455,
-      "sha256": "23835b2f2d14c560a8656f042a0e14c8de67d4a45195cc1363c1e89d3d5f5c29"
+      "size": 15676,
+      "sha256": "854cfbbc5f4b167ae797461efa7d71a109107683451a11aa23de09f274ee0808"
     },
     {
       "path": "mobility/index.html",
-      "size": 116318,
-      "sha256": "b9dbca5101815fb0fe5900f63750ea8520c782675cc08b1c7202013be31c5dc4"
+      "size": 121996,
+      "sha256": "be5e38ff51de3477bf12a24dcc0e6d7374bda51f436c97017996e1e22fd096a0"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -136,13 +146,13 @@
     },
     {
       "path": "ontour/index.html",
-      "size": 7955,
-      "sha256": "2c1cdf381b7eaacc4279e0a72071a1f922af52d46b5f46d954e798538673446b"
+      "size": 7938,
+      "sha256": "1aa320b9d7a1e3f65e16dd99856c8a813ed2afd33485b882d76bea2e9afa6c65"
     },
     {
       "path": "servicios/index.html",
-      "size": 11254,
-      "sha256": "5681234f52db438e10b577ad7e797fe6a6137eac5a900292e48dd54faff9eb1f"
+      "size": 11317,
+      "sha256": "59b2df383a1d622ad2823fbbe8e91a2b1c0be343c217ad93f8fa4609910152e6"
     },
     {
       "path": "shared/app.css",
@@ -151,8 +161,8 @@
     },
     {
       "path": "shared/bridge.js",
-      "size": 4245,
-      "sha256": "ecb88b57dd20fd1ce2d87b7cc0eef5e52ad97f2cb98880153af7112de22799e3"
+      "size": 6663,
+      "sha256": "d121b4207fbfacb142a70a72da16305a197ec53329cb5907ba4e7a52b07b903d"
     },
     {
       "path": "shared/fragment.js",
@@ -161,8 +171,8 @@
     },
     {
       "path": "shared/locale.js",
-      "size": 1316,
-      "sha256": "33116b04bdbe760c29275fdd13132f691df2cc4e9e873189e5178c2011f011a8"
+      "size": 3570,
+      "sha256": "6d311e42ab153e2d4d98ef0cb480bbc9b6db639753f2a798c66190682549f53a"
     },
     {
       "path": "shared/mapvx-bridge.js",
@@ -180,9 +190,24 @@
       "sha256": "90735526680e6ea5a82ada4ca0de4fca959e3e5454b944cb39a14e1ad9c08ae5"
     },
     {
+      "path": "shared/market-i18n.js",
+      "size": 8888,
+      "sha256": "f026d217bb0d4a95b390a826310ad3126f32999a361ac4e4724ba4bd24b983cd"
+    },
+    {
+      "path": "shared/market-query-i18n.js",
+      "size": 4753,
+      "sha256": "ac361e5f289e0a6d1009dc58b0554c29fedee33ff6bdfd5864cbcc2de715c14c"
+    },
+    {
       "path": "shared/market-search.js",
-      "size": 25172,
-      "sha256": "fe1e64b05fc5689d5132126f6e4809da2fe4f3562093eb75f2350deca3388a51"
+      "size": 25501,
+      "sha256": "ddfda9631b54ae9543337f521eab633ae62cdc418a096ea35f7e54a3e1df27be"
+    },
+    {
+      "path": "shared/native-payload.js",
+      "size": 3808,
+      "sha256": "51a158948bcf9bccea4a976ffe280730dc5229d0346eddacbfaa840839fb04bd"
     },
     {
       "path": "shared/qrcode.min.js",
@@ -246,8 +271,8 @@
     },
     {
       "path": "taxi/index.html",
-      "size": 6336,
-      "sha256": "546b4eff50bcf486971a0a4dc1bcfb689bdc249639d88d10e34801b0e9bf4f23"
+      "size": 9758,
+      "sha256": "eec8a5f849ca744897c43b6f3229360dca983babb149cb78ed161f50b4497ffa"
     },
     {
       "path": "taxi/indextradica.html",
