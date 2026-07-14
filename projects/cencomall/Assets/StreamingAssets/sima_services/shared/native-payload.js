@@ -71,6 +71,26 @@ window.SimaNativePayload = (function () {
     return /^(te muestro|te llevo|aqui tienes|aquí tienes|claro|perfecto|encontre|encontré|encontrei|voy a|sure|here you|i found|vou te|i'll show|let me show)/i.test(value);
   }
 
+  function extractQueryFromTtsMessage(text) {
+    var value = String(text || "").trim();
+    if (!value || !looksLikeTtsResponse(value)) return "";
+
+    var patterns = [
+      /\b(?:llegar a|ir a|buscar|encontrar|mostrar|muestrame|muéstrame|show you|find|search for)\s+(.+?)[\.!\?]*$/i,
+      /\b(?:a|al|la tienda|el local|tienda)\s+(.+?)[\.!\?]*$/i,
+    ];
+
+    for (var i = 0; i < patterns.length; i++) {
+      var match = value.match(patterns[i]);
+      if (match && match[1]) {
+        var candidate = String(match[1]).trim();
+        if (candidate && !looksLikeTtsResponse(candidate)) return candidate;
+      }
+    }
+
+    return "";
+  }
+
   function pickQueryString(value) {
     if (typeof value !== "string") return "";
     var text = value.trim();
@@ -128,7 +148,9 @@ window.SimaNativePayload = (function () {
     if (direct) return direct;
 
     return (
-      pickQueryString(data.result)
+      extractQueryFromTtsMessage(data.message)
+      || extractQueryFromTtsMessage(data.result)
+      || pickQueryString(data.result)
       || pickQueryString(data.message)
       || ""
     );

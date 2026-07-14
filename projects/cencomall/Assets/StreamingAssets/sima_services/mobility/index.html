@@ -2339,8 +2339,67 @@ function renderResultsSearchBar(query) {
     </div>`;
 }
 
+function setStoreSearchInputs(query) {
+  const q = String(query || "").trim();
+  if (!q) return;
+  const landing = document.getElementById("storeSearchInput");
+  const inline = document.getElementById("storeSearchInlineInput");
+  if (landing) landing.value = q;
+  if (inline) inline.value = q;
+}
+
+function showSearchInProgress(query) {
+  const q = String(query || "").trim();
+  if (!q) return;
+  ensureStoreSearchReady();
+  hideWelcome();
+  setStoreSearchInputs(q);
+  const resultado = document.getElementById("resultado");
+  if (!resultado) return;
+  resultado.innerHTML = `
+    <div class="cm-panel fade-in">
+      <div class="cm-empty">
+        <div class="cm-empty-title">${escapeHtml(t("search"))}</div>
+        <div class="cm-empty-copy">"${escapeHtml(q)}"</div>
+        ${renderResultsSearchBar(q)}
+      </div>
+    </div>`;
+}
+
+function ingestMarketSearchPayload(data) {
+  const query = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.extractSearchQuery)
+    ? SimaNativePayload.extractSearchQuery(data)
+    : String(data.query || data.text || data.q || "").trim();
+  const hasResults = Array.isArray(data.results);
+
+  if (query) {
+    dispatchVoiceSearch(query, data.source || (data.transcript ? "voice" : "native"));
+    if (hasResults && data.results.length > 0) {
+      window.setTimeout(function () {
+        renderMarketResults(Object.assign({}, data, {
+          query: query,
+          source: data.source || "unity",
+        }));
+      }, 0);
+    }
+    return true;
+  }
+
+  renderIncomingPayload(data);
+  return false;
+}
+
 window.pushMallContentFromUnity = function(data) {
-  try { ingestPayload(data); }
+  try {
+    const normalized = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.normalize)
+      ? SimaNativePayload.normalize(data)
+      : data;
+    if (normalized && typeof normalized === "object" && SimaNativePayload.isSearchPayload(normalized)) {
+      buscarDesdeVoz(normalized);
+      return;
+    }
+    ingestPayload(data);
+  }
   catch (e) {
     console.error("pushMallContentFromUnity failed", e);
     showSearchError(t("loadError"));
@@ -2348,7 +2407,7 @@ window.pushMallContentFromUnity = function(data) {
 };
 
 window.pushMarketSearchFromUnity = function(data) {
-  try { ingestPayload(data); }
+  try { buscarDesdeVoz(data); }
   catch (e) {
     console.error("pushMarketSearchFromUnity failed", e);
     showSearchError(t("loadError"));
@@ -2513,16 +2572,14 @@ function dispatchVoiceSearch(query, source) {
   if (!q) return false;
 
   ensureStoreSearchReady();
+  showSearchInProgress(q);
 
   const prepared = (typeof MarketQueryI18n !== "undefined" && MarketQueryI18n.prepareVoiceQuery)
     ? String(MarketQueryI18n.prepareVoiceQuery(q, mobilityLocale) || "").trim()
     : q;
   const searchText = prepared || q;
 
-  const inputEl = document.getElementById("storeSearchInput");
-  if (inputEl) inputEl.value = q;
-  const inlineEl = document.getElementById("storeSearchInlineInput");
-  if (inlineEl) inlineEl.value = q;
+  setStoreSearchInputs(q);
 
   marketSearchSeq++;
   SimaBridge.log(
@@ -2575,6 +2632,11 @@ function buscarDesdeVoz(raw) {
       services_search: true,
       parking_info: true,
     };
+
+    if (data.type === "market_search") {
+      ingestMarketSearchPayload(data);
+      return;
+    }
 
     if (data.type && knownTypes[data.type]) {
       renderIncomingPayload(data);
@@ -2649,8 +2711,11 @@ function renderIncomingPayload(dataJson) {
       ).trim();
       const hasResultsArray = Array.isArray(data.results);
 
+      if (incomingQuery) setStoreSearchInputs(incomingQuery);
+
       if (hasResultsArray && data.results.length > 0) {
         renderMarketResults(Object.assign({}, data, {
+          query: incomingQuery || data.query,
           source: data.source || "unity",
         }));
         break;
@@ -2661,9 +2726,11 @@ function renderIncomingPayload(dataJson) {
           SimaBridge.log(
             "market_search unity empty kept local results: " + incomingQuery
           );
+          if (incomingQuery) setStoreSearchInputs(incomingQuery);
           break;
         }
         renderMarketResults(Object.assign({}, data, {
+          query: incomingQuery || data.query,
           source: data.source || "unity",
         }));
         break;
@@ -2675,26 +2742,17 @@ function renderIncomingPayload(dataJson) {
       }
 
       if (!incomingQuery) {
-        SimaBridge.log("market_search missing query in payload");
+        SimaBridge.log("market_search missing query in payload keys=" + Object.keys(data || {}).join(","));
         break;
       }
 
       if (localMarketSearchAlreadyResolved(incomingQuery, marketSearchSeq)) {
         SimaBridge.log("market_search echo ignored (already resolved locally): " + incomingQuery);
+        setStoreSearchInputs(incomingQuery);
         break;
       }
 
-      marketSearchSeq++;
-      if (shouldUseLocalMarketCatalog()) {
-        runMarketCatalogSearch(incomingQuery, {
-          skipRender: false,
-          seq: marketSearchSeq,
-          voice: true,
-        });
-        break;
-      }
-
-      renderMarketResults(data);
+      dispatchVoiceSearch(incomingQuery, data.source || "native");
       break;
     }
     case "promotion_search":
@@ -3597,6 +3655,7 @@ function renderMarketResults(payload) {
   hideWelcome();
 
   if (query) {
+    setStoreSearchInputs(query);
     const inputEl = document.getElementById("storeSearchInput");
     if (inputEl && inputEl.value !== query) inputEl.value = query;
     const inlineEl = document.getElementById("storeSearchInlineInput");

@@ -60,9 +60,14 @@ const payloadCases = [
     expectQuery: "jumbo",
   },
   {
-    name: "ignore TTS message field",
+    name: "ignore TTS message field when query present",
     input: { type: "market_search", message: "Te muestro cómo llegar a Zara.", query: "zara" },
     expectQuery: "zara",
+  },
+  {
+    name: "extract brand from TTS-only message",
+    input: { type: "market_search", message: "Te muestro cómo llegar a Zara." },
+    expectQuery: "Zara",
   },
   {
     name: "plain string query",
