@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>On Tour — Cenco Costanera</title>
   <link rel="stylesheet" href="../shared/app.css" />
+  <script src="../shared/qrcode.min.js"></script>
   <script src="../shared/locale.js"></script>
   <script src="../shared/bridge.js"></script>
   <style>
@@ -60,14 +61,15 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
-      padding: 14px;
+      gap: 16px;
+      padding: 18px 16px;
       border-radius: 14px;
       background: #FAF7FD;
       border: 1px solid #E7DFF0;
     }
 
-    .qr-box img {
+    .qr-box .qr-container img,
+    .qr-box .qr-container canvas {
       width: 220px;
       height: 220px;
       border-radius: 12px;
@@ -77,10 +79,14 @@
 
     .qr-caption {
       margin: 0;
-      font-size: 14px;
-      line-height: 1.5;
-      color: var(--cm-muted);
-      text-align: center;
+      width: 100%;
+      max-width: none;
+      padding: 0 4px;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.45;
+      color: var(--cm-text);
+      text-align: left;
     }
 
     .btn-primary, .btn-secondary {
@@ -103,8 +109,6 @@
       color: var(--cm-purple);
       border: 2px solid var(--cm-purple);
     }
-
-    .actions { display: flex; flex-direction: column; gap: 10px; }
   </style>
 </head>
 <body>
@@ -123,12 +127,8 @@
       <ul class="bullet-list" id="benefits-list"></ul>
 
       <div class="qr-box">
-        <img id="qr-image" alt="QR On Tour" />
         <p class="qr-caption" id="qr-hint"></p>
-      </div>
-
-      <div class="actions">
-        <button class="btn-secondary" type="button" id="btn-close">Cerrar</button>
+        <div id="qr-container" class="qr-container"></div>
       </div>
     </div>
   </div>
@@ -143,45 +143,30 @@
         pageSubtitle: "Tu pasaporte a una experiencia exclusiva en Cenco Costanera",
         sectionTitle: "¿De visita en Santiago?",
         sectionLead: "Programa exclusivo para turistas con descuentos, promociones y panoramas únicos.",
-        benefits: [
-          "Descuentos únicos en las mejores tiendas del mall.",
-          "Promociones especiales solo para visitantes internacionales.",
-          "Acceso a servicios y experiencias como Sky Costanera.",
-          "Regístrate en el módulo On Tour (Nivel 2) con tu pasaporte extranjero."
-        ],
-        qrHint: "Escanea el código QR para abrir On Tour en tu teléfono.",
+        benefits: [],
+        qrHint: "Escanea el código QR para activar tu tarjeta o para registrarte en el programa On Tour.",
         close: "Cerrar",
-        speakIntro: "On Tour es el programa de turistas de Cenco Costanera. Escanea el código en pantalla para abrirlo en tu teléfono."
+        speakIntro: "Escanea el código QR para activar tu tarjeta o para registrarte en el programa On Tour."
       },
       en: {
         pageTitle: "On Tour",
         pageSubtitle: "Your passport to an exclusive experience at Cenco Costanera",
         sectionTitle: "Visiting Santiago?",
         sectionLead: "Exclusive tourist program with discounts, promotions and unique experiences.",
-        benefits: [
-          "Unique discounts at the mall's best stores.",
-          "Special promotions for international visitors.",
-          "Access to services and experiences like Sky Costanera.",
-          "Register at the On Tour booth (Level 2) with your foreign passport."
-        ],
-        qrHint: "Scan the QR code to open On Tour on your phone.",
+        benefits: [],
+        qrHint: "Scan the QR code to activate your card or register for the On Tour program.",
         close: "Close",
-        speakIntro: "On Tour is the tourist program at Cenco Costanera. Scan the code on screen to open it on your phone."
+        speakIntro: "Scan the QR code to activate your card or register for the On Tour program."
       },
       pt: {
         pageTitle: "On Tour",
         pageSubtitle: "Seu passaporte para uma experiência exclusiva no Cenco Costanera",
         sectionTitle: "Visitando Santiago?",
         sectionLead: "Programa exclusivo para turistas com descontos, promoções e experiências únicas.",
-        benefits: [
-          "Descontos únicos nas melhores lojas do shopping.",
-          "Promoções especiais para visitantes internacionais.",
-          "Acesso a serviços e experiências como Sky Costanera.",
-          "Cadastre-se no módulo On Tour (Nível 2) com seu passaporte estrangeiro."
-        ],
-        qrHint: "Escaneie o código QR para abrir o On Tour no seu celular.",
+        benefits: [],
+        qrHint: "Escaneie o código QR para ativar seu cartão ou cadastrar-se no programa On Tour.",
         close: "Fechar",
-        speakIntro: "On Tour é o programa de turistas do Cenco Costanera. Escaneie o código na tela para abrir no seu celular."
+        speakIntro: "Escaneie o código QR para ativar seu cartão ou cadastrar-se no programa On Tour."
       }
     };
 
@@ -194,22 +179,52 @@
       document.getElementById("section-title").textContent = SimaLocale.t(I18N, "sectionTitle", currentLocale);
       document.getElementById("section-lead").textContent = SimaLocale.t(I18N, "sectionLead", currentLocale);
       document.getElementById("qr-hint").textContent = SimaLocale.t(I18N, "qrHint", currentLocale);
-      document.getElementById("btn-close").textContent = SimaLocale.t(I18N, "close", currentLocale);
 
       const pack = SimaLocale.pickPack(I18N, currentLocale);
-      document.getElementById("benefits-list").innerHTML =
-        (pack.benefits || []).map((item) => `<li>${item}</li>`).join("");
+      const benefits = pack.benefits || [];
+      const listEl = document.getElementById("benefits-list");
+      listEl.innerHTML = benefits.map((item) => `<li>${item}</li>`).join("");
+      listEl.style.display = benefits.length ? "" : "none";
+    }
+
+    let introSpoken = false;
+
+    function isLocalPreview() {
+      var host = String(window.location.hostname || "").toLowerCase();
+      return host === "localhost" || host === "127.0.0.1";
+    }
+
+    function speakPageIntro() {
+      if (introSpoken) return;
+      if (typeof SimaBridge === "undefined" || typeof SimaBridge.speak !== "function") return;
+      introSpoken = true;
+      SimaBridge.speak(SimaLocale.t(I18N, "speakIntro", currentLocale));
     }
 
     function renderQrImage(base64) {
-      const img = document.getElementById("qr-image");
-      if (!img) return;
+      var box = document.getElementById("qr-container");
+      if (!box) return;
+      box.innerHTML = "";
+
       if (base64) {
+        var img = document.createElement("img");
+        img.id = "qr-image";
+        img.alt = "QR On Tour";
         img.src = "data:image/png;base64," + base64;
-        img.style.display = "block";
+        box.appendChild(img);
         SimaBridge.send("qr_displayed", { id: "ontour", url: ontourUrl });
-      } else {
-        img.style.display = "none";
+        return;
+      }
+
+      if (isLocalPreview() && typeof QRCode !== "undefined" && ontourUrl) {
+        new QRCode(box, {
+          text: ontourUrl,
+          width: 220,
+          height: 220,
+          colorDark: "#1a1a1a",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M,
+        });
       }
     }
 
@@ -222,16 +237,16 @@
       if (data.url) ontourUrl = data.url;
       applyLocale();
       renderQrImage(data.qrImage || "");
-      SimaBridge.speak(SimaLocale.t(I18N, "speakIntro", currentLocale));
+      speakPageIntro();
     };
 
     SimaLocale.bindPageLocale(applyLocale);
 
-    document.getElementById("btn-close").onclick = () => SimaBridge.requestClose();
-
     window.addEventListener("load", () => {
       applyLocale();
+      renderQrImage("");
       SimaBridge.ready("ontour");
+      speakPageIntro();
     });
   </script>
 </body>
