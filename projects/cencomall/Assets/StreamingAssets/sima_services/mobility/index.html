@@ -2826,6 +2826,10 @@ function isMultiFloorLocal(local) {
   return parseLocalFloorLevels(local).length > 1;
 }
 
+function getDisplayLocationCount(locations) {
+  return buildUniqueFloorRows(locations || []).length;
+}
+
 function buildUniqueFloorRows(locations) {
   const rows = [];
 
@@ -3085,8 +3089,9 @@ function renderStoreCard(result, idx) {
     const categoryBadge = category
       ? `<span class="store-badge" title="${escapeHtml(localizeCategoryField(result.category))}">${escapeHtml(truncate(category, 14))}</span>`
       : "";
-    const floorsSummary = summarizeFloors(result.locations);
     const rowsSource = buildUniqueFloorRows(result.locations);
+    const floorsSummary = summarizeFloors(rowsSource.map(function (row) { return row.loc; }));
+    const displayLocationCount = rowsSource.length;
 
     rowsSource.sort((a, b) => compareFloorMeta(getFloorSortMeta(a && a.loc && a.loc.floor), getFloorSortMeta(b && b.loc && b.loc.floor)));
 
@@ -3113,7 +3118,7 @@ function renderStoreCard(result, idx) {
           <div class="store-meta">
             ${categoryBadge}
             ${result.promoBadge ? `<span class="store-badge store-badge-promo">Promo</span>` : ""}
-            <span class="store-badge store-badge-locales">${result.locationCount} ${escapeHtml(t("locales"))}</span>
+            <span class="store-badge store-badge-locales">${displayLocationCount} ${escapeHtml(t("locales"))}</span>
           </div>
           ${floorsSummary ? `<div class="store-floors-summary">${escapeHtml(floorsSummary)}</div>` : ""}
         </div>
