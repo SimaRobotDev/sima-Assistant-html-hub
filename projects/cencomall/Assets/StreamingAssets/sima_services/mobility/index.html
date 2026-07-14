@@ -1904,6 +1904,28 @@ function submitInlineStoreSearch() {
   }
 }
 
+function buildMarketSearchAttempts(query) {
+  const attempts = [];
+  const seen = new Set();
+  const add = (value) => {
+    const text = String(value || "").trim();
+    const key = normalizeMarketQuery(text);
+    if (!text || seen.has(key)) return;
+    seen.add(key);
+    attempts.push(text);
+  };
+
+  add(query);
+  if (typeof MarketQueryI18n !== "undefined") {
+    add(MarketQueryI18n.prepareVoiceQuery(query, mobilityLocale));
+    add(MarketQueryI18n.expandForCatalogSearch(query, mobilityLocale));
+    if (MarketQueryI18n.extractSignificantTokens) {
+      add(MarketQueryI18n.extractSignificantTokens(query));
+    }
+  }
+  return attempts;
+}
+
 async function runMarketCatalogSearch(query, options) {
   options = options || {};
   if (!shouldUseLocalMarketCatalog()) return null;
@@ -1917,28 +1939,33 @@ async function runMarketCatalogSearch(query, options) {
 
   try {
     await MarketSearch.loadCatalog();
-    let searchResult = MarketSearch.search(q, { limit: options.limit || 30 });
+    const attempts = buildMarketSearchAttempts(q);
+    let searchResult = null;
+    let usedQuery = q;
 
-    if ((!searchResult.results || !searchResult.results.length) && typeof MarketQueryI18n !== "undefined") {
-      const expanded = MarketQueryI18n.expandForCatalogSearch(q, mobilityLocale);
-      if (expanded && normalizeMarketQuery(expanded) !== normalizeMarketQuery(q)) {
-        const retry = MarketSearch.search(expanded, { limit: options.limit || 30 });
-        if (retry.results && retry.results.length) {
-          searchResult = retry;
-          SimaBridge.log("market_search expanded locale=" + mobilityLocale + " q=" + q + " -> " + expanded);
+    for (let i = 0; i < attempts.length; i++) {
+      const attempt = attempts[i];
+      const result = MarketSearch.search(attempt, { limit: options.limit || 30 });
+      searchResult = result;
+      if (result.results && result.results.length) {
+        usedQuery = attempt;
+        if (attempt !== q) {
+          SimaBridge.log("market_search retry q=" + q + " -> " + attempt);
         }
+        break;
       }
     }
 
     const payload = {
       type: "market_search",
       query: q,
-      results: searchResult.results || [],
-      totalMatches: searchResult.totalMatches || 0,
-      catalogSize: searchResult.catalogSize || MarketSearch.getCatalogSize(),
+      searchQuery: usedQuery,
+      results: (searchResult && searchResult.results) || [],
+      totalMatches: (searchResult && searchResult.totalMatches) || 0,
+      catalogSize: (searchResult && searchResult.catalogSize) || MarketSearch.getCatalogSize(),
       source: "market-catalog",
-      resultType: searchResult.resultType || "search",
-      isFallbackRelated: !!searchResult.isFallbackRelated,
+      resultType: (searchResult && searchResult.resultType) || "search",
+      isFallbackRelated: !!(searchResult && searchResult.isFallbackRelated),
     };
 
     if (!options.skipRender) {
@@ -2391,16 +2418,31 @@ function dispatchVoiceSearch(query, source) {
   const q = String(query || "").trim();
   if (!q) return false;
 
+  const prepared = (typeof MarketQueryI18n !== "undefined" && MarketQueryI18n.prepareVoiceQuery)
+    ? String(MarketQueryI18n.prepareVoiceQuery(q, mobilityLocale) || "").trim()
+    : q;
+  const searchText = prepared || q;
+
   const inputEl = document.getElementById("storeSearchInput");
   if (inputEl) inputEl.value = q;
   const landing = document.getElementById("store-search-landing");
   if (landing) landing.classList.remove("visible");
 
   marketSearchSeq++;
-  SimaBridge.log("voice_search q=" + q + " source=" + (source || "native") + " locale=" + mobilityLocale);
+  SimaBridge.log(
+    "voice_search q=" + q +
+    (searchText !== q ? " prepared=" + searchText : "") +
+    " source=" + (source || "native") +
+    " locale=" + mobilityLocale
+  );
 
   if (shouldNotifyUnityMarketSearch()) {
-    SimaBridge.send("market_search", { text: q, source: source || "voice" });
+    SimaBridge.send("market_search", {
+      text: searchText,
+      rawText: q,
+      source: source || "voice",
+      locale: mobilityLocale,
+    });
   }
   if (shouldUseLocalMarketCatalog()) {
     runMarketCatalogSearch(q, { seq: marketSearchSeq });
@@ -2416,20 +2458,36 @@ function buscarDesdeVoz(raw) {
       ? SimaNativePayload.normalize(raw)
       : raw;
 
-    if (data && data.type) {
+    const query = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.extractSearchQuery)
+      ? SimaNativePayload.extractSearchQuery(data)
+      : String(data.query || data.text || data.q || "").trim();
+
+    const knownTypes = {
+      market_search: true,
+      promotion_search: true,
+      services_search: true,
+      parking_info: true,
+    };
+
+    if (data && data.type && knownTypes[data.type]) {
       renderIncomingPayload(data);
       return;
     }
 
-    const query = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.extractSearchQuery)
-      ? SimaNativePayload.extractSearchQuery(data)
-      : String(data.query || data.text || data.q || "").trim();
     if (query) {
       dispatchVoiceSearch(query, data.source || "voice");
       return;
     }
 
-    SimaBridge.log("buscarDesdeVoz ignored payload without query/type");
+    if (data && data.type) {
+      renderIncomingPayload(data);
+      return;
+    }
+
+    SimaBridge.log(
+      "buscarDesdeVoz ignored payload without query/type keys=" +
+      Object.keys(data || {}).join(",")
+    );
     return;
   }
 
@@ -4070,7 +4128,11 @@ function closeMapView() {
 }
 
 function startVoiceInput() {
-  SimaBridge.send("start_stt", {});
+  SimaBridge.send("start_stt", {
+    screen: "mobility",
+    mode: getMobilityMode() || "store_search",
+    locale: mobilityLocale,
+  });
 }
 </script>
 </body>

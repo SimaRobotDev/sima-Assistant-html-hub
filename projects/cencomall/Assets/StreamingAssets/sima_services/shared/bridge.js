@@ -169,8 +169,12 @@ window.SimaBridge = window.SimaBridge || {};
           var isSearch = global.SimaNativePayload
             && global.SimaNativePayload.isSearchPayload
             && global.SimaNativePayload.isSearchPayload(data);
-          if (isSearch) deferredLocale = localeHint;
-          else global.SimaLocale.setLocale(localeHint);
+          if (isSearch) {
+            global.SimaLocale.setLocale(localeHint);
+            deferredLocale = null;
+          } else {
+            global.SimaLocale.setLocale(localeHint);
+          }
         }
       }
     }

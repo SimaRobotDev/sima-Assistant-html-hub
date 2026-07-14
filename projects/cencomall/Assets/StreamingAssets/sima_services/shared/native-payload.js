@@ -15,6 +15,16 @@ window.SimaNativePayload = (function () {
     search: "market_search",
     voice_search: "market_search",
     marketsearch: "market_search",
+    open_store_navigation: "market_search",
+    open_navigation: "market_search",
+    open_search: "market_search",
+    store_navigation: "market_search",
+    navigation_search: "market_search",
+    stt_result: "market_search",
+    speech_result: "market_search",
+    speech_recognized: "market_search",
+    voice_input: "market_search",
+    voice_transcript: "market_search",
     search_promotion: "promotion_search",
     search_promotions: "promotion_search",
     search_service: "services_search",
@@ -56,6 +66,10 @@ window.SimaNativePayload = (function () {
 
   function extractSearchQuery(data) {
     if (!data || typeof data !== "object") return "";
+    if (data.args && typeof data.args === "object" && !Array.isArray(data.args)) {
+      var fromArgs = extractSearchQuery(data.args);
+      if (fromArgs) return fromArgs;
+    }
     return String(
       data.query
       || data.text
@@ -71,9 +85,21 @@ window.SimaNativePayload = (function () {
       || data.utterance
       || data.spokenText
       || data.spoken_text
+      || data.speechText
+      || data.speech_text
+      || data.recognition
+      || data.recognitionResult
+      || data.recognition_result
+      || data.speechResult
+      || data.speech_result
+      || data.userInput
+      || data.user_input
       || data.input
       || data.term
       || data.keyword
+      || data.value
+      || (typeof data.extra === "string" ? data.extra : "")
+      || (typeof data.result === "string" ? data.result : "")
       || ""
     ).trim();
   }
@@ -104,6 +130,13 @@ window.SimaNativePayload = (function () {
         out = mergeObjects(extra, out);
       } else if (typeof extra === "string" && extra.trim()) {
         out.extraText = extra.trim();
+      }
+    }
+
+    if (out.args != null) {
+      var args = tryParseJson(out.args);
+      if (args && typeof args === "object" && !Array.isArray(args)) {
+        out = mergeObjects(args, out);
       }
     }
 
