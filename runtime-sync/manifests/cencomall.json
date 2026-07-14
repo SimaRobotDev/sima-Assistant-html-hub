@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.14-4",
+  "version": "2026.07.14-5",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-14T16:26:19.319Z",
+  "generatedAt": "2026-07-14T16:27:59.858Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -136,8 +136,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 126090,
-      "sha256": "8d6d032f9f832440c784a62fd3533f3f80ca8767c680bfc24d51772fec8fc901"
+      "size": 126280,
+      "sha256": "61606c62a9bc7b6da0471d75fe3f96707e6d015d2a3f65d3bbe9b90dc72dadc2"
     },
     {
       "path": "mobility/indexMobility.html",
