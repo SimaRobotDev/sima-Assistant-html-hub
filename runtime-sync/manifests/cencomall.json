@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.17-19",
+  "version": "2026.07.17-20",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-17T16:40:50.895Z",
+  "generatedAt": "2026-07-17T17:34:35.628Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -86,8 +86,8 @@
     },
     {
       "path": "emergency/index.html",
-      "size": 10184,
-      "sha256": "a32cd5fffbc3d8af950579ea045e4a5bcb44ef1cc3917fd8ca124d51135d9a84"
+      "size": 11298,
+      "sha256": "7295775d197938c59bdc6108454a8d9be8dfbd5e32ae3588ae496f9cb97d77be"
     },
     {
       "path": "FIX-BUSQUEDA-CATALOGO.md",
@@ -96,8 +96,8 @@
     },
     {
       "path": "flights/index.html",
-      "size": 23543,
-      "sha256": "b6fda82807a415364167dbaf2c264c9eb9620deea14787c5b8dd988c134bbf7a"
+      "size": 23666,
+      "sha256": "9260e3c0a0ffe66de27242ad30bf894d23c91bc16a56e28e6d0fe630ed16a0f1"
     },
     {
       "path": "human/img.zip",
@@ -116,8 +116,8 @@
     },
     {
       "path": "human/index.html",
-      "size": 3099,
-      "sha256": "a3298733353e120e1ae0bcc97caad090095b78cd20c4d71b398e72810a4cc457"
+      "size": 3701,
+      "sha256": "43e8513c477edee2930d9db0cb69e9ef82c33f5f2df0d5e31f81da62caddfdea"
     },
     {
       "path": "IMPLEMENTACION-MAPVX-COSTANERA.md",
@@ -136,8 +136,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 134328,
-      "sha256": "9e80b65196fab8efd67d5c70890f39033d63e4aa110ef58070f0f575184654f4"
+      "size": 135472,
+      "sha256": "39180015c19a3575d875dc71ee9d5d602da853c2847ff2e1a1558fea6644d9f8"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -146,8 +146,8 @@
     },
     {
       "path": "ontour/index.html",
-      "size": 8041,
-      "sha256": "b191777d0b6464c02cdcaf320780697fa6c388e3d6ad58624b2d7ad3718acb88"
+      "size": 8258,
+      "sha256": "e47fb79dd3c76a419373988deeb244c7ab69f3a65c91ad42b0b96a4ba40efd20"
     },
     {
       "path": "promociones-preview.html",
