@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.17-14",
+  "version": "2026.07.14-13",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-17T14:09:34.727Z",
+  "generatedAt": "2026-07-14T18:40:41.377Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -85,16 +85,6 @@
       "sha256": "e89b35d08a17d17dc11fd6b84bb1a84ed4476fe5ca1f4535cfb5e806538514d6"
     },
     {
-      "path": "data/services-catalog.json",
-      "size": 8641,
-      "sha256": "2cefe68fb39ea37cc90ca257231052ede70a5beb092b00136707fcb17176eeba"
-    },
-    {
-      "path": "data/services-catalog.jsonp.js",
-      "size": 8835,
-      "sha256": "b1991f7e4cc319a4d4172e8b3684b8134ed62a1d20aa19cb68fefaea95b95ad2"
-    },
-    {
       "path": "emergency/index.html",
       "size": 10196,
       "sha256": "e9e088e3899e1a40f75706820167aeebf5ccfaae19b2893ca0cfc943745d7118"
@@ -141,13 +131,13 @@
     },
     {
       "path": "map/index.html",
-      "size": 21033,
-      "sha256": "dcb6eec4f0bb843d0fabfa93dac1152b6c3de5c97ec582a4931e57e7e1a0340b"
+      "size": 15800,
+      "sha256": "c4bccf12d976c5b3c16c57f77707802e9c57428fce69396efe0c57b3bd1f229c"
     },
     {
       "path": "mobility/index.html",
-      "size": 142889,
-      "sha256": "5a030196212cfb3e4b4a2edeb4e7bc950242f639b2868ae12e65fb50e5fc013d"
+      "size": 133861,
+      "sha256": "27fd9b2365c82c78f0a685acd302fc2a2c7d62e928fd65842300146b9c5e5fe3"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -186,8 +176,8 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 137028,
-      "sha256": "ff92abc43ddca695bb1d1fa76705e01ec59fe09d3450a37c8381642c5e3f5577"
+      "size": 124917,
+      "sha256": "d25e0b729afc9c5a83fd946448f36f23ed6ebbde194b58d1a20bf6e29ff62a19"
     },
     {
       "path": "shared/mapvx/index.js",
@@ -223,11 +213,6 @@
       "path": "shared/qrcode.min.js",
       "size": 19927,
       "sha256": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36"
-    },
-    {
-      "path": "shared/services-catalog.js",
-      "size": 8044,
-      "sha256": "6ea22912ab5fa251a87c384212665e23ec1e0883855c85f03150f687edc46fd7"
     },
     {
       "path": "shared/store-logos/casa-ideas.png",
