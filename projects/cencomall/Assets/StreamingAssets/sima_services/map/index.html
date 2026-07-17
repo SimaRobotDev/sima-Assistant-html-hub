@@ -96,6 +96,9 @@ button.primary { background: #fff; color: var(--cm-purple-dark); }
         <input id="cfg-institution-id" type="text" placeholder="institutionId" value="-N19VgPNxo3jiBtu583Z" />
       </div>
       <div class="row">
+        <input id="cfg-totem-place" class="wide" type="text" placeholder="totemPlaceId (origen de la ruta — obligatorio para demo de ruta)" />
+      </div>
+      <div class="row">
         <select id="cfg-lang">
           <option value="es" selected>Español</option>
           <option value="en">English</option>
@@ -105,7 +108,7 @@ button.primary { background: #fff; color: var(--cm-purple-dark); }
       </div>
       <p class="hint">
         Se guarda en <code>sessionStorage</code> del browser (solo esta pestaña). No commitees la api-key.
-        Sirve por HTTP local, no abras como <code>file://</code> — ver instrucciones abajo.
+        <strong>totemPlaceId</strong> es el placeId MapVX del tótem (origen). Sin eso no se traza ruta.
       </p>
     </div>
 
@@ -135,6 +138,7 @@ button.primary { background: #fff; color: var(--cm-purple-dark); }
       <button type="button" onclick="runListToiletPois()">Listar POI baño en mapa</button>
       <button type="button" onclick="runMatchBathroomCatalog()">Cruzar catálogo ↔ POI</button>
       <button class="primary" type="button" onclick="runBathroomMapTest()">Ver mapa baño</button>
+      <button class="primary" type="button" onclick="runBathroomRouteTest()">Ver ruta al baño</button>
     </div>
   </div>
   <div id="map-container"></div>
@@ -177,6 +181,7 @@ function readConfigForm() {
     apiKey: document.getElementById("cfg-api-key").value.trim(),
     parentPlace: document.getElementById("cfg-parent-place").value.trim(),
     institutionId: document.getElementById("cfg-institution-id").value.trim(),
+    totemPlaceId: document.getElementById("cfg-totem-place").value.trim(),
     lang: document.getElementById("cfg-lang").value || "es",
   };
 }
@@ -186,6 +191,7 @@ function writeConfigForm(cfg) {
   if (cfg.apiKey) document.getElementById("cfg-api-key").value = cfg.apiKey;
   if (cfg.parentPlace) document.getElementById("cfg-parent-place").value = cfg.parentPlace;
   if (cfg.institutionId) document.getElementById("cfg-institution-id").value = cfg.institutionId;
+  if (cfg.totemPlaceId) document.getElementById("cfg-totem-place").value = cfg.totemPlaceId;
   if (cfg.lang) document.getElementById("cfg-lang").value = cfg.lang;
 }
 
@@ -218,7 +224,7 @@ function applyManualConfig(save) {
     parentPlace: cfg.parentPlace,
     institutionId: cfg.institutionId,
     lang: cfg.lang,
-    totemPlaceId: "",
+    totemPlaceId: cfg.totemPlaceId || "",
     showStoreLabels: "featured",
     storeLabelMax: 0,
     storeLabelZoomDelta: 1.2,
@@ -232,7 +238,8 @@ function applyManualConfig(save) {
   logLine(
     "Config aplicada manualmente: apiKey=" + (cfg.apiKey ? "✓ (" + cfg.apiKey.length + " chars)" : "✗")
     + " parentPlace=" + (cfg.parentPlace || "✗")
-    + " institutionId=" + (cfg.institutionId || "✗"),
+    + " institutionId=" + (cfg.institutionId || "✗")
+    + " totemPlaceId=" + (cfg.totemPlaceId ? "✓" : "✗ (sin origen = sin ruta)"),
     MapVxBridge.isConfigured() ? "ok" : "err"
   );
 }
@@ -449,6 +456,22 @@ async function runMatchBathroomCatalog() {
   }
 }
 
+function bathroomBridgeOptions(entry) {
+  const card = ServicesCatalog.toResultCard(entry);
+  return {
+    poiType: "service",
+    serviceId: entry.id,
+    name: entry.name,
+    floor: entry.floors && entry.floors[0],
+    anchorLocal: card.anchorLocal,
+    poiRef: card.poiRef,
+    mapvxId: card.mapvxId,
+    lat: card.mapvxLat,
+    lng: card.mapvxLng,
+    preferChangingTable: !!(entry.features && entry.features.mudador),
+  };
+}
+
 async function runBathroomMapTest() {
   clearLog();
   if (!isUnityWebView()) applyManualConfig(false);
@@ -461,23 +484,51 @@ async function runBathroomMapTest() {
   try {
     await MapVxBridge.ensureReady();
     const container = document.getElementById("map-container");
-    const card = ServicesCatalog.toResultCard(entry);
-    const result = await MapVxBridge.showServicePlace(container, {
-      poiType: "service",
-      serviceId: entry.id,
-      name: entry.name,
-      floor: entry.floors && entry.floors[0],
-      anchorLocal: card.anchorLocal,
-      poiRef: card.poiRef,
-      mapvxId: card.mapvxId,
-      lat: card.mapvxLat,
-      lng: card.mapvxLng,
-      preferChangingTable: !!(entry.features && entry.features.mudador),
-    });
+    const result = await MapVxBridge.showServicePlace(container, bathroomBridgeOptions(entry));
     logLine("✓ Mapa baño — " + result.resolvedBy, "ok");
     logLine("  title: " + result.title);
     logLine("  mapvxId: " + result.mapvxId);
     logLine("  floorId: " + (result.floorId || "(null)"));
+    if (result.toiletPoi) {
+      logLine("  toiletPoi.ref: " + result.toiletPoi.ref, "ok");
+    }
+    logLine("Para trazar ruta: configura totemPlaceId y pulsa «Ver ruta al baño».", "warn");
+  } catch (e) {
+    logLine("✗ " + (e.message || e), "err");
+    if (e.attempts) logLine(JSON.stringify(e.attempts, null, 2));
+  }
+}
+
+async function runBathroomRouteTest() {
+  clearLog();
+  if (!isUnityWebView()) applyManualConfig(false);
+  logConfigStatus();
+  const entry = getSelectedBathroomEntry();
+  if (!entry) {
+    logLine("Selecciona un baño del catálogo.", "err");
+    return;
+  }
+  const totem = (window.MAPVX_CONFIG && window.MAPVX_CONFIG.totemPlaceId) || "";
+  if (!totem) {
+    logLine("Falta totemPlaceId (origen). Pégalo en Config MapVX y guarda.", "err");
+    logLine("Es el placeId MapVX del tótem físico (CencomallApiConfig / RN).", "warn");
+    return;
+  }
+  try {
+    await MapVxBridge.ensureReady();
+    const container = document.getElementById("map-container");
+    const result = await MapVxBridge.showServiceRouteTo(container, bathroomBridgeOptions(entry));
+    logLine("✓ Ruta baño — " + result.resolvedBy, "ok");
+    logLine("  title: " + result.title);
+    logLine("  mapvxId destino: " + result.mapvxId);
+    logLine("  from totem: " + totem);
+    if (result.routeStarted || result.routeActive) {
+      logLine("→ Ruta animada iniciada (misma línea MapVX que tiendas).", "ok");
+    } else if (result.routeSkipped) {
+      logLine("Ruta omitida: " + result.routeSkipped, "warn");
+    } else if (result.routeError) {
+      logLine("Ruta falló: " + result.routeError, "err");
+    }
     if (result.toiletPoi) {
       logLine("  toiletPoi.ref: " + result.toiletPoi.ref, "ok");
     }
