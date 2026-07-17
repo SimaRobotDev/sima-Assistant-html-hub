@@ -1447,6 +1447,10 @@ const MOBILITY_I18N = {
     storesFoundOne: "Encontré {name}.",
     storesFoundOneFloor: "Encontré {name} en el {floor}.",
     storesFoundMany: "Encontré {count} tiendas para {query}.",
+    restaurantsFoundNone: "No encontré restaurantes para",
+    restaurantsFoundOne: "Encontré el restaurante {name}.",
+    restaurantsFoundOneFloor: "Encontré el restaurante {name} en el {floor}.",
+    restaurantsFoundMany: "Encontré {count} restaurantes para {query}.",
     storeSearchTitle: "Buscar tiendas",
     storeSearchHint: "Di el nombre de una tienda o escríbelo abajo.",
     storeSearchPlaceholder: "Ej: Nike, Zara…",
@@ -1528,6 +1532,10 @@ const MOBILITY_I18N = {
     storesFoundOne: "I found {name}.",
     storesFoundOneFloor: "I found {name} on {floor}.",
     storesFoundMany: "I found {count} stores for {query}.",
+    restaurantsFoundNone: "I couldn't find restaurants for",
+    restaurantsFoundOne: "I found the restaurant {name}.",
+    restaurantsFoundOneFloor: "I found the restaurant {name} on {floor}.",
+    restaurantsFoundMany: "I found {count} restaurants for {query}.",
     storeSearchTitle: "Search stores",
     storeSearchHint: "Say a store name or type it below.",
     storeSearchPlaceholder: "E.g. Nike, Zara…",
@@ -1609,6 +1617,10 @@ const MOBILITY_I18N = {
     storesFoundOne: "Encontrei {name}.",
     storesFoundOneFloor: "Encontrei {name} no {floor}.",
     storesFoundMany: "Encontrei {count} lojas para {query}.",
+    restaurantsFoundNone: "Não encontrei restaurantes para",
+    restaurantsFoundOne: "Encontrei o restaurante {name}.",
+    restaurantsFoundOneFloor: "Encontrei o restaurante {name} no {floor}.",
+    restaurantsFoundMany: "Encontrei {count} restaurantes para {query}.",
     storeSearchTitle: "Buscar lojas",
     storeSearchHint: "Diga o nome de uma loja ou digite abaixo.",
     storeSearchPlaceholder: "Ex: Nike, Zara…",
@@ -1772,24 +1784,40 @@ function formatSpeakTemplate(template, values) {
   return out;
 }
 
+function isFoodMarketQuery(query) {
+  const q = String(query || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return /\b(gastronomia|restaurante|restaurantes|almuerzo|cena|desayuno|comida|comer|lunch|dinner|breakfast|food|dining|restaurant)\b/.test(
+    q
+  );
+}
+
 function speakMarketResultsFound(payload) {
   if (typeof SimaBridge === "undefined" || typeof SimaBridge.speak !== "function") return;
   const results = payload.results || [];
   if (!results.length) return;
   const query = payload.query || "";
+  const food = payload.resultKind === "restaurants" || isFoodMarketQuery(query);
 
   if (results.length === 1) {
     const store = results[0];
     const name = store.brand || store.name || query;
     const floor = String(store.floor || "").trim();
     const message = floor
-      ? formatSpeakTemplate(t("storesFoundOneFloor"), { name, floor })
-      : formatSpeakTemplate(t("storesFoundOne"), { name });
+      ? formatSpeakTemplate(t(food ? "restaurantsFoundOneFloor" : "storesFoundOneFloor"), { name, floor })
+      : formatSpeakTemplate(t(food ? "restaurantsFoundOne" : "storesFoundOne"), { name });
     SimaBridge.speak(message);
     return;
   }
 
-  SimaBridge.speak(formatSpeakTemplate(t("storesFoundMany"), { count: results.length, query }));
+  SimaBridge.speak(
+    formatSpeakTemplate(t(food ? "restaurantsFoundMany" : "storesFoundMany"), {
+      count: results.length,
+      query,
+    })
+  );
 }
 
 function normalizeMarketQuery(query) {
@@ -2125,13 +2153,15 @@ async function runMarketCatalogSearch(query, options) {
     const searchFn = (options.voice && typeof MarketSearch.searchVoice === "function")
       ? MarketSearch.searchVoice.bind(MarketSearch)
       : MarketSearch.search.bind(MarketSearch);
+    const foodQuery = isFoodMarketQuery(q);
+    const defaultLimit = foodQuery ? 80 : 30;
 
     let searchResult = null;
     let usedQuery = q;
 
     for (let i = 0; i < attempts.length; i++) {
       const attempt = attempts[i];
-      const result = searchFn(attempt, { limit: options.limit || 30 });
+      const result = searchFn(attempt, { limit: options.limit || defaultLimit });
       searchResult = result;
       if (result.results && result.results.length) {
         usedQuery = attempt;
@@ -2155,6 +2185,7 @@ async function runMarketCatalogSearch(query, options) {
       source: "market-catalog",
       resultType: (searchResult && searchResult.resultType) || "search",
       isFallbackRelated: !!(searchResult && searchResult.isFallbackRelated),
+      resultKind: foodQuery ? "restaurants" : "stores",
     };
 
     if (!options.skipRender) {
@@ -3879,7 +3910,15 @@ function renderMarketResults(payload) {
           ${renderResultsSearchBar(query)}
         </div>
       </div>`;
-    SimaBridge.speak(t("storesFoundNone") + " " + query);
+    SimaBridge.speak(
+      t(
+        payload.resultKind === "restaurants" || isFoodMarketQuery(query)
+          ? "restaurantsFoundNone"
+          : "storesFoundNone"
+      ) +
+        " " +
+        query
+    );
     return;
   }
 
