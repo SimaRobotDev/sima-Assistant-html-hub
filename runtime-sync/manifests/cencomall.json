@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.17-22",
+  "version": "2026.07.17-23",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-17T18:25:58.055Z",
+  "generatedAt": "2026-07-17T18:50:58.928Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -90,8 +90,8 @@
     },
     {
       "path": "emergency/index.html",
-      "size": 11424,
-      "sha256": "fc2364562738ea52209665ae358b9426d80408511e1a26bb1e35270ffcccb4b8"
+      "size": 9358,
+      "sha256": "1f33f122895f17d17126ad6eb3bd9c9c4e5407f5d356e722921da3e67c40e8d1"
     },
     {
       "path": "FIX-BUSQUEDA-CATALOGO.md",
