@@ -10,11 +10,14 @@
   <script src="../shared/bridge.js"></script>
   <style>
     :root {
-      --cm-purple: #5B2D8E;
-      --cm-purple-dark: #3D1D5C;
-      --cm-surface: #F4F0F8;
+      --cm-purple: #280071;
+      --cm-blue: #00B1FF;
+      --cm-blue-dark: #008FD0;
+      --cm-surface: #FFFFFF;
       --cm-text: #1E1630;
-      --cm-muted: #6B6280;
+      --cm-muted: #3F3468;
+      --cm-line: #ECE8F2;
+      --cm-shadow: 0 6px 16px rgba(40, 0, 113, 0.08);
     }
 
     html, body { background: var(--cm-surface); color: var(--cm-text); }
@@ -22,26 +25,27 @@
 
     .app-shell {
       background: var(--cm-surface);
-      gap: 16px;
+      gap: 0;
       padding: 20px 18px 28px;
     }
 
     .cm-header {
-      background: linear-gradient(135deg, var(--cm-purple-dark) 0%, var(--cm-purple) 100%);
+      background: var(--cm-purple);
       color: #fff;
-      border-radius: 18px;
+      border-radius: 18px 18px 0 0;
       padding: 18px 20px;
-      box-shadow: 0 8px 24px rgba(61, 29, 92, 0.18);
+      box-shadow: 0 8px 22px rgba(40, 0, 113, 0.16);
     }
 
     .cm-header h1 { margin: 0 0 6px; font-size: 24px; font-weight: 800; }
     .cm-header p { margin: 0; font-size: 15px; opacity: 0.92; line-height: 1.4; }
 
     .card {
-      border: 1px solid #E7DFF0;
-      box-shadow: 0 8px 24px rgba(61, 29, 92, 0.08);
+      border: 1px solid var(--cm-line);
+      border-top: 0;
+      box-shadow: var(--cm-shadow);
       background: #fff;
-      border-radius: 16px;
+      border-radius: 0 0 16px 16px;
       padding: 16px;
       display: flex;
       flex-direction: column;
@@ -65,8 +69,9 @@
       gap: 16px;
       padding: 18px 16px;
       border-radius: 14px;
-      background: #FAF7FD;
-      border: 1px solid #E7DFF0;
+      background: #fff;
+      border: 1px solid var(--cm-line);
+      box-shadow: var(--cm-shadow);
     }
 
     .qr-box .qr-container img,
@@ -100,15 +105,15 @@
     }
 
     .btn-primary {
-      background: var(--cm-purple);
+      background: var(--cm-blue);
       color: #fff;
-      border: none;
+      border: 1px solid var(--cm-blue);
     }
 
     .btn-secondary {
       background: #fff;
-      color: var(--cm-purple);
-      border: 2px solid var(--cm-purple);
+      color: var(--cm-blue-dark);
+      border: 1px solid var(--cm-blue);
     }
   </style>
 </head>
