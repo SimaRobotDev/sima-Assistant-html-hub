@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.17-21",
+  "version": "2026.07.17-22",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-17T18:18:29.748Z",
+  "generatedAt": "2026-07-17T18:25:58.055Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -90,8 +90,8 @@
     },
     {
       "path": "emergency/index.html",
-      "size": 11298,
-      "sha256": "7295775d197938c59bdc6108454a8d9be8dfbd5e32ae3588ae496f9cb97d77be"
+      "size": 11424,
+      "sha256": "fc2364562738ea52209665ae358b9426d80408511e1a26bb1e35270ffcccb4b8"
     },
     {
       "path": "FIX-BUSQUEDA-CATALOGO.md",
@@ -100,8 +100,8 @@
     },
     {
       "path": "flights/index.html",
-      "size": 23666,
-      "sha256": "9260e3c0a0ffe66de27242ad30bf894d23c91bc16a56e28e6d0fe630ed16a0f1"
+      "size": 23698,
+      "sha256": "6f0fa900c7f32a48d7399441cf618ec390495bd49b3e3afc223352d84bf5542b"
     },
     {
       "path": "human/img.zip",
@@ -120,8 +120,8 @@
     },
     {
       "path": "human/index.html",
-      "size": 3701,
-      "sha256": "43e8513c477edee2930d9db0cb69e9ef82c33f5f2df0d5e31f81da62caddfdea"
+      "size": 3777,
+      "sha256": "76aced319c0737b5f6c7ef72266d96e23cd36af1fdc0682e24cb4055c4d62867"
     },
     {
       "path": "IMPLEMENTACION-MAPVX-COSTANERA.md",
@@ -140,8 +140,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 135472,
-      "sha256": "39180015c19a3575d875dc71ee9d5d602da853c2847ff2e1a1558fea6644d9f8"
+      "size": 135604,
+      "sha256": "763b21b4d677c03eb1020c5fd5efe253109bfed4a1fd466431aacd0625aa590e"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -150,8 +150,8 @@
     },
     {
       "path": "ontour/index.html",
-      "size": 8258,
-      "sha256": "e47fb79dd3c76a419373988deeb244c7ab69f3a65c91ad42b0b96a4ba40efd20"
+      "size": 8307,
+      "sha256": "ddd87b3e1ad6293963b50851c0be2a96369f4a7d2c2f9cc5f15b504f1abe6710"
     },
     {
       "path": "promociones-preview.html",
@@ -160,13 +160,13 @@
     },
     {
       "path": "services-2/index.html",
-      "size": 26587,
-      "sha256": "c564bf1dbc042ed391c6411e205b462d1bdeea687aa4dbe41b6a48f959da79b0"
+      "size": 26617,
+      "sha256": "a08676c534606937d9304125053c7aca26f8e1bf9c446edd790880b56beac030"
     },
     {
       "path": "servicios/index.html",
-      "size": 23459,
-      "sha256": "1ad32f643874e7d2ceeb9090caa3b880f54195d95740e9e7defc6311bc78ecee"
+      "size": 23489,
+      "sha256": "f1d704f4c25f5bdc34380121c8964d471a7d549c2978f8dc82673e2304fa4ec3"
     },
     {
       "path": "shared/app.css",
