@@ -13,7 +13,6 @@
 <script src="../shared/market-i18n.js"></script>
 <script src="../shared/bridge.js"></script>
 <script src="../shared/market-search.js"></script>
-<script src="../shared/services-catalog.js"></script>
 <script src="../shared/mapvx/index.js"></script>
 <script src="../shared/mapvx-bridge.js"></script>
 <style>
@@ -1311,7 +1310,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA bathrooms-catalog v1";
+const MOBILITY_UI_VERSION = "OTA route-speed v1";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -1332,10 +1331,6 @@ const MOBILITY_I18N = {
     filter: "Filtro",
     allDiscountsToday: "Descuentos vigentes hoy",
     viewMap: "Ver perfil",
-    viewMapService: "Ver mapa",
-    accessible: "Accesible",
-    near: "Cerca de",
-    options: "opciones",
     back: "← Volver",
     map: "Mapa",
     mapStoreLocation: "Ubicación de la tienda",
@@ -1415,10 +1410,6 @@ const MOBILITY_I18N = {
     filter: "Filter",
     allDiscountsToday: "Today's discounts",
     viewMap: "View profile",
-    viewMapService: "View map",
-    accessible: "Accessible",
-    near: "Near",
-    options: "options",
     back: "← Back",
     map: "Map",
     mapStoreLocation: "Store location",
@@ -1498,10 +1489,6 @@ const MOBILITY_I18N = {
     filter: "Filtro",
     allDiscountsToday: "Descontos de hoje",
     viewMap: "Ver perfil",
-    viewMapService: "Ver mapa",
-    accessible: "Acessível",
-    near: "Perto de",
-    options: "opções",
     back: "← Voltar",
     map: "Mapa",
     mapStoreLocation: "Localização da loja",
@@ -1945,7 +1932,13 @@ function submitStoreSearch() {
   const landing = document.getElementById("store-search-landing");
   if (landing) landing.classList.remove("visible");
 
-  routeUnifiedSearch(query, { source: "text" });
+  marketSearchSeq++;
+  if (shouldNotifyUnityMarketSearch()) {
+    SimaBridge.send("market_search", { text: query });
+  }
+  if (shouldUseLocalMarketCatalog()) {
+    runMarketCatalogSearch(query, { seq: marketSearchSeq });
+  }
 }
 
 function submitInlineStoreSearch() {
@@ -1959,7 +1952,13 @@ function submitInlineStoreSearch() {
   const landing = document.getElementById("store-search-landing");
   if (landing) landing.classList.remove("visible");
 
-  routeUnifiedSearch(query, { source: "text" });
+  marketSearchSeq++;
+  if (shouldNotifyUnityMarketSearch()) {
+    SimaBridge.send("market_search", { text: query });
+  }
+  if (shouldUseLocalMarketCatalog()) {
+    runMarketCatalogSearch(query, { seq: marketSearchSeq });
+  }
 }
 
 function buildMarketSearchAttempts(query) {
@@ -2085,139 +2084,6 @@ function prefetchMarketCatalog() {
     .catch(function (e) {
       console.warn("market catalog prefetch failed", e);
     });
-}
-
-function prefetchServicesCatalog() {
-  if (typeof ServicesCatalog === "undefined" || !ServicesCatalog.loadCatalog) return;
-  ServicesCatalog.loadCatalog()
-    .then(function () {
-      SimaBridge.log("services catalog ready count=" + ServicesCatalog.getAll().length);
-    })
-    .catch(function (e) {
-      console.warn("services catalog prefetch failed", e);
-    });
-}
-
-function runServicesCatalogSearch(query, options) {
-  options = options || {};
-  const q = String(query || "").trim();
-  const serviceId = options.serviceId ? String(options.serviceId).trim() : "";
-  if ((!q && !serviceId) || typeof ServicesCatalog === "undefined" || !ServicesCatalog.search) {
-    return false;
-  }
-
-  ensureStoreSearchReady();
-
-  ServicesCatalog.loadCatalog()
-    .then(function () {
-      const searchOpts = serviceId ? Object.assign({}, options, { serviceId: serviceId }) : options;
-      const results = ServicesCatalog.search(q || serviceId, searchOpts);
-      const displayQuery = q || (results[0] && results[0].name) || serviceId;
-      SimaBridge.log(
-        "services_catalog_search q=" + displayQuery +
-        " results=" + results.length +
-        " source=" + (options.source || "local")
-      );
-      renderServicesResults({
-        type: "services_search",
-        query: displayQuery,
-        results: results,
-        source: options.source || "local-catalog",
-        mall: "costanera",
-      });
-      if (results.length === 1 && results[0].description) {
-        SimaBridge.speak(results[0].description);
-      } else if (results.length > 1) {
-        SimaBridge.speak(t("services") + ": " + results.length + " " + (t("options") || "opciones"));
-      } else if (!results.length) {
-        SimaBridge.speak(t("servicesNotFound"));
-      }
-    })
-    .catch(function (e) {
-      showSearchError(t("loadErrorTitle") + ": " + (e.message || e));
-    });
-  return true;
-}
-
-function enrichServicesSearchPayload(data) {
-  if (!data || typeof ServicesCatalog === "undefined" || !ServicesCatalog.getById) return data;
-  if (!Array.isArray(data.results)) return data;
-  data.results = data.results.map(function (row) {
-    const id = row && (row.id || row.catalogId);
-    if (!id || !ServicesCatalog.isReady || !ServicesCatalog.isReady()) return row;
-    const entry = ServicesCatalog.getById(id);
-    if (!entry) return row;
-    const card = ServicesCatalog.toResultCard(entry);
-    return Object.assign({}, card, row, {
-      name: row.name || card.name,
-      description: row.description || card.description,
-      location: row.location || card.location,
-      floors: row.floors && row.floors.length ? row.floors : card.floors,
-      anchorLocal: row.anchorLocal || card.anchorLocal,
-      anchorBrand: row.anchorBrand || card.anchorBrand,
-      poiRef: row.poiRef || card.poiRef,
-      mapvxId: row.mapvxId || card.mapvxId,
-      features: row.features || card.features,
-    });
-  });
-  return data;
-}
-
-function getInitialServiceId() {
-  const params = new URLSearchParams(window.location.search);
-  return String(
-    window.MALL_SERVICE_ID
-    || params.get("service")
-    || params.get("serviceId")
-    || ""
-  ).trim();
-}
-
-function getInitialServiceQuery() {
-  const params = new URLSearchParams(window.location.search);
-  return String(
-    window.MALL_SERVICE_QUERY
-    || params.get("serviceQuery")
-    || params.get("serviceQ")
-    || ""
-  ).trim();
-}
-
-function looksLikeServicesCatalogQuery(query) {
-  return typeof ServicesCatalog !== "undefined"
-    && ServicesCatalog.looksLikeBathroomQuery
-    && ServicesCatalog.looksLikeBathroomQuery(query);
-}
-
-function routeUnifiedSearch(query, options) {
-  options = options || {};
-  const q = String(query || "").trim();
-  if (!q) return false;
-
-  marketSearchSeq++;
-  setStoreSearchInputs(q);
-
-  if (looksLikeServicesCatalogQuery(q)) {
-    SimaBridge.send("services_search", {
-      query: q,
-      text: q,
-      source: options.source || "text",
-      locale: mobilityLocale,
-    });
-    return runServicesCatalogSearch(q, Object.assign({ source: "text" }, options));
-  }
-
-  if (shouldNotifyUnityMarketSearch()) {
-    SimaBridge.send("market_search", {
-      text: q,
-      source: options.source || "text",
-      locale: mobilityLocale,
-    });
-  }
-  if (shouldUseLocalMarketCatalog()) {
-    runMarketCatalogSearch(q, { seq: marketSearchSeq, voice: !!options.voice });
-  }
-  return true;
 }
 
 function initStoreSearchLanding() {
@@ -2570,7 +2436,6 @@ document.addEventListener("DOMContentLoaded", () => {
   applyMapVxDefaultsFromMapPage();
   initStoreSearchLanding();
   prefetchMarketCatalog();
-  prefetchServicesCatalog();
   SimaBridge.ready("mobility");
   SimaBridge.log(
     "mobility DOM ready " + MOBILITY_UI_VERSION +
@@ -2586,22 +2451,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnSpeakSearch").onclick = submitSearchFromFab;
 
   const initialQuery = getInitialSearchQuery();
-  const initialServiceId = getInitialServiceId();
-  const initialServiceQuery = getInitialServiceQuery();
-
-  if (initialServiceId) {
-    SimaBridge.log("mobility initial service id: " + initialServiceId);
-    runServicesCatalogSearch("", { serviceId: initialServiceId, source: "launch" });
-  } else if (initialServiceQuery) {
-    SimaBridge.log("mobility initial service query: " + initialServiceQuery);
-    runServicesCatalogSearch(initialServiceQuery, { source: "launch" });
-  } else if (initialQuery) {
+  if (initialQuery) {
     SimaBridge.log("mobility initial query from launch params: " + initialQuery);
-    if (looksLikeServicesCatalogQuery(initialQuery)) {
-      runServicesCatalogSearch(initialQuery, { source: "launch" });
-    } else {
-      dispatchVoiceSearch(initialQuery, "launch");
-    }
+    dispatchVoiceSearch(initialQuery, "launch");
   }
 
   document.addEventListener("focusin", (event) => {
@@ -2739,18 +2591,6 @@ function dispatchVoiceSearch(query, source) {
     " catalogReady=" + (typeof MarketSearch !== "undefined" && MarketSearch.isReady && MarketSearch.isReady())
   );
 
-  if (looksLikeServicesCatalogQuery(q) || looksLikeServicesCatalogQuery(searchText)) {
-    SimaBridge.send("services_search", {
-      query: q,
-      text: searchText,
-      rawText: q,
-      source: source || "voice",
-      locale: mobilityLocale,
-    });
-    runServicesCatalogSearch(q, { source: source || "voice", voice: true });
-    return true;
-  }
-
   if (shouldNotifyUnityMarketSearch()) {
     SimaBridge.send("market_search", {
       text: searchText,
@@ -2759,7 +2599,6 @@ function dispatchVoiceSearch(query, source) {
       locale: mobilityLocale,
     });
   }
-
   if (shouldUseLocalMarketCatalog()) {
     runMarketCatalogSearch(q, { seq: marketSearchSeq, voice: true });
   }
@@ -2921,16 +2760,6 @@ function renderIncomingPayload(dataJson) {
       renderPromotionResults(data);
       break;
     case "services_search":
-      if (typeof ServicesCatalog !== "undefined" && ServicesCatalog.loadCatalog) {
-        ServicesCatalog.loadCatalog().then(function () {
-          enrichServicesSearchPayload(data);
-          renderServicesResults(data);
-        }).catch(function () {
-          renderServicesResults(data);
-        });
-        break;
-      }
-      enrichServicesSearchPayload(data);
       renderServicesResults(data);
       break;
     case "parking_info":
@@ -3664,25 +3493,14 @@ function normalizePromoResult(promo) {
 function normalizeServiceResult(svc) {
   if (!svc || typeof svc !== "object") return {};
   const floors = svc.floors || svc.Floors;
-  const features = svc.features || svc.Features || {};
   return {
-    id: svc.id || svc.catalogId || svc.Id || "",
-    catalogId: svc.catalogId || svc.id || "",
+    id: svc.id || svc.Id || "",
     name: svc.name || svc.Name || "Servicio",
     description: svc.description || svc.Description || "",
     location: svc.location || svc.Location || "",
     floors: Array.isArray(floors) ? floors : [],
     imageUrl: svc.imageUrl || svc.ImageUrl || svc.image || svc.Image || "",
-    mall: svc.mall || svc.Mall || "",
-    sector: svc.sector || "",
-    type: svc.type || "bathroom",
-    features: features,
-    anchorLocal: svc.anchorLocal || "",
-    anchorBrand: svc.anchorBrand || "",
-    poiRef: svc.poiRef || "",
-    mapvxId: svc.mapvxId || "",
-    mapvxLat: svc.mapvxLat != null ? svc.mapvxLat : null,
-    mapvxLng: svc.mapvxLng != null ? svc.mapvxLng : null,
+    mall: svc.mall || svc.Mall || ""
   };
 }
 
@@ -3697,39 +3515,28 @@ function normalizeParkingItem(item) {
 }
 
 function renderServiceCard(svc, idx) {
-  const kind = getServiceKind(svc.name) || (svc.type === "bathroom" ? "bathroom" : "");
-  const featureBadges = [];
-  if (svc.features && svc.features.mudador) {
-    featureBadges.push(`<span class="store-badge store-badge-promo">${escapeHtml(t("bathroomsKids"))}</span>`);
-  }
-  if (svc.features && svc.features.accesible) {
-    featureBadges.push(`<span class="store-badge store-badge-floor">${escapeHtml(t("accessible"))}</span>`);
-  }
-  const kindBadge = kind === "kids" && !(svc.features && svc.features.mudador)
+  const kind = getServiceKind(svc.name);
+  const kindBadge = kind === "kids"
     ? `<span class="store-badge store-badge-promo">${escapeHtml(t("bathroomsKids"))}</span>`
-    : kind === "bathroom" && !featureBadges.length
+    : kind === "bathroom"
       ? `<span class="store-badge store-badge-floor">${escapeHtml(t("bathrooms"))}</span>`
       : "";
   const floorsLabel = formatServiceFloors(svc.floors);
   const floorBadge = floorsLabel
     ? `<span class="store-badge store-badge-floor">${escapeHtml(floorsLabel)}</span>`
     : "";
-  const anchorBadge = svc.anchorBrand
-    ? `<span class="store-badge">${escapeHtml(t("near") + " " + svc.anchorBrand)}</span>`
-    : "";
   const mapBtn = svc.id
-    ? `<button class="btn-service-map" type="button" onclick="event.stopPropagation(); openServiceMap(${idx})">${escapeHtml(t("viewMapService"))}</button>`
+    ? `<button class="btn-service-map" type="button" onclick="event.stopPropagation(); openServiceMap(${idx})">${escapeHtml(t("viewMap"))}</button>`
     : "";
-  const detailText = svc.description || svc.location || "";
 
   return `
     <article class="service-card fade-in${kind ? " service-card-bathroom" : ""}" id="svc-${idx}" onclick="toggleServiceCard(${idx})">
       <div class="service-card-row">
         <div class="service-card-top">
           <div class="service-name">${escapeHtml(svc.name)}</div>
-          <div class="store-meta">${featureBadges.join("")}${kindBadge}${floorBadge}${anchorBadge}</div>
+          <div class="store-meta">${kindBadge}${floorBadge}</div>
           ${svc.location ? `<div class="service-loc">📍 ${escapeHtml(svc.location)}</div>` : ""}
-          ${detailText && detailText !== svc.location ? `<div class="service-desc">${escapeHtml(detailText)}</div>` : ""}
+          ${svc.description ? `<div class="service-desc">${escapeHtml(svc.description)}</div>` : ""}
         </div>
         <div class="service-card-actions">${mapBtn}</div>
       </div>
@@ -4205,15 +4012,11 @@ function setupMapControls(result) {
   }
 }
 
-async function openPoiMapViaMapVx(opts) {
-  const {
-    poiType, id, floor, mall, name, local, mode,
-    anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId,
-  } = opts || {};
+async function openPoiMapViaMapVx({ poiType, id, floor, mall, name, local, mode }) {
   const container = document.getElementById("mapvx-container");
   const iframe = document.getElementById("map-iframe");
 
-  logMap("info", "openPoiMapViaMapVx start", opts);
+  logMap("info", "openPoiMapViaMapVx start", { poiType, id, floor, mall, name, local, mode });
   logMapVxConfig("openPoiMapViaMapVx");
   warmupMapVxInBackground();
 
@@ -4234,45 +4037,11 @@ async function openPoiMapViaMapVx(opts) {
   setMapStatus(t("mapLoading") || "Cargando mapa…");
 
   try {
-    const isService = poiType === "service";
-    let showFn;
-    if (isService) {
-      showFn = (mode === "navigation" && MapVxBridge.showServiceRouteTo)
-        ? MapVxBridge.showServiceRouteTo
-        : MapVxBridge.showServicePlace;
-    } else {
-      showFn = (mode === "navigation" && MapVxBridge.showRouteTo)
-        ? MapVxBridge.showRouteTo
-        : MapVxBridge.showPlace;
-    }
-
-    const bridgeOptions = isService
-      ? {
-          poiType: "service",
-          serviceId: serviceId || id,
-          id: serviceId || id,
-          name,
-          floor,
-          mall,
-          anchorLocal: anchorLocal || local,
-          poiRef,
-          mapvxId,
-          lat,
-          lng,
-          preferChangingTable: !!preferChangingTable,
-        }
-      : {
-          id,
-          name,
-          floor,
-          local,
-          mall,
-          strictLocal: opts.strictLocal,
-          poiType,
-        };
-
-    logMap("info", "calling MapVxBridge", { fn: showFn.name || "showPlace", isService });
-    const result = await showFn(container, bridgeOptions);
+    const showFn = mode === "navigation" && MapVxBridge.showRouteTo
+      ? MapVxBridge.showRouteTo
+      : MapVxBridge.showPlace;
+    logMap("info", "calling MapVxBridge", { fn: showFn.name || "showPlace" });
+    const result = await showFn(container, { id, name, floor, local, mall, poiType });
     setMapStatus("");
     setupMapControls(result);
     setMapLoadingState(false);
@@ -4365,31 +4134,13 @@ function storeCatalogId(store) {
   return String(store.id).trim();
 }
 
-function openPoiMap(opts) {
-  const {
-    poiType, id, floor, mall, name, local, catalogId, mode, storeDetail,
-    anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId,
-  } = opts || {};
-
-  const isService = poiType === "service";
-  const mapLocal = (local != null && String(local).trim()) || "";
-  const serviceKey = (serviceId != null && String(serviceId).trim())
-    || (isService && id != null && String(id).trim())
-    || "";
+function openPoiMap({ poiType, id, floor, mall, name, local, catalogId, mode, storeDetail }) {
+  const mapLocal = (local != null && String(local).trim()) || (id != null && String(id).trim()) || "";
   const mapCatalogId = (catalogId != null && String(catalogId).trim())
     || (id != null && /^\d+$/.test(String(id).trim()) ? String(id).trim() : "");
+  logMap("info", "openPoiMap called", { poiType, id, catalogId: mapCatalogId, floor, mall, name, local: mapLocal, mode });
 
-  logMap("info", "openPoiMap called", {
-    poiType, id, catalogId: mapCatalogId, floor, mall, name,
-    local: mapLocal, serviceKey, mode,
-  });
-
-  if (isService) {
-    if (!serviceKey && !name) {
-      logMap("error", "openPoiMap aborted: missing service id/name", { poiType });
-      return;
-    }
-  } else if (!mapLocal && !mapCatalogId) {
+  if (!mapLocal) {
     logMap("error", "openPoiMap aborted: missing local/id", { name, poiType });
     return;
   }
@@ -4409,38 +4160,19 @@ function openPoiMap(opts) {
     speakStoreDetail(storeDetail);
   } else {
     hideStoreDetailPanel();
-    if (isService && name) {
-      SimaBridge.speak(String(name));
-    }
   }
 
-  const mapOptions = isService
-    ? {
-        poiType,
-        id: serviceKey,
-        serviceId: serviceKey,
-        floor,
-        mall,
-        name,
-        anchorLocal,
-        poiRef,
-        mapvxId,
-        lat,
-        lng,
-        preferChangingTable,
-        mode,
-      }
-    : {
-        poiType,
-        id: mapCatalogId || mapLocal,
-        catalogId: mapCatalogId,
-        floor,
-        mall,
-        name,
-        local: mapLocal,
-        strictLocal: poiType === "store" && !!mapLocal,
-        mode,
-      };
+  const mapOptions = {
+    poiType,
+    id: mapCatalogId || mapLocal,
+    catalogId: mapCatalogId,
+    floor,
+    mall,
+    name,
+    local: mapLocal,
+    strictLocal: poiType === "store" && !!mapLocal,
+    mode
+  };
 
   const doOpen = function() {
     if (useMapVxSdk()) {
@@ -4455,10 +4187,9 @@ function openPoiMap(opts) {
 
   const eventType = poiType === "service" ? "service_map_opened" : "store_map_opened";
   SimaBridge.send(eventType, {
-    id: isService ? serviceKey : mapLocal,
+    id: mapLocal,
     text: name || "",
-    destination: formatNivel(floor),
-    anchorLocal: anchorLocal || "",
+    destination: formatNivel(floor)
   });
 }
 
@@ -4549,18 +4280,11 @@ function openServiceMap(idx) {
 
   openPoiMap({
     poiType: "service",
-    serviceId: normalized.id || normalized.catalogId,
-    id: normalized.id || normalized.catalogId,
+    id: normalized.id,
     floor: floor === "ALL" ? "" : floor,
     mall: normalized.mall || lastServicesPayload?.mall,
     name: normalized.name,
-    anchorLocal: normalized.anchorLocal,
-    poiRef: normalized.poiRef,
-    mapvxId: normalized.mapvxId,
-    lat: normalized.mapvxLat,
-    lng: normalized.mapvxLng,
-    preferChangingTable: !!(normalized.features && normalized.features.mudador),
-    mode: "place",
+    mode: "place"
   });
 }
 
