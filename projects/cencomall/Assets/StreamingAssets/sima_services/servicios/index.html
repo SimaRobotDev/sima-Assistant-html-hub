@@ -162,14 +162,16 @@
       padding: 24px;
       border: 1px solid var(--cm-line);
       box-shadow: var(--cm-shadow);
+      flex-direction: column;
+      gap: 14px;
     }
 
-    .success.active { display: block; }
+    .success.active { display: flex; }
 
     .success-title {
       font-size: 22px;
       font-weight: 800;
-      margin: 0 0 10px;
+      margin: 0 0 4px;
     }
 
     .success-text {
@@ -177,6 +179,71 @@
       color: var(--cm-muted);
       line-height: 1.5;
       margin: 0;
+    }
+
+    .qr-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 14px;
+      border: 1px dashed var(--cm-line);
+      border-radius: 16px;
+      background: #FAFAFC;
+    }
+
+    #reservationQr {
+      width: 180px;
+      height: 180px;
+      display: none;
+      background: #fff;
+      border-radius: 12px;
+      image-rendering: pixelated;
+    }
+
+    #reservationQr.visible { display: block; }
+
+    .id-big {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: var(--cm-purple);
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    .success-steps {
+      margin: 0;
+      padding-left: 20px;
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--cm-text);
+    }
+
+    .stock-chip {
+      align-self: center;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: var(--cm-blue-dark);
+      background: rgba(0, 177, 255, 0.12);
+      border-radius: 999px;
+      padding: 4px 10px;
+    }
+
+    .stock-chip.empty {
+      color: #A11F3A;
+      background: rgba(161, 31, 58, 0.1);
+    }
+
+    .stock-chip.warn {
+      color: #A15C00;
+      background: rgba(161, 92, 0, 0.12);
+    }
+
+    .btn-reserve:disabled {
+      opacity: 0.55;
+      cursor: default;
     }
 
     @media (max-width: 640px) {
@@ -200,7 +267,8 @@
             <p class="service-card-desc" id="wheel-desc">
               Solicítala en el módulo de servicio al cliente, Nivel 1.
             </p>
-            <button class="btn-reserve" type="button" onclick="reserve('silla de ruedas')">
+            <span class="stock-chip" id="chip-wheel">Consultando…</span>
+            <button id="btn-wheel" class="btn-reserve" type="button" onclick="reserve('silla de ruedas', 'costanerasillas')">
               Solicitar
             </button>
           </div>
@@ -209,7 +277,8 @@
             <p class="service-card-desc" id="stroller-desc">
               Préstamo de coche para bebés en servicio al cliente.
             </p>
-            <button class="btn-reserve" type="button" onclick="reserve('coche de bebé')">
+            <span class="stock-chip" id="chip-stroller">Consultando…</span>
+            <button id="btn-stroller" class="btn-reserve" type="button" onclick="reserve('coche de niño', 'costaneracoches')">
               Solicitar
             </button>
           </div>
@@ -222,13 +291,20 @@
           Módulo de servicio al cliente en Nivel 1. Te ayudamos con tiendas, rodados y más.
         </p>
         <button class="btn-call" id="btnCall" type="button">Llamar a atención al cliente</button>
-        <button class="btn-close" type="button" onclick="SimaBridge.requestClose()">Cerrar</button>
+        <button class="btn-close" id="btn-close-main" type="button" onclick="SimaBridge.requestClose()">Cerrar</button>
       </div>
     </div>
 
     <div id="successUI" class="success">
       <h2 class="success-title" id="success-title">Solicitud registrada</h2>
-      <p class="success-text" id="success-text"></p>
+      <p class="success-text" id="success-lead"></p>
+      <div class="qr-box">
+        <img id="reservationQr" alt="Código QR de reserva" />
+        <div class="id-big" id="success-id">—</div>
+      </div>
+      <ol class="success-steps" id="success-steps"></ol>
+      <p class="success-text" id="success-hold"></p>
+      <button class="btn-close" type="button" onclick="backToMain()" id="success-back">Volver</button>
     </div>
   </div>
 
@@ -249,10 +325,25 @@
         callDesc: "Módulo de servicio al cliente en Nivel 1. Te ayudamos con tiendas, rodados y más.",
         callBtn: "Llamar a atención al cliente",
         close: "Cerrar",
-        successTitle: "Solicitud registrada",
-        successBody: "Escanea el código QR en pantalla para continuar en WhatsApp.",
+        successTitle: "Reserva registrada",
+        successBack: "Volver",
+        stockLoading: "Consultando…",
+        stockNone: "Sin stock",
+        stockConfirmSac: "Confirmar en SAC",
+        stockAvailableOne: "1 disponible",
+        stockAvailableMany: "{n} disponibles",
+        successLead: "Tu solicitud de {item} quedó reservada.",
+        successHold: "La reserva se guarda {min} minutos. Si no retiras a tiempo, otra persona puede solicitarlo.",
+        successStep1: "Ve a Servicio de atención al cliente dentro de {min} minutos.",
+        successStep2: "Entrega tu carnet de identificación.",
+        successStep3: "Muestra el QR o el número de reserva.",
+        successStep4: "Retira tu {item} en el módulo.",
         speakIntro: "Puedes solicitar silla de ruedas, coche de niños o llamar a atención al cliente.",
-        speakReserve: "Solicitud registrada. Escanea el código QR para continuar.",
+        speakReserveSuccess: "Tu reserva de {item} es {id}. Tienes {min} minutos. Ve a Servicio de atención al cliente, muestra el código QR o el número en pantalla, entrega tu carnet y retira el equipo.",
+        speakReserveNone: "Por ahora no hay {item} disponibles. Puedes consultar en Servicio de atención al cliente.",
+        speakReserveLow: "Queda poca disponibilidad de {item}. Por favor confirma en Servicio de atención al cliente; es por orden de llegada.",
+        speakReserveOffline: "No pude registrar la reserva ahora. Acércate a Servicio de atención al cliente para confirmar disponibilidad.",
+        speakReserveFail: "No pude completar la reserva. Confirma en Servicio de atención al cliente.",
         speakCall: "Te conecto con atención al cliente."
       },
       en: {
@@ -268,10 +359,25 @@
         callDesc: "Customer service desk on Level 1. We can help with stores, mobility aids and more.",
         callBtn: "Call customer service",
         close: "Close",
-        successTitle: "Request registered",
-        successBody: "Scan the QR code on screen to continue on WhatsApp.",
+        successTitle: "Reservation registered",
+        successBack: "Back",
+        stockLoading: "Checking…",
+        stockNone: "Out of stock",
+        stockConfirmSac: "Confirm at customer service",
+        stockAvailableOne: "1 available",
+        stockAvailableMany: "{n} available",
+        successLead: "Your {item} request is reserved.",
+        successHold: "The reservation is held for {min} minutes. If you don't pick it up in time, someone else may request it.",
+        successStep1: "Go to customer service within {min} minutes.",
+        successStep2: "Show your ID.",
+        successStep3: "Show the QR code or reservation number.",
+        successStep4: "Pick up your {item} at the desk.",
         speakIntro: "You can request a wheelchair, stroller or call customer service.",
-        speakReserve: "Request registered. Scan the QR code to continue.",
+        speakReserveSuccess: "Your {item} reservation is {id}. You have {min} minutes. Go to customer service, show the QR code or the number on screen, show your ID and pick up the equipment.",
+        speakReserveNone: "There are no {item} available right now. You can check at customer service.",
+        speakReserveLow: "There is limited availability of {item}. Please confirm at customer service; it's first-come, first-served.",
+        speakReserveOffline: "I couldn't register the reservation right now. Please go to customer service to confirm availability.",
+        speakReserveFail: "I couldn't complete the reservation. Please confirm at customer service.",
         speakCall: "Connecting you to customer service."
       },
       pt: {
@@ -287,10 +393,25 @@
         callDesc: "Módulo de atendimento no Nível 1. Ajudamos com lojas, rodas e mais.",
         callBtn: "Ligar para atendimento ao cliente",
         close: "Fechar",
-        successTitle: "Solicitação registrada",
-        successBody: "Escaneie o código QR na tela para continuar no WhatsApp.",
+        successTitle: "Reserva registrada",
+        successBack: "Voltar",
+        stockLoading: "Consultando…",
+        stockNone: "Sem estoque",
+        stockConfirmSac: "Confirmar no SAC",
+        stockAvailableOne: "1 disponível",
+        stockAvailableMany: "{n} disponíveis",
+        successLead: "Sua solicitação de {item} foi reservada.",
+        successHold: "A reserva é válida por {min} minutos. Se não retirar a tempo, outra pessoa pode solicitar.",
+        successStep1: "Vá ao atendimento ao cliente em até {min} minutos.",
+        successStep2: "Apresente seu documento de identificação.",
+        successStep3: "Mostre o QR ou o número da reserva.",
+        successStep4: "Retire seu {item} no balcão.",
         speakIntro: "Você pode solicitar cadeira de rodas, carrinho de bebê ou ligar para o atendimento.",
-        speakReserve: "Solicitação registrada. Escaneie o código QR para continuar.",
+        speakReserveSuccess: "Sua reserva de {item} é {id}. Você tem {min} minutos. Vá ao atendimento ao cliente, mostre o QR ou o número na tela, apresente seu documento e retire o equipamento.",
+        speakReserveNone: "No momento não há {item} disponíveis. Você pode consultar no atendimento ao cliente.",
+        speakReserveLow: "Há pouca disponibilidade de {item}. Por favor confirme no atendimento ao cliente; é por ordem de chegada.",
+        speakReserveOffline: "Não consegui registrar a reserva agora. Vá ao atendimento ao cliente para confirmar disponibilidade.",
+        speakReserveFail: "Não consegui concluir a reserva. Confirme no atendimento ao cliente.",
         speakCall: "Conectando você ao atendimento ao cliente."
       }
     };
@@ -301,6 +422,15 @@
 
     function t(key) {
       return SimaLocale.t(I18N, key, getLocale());
+    }
+
+    function tf(key, vars) {
+      let text = t(key);
+      if (!vars) return text;
+      Object.keys(vars).forEach((name) => {
+        text = text.split("{" + name + "}").join(String(vars[name]));
+      });
+      return text;
     }
 
     function applyLocale() {
@@ -317,29 +447,177 @@
       document.getElementById("call-desc").textContent = t("callDesc");
       document.getElementById("btnCall").textContent = t("callBtn");
       document.getElementById("success-title").textContent = t("successTitle");
+      document.getElementById("success-back").textContent = t("successBack");
+      document.getElementById("btn-close-main").textContent = t("close");
 
       document.querySelectorAll(".btn-reserve").forEach((btn) => {
-        btn.textContent = t("reserve");
+        if (!btn.disabled) btn.textContent = t("reserve");
       });
+
+      renderStock();
     }
 
-    function reserve(item) {
-      const id = "SIMA-" + Math.floor(1000 + Math.random() * 9000);
-      const sessionId = "usuario_" + Date.now();
-      const link =
-        "https://wa.me/" + whatsappNumber
-        + "?text=Reserva%20completada%20con%20%C3%A9xito.%20"
-        + encodeURIComponent(item) + "%20ID%20" + id + "%20soy_" + sessionId;
+    // --- Inventario en vivo (SAC) ---
+    var inventory = { sillas: null, coches: null };
+    var inventoryApiBase = "";
+    var minAvailableForReserve = 2;
+    var holdMinutes = 15;
+    var reserving = false;
 
+    function stockLabel(count) {
+      if (count == null || typeof count !== "number") {
+        return { text: t("stockLoading"), kind: "", disabled: true };
+      }
+      if (count <= 0) {
+        return { text: t("stockNone"), kind: "empty", disabled: true };
+      }
+      if (count < minAvailableForReserve) {
+        return { text: t("stockConfirmSac"), kind: "warn", disabled: true };
+      }
+      const text = count === 1
+        ? t("stockAvailableOne")
+        : tf("stockAvailableMany", { n: count });
+      return { text: text, kind: "", disabled: false };
+    }
+
+    function applyStockUI(chipId, btnId, count) {
+      const state = stockLabel(count);
+      const chip = document.getElementById(chipId);
+      const btn = document.getElementById(btnId);
+      if (chip) {
+        chip.textContent = state.text;
+        chip.className = "stock-chip" + (state.kind ? " " + state.kind : "");
+      }
+      if (btn) {
+        btn.disabled = state.disabled || reserving;
+        if (!btn.disabled) btn.textContent = t("reserve");
+      }
+    }
+
+    function renderStock() {
+      applyStockUI("chip-wheel", "btn-wheel", inventory.sillas);
+      applyStockUI("chip-stroller", "btn-stroller", inventory.coches);
+    }
+
+    function applyMallInventory(data) {
+      if (!data || typeof data !== "object") return;
+      if ("sillas" in data) inventory.sillas = data.sillas;
+      if ("coches" in data) inventory.coches = data.coches;
+      if (typeof data.apiBase === "string" && data.apiBase) {
+        inventoryApiBase = data.apiBase.replace(/\/$/, "");
+      }
+      if (typeof data.minAvailableForReserve === "number") {
+        minAvailableForReserve = data.minAvailableForReserve;
+      }
+      if (typeof data.holdMinutes === "number") {
+        holdMinutes = data.holdMinutes;
+      }
+      renderStock();
+    }
+
+    window.applyMallInventory = applyMallInventory;
+
+    function applyReservationQr(dataUrl) {
+      const qrImg = document.getElementById("reservationQr");
+      if (!qrImg || !dataUrl) return;
+      qrImg.src = dataUrl;
+      qrImg.classList.add("visible");
+    }
+
+    window.applyReservationQr = applyReservationQr;
+
+    function availableForProduct(productId) {
+      if (productId === "costanerasillas") return inventory.sillas;
+      if (productId === "costaneracoches") return inventory.coches;
+      return null;
+    }
+
+    function showSuccess(item, reservationId) {
       document.getElementById("mainUI").style.display = "none";
       const success = document.getElementById("successUI");
       success.classList.add("active");
-      document.getElementById("success-text").textContent = t("successBody") + " ID " + id + ".";
 
-      SimaBridge.send("generate_qr", { url: link, id: id });
-      SimaBridge.send("mobility_reserved", { itemType: item, reservationId: id });
-      SimaBridge.speak(t("speakReserve"));
-      SimaBridge.animate("happy");
+      document.getElementById("success-lead").textContent = tf("successLead", { item: item });
+      document.getElementById("success-id").textContent = reservationId;
+      document.getElementById("success-hold").textContent = tf("successHold", { min: holdMinutes });
+
+      const steps = document.getElementById("success-steps");
+      steps.innerHTML = "";
+      [
+        tf("successStep1", { min: holdMinutes }),
+        t("successStep2"),
+        t("successStep3"),
+        tf("successStep4", { item: item }),
+      ].forEach((stepText) => {
+        const li = document.createElement("li");
+        li.textContent = stepText;
+        steps.appendChild(li);
+      });
+
+      const qrImg = document.getElementById("reservationQr");
+      qrImg.classList.remove("visible");
+      qrImg.removeAttribute("src");
+    }
+
+    async function reserve(item, productId) {
+      if (reserving) return;
+
+      const available = availableForProduct(productId);
+      if (typeof available === "number" && available < minAvailableForReserve) {
+        const key = available <= 0 ? "speakReserveNone" : "speakReserveLow";
+        SimaBridge.speak(tf(key, { item: item }));
+        return;
+      }
+
+      if (!inventoryApiBase) {
+        SimaBridge.speak(t("speakReserveOffline"));
+        return;
+      }
+
+      reserving = true;
+      renderStock();
+
+      try {
+        const res = await fetch(inventoryApiBase + "/api/inventory/" + productId + "/reserve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ quantity: 1, source: "totem" }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.message || ("Error " + res.status));
+        }
+
+        const reservationId = data.reservation && data.reservation.id
+          ? data.reservation.id
+          : ("SIMA-" + Math.floor(1000 + Math.random() * 9000));
+        if (data.holdMinutes) holdMinutes = data.holdMinutes;
+        if (data.product) {
+          if (productId === "costanerasillas") inventory.sillas = data.product.available;
+          if (productId === "costaneracoches") inventory.coches = data.product.available;
+        }
+
+        showSuccess(item, reservationId);
+
+        SimaBridge.send("mobility_reserved", {
+          itemType: item,
+          productId: productId,
+          reservationId: reservationId,
+          holdMinutes: holdMinutes,
+        });
+        SimaBridge.speak(tf("speakReserveSuccess", { item: item, id: reservationId, min: holdMinutes }));
+        SimaBridge.animate("happy");
+      } catch (err) {
+        SimaBridge.speak((err && err.message) || t("speakReserveFail"));
+      } finally {
+        reserving = false;
+        renderStock();
+      }
+    }
+
+    function backToMain() {
+      document.getElementById("successUI").classList.remove("active");
+      document.getElementById("mainUI").style.display = "flex";
     }
 
     function startCustomerCall() {
@@ -362,6 +640,10 @@
     SimaLocale.bindPageLocale(applyLocale);
 
     document.getElementById("btnCall").onclick = startCustomerCall;
+
+    if (window.__MALL_INVENTORY__) {
+      applyMallInventory(window.__MALL_INVENTORY__);
+    }
 
     window.addEventListener("load", () => {
       applyLocale();
