@@ -11,10 +11,34 @@ window.SimaBridge = window.SimaBridge || {};
   function tryParse(raw) {
     if (typeof raw !== "string") return raw;
     try {
-      return JSON.parse(raw);
+      var parsed = JSON.parse(raw);
+      if (typeof parsed === "string") {
+        try {
+          return JSON.parse(parsed);
+        } catch (nestedError) {
+          return parsed;
+        }
+      }
+      return parsed;
     } catch (error) {
       return raw;
     }
+  }
+
+  function isReactNativeHost() {
+    return !!(
+      global.ReactNativeWebView
+      && typeof global.ReactNativeWebView.postMessage === "function"
+    );
+  }
+
+  function extractMessageEventData(event) {
+    if (!event) return null;
+    if (event.data != null && event.data !== "") return event.data;
+    if (event.nativeEvent && event.nativeEvent.data != null && event.nativeEvent.data !== "") {
+      return event.nativeEvent.data;
+    }
+    return null;
   }
 
   function hideNode(node, visible) {
@@ -34,10 +58,24 @@ window.SimaBridge = window.SimaBridge || {};
     };
 
     bridge.__lastMessage = message;
-
-    var encoded = encodeURIComponent(JSON.stringify(message));
-    var url = "uniwebview://message?data=" + encoded;
+    var serialized = JSON.stringify(message);
     var sent = false;
+
+    // React Native WebView (react-native-webview)
+    try {
+      if (global.ReactNativeWebView && typeof global.ReactNativeWebView.postMessage === "function") {
+        global.ReactNativeWebView.postMessage(serialized);
+        sent = true;
+      }
+    } catch (error) {
+      sent = false;
+    }
+
+    if (sent) return true;
+
+    // Legacy UniWebView / Unity iframe channel
+    var encoded = encodeURIComponent(serialized);
+    var url = "uniwebview://message?data=" + encoded;
 
     try {
       if (global.document && global.document.body && global.document.createElement) {
@@ -76,7 +114,10 @@ window.SimaBridge = window.SimaBridge || {};
   };
 
   bridge.ready = function (screenName) {
-    return bridge.send("web_ready", { screen: safeString(screenName) });
+    return bridge.send("web_ready", {
+      screen: safeString(screenName),
+      host: isReactNativeHost() ? "react-native" : "legacy",
+    });
   };
 
   bridge.log = function (text) {
@@ -95,8 +136,8 @@ window.SimaBridge = window.SimaBridge || {};
     return bridge.send("avatar_anim", { state: safeString(state) });
   };
 
-  bridge.start_stt = function () {
-    return bridge.send("start_stt", {});
+  bridge.start_stt = function (payload) {
+    return bridge.send("start_stt", payload || {});
   };
 
   bridge.startSTT = function () {
@@ -135,8 +176,52 @@ window.SimaBridge = window.SimaBridge || {};
     }
   };
 
+  bridge.isReactNativeHost = isReactNativeHost;
+
+  bridge.pushNativeSearch = function (queryOrPayload) {
+    return bridge.onNativeData(queryOrPayload);
+  };
+
+  global.receiveNativeSearch = function (queryOrPayload) {
+    return bridge.pushNativeSearch(queryOrPayload);
+  };
+
+  global.pushNativeSearch = global.receiveNativeSearch;
+
   bridge.onUnityData = function (raw) {
     var data = tryParse(raw);
+
+    // RN bridge envelope echo: { type, payload: { ... } }
+    if (data && typeof data === "object" && data.payload != null && typeof data.payload !== "object") {
+      data.payload = tryParse(data.payload);
+    }
+
+    if (global.SimaNativePayload && global.SimaNativePayload.normalize) {
+      data = global.SimaNativePayload.normalize(data);
+    }
+
+    var deferredLocale = null;
+
+    if (global.SimaLocale && data && typeof data === "object") {
+      if (global.SimaLocale.isLocaleCommand && global.SimaLocale.isLocaleCommand(data)) {
+        global.SimaLocale.setLocale(
+          global.SimaLocale.extractLocaleFromPayload(data) || "es"
+        );
+      } else if (global.SimaLocale.extractLocaleFromPayload) {
+        var localeHint = global.SimaLocale.extractLocaleFromPayload(data);
+        if (localeHint != null) {
+          var isSearch = global.SimaNativePayload
+            && global.SimaNativePayload.isSearchPayload
+            && global.SimaNativePayload.isSearchPayload(data);
+          if (isSearch) {
+            global.SimaLocale.setLocale(localeHint);
+            deferredLocale = null;
+          } else {
+            global.SimaLocale.setLocale(localeHint);
+          }
+        }
+      }
+    }
 
     if (typeof global.handleUnityData === "function") {
       try {
@@ -146,6 +231,10 @@ window.SimaBridge = window.SimaBridge || {};
           global.console.error("handleUnityData failed", error);
         }
       }
+    }
+
+    if (deferredLocale != null && global.SimaLocale && global.SimaLocale.setLocale) {
+      global.SimaLocale.setLocale(deferredLocale);
     }
 
     if (typeof global.handleUnityCommand === "function") {
@@ -164,5 +253,43 @@ window.SimaBridge = window.SimaBridge || {};
 
     return data;
   };
+
+  // Alias for React Native / native hosts (onUnityData name is legacy from Unity).
+  bridge.onNativeData = bridge.onUnityData;
+  bridge.receiveNativeMessage = bridge.onUnityData;
+
+  function bindNativeMessageListener() {
+    if (global.__simaNativeMessageBound) return;
+    global.__simaNativeMessageBound = true;
+    function onMessage(event) {
+      var raw = extractMessageEventData(event);
+      if (raw == null || raw === "") return;
+      if (typeof raw === "object") {
+        try {
+          raw = JSON.stringify(raw);
+        } catch (stringifyError) {
+          return;
+        }
+      }
+      try {
+        bridge.onNativeData(raw);
+      } catch (error) {
+        if (global.console && global.console.error) {
+          global.console.error("SimaBridge native message failed", error);
+        }
+      }
+    }
+    if (typeof global.window !== "undefined" && typeof global.window.addEventListener === "function") {
+      global.window.addEventListener("message", onMessage);
+    }
+    if (global.document && typeof global.document.addEventListener === "function") {
+      global.document.addEventListener("message", onMessage);
+    }
+    if (typeof global.addEventListener === "function") {
+      global.addEventListener("message", onMessage);
+    }
+  }
+
+  bindNativeMessageListener();
 })(window);
 

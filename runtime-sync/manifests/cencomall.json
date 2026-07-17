@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.17-20",
+  "version": "2026.07.17-21",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-17T17:34:35.628Z",
+  "generatedAt": "2026-07-17T18:18:29.748Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -38,6 +38,10 @@
     {
       "service": "ontour",
       "entry": "ontour/index.html"
+    },
+    {
+      "service": "services-2",
+      "entry": "services-2/index.html"
     },
     {
       "service": "servicios",
@@ -155,9 +159,14 @@
       "sha256": "aa39342d2b42c2dcad4e93f919646bc033a5283b9cf70d547d1b3c91977b49d5"
     },
     {
+      "path": "services-2/index.html",
+      "size": 26587,
+      "sha256": "c564bf1dbc042ed391c6411e205b462d1bdeea687aa4dbe41b6a48f959da79b0"
+    },
+    {
       "path": "servicios/index.html",
-      "size": 22657,
-      "sha256": "ff3f38976af77c23aeddb752941b7803cf9a43551d2496598740b7f8de68d15d"
+      "size": 23459,
+      "sha256": "1ad32f643874e7d2ceeb9090caa3b880f54195d95740e9e7defc6311bc78ecee"
     },
     {
       "path": "shared/app.css",
