@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Promociones - Preview</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #fff;
+    }
+
+    iframe {
+      display: block;
+      width: 100%;
+      min-height: 100vh;
+      border: 0;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <iframe id="mobility" title="Promociones" src="mobility/index.html?locale=es"></iframe>
+  <script>
+    const payload = {
+      type: "promotion_search",
+      query: "",
+      appUrl: "https://www.cencomalls.cl/costanera",
+      results: [
+        {
+          id: "promo-costanera-1",
+          brandName: "Cenco Malls",
+          title: "Descuentos vigentes hoy",
+          description: "Beneficios disponibles para visitantes de Cenco Costanera.",
+          category: "Beneficios",
+          validityEnd: "Hoy",
+          requiresApp: true
+        },
+        {
+          id: "promo-costanera-2",
+          brandName: "On Tour",
+          title: "Beneficios para turistas",
+          description: "Activa tu tarjeta On Tour y accede a promociones exclusivas.",
+          category: "Turistas",
+          validityEnd: "Programa vigente",
+          requiresApp: false
+        }
+      ]
+    };
+
+    const frame = document.getElementById("mobility");
+    frame.addEventListener("load", () => {
+      setTimeout(() => {
+        const win = frame.contentWindow;
+        if (win && typeof win.handleUnityData === "function") {
+          win.handleUnityData(payload);
+        }
+      }, 500);
+    });
+  </script>
+</body>
+</html>

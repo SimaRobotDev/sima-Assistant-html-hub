@@ -17,15 +17,17 @@
 <script src="../shared/mapvx-bridge.js"></script>
 <style>
 :root {
-  --cm-purple: #5B2D8E;
-  --cm-purple-dark: #3D1D5C;
-  --cm-pink: #E4007C;
-  --cm-surface: #F4F0F8;
+  --cm-purple: #280071;
+  --cm-purple-dark: #1E1630;
+  --cm-blue: #00B1FF;
+  --cm-blue-dark: #008FD0;
+  --cm-pink: #FF7E3E;
+  --cm-surface: #FFFFFF;
   --cm-card: #FFFFFF;
   --cm-text: #1E1630;
-  --cm-muted: #6B6280;
-  --cm-line: #E7DFF0;
-  --cm-shadow: 0 8px 24px rgba(61, 29, 92, 0.1);
+  --cm-muted: #3F3468;
+  --cm-line: #ECE8F2;
+  --cm-shadow: 0 6px 16px rgba(40, 0, 113, 0.08);
   --cm-speak-bar: 132px;
   --cm-header-height: 54px;
   --cm-survey-strip-height: 0px;
@@ -52,8 +54,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   position: sticky;
   top: 0;
   z-index: 40;
-  background: linear-gradient(135deg, var(--cm-purple-dark) 0%, var(--cm-purple) 100%);
+  background: var(--cm-purple);
   color: #fff;
+  margin: 14px 14px 0;
+  border-radius: 18px 18px 0 0;
   padding: 14px 18px 16px;
   box-shadow: var(--cm-shadow);
 }
@@ -65,10 +69,15 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 }
 
 .cm-body {
-  padding: 14px 14px 8px;
+  margin: 0 14px 14px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background: #fff;
+  border: 1px solid var(--cm-line);
+  border-top: 0;
+  border-radius: 0 0 18px 18px;
 }
 
 .cm-panel {
@@ -83,9 +92,12 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   position: sticky;
   top: var(--cm-header-height);
   z-index: 35;
-  background: linear-gradient(180deg, #FFF 0%, #FAF7FD 100%);
+  background: #fff;
   border-bottom: 1px solid var(--cm-line);
+  border-left: 1px solid var(--cm-line);
+  border-right: 1px solid var(--cm-line);
   box-shadow: 0 4px 14px rgba(61, 29, 92, 0.07);
+  margin: 0 14px;
   padding: 8px 10px 8px 12px;
   animation: fadeIn 0.25s ease;
 }
@@ -847,8 +859,8 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 .cm-chip {
   border: 1px solid var(--cm-line);
-  background: #F6F1FB;
-  color: var(--cm-purple-dark);
+  background: #fff;
+  color: var(--cm-blue-dark);
   font-size: 12px;
   font-weight: 700;
   padding: 8px 12px;
@@ -859,8 +871,9 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .cm-chip:active { transform: scale(0.97); }
 
 .store-badge-promo {
-  background: #FFE8F3;
-  color: #B8005C;
+  background: color-mix(in srgb, var(--cm-blue) 14%, #fff 86%);
+  color: var(--cm-blue-dark);
+  border-color: color-mix(in srgb, var(--cm-blue) 28%, #fff 72%);
 }
 
 .promo-grid {
@@ -874,6 +887,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   background: #fff;
   border-radius: 14px;
   border: 1px solid var(--cm-line);
+  box-shadow: var(--cm-shadow);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -883,12 +897,13 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   width: 100%;
   height: 90px;
   object-fit: cover;
-  background: #EFE5FA;
+  background: #fff;
+  border-bottom: 1px solid var(--cm-line);
 }
 
-.promo-card-body { padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.promo-card-body { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 7px; }
 
-.promo-brand { font-size: 11px; font-weight: 800; color: var(--cm-purple); }
+.promo-brand { font-size: 11px; font-weight: 800; color: var(--cm-blue-dark); }
 
 .promo-title {
   font-size: 12px;
@@ -904,13 +919,15 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 .btn-promo-app {
   width: 100%;
-  border: none;
+  border: 1px solid var(--cm-blue);
   font-size: 11px;
   font-weight: 700;
   padding: 10px 6px;
   cursor: pointer;
-  background: var(--cm-pink);
+  background: var(--cm-blue);
   color: #fff;
+  border-radius: 10px;
+  margin-top: auto;
 }
 
 .service-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
