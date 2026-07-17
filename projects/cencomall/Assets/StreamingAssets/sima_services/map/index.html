@@ -9,6 +9,7 @@
 <script src="../shared/locale.js"></script>
 <script src="../shared/bridge.js"></script>
 <script src="../shared/market-search.js"></script>
+<script src="../shared/services-catalog.js"></script>
 <script src="../shared/mapvx/index.js"></script>
 <script src="../shared/mapvx-bridge.js"></script>
 <style>
@@ -122,6 +123,18 @@ button.primary { background: #fff; color: var(--cm-purple-dark); }
       <button type="button" onclick="runResolveOnly()">Solo resolver ID</button>
       <button type="button" onclick="toggleConfigBox()">Config MapVX</button>
       <button type="button" onclick="clearLog()">Limpiar log</button>
+    </div>
+
+    <h2 style="margin-top:14px;font-size:14px;">Catálogo de baños (services-catalog)</h2>
+    <div class="row">
+      <select id="bathroom-service-id" class="wide">
+        <option value="">— Elegir baño del catálogo —</option>
+      </select>
+    </div>
+    <div class="row">
+      <button type="button" onclick="runListToiletPois()">Listar POI baño en mapa</button>
+      <button type="button" onclick="runMatchBathroomCatalog()">Cruzar catálogo ↔ POI</button>
+      <button class="primary" type="button" onclick="runBathroomMapTest()">Ver mapa baño</button>
     </div>
   </div>
   <div id="map-container"></div>
@@ -351,6 +364,129 @@ async function runPlaceTest() {
   }
 }
 
+function getSelectedBathroomEntry() {
+  const select = document.getElementById("bathroom-service-id");
+  const id = select ? String(select.value || "").trim() : "";
+  if (!id || typeof ServicesCatalog === "undefined") return null;
+  return ServicesCatalog.getById(id);
+}
+
+async function populateBathroomSelect() {
+  const select = document.getElementById("bathroom-service-id");
+  if (!select || typeof ServicesCatalog === "undefined") return;
+  await ServicesCatalog.loadCatalog();
+  const services = ServicesCatalog.getAll();
+  select.innerHTML = '<option value="">— Elegir baño del catálogo —</option>' +
+    services.map(function (entry) {
+      return '<option value="' + entry.id + '">' + entry.name + "</option>";
+    }).join("");
+}
+
+async function runListToiletPois() {
+  clearLog();
+  if (!isUnityWebView()) applyManualConfig(false);
+  logConfigStatus();
+  const entry = getSelectedBathroomEntry();
+  if (!entry) {
+    logLine("Selecciona un baño del catálogo.", "err");
+    return;
+  }
+  try {
+    await MapVxBridge.ensureReady();
+    const container = document.getElementById("map-container");
+    const resolved = await MapVxBridge.matchServiceCatalogEntry(entry, container);
+    logLine("Match " + entry.id + " → " + resolved.resolvedBy, "ok");
+    logLine("  mapvxId/ref: " + (resolved.place && resolved.place.mapvxId), "ok");
+    if (resolved.toiletPoi) {
+      logLine("  poiRef: " + resolved.toiletPoi.ref + " floor=" + resolved.toiletPoi.floor_key, "ok");
+      logLine("  lat/lng: " + resolved.toiletPoi.lat + ", " + resolved.toiletPoi.lng, "ok");
+      logLine(
+        '  JSON: "poiRef": "' + resolved.toiletPoi.ref + '", "lat": ' + resolved.toiletPoi.lat + ', "lng": ' + resolved.toiletPoi.lng,
+        "ok"
+      );
+    } else {
+      logLine("  (sin toiletPoi — revisa piso/ancla en catálogo)", "warn");
+    }
+  } catch (e) {
+    logLine("✗ " + (e.message || e), "err");
+    if (e.attempts) logLine(JSON.stringify(e.attempts, null, 2));
+  }
+}
+
+async function runMatchBathroomCatalog() {
+  clearLog();
+  if (!isUnityWebView()) applyManualConfig(false);
+  logConfigStatus();
+  try {
+    await ServicesCatalog.loadCatalog();
+    await MapVxBridge.ensureReady();
+    const container = document.getElementById("map-container");
+    const services = ServicesCatalog.getAll();
+    logLine("Cruzando " + services.length + " baños del catálogo…", "ok");
+    for (let i = 0; i < services.length; i++) {
+      const entry = services[i];
+      try {
+        const resolved = await MapVxBridge.matchServiceCatalogEntry(entry, container);
+        const poi = resolved.toiletPoi;
+        logLine(
+          "✓ " + entry.id + " → " + resolved.resolvedBy +
+          " ref=" + (resolved.place && resolved.place.mapvxId) +
+          (poi ? " floor=" + poi.floor_key : ""),
+          "ok"
+        );
+        if (poi) {
+          logLine(
+            '  mapvx patch: "poiRef": "' + poi.ref + '", "lat": ' + poi.lat + ', "lng": ' + poi.lng,
+            "ok"
+          );
+        }
+      } catch (err) {
+        logLine("✗ " + entry.id + ": " + (err.message || err), "err");
+      }
+    }
+  } catch (e) {
+    logLine("✗ " + (e.message || e), "err");
+  }
+}
+
+async function runBathroomMapTest() {
+  clearLog();
+  if (!isUnityWebView()) applyManualConfig(false);
+  logConfigStatus();
+  const entry = getSelectedBathroomEntry();
+  if (!entry) {
+    logLine("Selecciona un baño del catálogo.", "err");
+    return;
+  }
+  try {
+    await MapVxBridge.ensureReady();
+    const container = document.getElementById("map-container");
+    const card = ServicesCatalog.toResultCard(entry);
+    const result = await MapVxBridge.showServicePlace(container, {
+      poiType: "service",
+      serviceId: entry.id,
+      name: entry.name,
+      floor: entry.floors && entry.floors[0],
+      anchorLocal: card.anchorLocal,
+      poiRef: card.poiRef,
+      mapvxId: card.mapvxId,
+      lat: card.mapvxLat,
+      lng: card.mapvxLng,
+      preferChangingTable: !!(entry.features && entry.features.mudador),
+    });
+    logLine("✓ Mapa baño — " + result.resolvedBy, "ok");
+    logLine("  title: " + result.title);
+    logLine("  mapvxId: " + result.mapvxId);
+    logLine("  floorId: " + (result.floorId || "(null)"));
+    if (result.toiletPoi) {
+      logLine("  toiletPoi.ref: " + result.toiletPoi.ref, "ok");
+    }
+  } catch (e) {
+    logLine("✗ " + (e.message || e), "err");
+    if (e.attempts) logLine(JSON.stringify(e.attempts, null, 2));
+  }
+}
+
 window.handleUnityData = function(raw) {
   try {
     const data = typeof raw === "string" ? JSON.parse(raw) : raw;
@@ -396,6 +532,9 @@ document.addEventListener("DOMContentLoaded", () => {
   clearLog();
   logConfigStatus();
   logBrowserServeHint();
+  populateBathroomSelect().catch(function (e) {
+    logLine("services catalog load failed: " + (e.message || e), "warn");
+  });
 
   const params = new URLSearchParams(window.location.search);
   const MAP_I18N = {

@@ -29,6 +29,11 @@ const targets = [
     "projects/cencomall/Assets/StreamingAssets/sima_services/shared/store-logos/store-logos.manifest.jsonp.js",
     "__STORE_LOGO_MANIFEST__",
   ],
+  [
+    "projects/cencomall/Assets/StreamingAssets/sima_services/data/services-catalog.json",
+    "projects/cencomall/Assets/StreamingAssets/sima_services/data/services-catalog.jsonp.js",
+    "__SERVICES_CATALOG__",
+  ],
 ];
 
 let generated = 0;

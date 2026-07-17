@@ -1,0 +1,249 @@
+/**
+ * Mall infrastructure services catalog (bathrooms pilot).
+ */
+window.ServicesCatalog = (function () {
+  var catalog = null;
+  var loadPromise = null;
+  var byId = null;
+
+  function catalogBase() {
+    var base = window.SERVICES_CATALOG_BASE || "../data/";
+    if (base.charAt(base.length - 1) !== "/") base += "/";
+    return base;
+  }
+
+  function catalogUrl() {
+    return catalogBase() + (window.SERVICES_CATALOG_FILE || "services-catalog.json");
+  }
+
+  function catalogJsonpUrl() {
+    return catalogBase() + (window.SERVICES_CATALOG_JSONP_FILE || "services-catalog.jsonp.js");
+  }
+
+  function loadJsonViaScript(url, globalName) {
+    return new Promise(function (resolve, reject) {
+      if (window[globalName] != null) {
+        resolve(window[globalName]);
+        return;
+      }
+      var script = document.createElement("script");
+      script.async = true;
+      script.src = url;
+      script.onload = function () {
+        if (window[globalName] != null) resolve(window[globalName]);
+        else reject(new Error("services jsonp loaded but global missing: " + globalName));
+      };
+      script.onerror = function () {
+        reject(new Error("services jsonp failed: " + url));
+      };
+      (document.head || document.documentElement).appendChild(script);
+    });
+  }
+
+  function normalizeText(value) {
+    return String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function buildIndex(data) {
+    byId = {};
+    var list = (data && data.services) || [];
+    list.forEach(function (entry) {
+      if (entry && entry.id) byId[entry.id] = entry;
+    });
+  }
+
+  function parseFloorFromQuery(query) {
+    var n = normalizeText(query);
+    if (!n) return null;
+    if (/\b(pb|planta baja|planta\s*baja)\b/.test(n)) return "PB";
+    var m = n.match(/\b(?:nivel|piso|floor|level)\s*(\d+)\b/);
+    if (m) return m[1];
+    if (/\bn\s*(\d+)\b/.test(n)) return n.match(/\bn\s*(\d+)\b/)[1];
+    return null;
+  }
+
+  function wantsMudador(query) {
+    return /\b(mudador|mudadores|cambiador|changing|pañal|panal|bebe|bebé|lactancia)\b/.test(
+      normalizeText(query)
+    );
+  }
+
+  function looksLikeBathroomQuery(query) {
+    var n = normalizeText(query);
+    if (!n) return false;
+    if (wantsMudador(n)) return true;
+    return /\b(bano|banos|wc|restroom|toilet|servicio\s*sanitario|sanitario)\b/.test(n);
+  }
+
+  function primaryAnchor(entry) {
+    var stores = (entry && entry.anchorStores) || [];
+    for (var i = 0; i < stores.length; i++) {
+      if (stores[i].role === "primary" && stores[i].local) return stores[i];
+    }
+    for (var j = 0; j < stores.length; j++) {
+      if (stores[j].local) return stores[j];
+    }
+    return stores[0] || null;
+  }
+
+  function toResultCard(entry) {
+    if (!entry) return {};
+    var anchor = primaryAnchor(entry);
+    var desc = entry.descriptions || {};
+    return {
+      id: entry.id,
+      catalogId: entry.id,
+      name: entry.name,
+      description: desc.short || desc.medium || "",
+      location: desc.medium || desc.short || "",
+      floors: entry.floors || [],
+      sector: entry.sector || "",
+      type: entry.type || "bathroom",
+      features: entry.features || {},
+      anchorLocal: anchor && anchor.local ? anchor.local : "",
+      anchorBrand: anchor && anchor.brand ? anchor.brand : "",
+      poiRef: entry.mapvx && entry.mapvx.poiRef ? entry.mapvx.poiRef : "",
+      mapvxId: entry.mapvx && entry.mapvx.mapvxId ? entry.mapvx.mapvxId : "",
+      mapvxLat: entry.mapvx && entry.mapvx.lat != null ? entry.mapvx.lat : null,
+      mapvxLng: entry.mapvx && entry.mapvx.lng != null ? entry.mapvx.lng : null,
+      mall: (catalog && catalog.mall) || "costanera",
+    };
+  }
+
+  function scoreEntry(entry, queryNorm, floorFilter, mudadorOnly) {
+    if (!entry) return -1;
+    if (mudadorOnly && !(entry.features && entry.features.mudador)) return -1;
+    if (floorFilter && entry.floors && entry.floors.length) {
+      var floorOk = entry.floors.some(function (f) {
+        return String(f).toUpperCase() === String(floorFilter).toUpperCase();
+      });
+      if (!floorOk) return -1;
+    }
+
+    var score = 0;
+    var keywords = entry.keywords || [];
+    keywords.forEach(function (kw) {
+      var k = normalizeText(kw);
+      if (k && queryNorm.indexOf(k) >= 0) score += 3;
+    });
+
+    if (entry.sector && queryNorm.indexOf(normalizeText(entry.sector)) >= 0) score += 5;
+    if (entry.name && queryNorm.indexOf(normalizeText(entry.name)) >= 0) score += 4;
+
+    var anchors = entry.anchorStores || [];
+    anchors.forEach(function (store) {
+      var brand = normalizeText(store.brand || "");
+      if (brand && queryNorm.indexOf(brand) >= 0) score += 6;
+    });
+
+    if (looksLikeBathroomQuery(queryNorm)) score += 1;
+    return score;
+  }
+
+  function loadCatalog() {
+    if (catalog) return Promise.resolve(catalog);
+    if (loadPromise) return loadPromise;
+
+    loadPromise = (function () {
+      var isFile = false;
+      try {
+        isFile = window.location && window.location.protocol === "file:";
+      } catch (e) { /* noop */ }
+
+      function ingest(data) {
+        catalog = data || { services: [] };
+        buildIndex(catalog);
+        return catalog;
+      }
+
+      if (isFile) {
+        return loadJsonViaScript(catalogJsonpUrl(), "__SERVICES_CATALOG__")
+          .then(ingest)
+          .catch(function () {
+            return loadJsonViaScript(catalogUrl(), "__SERVICES_CATALOG__").then(ingest);
+          });
+      }
+
+      return fetch(catalogUrl())
+        .then(function (res) {
+          if (!res.ok) throw new Error("services catalog fetch failed");
+          return res.json();
+        })
+        .then(ingest)
+        .catch(function () {
+          return loadJsonViaScript(catalogJsonpUrl(), "__SERVICES_CATALOG__").then(ingest);
+        });
+    })();
+
+    return loadPromise;
+  }
+
+  return {
+    loadCatalog: loadCatalog,
+    isReady: function () {
+      return !!(catalog && catalog.services && catalog.services.length);
+    },
+    getAll: function () {
+      return (catalog && catalog.services) ? catalog.services.slice() : [];
+    },
+    getById: function (id) {
+      if (!id) return null;
+      if (!byId) buildIndex(catalog || {});
+      return byId[id] || null;
+    },
+    looksLikeBathroomQuery: looksLikeBathroomQuery,
+    toResultCard: toResultCard,
+    search: function (query, options) {
+      options = options || {};
+      if (!catalog || !catalog.services) return [];
+      var q = normalizeText(query);
+      var floorFilter = options.floor || parseFloorFromQuery(q);
+      var mudadorOnly = options.mudadorOnly != null ? options.mudadorOnly : wantsMudador(q);
+      var serviceId = options.serviceId ? String(options.serviceId).trim() : "";
+
+      if (serviceId && byId && byId[serviceId]) {
+        return [toResultCard(byId[serviceId])];
+      }
+
+      var scored = catalog.services
+        .map(function (entry) {
+          return { entry: entry, score: scoreEntry(entry, q, floorFilter, mudadorOnly) };
+        })
+        .filter(function (row) {
+          return row.score >= 0;
+        })
+        .sort(function (a, b) {
+          return b.score - a.score;
+        });
+
+      if (!scored.length && looksLikeBathroomQuery(q)) {
+        return catalog.services
+          .filter(function (entry) {
+            if (mudadorOnly && !(entry.features && entry.features.mudador)) return false;
+            if (!floorFilter || !entry.floors || !entry.floors.length) return !floorFilter;
+            return entry.floors.some(function (f) {
+              return String(f).toUpperCase() === String(floorFilter).toUpperCase();
+            });
+          })
+          .map(toResultCard);
+      }
+
+      if (!scored.length) return [];
+
+      var minScore = scored[0].score > 0 ? 1 : 0;
+      return scored
+        .filter(function (row) {
+          return row.score >= minScore;
+        })
+        .map(function (row) {
+          return toResultCard(row.entry);
+        });
+    },
+  };
+})();
