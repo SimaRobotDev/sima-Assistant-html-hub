@@ -35,10 +35,33 @@
       border-radius: 18px 18px 0 0;
       padding: 18px 20px;
       box-shadow: 0 8px 22px rgba(40, 0, 113, 0.16);
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: 12px;
+    }
+
+    .cm-header-text {
+      flex: 1;
+      min-width: 0;
     }
 
     .cm-header h1 { margin: 0 0 6px; font-size: 24px; font-weight: 800; }
     .cm-header p { margin: 0; font-size: 15px; opacity: 0.92; line-height: 1.4; }
+
+    .cm-header-close {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 8px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
 
     .card {
       border: 1px solid var(--cm-line);
@@ -122,8 +145,11 @@
 <body>
   <div class="app-shell">
     <header class="cm-header">
-      <h1 id="page-title">On Tour</h1>
-      <p id="page-subtitle">Tu pasaporte a una experiencia exclusiva en Cenco Costanera</p>
+      <button class="cm-header-close" id="btnCloseHeader" type="button" onclick="closeWebview()">Cerrar</button>
+      <div class="cm-header-text">
+        <h1 id="page-title">On Tour</h1>
+        <p id="page-subtitle">Tu pasaporte a una experiencia exclusiva en Cenco Costanera</p>
+      </div>
     </header>
 
     <div class="card">
@@ -139,7 +165,7 @@
         <div id="qr-container" class="qr-container"></div>
       </div>
 
-      <button class="btn-secondary" id="btnClose" type="button" onclick="SimaBridge.requestClose()">Cerrar</button>
+      <button class="btn-secondary" id="btnClose" type="button" onclick="closeWebview()">Cerrar</button>
     </div>
   </div>
 
@@ -180,6 +206,29 @@
       }
     };
 
+    function closeWebview() {
+      try {
+        if (window.SimaBridge && typeof window.SimaBridge.requestClose === "function") {
+          window.SimaBridge.requestClose();
+          return;
+        }
+      } catch (e) {}
+      try {
+        if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === "function") {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: "close_webview",
+            payload: {},
+          }));
+          return;
+        }
+      } catch (e2) {}
+      try {
+        if (window.SimaBridge && typeof window.SimaBridge.send === "function") {
+          window.SimaBridge.send("close_webview", {});
+        }
+      } catch (e3) {}
+    }
+
     function applyLocale() {
       currentLocale = SimaLocale.readLocaleFromPage();
       document.documentElement.lang = currentLocale;
@@ -190,6 +239,8 @@
       document.getElementById("section-lead").textContent = SimaLocale.t(I18N, "sectionLead", currentLocale);
       document.getElementById("qr-hint").textContent = SimaLocale.t(I18N, "qrHint", currentLocale);
       document.getElementById("btnClose").textContent = SimaLocale.t(I18N, "close", currentLocale);
+      const headerClose = document.getElementById("btnCloseHeader");
+      if (headerClose) headerClose.textContent = SimaLocale.t(I18N, "close", currentLocale);
 
       const pack = SimaLocale.pickPack(I18N, currentLocale);
       const benefits = pack.benefits || [];

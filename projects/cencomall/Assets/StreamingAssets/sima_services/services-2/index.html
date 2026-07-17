@@ -36,6 +36,15 @@
       border-radius: 18px 18px 0 0;
       padding: 18px 20px;
       box-shadow: 0 8px 22px rgba(40, 0, 113, 0.16);
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: 12px;
+    }
+
+    .cm-header-text {
+      flex: 1;
+      min-width: 0;
     }
 
     .cm-header h1 {
@@ -49,6 +58,20 @@
       font-size: 15px;
       opacity: 0.92;
       line-height: 1.4;
+    }
+
+    .cm-header-close {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 8px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .section-title {
@@ -255,8 +278,11 @@
 <body>
   <div class="app-shell">
     <header class="cm-header">
-      <h1 id="page-title">Servicios</h1>
-      <p id="page-subtitle">Tiendas, promociones, rodados y atención al cliente</p>
+      <button class="cm-header-close" id="btn-close-header" type="button" onclick="closeWebview()">Cerrar</button>
+      <div class="cm-header-text">
+        <h1 id="page-title">Servicios</h1>
+        <p id="page-subtitle">Tiendas, promociones, rodados y atención al cliente</p>
+      </div>
     </header>
 
     <div id="mainUI">
@@ -316,7 +342,7 @@
           Módulo de servicio al cliente en Nivel 1. Te ayudamos con tiendas, rodados y más.
         </p>
         <button class="btn-call" id="btnCall" type="button" hidden disabled aria-hidden="true">Llamar a atención al cliente</button>
-        <button class="btn-close" id="btn-close-main" type="button" onclick="closePanel()">Cerrar</button>
+        <button class="btn-close" id="btn-close-main" type="button" onclick="closeWebview()">Cerrar</button>
       </div>
     </div>
 
@@ -508,6 +534,8 @@
       document.getElementById("success-title").textContent = t("successTitle");
       document.getElementById("success-back").textContent = t("successBack");
       document.getElementById("btn-close-main").textContent = t("close");
+      const headerClose = document.getElementById("btn-close-header");
+      if (headerClose) headerClose.textContent = t("close");
 
       document.querySelectorAll("#btn-wheel, #btn-stroller").forEach((btn) => {
         if (!btn.disabled) btn.textContent = t("reserve");
@@ -708,7 +736,7 @@
 
     SimaLocale.bindPageLocale(applyLocale);
 
-    function closePanel() {
+    function closeWebview() {
       try {
         if (window.SimaBridge && typeof window.SimaBridge.requestClose === "function") {
           window.SimaBridge.requestClose();

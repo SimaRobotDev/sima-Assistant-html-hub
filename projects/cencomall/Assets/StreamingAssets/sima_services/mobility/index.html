@@ -92,6 +92,21 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   order: -1;
 }
 
+.cm-header-close {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  order: -1;
+}
+
 .cm-body {
   margin: 0 14px;
   padding: 14px;
@@ -507,15 +522,21 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .cm-speak-btn {
   width: 100%;
   border: none;
-  border-radius: 16px;
-  padding: 16px 18px;
-  font-size: 17px;
-  font-weight: 800;
+  border-radius: 18px;
+  min-height: 58px;
+  padding: 14px 18px;
+  font-size: 18px;
+  font-weight: 700;
   color: #fff;
   cursor: pointer;
   pointer-events: auto;
-  background: linear-gradient(135deg, var(--cm-purple) 0%, var(--cm-pink) 100%);
-  box-shadow: 0 8px 24px rgba(91, 45, 142, 0.3);
+  /* Misma línea visual que el mic de la app RN (#0f2f78) */
+  background: #0f2f78;
+  box-shadow: 0 8px 20px rgba(15, 47, 120, 0.28);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
 .cm-speak-btn:active { transform: scale(0.98); }
@@ -537,28 +558,29 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .cm-speak-search-btn {
   flex: 1;
   border: none;
-  border-radius: 16px;
-  padding: 16px 18px;
-  font-size: 17px;
-  font-weight: 800;
+  border-radius: 18px;
+  min-height: 58px;
+  padding: 14px 18px;
+  font-size: 18px;
+  font-weight: 700;
   color: #fff;
   cursor: pointer;
-  background: linear-gradient(135deg, var(--cm-purple) 0%, var(--cm-pink) 100%);
-  box-shadow: 0 8px 24px rgba(91, 45, 142, 0.3);
+  background: #0f2f78;
+  box-shadow: 0 8px 20px rgba(15, 47, 120, 0.28);
 }
 
 .cm-speak-mic-btn {
   width: 56px;
   min-width: 56px;
   border: none;
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 0;
-  font-size: 22px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
   cursor: pointer;
-  background: linear-gradient(135deg, var(--cm-purple-dark) 0%, var(--cm-purple) 100%);
-  box-shadow: 0 8px 24px rgba(91, 45, 142, 0.3);
+  background: #0f2f78;
+  box-shadow: 0 8px 20px rgba(15, 47, 120, 0.28);
 }
 
 .cm-speak-search-btn:active,
@@ -1268,6 +1290,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <div class="app-shell" id="app-shell">
   <header class="cm-header">
+    <button class="cm-header-close" id="cm-header-close-btn" type="button" onclick="closeWebview()">Cerrar</button>
     <button class="cm-header-back" id="cm-header-back-btn" type="button" onclick="handleMobilityBack()">← Volver</button>
     <h1 class="cm-header-title">Cenco Costanera</h1>
   </header>
@@ -1318,10 +1341,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 </div>
 
 <div class="cm-speak-fab" id="speakFab">
-  <button class="cm-speak-btn" id="btnSpeak" type="button">Hablar 🎤</button>
+  <button class="cm-speak-btn" id="btnSpeak" type="button">Hablar con Cami</button>
   <div class="cm-speak-fab-actions" id="typingFabActions">
     <button class="cm-speak-search-btn" id="btnSpeakSearch" type="button">Buscar</button>
-    <button class="cm-speak-mic-btn" id="btnSpeakMini" type="button" aria-label="Hablar" title="Hablar">🎤</button>
+    <button class="cm-speak-mic-btn" id="btnSpeakMini" type="button" aria-label="Hablar" title="Hablar">Mic</button>
   </div>
   <div class="cm-speak-version" aria-hidden="true">OTA 22/06</div>
 </div>
@@ -1329,6 +1352,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 <div id="map-view" class="map-view hidden">
   <div class="map-view-header">
     <button class="btn-back" id="map-back-btn" onclick="closeMapView()">← Volver</button>
+    <button class="btn-back" id="map-close-btn" type="button" onclick="closeWebview()">Cerrar</button>
     <div class="map-view-title" id="map-view-title"><span class="map-view-title-text" id="map-view-title-text">Mapa</span></div>
     <div class="map-view-actions">
       <button class="btn-map-route hidden" id="map-route-btn" type="button">Ver ruta</button>
@@ -1377,13 +1401,15 @@ const MOBILITY_I18N = {
     allDiscountsToday: "Descuentos vigentes hoy",
     viewMap: "Ver perfil",
     back: "← Volver",
+    close: "Cerrar",
     map: "Mapa",
     mapStoreLocation: "Ubicación de la tienda",
     mapServiceLocation: "Ubicación del servicio",
     mapComingSoon: "Mapa próximamente",
     mapLoading: "Cargando mapa…",
     mapError: "No se pudo cargar el mapa",
-    speakWithCami: "Hablar 🎤",
+    speakWithCami: "Hablar con {name}",
+    speakMicShort: "Mic",
     redeemInApp: "Canjear en la app",
     noResults: "Sin resultados",
     storesNotFound: "No encontramos tiendas para",
@@ -1456,13 +1482,15 @@ const MOBILITY_I18N = {
     allDiscountsToday: "Today's discounts",
     viewMap: "View profile",
     back: "← Back",
+    close: "Close",
     map: "Map",
     mapStoreLocation: "Store location",
     mapServiceLocation: "Service location",
     mapComingSoon: "Map coming soon",
     mapLoading: "Loading map…",
     mapError: "Could not load map",
-    speakWithCami: "Talk 🎤",
+    speakWithCami: "Talk with {name}",
+    speakMicShort: "Mic",
     redeemInApp: "Redeem in app",
     noResults: "No results",
     storesNotFound: "We couldn't find stores for",
@@ -1535,13 +1563,15 @@ const MOBILITY_I18N = {
     allDiscountsToday: "Descontos de hoje",
     viewMap: "Ver perfil",
     back: "← Voltar",
+    close: "Fechar",
     map: "Mapa",
     mapStoreLocation: "Localização da loja",
     mapServiceLocation: "Localização do serviço",
     mapComingSoon: "Mapa em breve",
     mapLoading: "Carregando mapa…",
     mapError: "Não foi possível carregar o mapa",
-    speakWithCami: "Falar 🎤",
+    speakWithCami: "Falar com {name}",
+    speakMicShort: "Mic",
     redeemInApp: "Resgatar no app",
     noResults: "Sem resultados",
     storesNotFound: "Não encontramos lojas para",
@@ -1617,6 +1647,39 @@ let mobilityLocale = getMobilityLocale();
 function t(key) {
   return SimaLocale.t(MOBILITY_I18N, key, mobilityLocale);
 }
+
+function getCharacterDisplayName() {
+  const fromGlobalName = String(window.MALL_CHARACTER_NAME || "").trim();
+  if (fromGlobalName) return fromGlobalName;
+  const fromObj = window.MALL_CHARACTER;
+  if (fromObj && typeof fromObj === "object") {
+    const name = String(fromObj.displayName || fromObj.name || "").trim();
+    if (name) return name;
+  }
+  return "Cami";
+}
+
+function speakButtonLabel() {
+  return formatSpeakTemplate(t("speakWithCami"), { name: getCharacterDisplayName() });
+}
+
+function applyCharacterLabel() {
+  const label = speakButtonLabel();
+  const speakBtn = document.getElementById("btnSpeak");
+  if (speakBtn) speakBtn.textContent = label;
+
+  const speakMini = document.getElementById("btnSpeakMini");
+  if (speakMini) {
+    speakMini.textContent = t("speakMicShort");
+    speakMini.setAttribute("aria-label", label);
+    speakMini.title = label;
+  }
+
+  const speakSearch = document.getElementById("btnSpeakSearch");
+  if (speakSearch) speakSearch.setAttribute("aria-label", label);
+}
+
+window.applyCharacterLabel = applyCharacterLabel;
 
 function localizeCategoryName(name) {
   if (typeof MarketI18n !== "undefined" && MarketI18n.translateCategory) {
@@ -1763,8 +1826,9 @@ function applyStoreSearchLandingLocale() {
 
   const fabMini = document.getElementById("btnSpeakMini");
   if (fabMini) {
-    fabMini.title = t("speakWithCami");
-    fabMini.setAttribute("aria-label", t("speakWithCami"));
+    fabMini.textContent = t("speakMicShort");
+    fabMini.title = speakButtonLabel();
+    fabMini.setAttribute("aria-label", speakButtonLabel());
   }
 
   const categoriesBtn = document.getElementById("storeCategoriesBtn");
@@ -2163,13 +2227,17 @@ function applyMobilityLocale() {
   }
 
   const speakBtn = document.getElementById("btnSpeak");
-  if (speakBtn) speakBtn.textContent = t("speakWithCami");
+  if (speakBtn) speakBtn.textContent = speakButtonLabel();
 
   const speakMini = document.getElementById("btnSpeakMini");
-  if (speakMini) speakMini.setAttribute("aria-label", t("speakWithCami"));
+  if (speakMini) {
+    speakMini.textContent = t("speakMicShort");
+    speakMini.setAttribute("aria-label", speakButtonLabel());
+    speakMini.title = speakButtonLabel();
+  }
 
   const speakSearch = document.getElementById("btnSpeakSearch");
-  if (speakSearch) speakSearch.setAttribute("aria-label", t("speakWithCami"));
+  if (speakSearch) speakSearch.setAttribute("aria-label", speakButtonLabel());
 
   const surveyTitle = document.getElementById("survey-title");
   if (surveyTitle) surveyTitle.textContent = t("surveyTitle");
@@ -2186,8 +2254,14 @@ function applyMobilityLocale() {
   const mapBack = document.getElementById("map-back-btn");
   if (mapBack) mapBack.textContent = t("back");
 
+  const mapClose = document.getElementById("map-close-btn");
+  if (mapClose) mapClose.textContent = t("close");
+
   const headerBack = document.getElementById("cm-header-back-btn");
   if (headerBack) headerBack.textContent = t("back");
+
+  const headerClose = document.getElementById("cm-header-close-btn");
+  if (headerClose) headerClose.textContent = t("close");
 
   const mapTitle = document.getElementById("map-view-title-text");
   if (mapTitle) mapTitle.textContent = t("map");
@@ -2266,6 +2340,31 @@ function isShowingStoreSearchLanding() {
   return !!landing && landing.classList.contains("visible");
 }
 
+function closeWebview() {
+  try {
+    if (window.SimaBridge && typeof window.SimaBridge.requestClose === "function") {
+      window.SimaBridge.requestClose();
+      return;
+    }
+  } catch (e) {}
+  try {
+    if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === "function") {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: "close_webview",
+        payload: {},
+      }));
+      return;
+    }
+  } catch (e2) {}
+  try {
+    if (window.SimaBridge && typeof window.SimaBridge.send === "function") {
+      window.SimaBridge.send("close_webview", {});
+    }
+  } catch (e3) {}
+}
+
+window.closeWebview = closeWebview;
+
 function handleMobilityBack() {
   const mapView = document.getElementById("map-view");
   if (mapView && !mapView.classList.contains("hidden")) {
@@ -2273,7 +2372,7 @@ function handleMobilityBack() {
     return;
   }
   if (isShowingStoreSearchLanding()) {
-    SimaBridge.requestClose();
+    closeWebview();
     return;
   }
   returnToStoreSearchLanding();
@@ -2545,6 +2644,29 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 window.handleUnityData = function(raw) {
+  let data = raw;
+  if (typeof data === "string") {
+    try { data = JSON.parse(data); } catch (e) { /* keep string for voice search */ }
+  }
+  if (data && typeof data === "object") {
+    if (data.characterName || data.displayName || data.character) {
+      const name = String(
+        data.characterName
+        || data.displayName
+        || (data.character && (data.character.displayName || data.character.name))
+        || ""
+      ).trim();
+      if (name) {
+        window.MALL_CHARACTER_NAME = name;
+        window.MALL_CHARACTER = Object.assign({}, window.MALL_CHARACTER || {}, {
+          displayName: name,
+          id: (data.character && data.character.id) || data.characterId || undefined,
+          floor: (data.character && data.character.floor) || data.floor || undefined,
+        });
+        applyCharacterLabel();
+      }
+    }
+  }
   buscarDesdeVoz(raw);
 };
 

@@ -47,12 +47,31 @@
       border-radius: 18px;
       padding: 18px 20px;
       box-shadow: 0 8px 24px rgba(142, 0, 0, 0.22);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 12px;
     }
 
     .em-header h1 {
       margin: 0;
       font-size: 24px;
       font-weight: 800;
+      flex: 1;
+    }
+
+    .em-header-close {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 8px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .alert-banner {
@@ -109,7 +128,19 @@
     .connecting.active {
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: flex-start;
+    }
+
+    .connecting .pulse-ring,
+    .connecting h2,
+    .connecting p {
+      align-self: center;
+      text-align: center;
+    }
+
+    .connecting .btn-back,
+    .connecting .btn-close {
+      align-self: flex-start;
     }
 
     .pulse-ring {
@@ -166,6 +197,7 @@
   <div class="app-shell">
     <div id="mainUI">
       <header class="em-header">
+        <button class="em-header-close" id="btnCloseHeader" type="button" onclick="closeWebview()">Cerrar</button>
         <h1 id="title">Emergencia</h1>
       </header>
 
@@ -176,7 +208,7 @@
 
       <div class="options" id="optionsList"></div>
 
-      <button class="btn-close" id="btnCloseMain" type="button" onclick="SimaBridge.requestClose()">Cerrar</button>
+      <button class="btn-close" id="btnCloseMain" type="button" onclick="closeWebview()">Cerrar</button>
     </div>
 
     <div class="connecting" id="connectingUI">
@@ -184,6 +216,7 @@
       <h2 id="connectingTitle">Comunicándote con seguridad</h2>
       <p id="connectingBody">Estamos conectándote con la seguridad del piso. Mantén la calma.</p>
       <button class="btn-back" id="btnBackConnecting" type="button" onclick="backToOptions()">← Volver</button>
+      <button class="btn-close" id="btnCloseConnecting" type="button" onclick="closeWebview()">Cerrar</button>
     </div>
   </div>
 
@@ -247,6 +280,8 @@
       document.getElementById("alertTitle").textContent = SimaLocale.t(I18N, "alertTitle", locale);
       document.getElementById("alertBody").textContent = SimaLocale.t(I18N, "alertBody", locale);
       document.getElementById("btnCloseMain").textContent = SimaLocale.t(I18N, "close", locale);
+      document.getElementById("btnCloseHeader").textContent = SimaLocale.t(I18N, "close", locale);
+      document.getElementById("btnCloseConnecting").textContent = SimaLocale.t(I18N, "close", locale);
       document.getElementById("btnBackConnecting").textContent = SimaLocale.t(I18N, "back", locale);
       document.getElementById("connectingTitle").textContent = SimaLocale.t(I18N, "connectingTitle", locale);
       document.getElementById("connectingBody").textContent = connectingBody();
@@ -262,6 +297,29 @@
         btn.onclick = () => selectOption(opt.id, label);
         list.appendChild(btn);
       });
+    }
+
+    function closeWebview() {
+      try {
+        if (window.SimaBridge && typeof window.SimaBridge.requestClose === "function") {
+          window.SimaBridge.requestClose();
+          return;
+        }
+      } catch (e) {}
+      try {
+        if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === "function") {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: "close_webview",
+            payload: {},
+          }));
+          return;
+        }
+      } catch (e2) {}
+      try {
+        if (window.SimaBridge && typeof window.SimaBridge.send === "function") {
+          window.SimaBridge.send("close_webview", {});
+        }
+      } catch (e3) {}
     }
 
     function backToOptions() {

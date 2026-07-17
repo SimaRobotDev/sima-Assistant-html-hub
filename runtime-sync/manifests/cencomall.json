@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.17-23",
+  "version": "2026.07.17-25",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-17T18:50:58.928Z",
+  "generatedAt": "2026-07-17T19:02:57.940Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -90,8 +90,8 @@
     },
     {
       "path": "emergency/index.html",
-      "size": 9358,
-      "sha256": "1f33f122895f17d17126ad6eb3bd9c9c4e5407f5d356e722921da3e67c40e8d1"
+      "size": 11230,
+      "sha256": "47feed3c6b149b3eafe00bd3eb43811220d79dec988c7bf8f13ef4ee9cf2a93e"
     },
     {
       "path": "FIX-BUSQUEDA-CATALOGO.md",
@@ -140,8 +140,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 135604,
-      "sha256": "763b21b4d677c03eb1020c5fd5efe253109bfed4a1fd466431aacd0625aa590e"
+      "size": 139249,
+      "sha256": "0516f4f518c93589406863af66f9f61f94cef89fbe25b6b4b11d4455df7e1f38"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -150,8 +150,8 @@
     },
     {
       "path": "ontour/index.html",
-      "size": 8307,
-      "sha256": "ddd87b3e1ad6293963b50851c0be2a96369f4a7d2c2f9cc5f15b504f1abe6710"
+      "size": 9848,
+      "sha256": "ceeda93802512f57f372538fd2cedfb095a5c0f4a67361a475e693db0e21a48c"
     },
     {
       "path": "promociones-preview.html",
@@ -160,13 +160,13 @@
     },
     {
       "path": "services-2/index.html",
-      "size": 26617,
-      "sha256": "a08676c534606937d9304125053c7aca26f8e1bf9c446edd790880b56beac030"
+      "size": 27428,
+      "sha256": "ff90457010abb9453b8fd011f148d5f7bb7cf2b9494fd4c4bcab3405e33423fd"
     },
     {
       "path": "servicios/index.html",
-      "size": 23489,
-      "sha256": "f1d704f4c25f5bdc34380121c8964d471a7d549c2978f8dc82673e2304fa4ec3"
+      "size": 24300,
+      "sha256": "eba422547949cd1c5b3cc23c21bcd447177c9221cad7b47387406b511d7d9d81"
     },
     {
       "path": "shared/app.css",
