@@ -30,6 +30,18 @@
       }
       .text { font-size: 20px; line-height: 1.4; color: #2e1a57; max-width: 650px; }
       .highlight { font-weight: 700; }
+      .btn-close {
+        appearance: none;
+        border: 1px solid rgba(46, 26, 87, 0.25);
+        border-radius: 999px;
+        background: #fff;
+        color: #2e1a57;
+        font-size: 15px;
+        font-weight: 700;
+        padding: 12px 22px;
+        margin-top: 24px;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -37,21 +49,25 @@
       <div>
         <div class="icon-wrap"><div class="icon">✱</div></div>
         <div class="text" id="message"></div>
+        <button class="btn-close" id="btnClose" type="button" onclick="SimaBridge.requestClose()">Cerrar</button>
       </div>
     </div>
     <script>
       const I18N = {
         es: {
           message: 'El equipo de Asistencia del local ya está en camino a esta ubicación. Te recomendamos hacer una videollamada en <span class="highlight">Asistente Sima</span> y mantener la calma.',
-          speak: "El equipo ya está en camino. Te recomendamos mantener la calma."
+          speak: "El equipo ya está en camino. Te recomendamos mantener la calma.",
+          close: "Cerrar"
         },
         en: {
           message: 'The on-site assistance team is on the way. We recommend a video call with <span class="highlight">Sima Assistant</span> and staying calm.',
-          speak: "The team is on the way. Please stay calm."
+          speak: "The team is on the way. Please stay calm.",
+          close: "Close"
         },
         pt: {
           message: 'A equipe de assistência do local já está a caminho deste ponto. Recomendamos uma videochamada com o <span class="highlight">Assistente Sima</span> e manter a calma.',
-          speak: "A equipe já está a caminho. Recomendamos manter a calma."
+          speak: "A equipe já está a caminho. Recomendamos manter a calma.",
+          close: "Fechar"
         }
       };
 
@@ -59,6 +75,7 @@
         const locale = SimaLocale.readLocaleFromPage();
         document.documentElement.lang = locale;
         document.getElementById("message").innerHTML = SimaLocale.t(I18N, "message", locale);
+        document.getElementById("btnClose").textContent = SimaLocale.t(I18N, "close", locale);
       }
 
       window.handleUnityData = function(data) {

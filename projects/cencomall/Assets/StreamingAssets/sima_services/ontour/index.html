@@ -136,6 +136,8 @@
         <p class="qr-caption" id="qr-hint"></p>
         <div id="qr-container" class="qr-container"></div>
       </div>
+
+      <button class="btn-secondary" id="btnClose" type="button" onclick="SimaBridge.requestClose()">Cerrar</button>
     </div>
   </div>
 
@@ -185,6 +187,7 @@
       document.getElementById("section-title").textContent = SimaLocale.t(I18N, "sectionTitle", currentLocale);
       document.getElementById("section-lead").textContent = SimaLocale.t(I18N, "sectionLead", currentLocale);
       document.getElementById("qr-hint").textContent = SimaLocale.t(I18N, "qrHint", currentLocale);
+      document.getElementById("btnClose").textContent = SimaLocale.t(I18N, "close", currentLocale);
 
       const pack = SimaLocale.pickPack(I18N, currentLocale);
       const benefits = pack.benefits || [];

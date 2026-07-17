@@ -60,12 +60,30 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   border-radius: 18px 18px 0 0;
   padding: 14px 18px 16px;
   box-shadow: var(--cm-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .cm-header-title {
   margin: 0;
   font-size: 22px;
   font-weight: 800;
+}
+
+.cm-header-back {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .cm-body {
@@ -1242,6 +1260,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 <div class="app-shell" id="app-shell">
   <header class="cm-header">
     <h1 class="cm-header-title">Cenco Costanera</h1>
+    <button class="cm-header-back" id="cm-header-back-btn" type="button" onclick="handleMobilityBack()">← Volver</button>
   </header>
 
   <section id="survey-strip" class="cm-survey-strip hidden" aria-label="Evaluación de atención">
@@ -2158,6 +2177,9 @@ function applyMobilityLocale() {
   const mapBack = document.getElementById("map-back-btn");
   if (mapBack) mapBack.textContent = t("back");
 
+  const headerBack = document.getElementById("cm-header-back-btn");
+  if (headerBack) headerBack.textContent = t("back");
+
   const mapTitle = document.getElementById("map-view-title-text");
   if (mapTitle) mapTitle.textContent = t("map");
 
@@ -2229,6 +2251,26 @@ function retryStoreSearch(query) {
 
 window.returnToStoreSearchLanding = returnToStoreSearchLanding;
 window.retryStoreSearch = retryStoreSearch;
+
+function isShowingStoreSearchLanding() {
+  const landing = document.getElementById("store-search-landing");
+  return !!landing && landing.classList.contains("visible");
+}
+
+function handleMobilityBack() {
+  const mapView = document.getElementById("map-view");
+  if (mapView && !mapView.classList.contains("hidden")) {
+    closeMapView();
+    return;
+  }
+  if (isShowingStoreSearchLanding()) {
+    SimaBridge.requestClose();
+    return;
+  }
+  returnToStoreSearchLanding();
+}
+
+window.handleMobilityBack = handleMobilityBack;
 
 async function openStoreCategories() {
   if (!shouldUseLocalMarketCatalog()) return;
