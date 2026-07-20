@@ -84,18 +84,24 @@ const queries = [
   { q: "casa ideas", min: 1, expectBrand: "casaidea" },
   { q: "jumbo", min: 1, expectBrand: "jumbo" },
   { q: "zapatillas", min: 3 },
+  { q: "zapatos deportivos", min: 3, rejectBrand: /econ[oó]pticas|gmo|ray ban|sunglass|all nutrition|winkler|place vendome/i },
   { q: "zara", min: 1, expectBrand: "zara" },
 ];
 
 let failed = 0;
-for (const { q, min, expectBrand } of queries) {
+for (const { q, min, expectBrand, rejectBrand } of queries) {
   const r = MS.search(q, { limit: 30 });
   const names = r.results.map((x) => MS.normalizeText(x.brand || x.name));
-  const ok = r.results.length >= min && (!expectBrand || names.some((n) => n.includes(expectBrand)));
+  const hasBrand = !expectBrand || names.some((n) => n.includes(expectBrand));
+  const rejected = rejectBrand
+    ? r.results.filter((x) => rejectBrand.test(String(x.brand || x.name || "")))
+    : [];
+  const ok = r.results.length >= min && hasBrand && rejected.length === 0;
   console.log(
     (ok ? "PASS" : "FAIL") +
       `  "${q}" → ${r.results.length} results` +
-      (r.results[0] ? ` (top: ${r.results[0].brand || r.results[0].name})` : "")
+      (r.results[0] ? ` (top: ${r.results[0].brand || r.results[0].name})` : "") +
+      (rejected.length ? ` leaked=${rejected.map((x) => x.brand).join(",")}` : "")
   );
   if (!ok) failed++;
 }

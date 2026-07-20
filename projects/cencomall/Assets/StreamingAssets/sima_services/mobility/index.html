@@ -536,6 +536,22 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 .cm-speak-btn:active { transform: scale(0.98); }
 
+.cm-speak-btn.is-listening,
+.cm-speak-mic-btn.is-listening {
+  opacity: 0.92;
+  animation: cm-speak-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes cm-speak-pulse {
+  0%, 100% { box-shadow: 0 8px 24px rgba(91, 45, 142, 0.3); }
+  50% { box-shadow: 0 8px 28px rgba(228, 0, 124, 0.45); }
+}
+
+.cm-speak-fab.is-listening .cm-speak-version::after {
+  content: " · mic";
+  font-weight: 700;
+}
+
 .cm-speak-fab-actions {
   display: none;
   gap: 8px;
@@ -1374,7 +1390,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA route-speed v1";
+const MOBILITY_UI_VERSION = "OTA bathrooms+search+hablar 2026.07.20-2";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -1408,6 +1424,10 @@ const MOBILITY_I18N = {
     mapError: "No se pudo cargar el mapa",
     speakWithCami: "Hablar con {name}",
     speakMicShort: "Mic",
+    voiceListening: "Escuchando…",
+    voiceUnavailable: "El micrófono no está disponible aquí. Escribe tu búsqueda o pruébalo en el tótem.",
+    voiceError: "No se pudo iniciar el reconocimiento de voz.",
+    voiceNoSpeech: "No se detectó voz. Intenta de nuevo.",
     redeemInApp: "Canjear en la app",
     noResults: "Sin resultados",
     storesNotFound: "No encontramos tiendas para",
@@ -1451,7 +1471,7 @@ const MOBILITY_I18N = {
     restaurantsFoundMany: "Encontré {count} restaurantes para {query}.",
     storeSearchTitle: "Buscar tiendas",
     storeSearchHint: "Di el nombre de una tienda o escríbelo abajo.",
-    storeSearchPlaceholder: "Ej: Nike, Zara…",
+    storeSearchPlaceholder: "Ej: Nike, Zara, baños…",
     storeSearchBtn: "Buscar",
     storeSearchVoiceHint: "También puedes usar el botón de voz abajo.",
     categories: "Categorías",
@@ -1496,6 +1516,10 @@ const MOBILITY_I18N = {
     mapError: "Could not load map",
     speakWithCami: "Talk with {name}",
     speakMicShort: "Mic",
+    voiceListening: "Listening…",
+    voiceUnavailable: "The microphone is not available here. Type your search or try it on the totem.",
+    voiceError: "Could not start voice recognition.",
+    voiceNoSpeech: "No speech detected. Try again.",
     redeemInApp: "Redeem in app",
     noResults: "No results",
     storesNotFound: "We couldn't find stores for",
@@ -1539,7 +1563,7 @@ const MOBILITY_I18N = {
     restaurantsFoundMany: "I found {count} restaurants for {query}.",
     storeSearchTitle: "Search stores",
     storeSearchHint: "Say a store name or type it below.",
-    storeSearchPlaceholder: "E.g. Nike, Zara…",
+    storeSearchPlaceholder: "E.g. Nike, Zara, restrooms…",
     storeSearchBtn: "Search",
     storeSearchVoiceHint: "You can also use the voice button below.",
     categories: "Categories",
@@ -1584,6 +1608,10 @@ const MOBILITY_I18N = {
     mapError: "Não foi possível carregar o mapa",
     speakWithCami: "Falar com {name}",
     speakMicShort: "Mic",
+    voiceListening: "Ouvindo…",
+    voiceUnavailable: "O microfone não está disponível aqui. Digite sua busca ou teste no totem.",
+    voiceError: "Não foi possível iniciar o reconhecimento de voz.",
+    voiceNoSpeech: "Nenhuma voz detectada. Tente novamente.",
     redeemInApp: "Resgatar no app",
     noResults: "Sem resultados",
     storesNotFound: "Não encontramos lojas para",
@@ -1627,7 +1655,7 @@ const MOBILITY_I18N = {
     restaurantsFoundMany: "Encontrei {count} restaurantes para {query}.",
     storeSearchTitle: "Buscar lojas",
     storeSearchHint: "Diga o nome de uma loja ou digite abaixo.",
-    storeSearchPlaceholder: "Ex: Nike, Zara…",
+    storeSearchPlaceholder: "Ex: Nike, Zara, banheiros…",
     storeSearchBtn: "Buscar",
     storeSearchVoiceHint: "Você também pode usar o botão de voz abaixo.",
     categories: "Categorias",
@@ -1732,7 +1760,69 @@ function getMobilityMode() {
 }
 
 function isLocalHtmlMode() {
-  return window.location.protocol === "file:";
+  // file:// (totem / offline) OR browser preview on localhost.
+  // Without this, http://127.0.0.1 hides the search landing unless ?mode=store_search.
+  if (window.location.protocol === "file:") return true;
+  try {
+    const host = String(window.location.hostname || "").toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+  } catch (e) {
+    return false;
+  }
+}
+
+function normalizeTotemFloorValue(value) {
+  if (typeof ServicesCatalog !== "undefined" && ServicesCatalog.normalizeFloorKey) {
+    return ServicesCatalog.normalizeFloorKey(value);
+  }
+  const raw = String(value == null ? "" : value).trim();
+  if (!raw) return "";
+  const n = raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (n === "pb" || n.indexOf("planta baja") >= 0 || n === "0") return "PB";
+  const m = n.match(/(?:nivel|piso|floor|level|n)\s*(\d+)/) || n.match(/^(\d+)$/);
+  return m ? m[1] : raw.toUpperCase();
+}
+
+/** Floor where this totem / avatar stands — used to rank nearby bathrooms. */
+function getTotemFloorContext() {
+  const cfg = window.MAPVX_CONFIG || {};
+  const character = window.MALL_CHARACTER || {};
+  const params = new URLSearchParams(window.location.search);
+  const candidates = [
+    cfg.totemFloor,
+    cfg.originFloor,
+    cfg.floor,
+    window.MALL_TOTEM_FLOOR,
+    window.MALL_FLOOR,
+    window.MALL_CHARACTER_FLOOR,
+    character.floor,
+    character.Floor,
+    params.get("totemFloor"),
+    params.get("floor"),
+  ];
+  for (let i = 0; i < candidates.length; i++) {
+    const normalized = normalizeTotemFloorValue(candidates[i]);
+    if (normalized) return normalized;
+  }
+  return "";
+}
+
+function rememberTotemFloor(rawFloor) {
+  const floor = normalizeTotemFloorValue(rawFloor);
+  if (!floor) return "";
+  window.MALL_TOTEM_FLOOR = floor;
+  if (!window.MAPVX_CONFIG) window.MAPVX_CONFIG = {};
+  if (!window.MAPVX_CONFIG.totemFloor) window.MAPVX_CONFIG.totemFloor = floor;
+  window.MALL_CHARACTER = Object.assign({}, window.MALL_CHARACTER || {}, { floor: floor });
+  return floor;
+}
+
+function shouldShowStoreSearchLanding() {
+  if (getMobilityMode() === "store_search") return true;
+  if (isLocalHtmlMode()) return true;
+  // Bare browser open without mode (app normally injects mode=store_search).
+  if (!getMobilityMode() && !(window.ReactNativeWebView)) return true;
+  return false;
 }
 
 function getInitialSearchQuery() {
@@ -2239,14 +2329,19 @@ function runServicesCatalogSearch(query, options) {
 
   ensureStoreSearchReady();
 
+  const totemFloor = getTotemFloorContext();
   ServicesCatalog.loadCatalog()
     .then(function () {
-      const searchOpts = serviceId ? Object.assign({}, options, { serviceId: serviceId }) : options;
+      const searchOpts = Object.assign({}, options, {
+        serviceId: serviceId || options.serviceId,
+        preferFloor: options.preferFloor || options.totemFloor || totemFloor || undefined,
+      });
       const results = ServicesCatalog.search(q || serviceId, searchOpts);
       const displayQuery = q || (results[0] && results[0].name) || serviceId;
       SimaBridge.log(
         "services_catalog_search q=" + displayQuery +
         " results=" + results.length +
+        " totemFloor=" + (totemFloor || "-") +
         " source=" + (options.source || "local")
       );
       renderServicesResults({
@@ -2255,6 +2350,7 @@ function runServicesCatalogSearch(query, options) {
         results: results,
         source: options.source || "local-catalog",
         mall: "costanera",
+        totemFloor: totemFloor || "",
       });
       if (results.length === 1 && results[0].description) {
         SimaBridge.speak(results[0].description);
@@ -2352,8 +2448,7 @@ function routeUnifiedSearch(query, options) {
 }
 
 function initStoreSearchLanding() {
-  const allowLocalSearch = isLocalHtmlMode();
-  if (getMobilityMode() !== "store_search" && !allowLocalSearch) return;
+  if (!shouldShowStoreSearchLanding()) return;
 
   applyStoreSearchLandingLocale();
   wireStoreSearchLandingEvents();
@@ -2378,7 +2473,7 @@ function applyMobilityLocale() {
   applyStoreSearchLandingLocale();
   const hasResults = !!(lastMarketPayload && Array.isArray(lastMarketPayload.results) && lastMarketPayload.results.length);
   const landingVisible = document.getElementById("store-search-landing");
-  if ((getMobilityMode() === "store_search" || isLocalHtmlMode()) && !hasResults && landingVisible) {
+  if (shouldShowStoreSearchLanding() && !hasResults && landingVisible) {
     showStoreSearchLanding(true);
   }
 
@@ -2747,10 +2842,15 @@ window.pushVoiceSearchFromUnity = function(data) {
 
 if (typeof SimaBridge === "undefined") {
   window.SimaBridge = {
-    send: (t, p) => console.log("[DEV]", t, p),
+    send: (t, p) => { console.log("[DEV]", t, p); return false; },
     speak: (t) => console.log("[DEV TTS]", t),
+    log: (t) => console.log("[DEV LOG]", t),
     requestClose: () => console.log("[DEV] close"),
-    ready: () => {}
+    ready: () => {},
+    start_stt: (p) => { console.log("[DEV STT]", p); return false; },
+    isReactNativeHost: () => false,
+    canReachNativeHost: () => false,
+    getLastSendChannel: () => "none",
   };
 }
 
@@ -2765,6 +2865,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "mobility DOM ready " + MOBILITY_UI_VERSION +
     " locale=" + mobilityLocale +
     " marketSearch=" + getMarketSearchMode() +
+    " totemFloor=" + (getTotemFloorContext() || "-") +
+    " totemPlaceId=" + ((window.MAPVX_CONFIG && window.MAPVX_CONFIG.totemPlaceId) ? "yes" : "no") +
     " host=" + (SimaBridge.isReactNativeHost && SimaBridge.isReactNativeHost() ? "react-native" : "legacy")
   );
   logMapVxConfig("DOMContentLoaded");
@@ -2814,11 +2916,24 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 window.handleUnityData = function(raw) {
+  if (handleVoiceNativeMessage(raw)) return;
   let data = raw;
   if (typeof data === "string") {
     try { data = JSON.parse(data); } catch (e) { /* keep string for voice search */ }
   }
   if (data && typeof data === "object") {
+    const floorHint = data.totemFloor
+      || data.originFloor
+      || data.floor
+      || (data.character && data.character.floor)
+      || (data.payload && (data.payload.totemFloor || data.payload.floor));
+    if (floorHint) rememberTotemFloor(floorHint);
+
+    if (data.totemPlaceId || data.originPlaceId) {
+      if (!window.MAPVX_CONFIG) window.MAPVX_CONFIG = {};
+      window.MAPVX_CONFIG.totemPlaceId = String(data.totemPlaceId || data.originPlaceId).trim();
+    }
+
     if (data.characterName || data.displayName || data.character) {
       const name = String(
         data.characterName
@@ -2831,7 +2946,7 @@ window.handleUnityData = function(raw) {
         window.MALL_CHARACTER = Object.assign({}, window.MALL_CHARACTER || {}, {
           displayName: name,
           id: (data.character && data.character.id) || data.characterId || undefined,
-          floor: (data.character && data.character.floor) || data.floor || undefined,
+          floor: (data.character && data.character.floor) || data.floor || getTotemFloorContext() || undefined,
         });
         applyCharacterLabel();
       }
@@ -2839,6 +2954,158 @@ window.handleUnityData = function(raw) {
   }
   buscarDesdeVoz(raw);
 };
+
+let voiceListeningActive = false;
+let voiceListenTimeoutId = null;
+let browserSpeechRecognition = null;
+
+function clearVoiceListenTimeout() {
+  if (voiceListenTimeoutId != null) {
+    window.clearTimeout(voiceListenTimeoutId);
+    voiceListenTimeoutId = null;
+  }
+}
+
+function setVoiceListeningState(active, labelKey) {
+  voiceListeningActive = !!active;
+  const fab = document.getElementById("speakFab");
+  const speakBtn = document.getElementById("btnSpeak");
+  const speakMini = document.getElementById("btnSpeakMini");
+  const label = labelKey ? t(labelKey) : speakButtonLabel();
+
+  if (fab) fab.classList.toggle("is-listening", voiceListeningActive);
+  if (speakBtn) {
+    speakBtn.classList.toggle("is-listening", voiceListeningActive);
+    speakBtn.textContent = voiceListeningActive ? label : speakButtonLabel();
+    speakBtn.disabled = false;
+  }
+  if (speakMini) {
+    speakMini.classList.toggle("is-listening", voiceListeningActive);
+    speakMini.disabled = false;
+  }
+
+  if (!voiceListeningActive) clearVoiceListenTimeout();
+}
+
+function scheduleVoiceListenTimeout(ms) {
+  clearVoiceListenTimeout();
+  voiceListenTimeoutId = window.setTimeout(function () {
+    if (!voiceListeningActive) return;
+    setVoiceListeningState(false);
+    SimaBridge.log("voice_listen_timeout");
+  }, ms || 45000);
+}
+
+function getSpeechRecognitionLocale() {
+  const locale = String(mobilityLocale || "es").toLowerCase();
+  if (locale === "en") return "en-US";
+  if (locale === "pt") return "pt-BR";
+  return "es-CL";
+}
+
+function stopBrowserSpeechRecognition() {
+  if (!browserSpeechRecognition) return;
+  try { browserSpeechRecognition.abort(); } catch (e) { /* noop */ }
+  browserSpeechRecognition = null;
+}
+
+function tryBrowserSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return false;
+
+  stopBrowserSpeechRecognition();
+  const recognition = new SpeechRecognition();
+  browserSpeechRecognition = recognition;
+  recognition.lang = getSpeechRecognitionLocale();
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.continuous = false;
+
+  recognition.onstart = function () {
+    setVoiceListeningState(true, "voiceListening");
+    SimaBridge.log("browser_stt_started locale=" + recognition.lang);
+  };
+
+  recognition.onresult = function (event) {
+    const transcript = String(
+      event.results
+      && event.results[0]
+      && event.results[0][0]
+      && event.results[0][0].transcript
+      || ""
+    ).trim();
+    setVoiceListeningState(false);
+    browserSpeechRecognition = null;
+    if (!transcript) {
+      showSearchError(t("voiceNoSpeech"));
+      return;
+    }
+    SimaBridge.log("browser_stt_result q=" + transcript);
+    buscarDesdeVoz({
+      type: "market_search",
+      query: transcript,
+      text: transcript,
+      source: "browser-stt",
+      locale: mobilityLocale,
+    });
+  };
+
+  recognition.onerror = function (event) {
+    setVoiceListeningState(false);
+    browserSpeechRecognition = null;
+    const code = String(event && event.error || "");
+    SimaBridge.log("browser_stt_error code=" + code);
+    if (code === "no-speech" || code === "aborted") {
+      if (code === "no-speech") showSearchError(t("voiceNoSpeech"));
+      return;
+    }
+    showSearchError(t("voiceError"));
+  };
+
+  recognition.onend = function () {
+    browserSpeechRecognition = null;
+    if (voiceListeningActive) setVoiceListeningState(false);
+  };
+
+  try {
+    recognition.start();
+    return true;
+  } catch (error) {
+    browserSpeechRecognition = null;
+    setVoiceListeningState(false);
+    SimaBridge.log("browser_stt_start_failed " + (error && error.message ? error.message : error));
+    return false;
+  }
+}
+
+function handleVoiceNativeMessage(raw) {
+  const data = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.normalize)
+    ? SimaNativePayload.normalize(raw)
+    : raw;
+  if (!data || typeof data !== "object") return false;
+
+  const type = String(data.type || data.command || "").toLowerCase();
+  if (type === "stt_started" || type === "stt_listening" || type === "voice_listening") {
+    setVoiceListeningState(true, "voiceListening");
+    scheduleVoiceListenTimeout();
+    return true;
+  }
+  if (
+    type === "stt_error"
+    || type === "stt_cancel"
+    || type === "stt_cancelled"
+    || type === "stt_timeout"
+    || type === "stt_end"
+    || type === "voice_cancel"
+  ) {
+    setVoiceListeningState(false);
+    if (type === "stt_error") {
+      showSearchError(String(data.message || data.error || t("voiceError")));
+    }
+    return true;
+  }
+  return false;
+}
 
 function getStarLabels() {
   const labels = t("starLabels");
@@ -2931,6 +3198,9 @@ function showSearchError(message) {
 function dispatchVoiceSearch(query, source) {
   const q = String(query || "").trim();
   if (!q) return false;
+
+  setVoiceListeningState(false);
+  stopBrowserSpeechRecognition();
 
   ensureStoreSearchReady();
   showSearchInProgress(q);
@@ -3958,6 +4228,8 @@ function renderServicesResults(payload) {
   const floorHint = payload.floorHint || payload.FloorHint || "";
   hideWelcome();
 
+  if (query) setStoreSearchInputs(query);
+
   SimaBridge.log("services_search results=" + results.length + " query=" + query);
 
   if (payload.message && results.length === 0) {
@@ -3966,6 +4238,7 @@ function renderServicesResults(payload) {
         <div class="cm-empty">
           <div class="cm-empty-title">${escapeHtml(t("services"))}</div>
           <div class="cm-empty-copy">${escapeHtml(payload.message)}</div>
+          ${renderResultsSearchBar(query)}
         </div>
       </div>`;
     return;
@@ -3987,6 +4260,7 @@ function renderServicesResults(payload) {
         </div>
         <p class="cm-results-query">${escapeHtml(t("search"))}: <strong>${escapeHtml(query)}</strong></p>
         ${floorHint ? `<p class="service-floor-hint">${escapeHtml(floorHint)}</p>` : ""}
+        ${renderResultsSearchBar(query)}
       </div>
       <div class="service-list">${cards}</div>
     </div>`;
@@ -4191,6 +4465,8 @@ function applyMapVxDefaultsFromMapPage() {
   }
   if (!cfg.lang && mobilityLocale) cfg.lang = mobilityLocale;
   if (cfg.totemPlaceId == null) cfg.totemPlaceId = "";
+  const totemFloor = getTotemFloorContext();
+  if (totemFloor && !cfg.totemFloor) cfg.totemFloor = totemFloor;
 
   if (!window.MAPVX_ASSETS_BASE) {
     window.MAPVX_ASSETS_BASE = "../shared/mapvx/";
@@ -4765,6 +5041,9 @@ function openServiceMap(idx) {
 
   const normalized = normalizeServiceResult(svc);
   const floor = normalized.floors?.find((f) => f !== "ALL") || normalized.floors?.[0] || "";
+  const canRoute = typeof MapVxBridge !== "undefined"
+    && MapVxBridge.hasRouteOrigin
+    && MapVxBridge.hasRouteOrigin();
 
   openPoiMap({
     poiType: "service",
@@ -4779,7 +5058,8 @@ function openServiceMap(idx) {
     lat: normalized.mapvxLat,
     lng: normalized.mapvxLng,
     preferChangingTable: !!(normalized.features && normalized.features.mudador),
-    mode: "place",
+    // With totemPlaceId + floor context, open directly in route mode.
+    mode: canRoute ? "navigation" : "place",
   });
 }
 
@@ -4805,12 +5085,49 @@ function closeMapView() {
 }
 
 function startVoiceInput() {
-  SimaBridge.send("start_stt", {
+  if (voiceListeningActive) {
+    stopBrowserSpeechRecognition();
+    setVoiceListeningState(false);
+    SimaBridge.send("stop_stt", { screen: "mobility", source: "hablar_button" });
+    return;
+  }
+
+  const payload = {
     screen: "mobility",
     mode: getMobilityMode() || "store_search",
     locale: mobilityLocale,
     host: (SimaBridge.isReactNativeHost && SimaBridge.isReactNativeHost()) ? "react-native" : "legacy",
-  });
+    source: "hablar_button",
+  };
+
+  setVoiceListeningState(true, "voiceListening");
+  SimaBridge.log(
+    "start_stt mode=" + payload.mode +
+    " locale=" + payload.locale +
+    " host=" + payload.host
+  );
+
+  if (typeof SimaBridge.animate === "function") {
+    SimaBridge.animate("listening");
+  }
+
+  const sent = (typeof SimaBridge.start_stt === "function")
+    ? SimaBridge.start_stt(payload)
+    : SimaBridge.send("start_stt", payload);
+
+  if (sent) {
+    scheduleVoiceListenTimeout();
+    return;
+  }
+
+  if (isLocalHtmlMode() && tryBrowserSpeechRecognition()) {
+    scheduleVoiceListenTimeout(30000);
+    return;
+  }
+
+  setVoiceListeningState(false);
+  SimaBridge.log("start_stt_unavailable channel=" + (SimaBridge.getLastSendChannel ? SimaBridge.getLastSendChannel() : "unknown"));
+  showSearchError(t("voiceUnavailable"));
 }
 </script>
 </body>

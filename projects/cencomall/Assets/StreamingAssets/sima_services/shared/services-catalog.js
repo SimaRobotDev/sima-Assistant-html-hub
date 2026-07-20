@@ -116,12 +116,41 @@ window.ServicesCatalog = (function () {
     };
   }
 
-  function scoreEntry(entry, queryNorm, floorFilter, mudadorOnly) {
+  function normalizeFloorKey(value) {
+    var raw = String(value == null ? "" : value).trim();
+    if (!raw) return "";
+    var n = normalizeText(raw);
+    if (!n) return "";
+    if (n === "pb" || n === "planta baja" || n === "ground" || n === "0") return "PB";
+    var m = n.match(/(?:nivel|piso|floor|level|n)\s*(\d+)/);
+    if (m) return m[1];
+    if (/^\d+$/.test(n)) return n;
+    // MapVX-style keys: N2, CC_N3_..., floor-2
+    var mapvx = n.match(/\bn\s*(\d+)\b/) || n.match(/(\d+)/);
+    if (mapvx) return mapvx[1];
+    return raw.toUpperCase();
+  }
+
+  function floorsMatch(entryFloor, targetFloor) {
+    var a = normalizeFloorKey(entryFloor);
+    var b = normalizeFloorKey(targetFloor);
+    if (!a || !b) return false;
+    return a === b;
+  }
+
+  function entryOnFloor(entry, floorKey) {
+    if (!floorKey || !entry || !entry.floors || !entry.floors.length) return false;
+    return entry.floors.some(function (f) {
+      return floorsMatch(f, floorKey);
+    });
+  }
+
+  function scoreEntry(entry, queryNorm, floorFilter, mudadorOnly, preferFloor) {
     if (!entry) return -1;
     if (mudadorOnly && !(entry.features && entry.features.mudador)) return -1;
     if (floorFilter && entry.floors && entry.floors.length) {
       var floorOk = entry.floors.some(function (f) {
-        return String(f).toUpperCase() === String(floorFilter).toUpperCase();
+        return floorsMatch(f, floorFilter);
       });
       if (!floorOk) return -1;
     }
@@ -143,6 +172,12 @@ window.ServicesCatalog = (function () {
     });
 
     if (looksLikeBathroomQuery(queryNorm)) score += 1;
+
+    // Totem floor context: boost same-floor bathrooms for generic "baños".
+    if (preferFloor && entryOnFloor(entry, preferFloor)) {
+      score += floorFilter ? 2 : 8;
+    }
+
     return score;
   }
 
@@ -204,6 +239,7 @@ window.ServicesCatalog = (function () {
       if (!catalog || !catalog.services) return [];
       var q = normalizeText(query);
       var floorFilter = options.floor || parseFloorFromQuery(q);
+      var preferFloor = normalizeFloorKey(options.preferFloor || options.totemFloor || "");
       var mudadorOnly = options.mudadorOnly != null ? options.mudadorOnly : wantsMudador(q);
       var serviceId = options.serviceId ? String(options.serviceId).trim() : "";
 
@@ -213,7 +249,7 @@ window.ServicesCatalog = (function () {
 
       var scored = catalog.services
         .map(function (entry) {
-          return { entry: entry, score: scoreEntry(entry, q, floorFilter, mudadorOnly) };
+          return { entry: entry, score: scoreEntry(entry, q, floorFilter, mudadorOnly, preferFloor) };
         })
         .filter(function (row) {
           return row.score >= 0;
@@ -228,8 +264,13 @@ window.ServicesCatalog = (function () {
             if (mudadorOnly && !(entry.features && entry.features.mudador)) return false;
             if (!floorFilter || !entry.floors || !entry.floors.length) return !floorFilter;
             return entry.floors.some(function (f) {
-              return String(f).toUpperCase() === String(floorFilter).toUpperCase();
+              return floorsMatch(f, floorFilter);
             });
+          })
+          .sort(function (a, b) {
+            var aPref = preferFloor && entryOnFloor(a, preferFloor) ? 1 : 0;
+            var bPref = preferFloor && entryOnFloor(b, preferFloor) ? 1 : 0;
+            return bPref - aPref;
           })
           .map(toResultCard);
       }
@@ -245,5 +286,6 @@ window.ServicesCatalog = (function () {
           return toResultCard(row.entry);
         });
     },
+    normalizeFloorKey: normalizeFloorKey,
   };
 })();

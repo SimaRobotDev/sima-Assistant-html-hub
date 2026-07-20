@@ -64,6 +64,22 @@ for (const testCase of cases) {
   if (!ok) fails++;
 }
 
+// Totem floor preference: generic "baños" on level 5 should rank food-court bathroom first.
+{
+  const ranked = ServicesCatalog.search("baños", { preferFloor: "5" });
+  const top = ranked[0] && ranked[0].id;
+  const ok = top === "bano-n5-comidas";
+  console.log((ok ? "PASS" : "FAIL") + ' "baños" preferFloor=5 -> top=' + (top || "-"));
+  if (!ok) fails++;
+}
+{
+  const ranked = ServicesCatalog.search("baños", { preferFloor: "PB" });
+  const top = ranked[0] && ranked[0].id;
+  const ok = top === "bano-pb-afex";
+  console.log((ok ? "PASS" : "FAIL") + ' "baños" preferFloor=PB -> top=' + (top || "-"));
+  if (!ok) fails++;
+}
+
 for (const entry of all) {
   const card = ServicesCatalog.toResultCard(entry);
   if (!card.id || !card.name || !card.anchorLocal) {

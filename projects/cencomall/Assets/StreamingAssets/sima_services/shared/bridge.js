@@ -32,6 +32,19 @@ window.SimaBridge = window.SimaBridge || {};
     );
   }
 
+  function isLegacyWebViewHost() {
+    try {
+      if (global.SIMA_FORCE_UNIWEBVIEW === true) return true;
+      return String(global.location && global.location.protocol || "") === "file:";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function canReachNativeHost() {
+    return isReactNativeHost() || isLegacyWebViewHost();
+  }
+
   function extractMessageEventData(event) {
     if (!event) return null;
     if (event.data != null && event.data !== "") return event.data;
@@ -54,10 +67,12 @@ window.SimaBridge = window.SimaBridge || {};
   function sendMessage(type, payload) {
     var message = {
       type: type,
+      command: type,
       payload: payload || {},
     };
 
     bridge.__lastMessage = message;
+    bridge.__lastSendChannel = "none";
     var serialized = JSON.stringify(message);
     var sent = false;
 
@@ -66,12 +81,20 @@ window.SimaBridge = window.SimaBridge || {};
       if (global.ReactNativeWebView && typeof global.ReactNativeWebView.postMessage === "function") {
         global.ReactNativeWebView.postMessage(serialized);
         sent = true;
+        bridge.__lastSendChannel = "react-native";
       }
     } catch (error) {
       sent = false;
     }
 
     if (sent) return true;
+
+    if (!isLegacyWebViewHost()) {
+      if (global.console && global.console.warn) {
+        global.console.warn("SimaBridge: no native host for message type=" + type);
+      }
+      return false;
+    }
 
     // Legacy UniWebView / Unity iframe channel
     var encoded = encodeURIComponent(serialized);
@@ -90,6 +113,7 @@ window.SimaBridge = window.SimaBridge || {};
           } catch (ignore) {}
         }, 120);
         sent = true;
+        bridge.__lastSendChannel = "uniwebview";
       }
     } catch (error) {
       sent = false;
@@ -99,6 +123,7 @@ window.SimaBridge = window.SimaBridge || {};
       try {
         global.location.href = url;
         sent = true;
+        bridge.__lastSendChannel = "location";
       } catch (fallbackError) {
         if (global.console && global.console.error) {
           global.console.error("SimaBridge send failed", fallbackError);
@@ -177,6 +202,11 @@ window.SimaBridge = window.SimaBridge || {};
   };
 
   bridge.isReactNativeHost = isReactNativeHost;
+  bridge.isLegacyWebViewHost = isLegacyWebViewHost;
+  bridge.canReachNativeHost = canReachNativeHost;
+  bridge.getLastSendChannel = function () {
+    return bridge.__lastSendChannel || "none";
+  };
 
   bridge.pushNativeSearch = function (queryOrPayload) {
     return bridge.onNativeData(queryOrPayload);

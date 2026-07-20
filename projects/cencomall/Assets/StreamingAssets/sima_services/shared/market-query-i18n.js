@@ -23,14 +23,20 @@ window.MarketQueryI18n = (function () {
     jantar: "gastronomia",
     lunch: "gastronomia",
     dinner: "gastronomia",
-    shoes: "calzado zapatillas",
+    shoes: "zapatillas",
     shoe: "calzado",
-    sneakers: "zapatillas calzado",
+    sneakers: "zapatillas",
     sneaker: "zapatillas",
     footwear: "calzado",
     sapato: "calzado",
     sapatos: "calzado",
-    tenis: "calzado zapatillas",
+    tenis: "zapatillas",
+    // ES product intents (keep catalog vocabulary aligned)
+    zapatos: "zapatillas",
+    zapato: "zapatillas",
+    zapatillas: "zapatillas",
+    zapatilla: "zapatillas",
+    calzado: "calzado",
     clothing: "vestuario moda",
     clothes: "vestuario",
     apparel: "vestuario",
@@ -135,6 +141,32 @@ window.MarketQueryI18n = (function () {
     shop: true,
   };
 
+  // Solo-token fallbacks that are too ambiguous (e.g. "deportivos" → ópticas/nutrición).
+  // Keep adjectival/modifier forms here — NOT catalog category nouns like "deportes".
+  var WEAK_SOLO_TOKENS = {
+    deportivos: true,
+    deportivo: true,
+    deportiva: true,
+    deportivas: true,
+    sports: true,
+    sport: true,
+    casual: true,
+    urbano: true,
+    urbana: true,
+    premium: true,
+    original: true,
+    originals: true,
+    hombre: true,
+    mujer: true,
+    ninos: true,
+    ninas: true,
+    infantil: true,
+    kids: true,
+  };
+
+  var FOOTWEAR_PHRASE_RE =
+    /\b(zapatos?|zapatillas?|calzado|sapatos?|tenis|sneakers?|shoes?)\b.*\b(deportiv\w*|sport\w*|running|training|trekking)\b|\b(deportiv\w*|sport\w*|running|training|trekking)\b.*\b(zapatos?|zapatillas?|calzado|sapatos?|tenis|sneakers?|shoes?)\b/;
+
   function resolveLocale(raw) {
     if (window.SimaLocale && window.SimaLocale.resolveLocale) {
       return window.SimaLocale.resolveLocale(raw || window.SimaLocale.readLocaleFromPage());
@@ -165,11 +197,43 @@ window.MarketQueryI18n = (function () {
     var norm = normalizeToken(stripVoicePhrases(query));
     if (!norm) return "";
     var tokens = norm.split(" ").filter(function (token) {
-      return token.length >= 2 && !STOP_TOKENS[token] && !TOKEN_ALIASES[token];
+      return token.length >= 2 && !STOP_TOKENS[token];
     });
     if (!tokens.length) return "";
-    if (tokens.length === 1) return tokens[0];
+    if (tokens.length === 1) {
+      return TOKEN_ALIASES[tokens[0]] || tokens[0];
+    }
     return tokens.join(" ");
+  }
+
+  function isWeakSoloToken(token) {
+    return !!WEAK_SOLO_TOKENS[normalizeToken(token)];
+  }
+
+  function isSportWeakSoloToken(token) {
+    var t = normalizeToken(token);
+    return (
+      t === "deportivos" ||
+      t === "deportivo" ||
+      t === "deportiva" ||
+      t === "deportivas" ||
+      t === "deporte" ||
+      t === "deportes" ||
+      t === "sports" ||
+      t === "sport"
+    );
+  }
+
+  function expandFootwearPhrase(norm) {
+    if (!norm) return "";
+    if (FOOTWEAR_PHRASE_RE.test(norm)) return "zapatillas";
+    return "";
+  }
+
+  function expandWeakSoloQuery(norm) {
+    if (!norm || norm.indexOf(" ") >= 0) return "";
+    if (isSportWeakSoloToken(norm)) return "deportes";
+    return "";
   }
 
   function buildSearchAttempts(query, locale) {
@@ -179,24 +243,39 @@ window.MarketQueryI18n = (function () {
       var text = String(value || "").trim();
       var key = normalizeToken(text);
       if (!text || seen[key]) return;
+      // Never retry a lone weak modifier like "deportivos".
+      if (!key.includes(" ") && isWeakSoloToken(key)) return;
       seen[key] = true;
       attempts.push(text);
     }
 
-    add(prepareVoiceQuery(query, locale));
-    add(extractSignificantTokens(query));
-    add(expandForCatalogSearch(query, locale));
+    var cleaned = stripVoicePhrases(query);
+    var norm = normalizeToken(cleaned || query);
+    var footwear = expandFootwearPhrase(norm);
+    var weakSolo = expandWeakSoloQuery(norm);
 
-    normalizeToken(stripVoicePhrases(query))
+    add(query);
+    add(cleaned);
+    if (footwear) add(footwear);
+    if (weakSolo) add(weakSolo);
+    add(prepareVoiceQuery(query, locale));
+    add(expandForCatalogSearch(query, locale));
+    add(extractSignificantTokens(query));
+
+    normalizeToken(cleaned || query)
       .split(" ")
       .filter(function (token) {
-        return token.length >= 3 && !STOP_TOKENS[token] && !TOKEN_ALIASES[token];
+        return (
+          token.length >= 3 &&
+          !STOP_TOKENS[token] &&
+          !isWeakSoloToken(token)
+        );
       })
       .sort(function (a, b) { return b.length - a.length; })
       .slice(0, 4)
-      .forEach(add);
-
-    add(query);
+      .forEach(function (token) {
+        add(TOKEN_ALIASES[token] || token);
+      });
 
     return attempts;
   }
@@ -206,36 +285,36 @@ window.MarketQueryI18n = (function () {
     if (!original) return original;
 
     var stripped = stripVoicePhrases(original);
-    var resolved = resolveLocale(locale);
+    var norm = normalizeToken(stripped || original);
+    var footwear = expandFootwearPhrase(norm);
+    if (footwear) return footwear;
+    var weakSolo = expandWeakSoloQuery(norm);
+    if (weakSolo) return weakSolo;
 
-    if (resolved !== "es") {
-      return expandForCatalogSearch(stripped || original, locale);
-    }
-
-    var seed = extractSignificantTokens(stripped || original);
-    return seed || stripped || original;
+    return expandForCatalogSearch(stripped || original, locale);
   }
 
   function expandForCatalogSearch(query, locale) {
     var original = String(query || "").trim();
     if (!original) return original;
 
-    var resolved = resolveLocale(locale);
     var cleaned = stripVoicePhrases(original);
     if (!cleaned) cleaned = original;
 
-    if (resolved === "es") {
-      return extractSignificantTokens(cleaned) || cleaned || original;
-    }
-
     var norm = normalizeToken(cleaned);
     if (!norm) return original;
+
+    var footwear = expandFootwearPhrase(norm);
+    if (footwear) return footwear;
+    var weakSolo = expandWeakSoloQuery(norm);
+    if (weakSolo) return weakSolo;
 
     if (TOKEN_ALIASES[norm]) return TOKEN_ALIASES[norm];
 
     var tokens = norm.split(" ").filter(Boolean);
     var mapped = [];
     tokens.forEach(function (token) {
+      if (STOP_TOKENS[token] || isWeakSoloToken(token)) return;
       if (TOKEN_ALIASES[token]) {
         mapped.push(TOKEN_ALIASES[token]);
       } else if (token.length >= 2) {
@@ -252,6 +331,8 @@ window.MarketQueryI18n = (function () {
     prepareVoiceQuery: prepareVoiceQuery,
     extractSignificantTokens: extractSignificantTokens,
     buildSearchAttempts: buildSearchAttempts,
+    isWeakSoloToken: isWeakSoloToken,
+    isSportWeakSoloToken: isSportWeakSoloToken,
     normalizeToken: normalizeToken,
   };
 })();

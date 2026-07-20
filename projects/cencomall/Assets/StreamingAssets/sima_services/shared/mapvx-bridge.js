@@ -2867,9 +2867,19 @@ window.MapVxBridge = (function () {
 
   function pickNearestToiletPoi(toilets, anchorPosition, floorId, preferChangingTable) {
     if (!toilets || !toilets.length) return null;
+
+    function floorKeyLoose(value) {
+      var raw = String(value == null ? "" : value).trim().toLowerCase();
+      if (!raw) return "";
+      if (raw === "pb" || raw.indexOf("planta") >= 0 || raw === "0") return "pb";
+      var m = raw.match(/(\d+)/);
+      return m ? m[1] : raw;
+    }
+
+    var targetFloor = floorKeyLoose(floorId);
     var filtered = toilets.filter(function (poi) {
-      if (!floorId || !poi.floor_key) return true;
-      return String(poi.floor_key) === String(floorId);
+      if (!targetFloor || !poi.floor_key) return true;
+      return floorKeyLoose(poi.floor_key) === targetFloor;
     });
     if (!filtered.length) filtered = toilets.slice();
 
@@ -2878,6 +2888,10 @@ window.MapVxBridge = (function () {
     filtered.forEach(function (poi) {
       var dist = poiDistanceSq(anchorPosition, poi);
       var score = dist;
+      // Prefer same-floor matches even when we had to fall back to all toilets.
+      if (targetFloor && floorKeyLoose(poi.floor_key) === targetFloor) {
+        score -= 1e-4;
+      }
       if (preferChangingTable && String(poi.subclass || "").toLowerCase() === "changing_table") {
         score -= 1e-8;
       } else if (!preferChangingTable && String(poi.subclass || "").toLowerCase() === "changing_table") {
