@@ -2809,8 +2809,14 @@ window.MapVxBridge = (function () {
 
   function isToiletPoiFeature(feature) {
     if (!feature || !feature.properties) return false;
-    var sub = String(feature.properties.subclass || "").toLowerCase();
-    return TOILET_POI_SUBCLASSES.indexOf(sub) >= 0;
+    var props = feature.properties;
+    var sub = String(props.subclass || "").toLowerCase();
+    var cls = String(props.class || "").toLowerCase();
+    if (TOILET_POI_SUBCLASSES.indexOf(sub) >= 0) return true;
+    if (cls === "toilets" || cls === "toilet" || cls === "restroom") return true;
+    var name = String(props.name || props.name_en || props.name_es || "").toLowerCase();
+    if (/\b(toilet|toilets|restroom|baño|banos|bano|wc|mudador|changing)\b/.test(name)) return true;
+    return false;
   }
 
   function queryToiletPoiFeatures(libreMap) {
@@ -2821,8 +2827,9 @@ window.MapVxBridge = (function () {
     function ingest(features) {
       if (!features || !features.length) return;
       features.forEach(function (f) {
-        if (!isToiletPoiFeature(f) || !f.properties || !f.properties.ref) return;
-        var ref = String(f.properties.ref);
+        if (!isToiletPoiFeature(f) || !f.properties) return;
+        var ref = String(f.properties.ref || f.properties.id || f.id || "").trim();
+        if (!ref) return;
         var floorKey = f.properties.floor_key != null ? String(f.properties.floor_key) : "";
         var key = ref + "|" + floorKey;
         if (seen[key]) return;
@@ -2830,16 +2837,16 @@ window.MapVxBridge = (function () {
         var coords = f.geometry && f.geometry.coordinates;
         merged.push({
           ref: ref,
-          subclass: f.properties.subclass || "",
+          subclass: f.properties.subclass || f.properties.class || "",
           floor_key: floorKey,
-          name: f.properties.name || ref,
+          name: f.properties.name || f.properties.name_es || ref,
           lat: coords ? coords[1] : null,
           lng: coords ? coords[0] : null,
         });
       });
     }
 
-    ["indoor-poi-rank1", "indoor-poi-rank2"].forEach(function (layerId) {
+    ["indoor-poi-rank1", "indoor-poi-rank2", "base-indoor-poi-rank1", "base-indoor-poi-rank2"].forEach(function (layerId) {
       try {
         ingest(libreMap.queryRenderedFeatures(undefined, { layers: [layerId] }));
       } catch (e) { /* noop */ }
@@ -2853,7 +2860,191 @@ window.MapVxBridge = (function () {
       } catch (e2) { /* noop */ }
     });
 
+    // Broader scan: any indoorequal poi source features if layers above were empty.
+    if (!merged.length) {
+      try {
+        var style = libreMap.getStyle && libreMap.getStyle();
+        var layers = (style && style.layers) || [];
+        layers.forEach(function (layer) {
+          if (!layer || layer.source !== "indoorequal") return;
+          if (layer["source-layer"] !== "poi") return;
+          try {
+            ingest(libreMap.querySourceFeatures(layer.source, {
+              sourceLayer: "poi",
+            }));
+          } catch (e3) { /* noop */ }
+        });
+      } catch (e4) { /* noop */ }
+    }
+
     return merged;
+  }
+
+  function waitForLibreMapIdle(libreMap, timeoutMs) {
+    return new Promise(function (resolve) {
+      if (!libreMap) {
+        resolve();
+        return;
+      }
+      var done = false;
+      var finish = function () {
+        if (done) return;
+        done = true;
+        resolve();
+      };
+      var timer = setTimeout(finish, timeoutMs || 1800);
+      try {
+        if (typeof libreMap.loaded === "function" && libreMap.loaded()) {
+          // Floor switch can still be fetching tiles; prefer idle event.
+        }
+        libreMap.once("idle", function () {
+          clearTimeout(timer);
+          finish();
+        });
+      } catch (e) {
+        clearTimeout(timer);
+        finish();
+      }
+    });
+  }
+
+  async function collectToiletPoisWithRetry(libreMap, floorId, maxAttempts) {
+    var toilets = [];
+    var attempts = Math.max(1, maxAttempts || 6);
+    for (var i = 0; i < attempts; i++) {
+      await waitForLibreMapIdle(libreMap, 1500);
+      toilets = queryToiletPoiFeatures(libreMap);
+      if (toilets.length) {
+        log("info", "toilet POIs ready", {
+          count: toilets.length,
+          attempt: i + 1,
+          floorId: floorId || null,
+        });
+        return toilets;
+      }
+      await new Promise(function (r) { setTimeout(r, 300 + i * 250); });
+    }
+    log("warn", "toilet POIs still empty", { floorId: floorId || null, attempts: attempts });
+    return toilets;
+  }
+
+  function placeLooksLikeBathroom(place) {
+    if (!place) return false;
+    var title = String(place.title || place.name || place.clientId || "").toLowerCase();
+    return /\b(baño|banos|bano|toilet|toilets|restroom|wc|mudador|sanitario)\b/.test(title);
+  }
+
+  async function resolveBathroomPlaceViaApi(anchorPlace, floorHint, preferChangingTable) {
+    if (!sdk || typeof sdk.getPlacesByInput !== "function") return null;
+    var config = getConfig();
+    var queries = preferChangingTable
+      ? ["mudador", "changing table", "baño", "toilets"]
+      : ["baño", "baños", "toilets", "toilet", "restroom"];
+    var candidates = [];
+    var seen = {};
+
+    for (var i = 0; i < queries.length; i++) {
+      try {
+        var rows = await sdk.getPlacesByInput(
+          queries[i],
+          config.institutionId,
+          config.parentPlace,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          floorHint ? String(floorHint) : undefined
+        );
+        (rows || []).forEach(function (place) {
+          if (!place || !place.mapvxId || seen[place.mapvxId]) return;
+          if (!placeLooksLikeBathroom(place) && !preferChangingTable) return;
+          seen[place.mapvxId] = true;
+          candidates.push(place);
+        });
+      } catch (e) {
+        /* continue */
+      }
+    }
+
+    if (!candidates.length) return null;
+
+    var anchorPos = anchorPlace && anchorPlace.position ? anchorPlace.position : null;
+    if (!anchorPos) return candidates[0];
+
+    var best = null;
+    var bestDist = Number.POSITIVE_INFINITY;
+    candidates.forEach(function (place) {
+      var dist = poiDistanceSq(anchorPos, place.position || {});
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = place;
+      }
+    });
+    return best;
+  }
+
+  async function resolveToiletDestinationNearAnchor(anchorPlace, floorHint, preferChangingTable, attempts) {
+    attempts = attempts || [];
+    var libreMap = map && getLibreMap(map);
+    var config = getConfig();
+    var parentPlace = null;
+    try {
+      parentPlace = await sdk.getPlaceDetail(config.parentPlace);
+    } catch (eParent) { /* noop */ }
+
+    var floorId = pickFloorId(
+      anchorPlace,
+      floorHint,
+      parentPlace,
+      (anchorPlace && anchorPlace.clientId) || null
+    );
+
+    var toilets = await collectToiletPoisWithRetry(libreMap, floorId, 6);
+    var anchorPos = anchorPlace && anchorPlace.position ? anchorPlace.position : null;
+
+    if (anchorPos && toilets.length) {
+      var nearest = pickNearestToiletPoi(toilets, anchorPos, floorId, preferChangingTable);
+      if (nearest) {
+        // Prefer a real MapVX place when the POI ref resolves — routing needs a place id.
+        try {
+          var byRef = await sdk.getPlaceDetail(nearest.ref);
+          if (byRef && byRef.mapvxId) {
+            attempts.push({ method: "toilet-poi+getPlaceDetail", ref: nearest.ref });
+            return {
+              place: byRef,
+              resolvedBy: "toilet-poi-place",
+              lookupKey: byRef.mapvxId,
+              toiletPoi: nearest,
+              attempts: attempts,
+            };
+          }
+        } catch (eRef) {
+          attempts.push({ method: "toilet-poi-getPlaceDetail", error: String(eRef.message || eRef) });
+        }
+
+        attempts.push({ method: "nearest-toilet-poi", ref: nearest.ref });
+        return {
+          place: buildSyntheticServicePlace(nearest, "Baños"),
+          resolvedBy: "nearest-toilet-poi",
+          lookupKey: nearest.ref,
+          toiletPoi: nearest,
+          attempts: attempts,
+        };
+      }
+    }
+
+    var apiPlace = await resolveBathroomPlaceViaApi(anchorPlace, floorHint || floorId, preferChangingTable);
+    if (apiPlace) {
+      attempts.push({ method: "getPlacesByInput(baño)", mapvxId: apiPlace.mapvxId });
+      return {
+        place: apiPlace,
+        resolvedBy: "api-bathroom-near-anchor",
+        lookupKey: apiPlace.mapvxId,
+        attempts: attempts,
+      };
+    }
+
+    return null;
   }
 
   function poiDistanceSq(a, b) {
@@ -2990,44 +3181,49 @@ window.MapVxBridge = (function () {
       }
     }
 
-    var libreMap = map && getLibreMap(map);
-    var toilets = libreMap ? queryToiletPoiFeatures(libreMap) : [];
-    var anchorPos = anchorPlace && anchorPlace.position ? anchorPlace.position : null;
-
-    if (anchorPos && toilets.length) {
-      var config = getConfig();
-      var parentPlace = null;
-      try {
-        parentPlace = await sdk.getPlaceDetail(config.parentPlace);
-      } catch (eParent) { /* noop */ }
-      var floorId = pickFloorId(anchorPlace, floorHint, parentPlace, anchorLocal || null);
-      var nearest = pickNearestToiletPoi(toilets, anchorPos, floorId, preferChangingTable);
-      if (nearest) {
-        log("info", "resolved service by nearest toilet POI", {
-          ref: nearest.ref,
-          floor_key: nearest.floor_key,
-          anchorLocal: anchorLocal,
+    // Anchor store is ONLY a proximity hint — never the route destination.
+    if (anchorPlace) {
+      var toiletResolved = await resolveToiletDestinationNearAnchor(
+        anchorPlace,
+        floorHint,
+        preferChangingTable,
+        attempts
+      );
+      if (toiletResolved && toiletResolved.place) {
+        if (toiletResolved.place.title == null || toiletResolved.place.title === "") {
+          toiletResolved.place.title = name;
+        }
+        log("info", "resolved bathroom destination", {
+          resolvedBy: toiletResolved.resolvedBy,
+          lookupKey: toiletResolved.lookupKey,
+          anchorLocal: anchorLocal || null,
+          mapvxId: toiletResolved.place.mapvxId || null,
         });
-        return {
-          place: buildSyntheticServicePlace(nearest, name),
-          resolvedBy: "nearest-toilet-poi",
-          lookupKey: nearest.ref,
-          toiletPoi: nearest,
-          attempts: attempts,
-        };
+        return toiletResolved;
       }
+      attempts.push({
+        method: "anchor-as-destination",
+        skipped: true,
+        reason: "anchor store must not be bathroom route target",
+        anchorLocal: anchorLocal || null,
+      });
     }
 
-    if (anchorPlace) {
+    // Last chance without a resolved store anchor: API bathroom search on floor.
+    var apiOnly = await resolveBathroomPlaceViaApi(null, floorHint, preferChangingTable);
+    if (apiOnly) {
+      attempts.push({ method: "getPlacesByInput(baño-floor-only)", mapvxId: apiOnly.mapvxId });
       return {
-        place: anchorPlace,
-        resolvedBy: "anchor-fallback",
-        lookupKey: anchorLocal || null,
+        place: apiOnly,
+        resolvedBy: "api-bathroom-floor",
+        lookupKey: apiOnly.mapvxId,
         attempts: attempts,
       };
     }
 
-    var err = new Error("No se encontró el baño en MapVX");
+    var err = new Error(
+      "No se encontró el icono de baño en el mapa. Espera a que cargue el piso e inténtalo de nuevo."
+    );
     err.attempts = attempts;
     throw err;
   }
@@ -3058,6 +3254,8 @@ window.MapVxBridge = (function () {
     if (preFloorId) {
       await applyPlaceFloorAndWait(map, config, preFloorId, parentPlace);
       scheduleRetailPoiIconFilter(map, config);
+      // Give IndoorEqual POI tiles a chance to land before toilet query.
+      await waitForLibreMapIdle(getLibreMap(map), 1800);
     }
 
     var resolved = await resolveServiceDestination(options);
@@ -3653,9 +3851,59 @@ window.MapVxBridge = (function () {
     return raw;
   }
 
+  function buildRouteFinalLocation(result, config) {
+    if (!result) return null;
+    var resolvedBy = String(result.resolvedBy || "");
+    var toilet = result.toiletPoi || null;
+    var place = result.selectedPlace || null;
+    var preferCoords = (
+      resolvedBy === "nearest-toilet-poi"
+      || resolvedBy === "catalog-coords"
+      || resolvedBy === "catalog-poiRef"
+      || !!toilet
+    );
+
+    var lat = null;
+    var lng = null;
+    var floorId = result.floorId || null;
+    if (toilet && toilet.lat != null && toilet.lng != null) {
+      lat = toilet.lat;
+      lng = toilet.lng;
+      if (toilet.floor_key) floorId = toilet.floor_key;
+    } else if (place && place.position && place.position.lat != null && place.position.lng != null) {
+      lat = place.position.lat;
+      lng = place.position.lng;
+    }
+
+    // IndoorEqual toilet refs often are not routable place ids — prefer coordinates.
+    if (preferCoords && lat != null && lng != null) {
+      return {
+        lat: lat,
+        lng: lng,
+        floorId: floorId || undefined,
+        placeId: config.parentPlace || undefined,
+      };
+    }
+
+    if (result.mapvxId) {
+      return { id: result.mapvxId };
+    }
+
+    if (lat != null && lng != null) {
+      return {
+        lat: lat,
+        lng: lng,
+        floorId: floorId || undefined,
+        placeId: config.parentPlace || undefined,
+      };
+    }
+
+    return null;
+  }
+
   async function drawRouteToTarget() {
     if (!map) throw new Error("Mapa no inicializado");
-    if (!lastMapSession || !lastMapSession.result || !lastMapSession.result.mapvxId) {
+    if (!lastMapSession || !lastMapSession.result) {
       throw new Error("Sin destino en el mapa");
     }
 
@@ -3670,12 +3918,21 @@ window.MapVxBridge = (function () {
     }
 
     var originId = await resolveMapvxPlaceId(originRaw);
-    var destId = lastMapSession.result.mapvxId;
-    var destClient = lastMapSession.result.clientId || lastMapSession.options.local;
+    var result = lastMapSession.result;
+    var finalLocation = buildRouteFinalLocation(result, config);
+    if (!finalLocation) {
+      throw new Error("Sin destino en el mapa");
+    }
+
+    var destId = finalLocation.id || null;
+    var destClient = result.clientId || (lastMapSession.options && lastMapSession.options.local);
 
     if (
-      originId === destId
-      || (destClient && String(originRaw).trim() === String(destClient).trim())
+      destId
+      && (
+        originId === destId
+        || (destClient && String(originRaw).trim() === String(destClient).trim())
+      )
     ) {
       throw new Error(
         "totemPlaceId apunta a la misma tienda que el destino — usa el placeId MapVX del tótem físico"
@@ -3687,7 +3944,13 @@ window.MapVxBridge = (function () {
       : "es";
 
     var routeAnimCfg = getRouteAnimationConfig(config);
-    log("info", "drawRouteToTarget", { from: originId, to: destId, originRaw: originRaw, animation: routeAnimCfg });
+    log("info", "drawRouteToTarget", {
+      from: originId,
+      to: finalLocation,
+      originRaw: originRaw,
+      resolvedBy: result.resolvedBy || null,
+      animation: routeAnimCfg,
+    });
     hidePlacePopOver();
     scheduleRetailPoiIconFilter(map, config);
     routeAnimationToken += 1;
@@ -3697,7 +3960,7 @@ window.MapVxBridge = (function () {
       await map.startAnimateRoute(
         {
           initialLocation: { id: originId },
-          finalLocation: { id: destId },
+          finalLocation: finalLocation,
           language: lang,
         },
         {
