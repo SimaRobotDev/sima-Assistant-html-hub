@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Servicios — Cenco Costanera</title>
+  <title>Servicios — Cenco Malls</title>
   <link rel="stylesheet" href="../shared/app.css" />
   <script src="../shared/locale.js"></script>
   <script src="../shared/bridge.js"></script>
@@ -19,13 +19,19 @@
       --cm-shadow: 0 6px 16px rgba(40, 0, 113, 0.08);
     }
 
-    body {
-      background: transparent;
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #F4F0F8;
       color: var(--cm-text);
     }
 
+    body::before { display: none; }
+
     .app-shell {
-      background: transparent;
+      background: #F4F0F8;
+      min-height: 100vh;
+      min-height: 100dvh;
       gap: 0;
       padding: 20px 18px 28px;
     }
@@ -281,11 +287,35 @@
       <button class="cm-header-close" id="btn-close-header" type="button" onclick="closeWebview()">Cerrar</button>
       <div class="cm-header-text">
         <h1 id="page-title">Servicios</h1>
-        <p id="page-subtitle">Rodados y atención al cliente</p>
+        <p id="page-subtitle">Tiendas, promociones, rodados y atención al cliente</p>
       </div>
     </header>
 
     <div id="mainUI">
+      <div>
+        <h2 class="section-title" id="explore-title">Explorar</h2>
+        <div class="cards">
+          <div class="service-card">
+            <h3 class="service-card-title" id="stores-title">Tiendas</h3>
+            <p class="service-card-desc" id="stores-desc">
+              Busca marcas y categorías en el mapa.
+            </p>
+            <button id="btn-stores" class="btn-reserve" type="button" onclick="openStores()">
+              Abrir buscador
+            </button>
+          </div>
+          <div class="service-card">
+            <h3 class="service-card-title" id="promos-title">Promociones</h3>
+            <p class="service-card-desc" id="promos-desc">
+              Ofertas y descuentos vigentes.
+            </p>
+            <button id="btn-promos" class="btn-reserve" type="button" onclick="openPromotions()">
+              Ver promos
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div>
         <h2 class="section-title" id="rodados-title">Préstamo de rodados</h2>
         <div class="cards">
@@ -341,7 +371,14 @@
     const I18N = {
       es: {
         pageTitle: "Servicios",
-        pageSubtitle: "Rodados y atención al cliente",
+        pageSubtitle: "Tiendas, promociones, rodados y atención al cliente",
+        exploreTitle: "Explorar",
+        storesTitle: "Tiendas",
+        storesDesc: "Busca marcas y categorías en el mapa.",
+        storesBtn: "Abrir buscador",
+        promosTitle: "Promociones",
+        promosDesc: "Ofertas y descuentos vigentes.",
+        promosBtn: "Ver promos",
         rodadosTitle: "Préstamo de rodados",
         wheelTitle: "Silla de ruedas",
         wheelDesc: "Solicítala en el módulo de servicio al cliente, Nivel 1.",
@@ -365,7 +402,9 @@
         successStep2: "Entrega tu carnet de identificación.",
         successStep3: "Muestra el QR o el número de reserva.",
         successStep4: "Retira tu {item} en el módulo.",
-        speakIntro: "Puedes solicitar silla de ruedas, coche de niños o llamar a atención al cliente.",
+        speakIntro: "Puedes buscar tiendas, ver promociones, solicitar silla de ruedas, coche de niños o llamar a atención al cliente.",
+        speakStores: "Te muestro el buscador de tiendas.",
+        speakPromos: "Te muestro las promociones disponibles.",
         speakReserveSuccess: "Tu reserva de {item} es {id}. Tienes {min} minutos. Ve a Servicio de atención al cliente, muestra el código QR o el número en pantalla, entrega tu carnet y retira el equipo.",
         speakReserveNone: "Por ahora no hay {item} disponibles. Puedes consultar en Servicio de atención al cliente.",
         speakReserveLow: "Queda poca disponibilidad de {item}. Por favor confirma en Servicio de atención al cliente; es por orden de llegada.",
@@ -375,7 +414,14 @@
       },
       en: {
         pageTitle: "Services",
-        pageSubtitle: "Mobility aids and customer service",
+        pageSubtitle: "Stores, promotions, mobility aids and customer service",
+        exploreTitle: "Explore",
+        storesTitle: "Stores",
+        storesDesc: "Search brands and categories on the map.",
+        storesBtn: "Open search",
+        promosTitle: "Promotions",
+        promosDesc: "Current offers and discounts.",
+        promosBtn: "View promos",
         rodadosTitle: "Mobility equipment",
         wheelTitle: "Wheelchair",
         wheelDesc: "Request it at the customer service desk, Level 1.",
@@ -399,7 +445,9 @@
         successStep2: "Show your ID.",
         successStep3: "Show the QR code or reservation number.",
         successStep4: "Pick up your {item} at the desk.",
-        speakIntro: "You can request a wheelchair, stroller or call customer service.",
+        speakIntro: "You can search stores, view promotions, request a wheelchair, stroller or call customer service.",
+        speakStores: "I'll show you the store search.",
+        speakPromos: "I'll show you the available promotions.",
         speakReserveSuccess: "Your {item} reservation is {id}. You have {min} minutes. Go to customer service, show the QR code or the number on screen, show your ID and pick up the equipment.",
         speakReserveNone: "There are no {item} available right now. You can check at customer service.",
         speakReserveLow: "There is limited availability of {item}. Please confirm at customer service; it's first-come, first-served.",
@@ -409,7 +457,14 @@
       },
       pt: {
         pageTitle: "Serviços",
-        pageSubtitle: "Rodas e atendimento ao cliente",
+        pageSubtitle: "Lojas, promoções, rodas e atendimento ao cliente",
+        exploreTitle: "Explorar",
+        storesTitle: "Lojas",
+        storesDesc: "Busque marcas e categorias no mapa.",
+        storesBtn: "Abrir busca",
+        promosTitle: "Promoções",
+        promosDesc: "Ofertas e descontos vigentes.",
+        promosBtn: "Ver promos",
         rodadosTitle: "Empréstimo de rodas",
         wheelTitle: "Cadeira de rodas",
         wheelDesc: "Solicite no módulo de atendimento ao cliente, Nível 1.",
@@ -433,7 +488,9 @@
         successStep2: "Apresente seu documento de identificação.",
         successStep3: "Mostre o QR ou o número da reserva.",
         successStep4: "Retire seu {item} no balcão.",
-        speakIntro: "Você pode solicitar cadeira de rodas, carrinho de bebê ou ligar para o atendimento.",
+        speakIntro: "Você pode buscar lojas, ver promoções, solicitar cadeira de rodas, carrinho de bebê ou ligar para o atendimento.",
+        speakStores: "Vou te mostrar a busca de lojas.",
+        speakPromos: "Vou te mostrar as promoções disponíveis.",
         speakReserveSuccess: "Sua reserva de {item} é {id}. Você tem {min} minutos. Vá ao atendimento ao cliente, mostre o QR ou o número na tela, apresente seu documento e retire o equipamento.",
         speakReserveNone: "No momento não há {item} disponíveis. Você pode consultar no atendimento ao cliente.",
         speakReserveLow: "Há pouca disponibilidade de {item}. Por favor confirme no atendimento ao cliente; é por ordem de chegada.",
@@ -465,6 +522,13 @@
       document.documentElement.lang = locale;
       document.getElementById("page-title").textContent = t("pageTitle");
       document.getElementById("page-subtitle").textContent = t("pageSubtitle");
+      document.getElementById("explore-title").textContent = t("exploreTitle");
+      document.getElementById("stores-title").textContent = t("storesTitle");
+      document.getElementById("stores-desc").textContent = t("storesDesc");
+      document.getElementById("btn-stores").textContent = t("storesBtn");
+      document.getElementById("promos-title").textContent = t("promosTitle");
+      document.getElementById("promos-desc").textContent = t("promosDesc");
+      document.getElementById("btn-promos").textContent = t("promosBtn");
       document.getElementById("rodados-title").textContent = t("rodadosTitle");
       document.getElementById("wheel-title").textContent = t("wheelTitle");
       document.getElementById("wheel-desc").textContent = t("wheelDesc");
@@ -479,7 +543,7 @@
       const headerClose = document.getElementById("btn-close-header");
       if (headerClose) headerClose.textContent = t("close");
 
-      document.querySelectorAll(".btn-reserve").forEach((btn) => {
+      document.querySelectorAll("#btn-wheel, #btn-stroller").forEach((btn) => {
         if (!btn.disabled) btn.textContent = t("reserve");
       });
 
@@ -554,12 +618,6 @@
     }
 
     window.applyReservationQr = applyReservationQr;
-
-    window.autoReserveLoan = function autoReserveLoan(kind) {
-      var productId = kind === "coche" ? "costaneracoches" : "costanerasillas";
-      var label = kind === "coche" ? "coche de niño" : "silla de ruedas";
-      reserve(label, productId);
-    };
 
     function availableForProduct(productId) {
       if (productId === "costanerasillas") return inventory.sillas;
@@ -655,9 +713,19 @@
       document.getElementById("mainUI").style.display = "flex";
     }
 
+    function openStores() {
+      SimaBridge.speak(t("speakStores"));
+      SimaBridge.send("open_stores", {});
+    }
+
+    function openPromotions() {
+      SimaBridge.speak(t("speakPromos"));
+      SimaBridge.send("open_promotions", {});
+    }
+
     function startCustomerCall() {
       SimaBridge.speak(t("speakCall"));
-      SimaBridge.send("totem_call", { source: "servicios" });
+      SimaBridge.send("totem_call", { source: "services-2" });
     }
 
     window.handleUnityData = function(data) {
@@ -706,7 +774,7 @@
 
     window.addEventListener("load", () => {
       applyLocale();
-      SimaBridge.ready("servicios");
+      SimaBridge.ready("services-2");
     });
   </script>
 </body>

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.17-14",
+  "version": "2026.07.20-1",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-17T14:09:34.727Z",
+  "generatedAt": "2026-07-20T14:51:04.968Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -38,6 +38,10 @@
     {
       "service": "ontour",
       "entry": "ontour/index.html"
+    },
+    {
+      "service": "services-2",
+      "entry": "services-2/index.html"
     },
     {
       "service": "servicios",
@@ -85,19 +89,9 @@
       "sha256": "e89b35d08a17d17dc11fd6b84bb1a84ed4476fe5ca1f4535cfb5e806538514d6"
     },
     {
-      "path": "data/services-catalog.json",
-      "size": 8641,
-      "sha256": "2cefe68fb39ea37cc90ca257231052ede70a5beb092b00136707fcb17176eeba"
-    },
-    {
-      "path": "data/services-catalog.jsonp.js",
-      "size": 8835,
-      "sha256": "b1991f7e4cc319a4d4172e8b3684b8134ed62a1d20aa19cb68fefaea95b95ad2"
-    },
-    {
       "path": "emergency/index.html",
-      "size": 10196,
-      "sha256": "e9e088e3899e1a40f75706820167aeebf5ccfaae19b2893ca0cfc943745d7118"
+      "size": 11230,
+      "sha256": "47feed3c6b149b3eafe00bd3eb43811220d79dec988c7bf8f13ef4ee9cf2a93e"
     },
     {
       "path": "FIX-BUSQUEDA-CATALOGO.md",
@@ -106,8 +100,8 @@
     },
     {
       "path": "flights/index.html",
-      "size": 23543,
-      "sha256": "b6fda82807a415364167dbaf2c264c9eb9620deea14787c5b8dd988c134bbf7a"
+      "size": 23698,
+      "sha256": "6f0fa900c7f32a48d7399441cf618ec390495bd49b3e3afc223352d84bf5542b"
     },
     {
       "path": "human/img.zip",
@@ -126,8 +120,8 @@
     },
     {
       "path": "human/index.html",
-      "size": 3099,
-      "sha256": "a3298733353e120e1ae0bcc97caad090095b78cd20c4d71b398e72810a4cc457"
+      "size": 3777,
+      "sha256": "76aced319c0737b5f6c7ef72266d96e23cd36af1fdc0682e24cb4055c4d62867"
     },
     {
       "path": "IMPLEMENTACION-MAPVX-COSTANERA.md",
@@ -141,13 +135,13 @@
     },
     {
       "path": "map/index.html",
-      "size": 21033,
-      "sha256": "dcb6eec4f0bb843d0fabfa93dac1152b6c3de5c97ec582a4931e57e7e1a0340b"
+      "size": 15800,
+      "sha256": "c4bccf12d976c5b3c16c57f77707802e9c57428fce69396efe0c57b3bd1f229c"
     },
     {
       "path": "mobility/index.html",
-      "size": 142889,
-      "sha256": "5a030196212cfb3e4b4a2edeb4e7bc950242f639b2868ae12e65fb50e5fc013d"
+      "size": 140786,
+      "sha256": "d647b8f5b12d22194f0a1ebf6665c258a0b59e9b1fad52ea4d9dc61d3244bd31"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -156,18 +150,28 @@
     },
     {
       "path": "ontour/index.html",
-      "size": 7920,
-      "sha256": "0f8f1316b21caef0440b96a917fa920746445cd5c3b64ef323016f59122639fb"
+      "size": 9848,
+      "sha256": "ceeda93802512f57f372538fd2cedfb095a5c0f4a67361a475e693db0e21a48c"
+    },
+    {
+      "path": "promociones-preview.html",
+      "size": 1657,
+      "sha256": "aa39342d2b42c2dcad4e93f919646bc033a5283b9cf70d547d1b3c91977b49d5"
+    },
+    {
+      "path": "services-2/index.html",
+      "size": 27555,
+      "sha256": "ef7873a72f37735e583ddfdb9169f08a0e378324622ed17526fe756f7c701926"
     },
     {
       "path": "servicios/index.html",
-      "size": 11317,
-      "sha256": "59b2df383a1d622ad2823fbbe8e91a2b1c0be343c217ad93f8fa4609910152e6"
+      "size": 24558,
+      "sha256": "8b11b86fa6e432daa8969887003915a9154f00790264a4a08f57aee8c417d8b4"
     },
     {
       "path": "shared/app.css",
-      "size": 5898,
-      "sha256": "45de88c91843eb8492d48fa0858b804bc3d12933f7c52ca5a431efedbf364779"
+      "size": 5329,
+      "sha256": "202c7b995387137c50ae606408b3443b96e43b9be353653c5387b6c5aa6a273f"
     },
     {
       "path": "shared/bridge.js",
@@ -186,8 +190,8 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 137028,
-      "sha256": "ff92abc43ddca695bb1d1fa76705e01ec59fe09d3450a37c8381642c5e3f5577"
+      "size": 124917,
+      "sha256": "d25e0b729afc9c5a83fd946448f36f23ed6ebbde194b58d1a20bf6e29ff62a19"
     },
     {
       "path": "shared/mapvx/index.js",
@@ -223,11 +227,6 @@
       "path": "shared/qrcode.min.js",
       "size": 19927,
       "sha256": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36"
-    },
-    {
-      "path": "shared/services-catalog.js",
-      "size": 8044,
-      "sha256": "6ea22912ab5fa251a87c384212665e23ec1e0883855c85f03150f687edc46fd7"
     },
     {
       "path": "shared/store-logos/casa-ideas.png",

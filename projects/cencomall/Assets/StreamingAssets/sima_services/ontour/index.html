@@ -10,38 +10,65 @@
   <script src="../shared/bridge.js"></script>
   <style>
     :root {
-      --cm-purple: #5B2D8E;
-      --cm-purple-dark: #3D1D5C;
-      --cm-surface: #F4F0F8;
+      --cm-purple: #280071;
+      --cm-blue: #00B1FF;
+      --cm-blue-dark: #008FD0;
+      --cm-surface: #FFFFFF;
       --cm-text: #1E1630;
-      --cm-muted: #6B6280;
+      --cm-muted: #3F3468;
+      --cm-line: #ECE8F2;
+      --cm-shadow: 0 6px 16px rgba(40, 0, 113, 0.08);
     }
 
-    html, body { background: var(--cm-surface); color: var(--cm-text); }
+    html, body { background: transparent; color: var(--cm-text); }
     body::before { display: none; }
 
     .app-shell {
-      background: var(--cm-surface);
-      gap: 16px;
+      background: transparent;
+      gap: 0;
       padding: 20px 18px 28px;
     }
 
     .cm-header {
-      background: linear-gradient(135deg, var(--cm-purple-dark) 0%, var(--cm-purple) 100%);
+      background: var(--cm-purple);
       color: #fff;
-      border-radius: 18px;
+      border-radius: 18px 18px 0 0;
       padding: 18px 20px;
-      box-shadow: 0 8px 24px rgba(61, 29, 92, 0.18);
+      box-shadow: 0 8px 22px rgba(40, 0, 113, 0.16);
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: 12px;
+    }
+
+    .cm-header-text {
+      flex: 1;
+      min-width: 0;
     }
 
     .cm-header h1 { margin: 0 0 6px; font-size: 24px; font-weight: 800; }
     .cm-header p { margin: 0; font-size: 15px; opacity: 0.92; line-height: 1.4; }
 
+    .cm-header-close {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 8px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
     .card {
-      border: 1px solid #E7DFF0;
-      box-shadow: 0 8px 24px rgba(61, 29, 92, 0.08);
+      border: 1px solid var(--cm-line);
+      border-top: 0;
+      box-shadow: var(--cm-shadow);
       background: #fff;
-      border-radius: 16px;
+      border-radius: 0 0 16px 16px;
       padding: 16px;
       display: flex;
       flex-direction: column;
@@ -65,8 +92,9 @@
       gap: 16px;
       padding: 18px 16px;
       border-radius: 14px;
-      background: #FAF7FD;
-      border: 1px solid #E7DFF0;
+      background: #fff;
+      border: 1px solid var(--cm-line);
+      box-shadow: var(--cm-shadow);
     }
 
     .qr-box .qr-container img,
@@ -100,23 +128,28 @@
     }
 
     .btn-primary {
-      background: var(--cm-purple);
+      background: var(--cm-blue);
       color: #fff;
-      border: none;
+      border: 1px solid var(--cm-blue);
     }
 
     .btn-secondary {
       background: #fff;
-      color: var(--cm-purple);
-      border: 2px solid var(--cm-purple);
+      color: var(--cm-blue-dark);
+      border: 1px solid var(--cm-blue);
+      width: auto;
+      align-self: flex-start;
     }
   </style>
 </head>
 <body>
   <div class="app-shell">
     <header class="cm-header">
-      <h1 id="page-title">On Tour</h1>
-      <p id="page-subtitle">Tu pasaporte a una experiencia exclusiva en Cenco Costanera</p>
+      <button class="cm-header-close" id="btnCloseHeader" type="button" onclick="closeWebview()">Cerrar</button>
+      <div class="cm-header-text">
+        <h1 id="page-title">On Tour</h1>
+        <p id="page-subtitle">Tu pasaporte a una experiencia exclusiva en Cenco Costanera</p>
+      </div>
     </header>
 
     <div class="card">
@@ -131,6 +164,8 @@
         <p class="qr-caption" id="qr-hint"></p>
         <div id="qr-container" class="qr-container"></div>
       </div>
+
+      <button class="btn-secondary" id="btnClose" type="button" onclick="closeWebview()">Cerrar</button>
     </div>
   </div>
 
@@ -171,6 +206,29 @@
       }
     };
 
+    function closeWebview() {
+      try {
+        if (window.SimaBridge && typeof window.SimaBridge.requestClose === "function") {
+          window.SimaBridge.requestClose();
+          return;
+        }
+      } catch (e) {}
+      try {
+        if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === "function") {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: "close_webview",
+            payload: {},
+          }));
+          return;
+        }
+      } catch (e2) {}
+      try {
+        if (window.SimaBridge && typeof window.SimaBridge.send === "function") {
+          window.SimaBridge.send("close_webview", {});
+        }
+      } catch (e3) {}
+    }
+
     function applyLocale() {
       currentLocale = SimaLocale.readLocaleFromPage();
       document.documentElement.lang = currentLocale;
@@ -180,6 +238,9 @@
       document.getElementById("section-title").textContent = SimaLocale.t(I18N, "sectionTitle", currentLocale);
       document.getElementById("section-lead").textContent = SimaLocale.t(I18N, "sectionLead", currentLocale);
       document.getElementById("qr-hint").textContent = SimaLocale.t(I18N, "qrHint", currentLocale);
+      document.getElementById("btnClose").textContent = SimaLocale.t(I18N, "close", currentLocale);
+      const headerClose = document.getElementById("btnCloseHeader");
+      if (headerClose) headerClose.textContent = SimaLocale.t(I18N, "close", currentLocale);
 
       const pack = SimaLocale.pickPack(I18N, currentLocale);
       const benefits = pack.benefits || [];

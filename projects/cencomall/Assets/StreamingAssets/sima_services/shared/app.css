@@ -31,21 +31,7 @@ body {
   margin: 0;
   font-family: var(--sima-font);
   color: var(--sima-text);
-  background:
-    radial-gradient(circle at top left, rgba(13, 74, 109, 0.12), transparent 32%),
-    radial-gradient(circle at right top, rgba(178, 232, 255, 0.45), transparent 26%),
-    linear-gradient(180deg, #f8fbfe 0%, var(--sima-bg) 100%);
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: linear-gradient(rgba(16, 32, 51, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(16, 32, 51, 0.025) 1px, transparent 1px);
-  background-size: 36px 36px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 85%);
+  background: transparent;
 }
 
 a {

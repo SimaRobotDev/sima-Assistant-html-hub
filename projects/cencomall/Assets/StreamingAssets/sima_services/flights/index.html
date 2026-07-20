@@ -176,6 +176,7 @@
       flex: 0 0 auto;
       height: 29px;
       display: flex;
+      justify-content: flex-start;
       gap: 5px;
       margin-bottom: 6px;
     }
@@ -200,7 +201,7 @@
     .close-button {
       background: #f2f4f7;
       color: #344054;
-      margin-left: auto;
+      margin-left: 0;
     }
 
     .detail-card {
@@ -402,6 +403,9 @@
   <main class="app">
 
     <section id="home" class="home">
+      <div class="top-actions">
+        <button class="close-button" onclick="closeWebview()">Cerrar</button>
+      </div>
       <div class="header">
         <div class="eyebrow">Aeropuerto</div>
         <h1>Servicios</h1>

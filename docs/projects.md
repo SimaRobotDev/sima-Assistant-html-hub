@@ -11,7 +11,7 @@
 ## cencomall
 
 - Base: `Cencomall-Assistant`
-- Servicios detectados: `agenda`, `call`, `emergency`, `flights`, `human`, `map`, `mobility`, `ontour`, `servicios`, `taxi`
+- Servicios detectados: `agenda`, `call`, `emergency`, `flights`, `human`, `map`, `mobility`, `ontour`, `services-2`, `servicios`, `taxi`
 - Shared local:
   - `bridge.js`
   - `app.css`
