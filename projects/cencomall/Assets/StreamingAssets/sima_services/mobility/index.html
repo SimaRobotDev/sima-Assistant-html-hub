@@ -1390,7 +1390,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA bathrooms+search+hablar 2026.07.20-2";
+const MOBILITY_UI_VERSION = "OTA bathrooms+search+hablar 2026.07.20-3";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -2425,13 +2425,11 @@ function routeUnifiedSearch(query, options) {
   setStoreSearchInputs(q);
 
   if (looksLikeServicesCatalogQuery(q)) {
-    SimaBridge.send("services_search", {
-      query: q,
-      text: q,
-      source: options.source || "text",
-      locale: mobilityLocale,
-    });
-    return runServicesCatalogSearch(q, Object.assign({ source: "text" }, options));
+    // Do NOT notify native services_search here: RN/backend returns legacy
+    // mall services (cajero, mudadores agregados) and would overwrite the
+    // local bathroom catalog results on the totem.
+    SimaBridge.log("services_search local-catalog q=" + q);
+    return runServicesCatalogSearch(q, Object.assign({ source: options.source || "text" }, options));
   }
 
   if (shouldNotifyUnityMarketSearch()) {
@@ -3222,13 +3220,8 @@ function dispatchVoiceSearch(query, source) {
   );
 
   if (looksLikeServicesCatalogQuery(q) || looksLikeServicesCatalogQuery(searchText)) {
-    SimaBridge.send("services_search", {
-      query: q,
-      text: searchText,
-      rawText: q,
-      source: source || "voice",
-      locale: mobilityLocale,
-    });
+    // Local bathroom catalog only — avoid native services_search overwrite.
+    SimaBridge.log("voice_search services local-catalog q=" + q);
     runServicesCatalogSearch(q, { source: source || "voice", voice: true });
     return true;
   }
@@ -3401,7 +3394,21 @@ function renderIncomingPayload(dataJson) {
     case "promotion_search":
       renderPromotionResults(data);
       break;
-    case "services_search":
+    case "services_search": {
+      const incomingServiceQuery = String(
+        data.query || data.text || data.q || data.search || ""
+      ).trim();
+      // Totem RN may push legacy bathroom/service payloads; prefer local catalog.
+      if (incomingServiceQuery && looksLikeServicesCatalogQuery(incomingServiceQuery)) {
+        SimaBridge.log(
+          "services_search redirected to local catalog q=" + incomingServiceQuery
+        );
+        runServicesCatalogSearch(incomingServiceQuery, {
+          source: data.source || "native-redirect",
+          preferFloor: data.totemFloor || data.floor || getTotemFloorContext() || undefined,
+        });
+        break;
+      }
       if (typeof ServicesCatalog !== "undefined" && ServicesCatalog.loadCatalog) {
         ServicesCatalog.loadCatalog().then(function () {
           enrichServicesSearchPayload(data);
@@ -3414,6 +3421,7 @@ function renderIncomingPayload(dataJson) {
       enrichServicesSearchPayload(data);
       renderServicesResults(data);
       break;
+    }
     case "parking_info":
       renderParkingInfo(data);
       break;
