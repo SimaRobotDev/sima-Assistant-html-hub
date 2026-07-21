@@ -95,20 +95,37 @@ window.ServicesCatalog = (function () {
     return String((entry && entry.type) || "bathroom").toLowerCase();
   }
 
-  function primaryAnchor(entry) {
+  function primaryAnchor(entry, preferFloor) {
     var stores = (entry && entry.anchorStores) || [];
-    for (var i = 0; i < stores.length; i++) {
-      if (stores[i].role === "primary" && stores[i].local) return stores[i];
+    var floorKey = normalizeFloorKey(preferFloor || "");
+
+    function matchesFloor(store) {
+      if (!floorKey) return true;
+      if (store.floors && store.floors.length) {
+        return store.floors.some(function (f) {
+          return floorsMatch(f, floorKey);
+        });
+      }
+      return true;
     }
-    for (var j = 0; j < stores.length; j++) {
-      if (stores[j].local) return stores[j];
+
+    var onFloor = stores.filter(matchesFloor);
+    var pool = onFloor.length ? onFloor : stores;
+
+    for (var i = 0; i < pool.length; i++) {
+      if (pool[i].role === "primary" && pool[i].local) return pool[i];
+    }
+    for (var j = 0; j < pool.length; j++) {
+      if (pool[j].local) return pool[j];
     }
     return stores[0] || null;
   }
 
-  function toResultCard(entry) {
+  function toResultCard(entry, options) {
     if (!entry) return {};
-    var anchor = primaryAnchor(entry);
+    options = options || {};
+    var preferFloor = options.preferFloor || options.floor || "";
+    var anchor = primaryAnchor(entry, preferFloor);
     var desc = entry.descriptions || {};
     return {
       id: entry.id,
@@ -167,15 +184,10 @@ window.ServicesCatalog = (function () {
       if (!(entry.features && entry.features.mudador)) return -1;
     }
     if (floorFilter && entry.floors && entry.floors.length) {
-      // Elevators span many floors — floor in query matches the bank's primary floor.
-      if (type === "elevator") {
-        if (!floorsMatch(entry.floors[0], floorFilter)) return -1;
-      } else {
-        var floorOk = entry.floors.some(function (f) {
-          return floorsMatch(f, floorFilter);
-        });
-        if (!floorOk) return -1;
-      }
+      var floorOk = entry.floors.some(function (f) {
+        return floorsMatch(f, floorFilter);
+      });
+      if (!floorOk) return -1;
     }
 
     var score = 0;
@@ -189,9 +201,14 @@ window.ServicesCatalog = (function () {
     if (entry.name && queryNorm.indexOf(normalizeText(entry.name)) >= 0) score += 4;
 
     var anchors = entry.anchorStores || [];
+    var seenBrands = {};
     anchors.forEach(function (store) {
       var brand = normalizeText(store.brand || "");
-      if (brand && queryNorm.indexOf(brand) >= 0) score += 6;
+      if (!brand || seenBrands[brand]) return;
+      if (queryNorm.indexOf(brand) >= 0) {
+        seenBrands[brand] = true;
+        score += 6;
+      }
     });
 
     if (type === "bathroom" && looksLikeBathroomQuery(queryNorm)) score += 1;
@@ -199,8 +216,15 @@ window.ServicesCatalog = (function () {
 
     if (preferFloor && entryOnFloor(entry, preferFloor)) {
       score += floorFilter ? 2 : 8;
-      // Elevators span many floors — boost the bank whose primary floor matches.
-      if (entry.floors && entry.floors.length && floorsMatch(entry.floors[0], preferFloor)) {
+      if (type === "elevator") {
+        var hasAnchorOnFloor = (entry.anchorStores || []).some(function (store) {
+          if (!store.floors || !store.floors.length) return false;
+          return store.floors.some(function (f) {
+            return floorsMatch(f, preferFloor);
+          });
+        });
+        if (hasAnchorOnFloor) score += 4;
+      } else if (entry.floors && entry.floors.length && floorsMatch(entry.floors[0], preferFloor)) {
         score += 6;
       }
     }
@@ -290,8 +314,10 @@ window.ServicesCatalog = (function () {
         ? String(options.type).toLowerCase()
         : inferTypeFilter(q, mudadorOnly);
 
+      var cardOpts = { preferFloor: preferFloor || floorFilter || "", floor: floorFilter || preferFloor || "" };
+
       if (serviceId && byId && byId[serviceId]) {
-        return [toResultCard(byId[serviceId])];
+        return [toResultCard(byId[serviceId], cardOpts)];
       }
 
       var scored = catalog.services
@@ -323,7 +349,9 @@ window.ServicesCatalog = (function () {
             var bPref = preferFloor && entryOnFloor(b, preferFloor) ? 1 : 0;
             return bPref - aPref;
           })
-          .map(toResultCard);
+          .map(function (entry) {
+            return toResultCard(entry, cardOpts);
+          });
       }
 
       if (!scored.length) return [];
@@ -337,7 +365,7 @@ window.ServicesCatalog = (function () {
           return row.score >= minScore;
         })
         .map(function (row) {
-          return toResultCard(row.entry);
+          return toResultCard(row.entry, cardOpts);
         });
     },
     normalizeFloorKey: normalizeFloorKey,

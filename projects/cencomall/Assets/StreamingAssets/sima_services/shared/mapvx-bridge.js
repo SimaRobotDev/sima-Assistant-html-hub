@@ -3784,24 +3784,50 @@ window.MapVxBridge = (function () {
     var config = getConfig();
     await ensureMap(containerEl || mapContainer, config);
 
-    var anchorLocal = "";
+    var floorHint = entry.floors && entry.floors.length ? entry.floors[0] : "";
     var stores = entry.anchorStores || [];
-    for (var i = 0; i < stores.length; i++) {
-      if (stores[i].role === "primary" && stores[i].local) {
-        anchorLocal = String(stores[i].local);
+    var anchorLocal = "";
+    var floorKeyLoose = function (value) {
+      var raw = String(value == null ? "" : value).trim().toLowerCase();
+      if (!raw) return "";
+      if (raw === "pb" || raw.indexOf("planta") >= 0 || raw === "0") return "pb";
+      var m = raw.match(/(\d+)/);
+      return m ? m[1] : raw;
+    };
+    var targetFloor = floorKeyLoose(floorHint);
+    var pool = stores;
+    if (targetFloor) {
+      var onFloor = stores.filter(function (store) {
+        if (!store.floors || !store.floors.length) return false;
+        return store.floors.some(function (f) {
+          return floorKeyLoose(f) === targetFloor;
+        });
+      });
+      if (onFloor.length) pool = onFloor;
+    }
+    for (var i = 0; i < pool.length; i++) {
+      if (pool[i].role === "primary" && pool[i].local) {
+        anchorLocal = String(pool[i].local);
         break;
       }
     }
     if (!anchorLocal) {
-      for (var j = 0; j < stores.length; j++) {
-        if (stores[j].local) {
-          anchorLocal = String(stores[j].local);
+      for (var j = 0; j < pool.length; j++) {
+        if (pool[j].local) {
+          anchorLocal = String(pool[j].local);
+          break;
+        }
+      }
+    }
+    if (!anchorLocal) {
+      for (var k = 0; k < stores.length; k++) {
+        if (stores[k].local) {
+          anchorLocal = String(stores[k].local);
           break;
         }
       }
     }
 
-    var floorHint = entry.floors && entry.floors.length ? entry.floors[0] : "";
     var mapvx = entry.mapvx || {};
     var resolveOpts = {
       serviceId: entry.id,

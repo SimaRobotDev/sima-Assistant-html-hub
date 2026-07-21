@@ -49,16 +49,20 @@ if (elevators.length < 1) throw new Error("expected at least 1 elevator, got " +
 const cases = [
   { q: "baños", min: 1, type: "bathroom" },
   { q: "banos nivel 2", min: 1, max: 3, type: "bathroom" },
-  { q: "ripley nivel 3", min: 1, max: 5 },
+  { q: "ripley nivel 3", min: 1, max: 3 },
   { q: "mudador", min: 1, max: 4, type: "bathroom" },
   { q: "afex", min: 1, max: 3 },
   { q: "patio de comidas", min: 1, max: 3 },
   { serviceId: "bano-n2-ripley", min: 1, max: 1 },
-  { q: "ascensor", min: 1, type: "elevator" },
-  { q: "ascensores", min: 1, type: "elevator" },
-  { q: "elevador ripley", min: 1, max: 3, type: "elevator" },
-  { q: "ascensor nivel 5", min: 1, max: 2, type: "elevator" },
-  { serviceId: "ascensor-n2-ripley", min: 1, max: 1 },
+  { q: "ascensor", min: 1, max: 4, type: "elevator" },
+  { q: "ascensores", min: 1, max: 4, type: "elevator" },
+  { q: "elevador ripley", min: 1, max: 2, type: "elevator" },
+  { q: "ascensor zara", min: 1, max: 1, type: "elevator" },
+  { q: "ascensor decathlon", min: 1, max: 1, type: "elevator" },
+  { q: "ascensor h&m", min: 1, max: 2, type: "elevator" },
+  { q: "ascensor nivel 5", min: 1, max: 4, type: "elevator" },
+  { serviceId: "ascensor-ripley", min: 1, max: 1 },
+  { serviceId: "ascensor-zara", min: 1, max: 1 },
 ];
 
 let fails = 0;
@@ -100,10 +104,23 @@ for (const testCase of cases) {
   if (!ok) fails++;
 }
 {
-  const ranked = ServicesCatalog.search("ascensor", { preferFloor: "2" });
+  const ranked = ServicesCatalog.search("ascensor ripley", { preferFloor: "2" });
   const top = ranked[0] && ranked[0].id;
-  const ok = top === "ascensor-n2-ripley";
-  console.log((ok ? "PASS" : "FAIL") + ' "ascensor" preferFloor=2 -> top=' + (top || "-"));
+  const ok = top === "ascensor-ripley";
+  console.log((ok ? "PASS" : "FAIL") + ' "ascensor ripley" preferFloor=2 -> top=' + (top || "-"));
+  if (!ok) fails++;
+}
+{
+  const card = ServicesCatalog.toResultCard(
+    ServicesCatalog.getById("ascensor-ripley"),
+    { preferFloor: "5" }
+  );
+  const ok = card.anchorLocal === "CC_N5_5524";
+  console.log(
+    (ok ? "PASS" : "FAIL") +
+      " ascensor-ripley preferFloor=5 anchor=" +
+      (card.anchorLocal || "-")
+  );
   if (!ok) fails++;
 }
 

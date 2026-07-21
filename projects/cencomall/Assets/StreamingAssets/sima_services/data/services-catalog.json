@@ -423,122 +423,114 @@
       }
     },
     {
-      "id": "ascensor-pb-easy",
+      "id": "ascensor-ripley",
       "type": "elevator",
-      "sector": "easy",
-      "name": "Ascensor — Sector Easy (Planta Baja)",
+      "sector": "ripley",
+      "name": "Ascensor — Sector Ripley",
       "floors": ["PB", "1", "2", "3", "4", "5"],
       "features": { "accesible": true },
       "layout": "banco_vertical",
       "anchorStores": [
-        { "brand": "Easy", "local": "CC_PB_100", "role": "primary" },
-        { "brand": "AFEX", "local": "CC_PB_150", "role": "secondary" }
+        { "brand": "Easy", "local": "CC_PB_100", "role": "secondary", "floors": ["PB"] },
+        { "brand": "JUMBO", "local": "CC_N1_1000", "role": "secondary", "floors": ["1"] },
+        { "brand": "Ripley", "local": "CC_N2_1300", "role": "primary", "floors": ["2"] },
+        { "brand": "Nike Rise", "local": "CC_N2_2192", "role": "secondary", "floors": ["2"] },
+        { "brand": "BOLD", "local": "CC_N3_3208", "role": "secondary", "floors": ["3"] },
+        { "brand": "Ripley", "local": "CC_N3_1300", "role": "secondary", "floors": ["3"] },
+        { "brand": "Sparta", "local": "CC_N4_4208", "role": "secondary", "floors": ["4"] },
+        { "brand": "Ripley", "local": "CC_N4_1300", "role": "secondary", "floors": ["4"] },
+        { "brand": "Burger King", "local": "CC_N5_5524", "role": "secondary", "floors": ["5"] }
       ],
       "descriptions": {
-        "short": "Ascensor cerca de Easy en planta baja.",
-        "medium": "Banco de ascensores junto a Easy / Afex, útil para subir a los niveles superiores.",
-        "long": "Desde Easy en planta baja, busca el banco de ascensores del sector. Sirve varios niveles del mall."
+        "short": "Banco de ascensores del sector Ripley / ancla (todos los pisos).",
+        "medium": "Misma torre vertical: Easy (PB), Jumbo–Ripley (N1), Nike Rise–Ripley (N2), Bold–Ripley (N3), Sparta–Ripley (N4), Burger King (N5).",
+        "long": "Ascensores alineados en el eje Ripley. En PB junto a Easy; en niveles 1–4 junto a Ripley; en el patio de comidas cerca de Burger King."
       },
-      "keywords": ["ascensor", "ascensores", "elevador", "elevator", "easy", "afex", "planta baja", "pb"],
+      "keywords": [
+        "ascensor", "ascensores", "elevador", "elevator",
+        "ripley", "easy", "jumbo", "nike", "nike rise", "bold", "sparta",
+        "burger king", "bk", "ancla"
+      ],
       "mapvx": { "poiRef": null, "mapvxId": null, "lat": null, "lng": null, "validatedAt": null }
     },
     {
-      "id": "ascensor-n1-central",
+      "id": "ascensor-vitacura",
       "type": "elevator",
-      "sector": "central",
-      "name": "Ascensor — Pasillo central (Nivel 1)",
-      "floors": ["1", "PB", "2", "3", "4", "5"],
+      "sector": "vitacura",
+      "name": "Ascensor — Sector Av. Vitacura",
+      "floors": ["PB", "1", "2", "3", "4", "5"],
       "features": { "accesible": true },
       "layout": "banco_vertical",
       "anchorStores": [
-        { "brand": "Piedras Australes", "local": "CC_N1_1196", "role": "primary" },
-        { "brand": "Volka Chokolade", "local": "CC_N1_1198", "role": "secondary" }
+        { "brand": "Decathlon", "local": "CC_PB_300", "role": "primary", "floors": ["PB"] },
+        { "brand": "Victoria's Secret", "local": "CC_N2_2128", "role": "secondary", "floors": ["2"] },
+        { "brand": "Samsonite", "local": "CC_N3_3120", "role": "secondary", "floors": ["3"] },
+        { "brand": "Studio F", "local": "CC_N3_3124", "role": "secondary", "floors": ["3"] },
+        { "brand": "OAKLEY", "local": "CC_N4_4120", "role": "secondary", "floors": ["4"] },
+        { "brand": "Maui And Sons", "local": "CC_N4_4124", "role": "secondary", "floors": ["4"] },
+        { "brand": "Barra Chalaca", "local": "CC_N5_5116", "role": "secondary", "floors": ["5"] }
       ],
       "descriptions": {
-        "short": "Ascensor en el pasillo central del nivel 1.",
-        "medium": "Cerca de Piedras Australes / Volka, en la zona central del mall.",
-        "long": "En el pasillo central del Nivel 1. Referencia Piedras Australes o Volka Chokolade."
+        "short": "Banco de ascensores hacia Av. Vitacura (Decathlon / MaxiK).",
+        "medium": "Torre vertical lado Vitacura: Decathlon (PB), MaxiK y escaleras (N1), Moule–Victoria’s Secret (N2), Samsonite–Studio F (N3), Oakley–Maui (N4), Barra Chalaca (N5).",
+        "long": "Ascensores del costado Av. Vitacura. En planta baja junto a Decathlon; en niveles superiores en el pasillo de ese mismo eje."
       },
-      "keywords": ["ascensor", "ascensores", "elevador", "elevator", "nivel 1", "piso 1", "central"],
+      "keywords": [
+        "ascensor", "ascensores", "elevador", "elevator",
+        "vitacura", "decathlon", "maxik", "victoria secret", "moule",
+        "samsonite", "studio f", "oakley", "maui", "barra chalaca"
+      ],
       "mapvx": { "poiRef": null, "mapvxId": null, "lat": null, "lng": null, "validatedAt": null }
     },
     {
-      "id": "ascensor-n2-ripley",
+      "id": "ascensor-hm",
       "type": "elevator",
-      "sector": "ripley",
-      "name": "Ascensor — Sector Ripley (Nivel 2)",
-      "floors": ["2", "PB", "1", "3", "4", "5"],
+      "sector": "hm",
+      "name": "Ascensor — Sector H&M / pasillo lateral",
+      "floors": ["PB", "1", "2", "3", "4", "5"],
       "features": { "accesible": true },
       "layout": "banco_vertical",
       "anchorStores": [
-        { "brand": "Ripley", "local": "CC_N2_1300", "role": "primary" }
+        { "brand": "AFEX", "local": "CC_PB_150", "role": "secondary", "floors": ["PB"] },
+        { "brand": "Blush-Bar", "local": "CC_N1_1170", "role": "secondary", "floors": ["1"] },
+        { "brand": "H&M", "local": "CC_N2_2136", "role": "primary", "floors": ["2"] },
+        { "brand": "H&M", "local": "CC_N3_2136", "role": "secondary", "floors": ["3"] },
+        { "brand": "Fabrics", "local": "CC_N4_4148", "role": "secondary", "floors": ["4"] },
+        { "brand": "Texas Ribs", "local": "CC_N5_5144", "role": "secondary", "floors": ["5"] }
       ],
       "descriptions": {
-        "short": "Ascensor junto a Ripley en el nivel 2.",
-        "medium": "Pasillo lateral Ripley–Natura, junto al ascensor del sector Ripley.",
-        "long": "En el pasillo que separa Ripley de Natura. El banco de ascensores queda junto a Ripley."
+        "short": "Banco de ascensores del pasillo lateral (H&M / baños PB).",
+        "medium": "Torre lateral: baños PB, Blush Bar (N1), H&M (N2–N3), pasillo Fabrics (N4), Texas Ribs (N5).",
+        "long": "Ascensores del costado opuesto a Vitacura. En PB junto a los baños; en N2/N3 junto a H&M; en N5 detrás de Texas Ribs."
       },
-      "keywords": ["ascensor", "ascensores", "elevador", "elevator", "ripley", "nivel 2", "piso 2"],
+      "keywords": [
+        "ascensor", "ascensores", "elevador", "elevator",
+        "h&m", "hm", "blush", "blush bar", "fabrics", "texas ribs",
+        "baño", "baños", "lateral"
+      ],
       "mapvx": { "poiRef": null, "mapvxId": null, "lat": null, "lng": null, "validatedAt": null }
     },
     {
-      "id": "ascensor-n3-ripley",
+      "id": "ascensor-zara",
       "type": "elevator",
-      "sector": "ripley",
-      "name": "Ascensor — Sector Ripley (Nivel 3)",
-      "floors": ["3", "PB", "1", "2", "4", "5"],
+      "sector": "zara",
+      "name": "Ascensor — Sector Zara (Nivel 3)",
+      "floors": ["3", "2"],
       "features": { "accesible": true },
       "layout": "banco_vertical",
       "anchorStores": [
-        { "brand": "Ripley", "local": "CC_N3_1300", "role": "primary" },
-        { "brand": "Wrangler", "local": "CC_N3_3204", "role": "secondary" }
+        { "brand": "Zara", "local": "CC_N3_2156", "role": "primary", "floors": ["3"] },
+        { "brand": "Zara", "local": "CC_N2_2156", "role": "secondary", "floors": ["2"] }
       ],
       "descriptions": {
-        "short": "Ascensor junto a Ripley en el nivel 3.",
-        "medium": "Pasillo entre Ripley y Wrangler, cerca del ascensor del sector.",
-        "long": "En el pasillo Ripley–Wrangler del Nivel 3. El ascensor queda junto a Ripley."
+        "short": "Ascensor junto a Zara en el nivel 3.",
+        "medium": "Banco confirmado en N3 a un costado de Zara (también referencia Zara N2).",
+        "long": "En el Nivel 3, justo al costado de la entrada de Zara. Úsalo si estás en la zona Zara / pasillo superior."
       },
-      "keywords": ["ascensor", "ascensores", "elevador", "elevator", "ripley", "nivel 3", "piso 3"],
-      "mapvx": { "poiRef": null, "mapvxId": null, "lat": null, "lng": null, "validatedAt": null }
-    },
-    {
-      "id": "ascensor-n4-ripley",
-      "type": "elevator",
-      "sector": "ripley",
-      "name": "Ascensor — Sector Ripley (Nivel 4)",
-      "floors": ["4", "PB", "1", "2", "3", "5"],
-      "features": { "accesible": true },
-      "layout": "banco_vertical",
-      "anchorStores": [
-        { "brand": "Ripley", "local": "CC_N4_1300", "role": "primary" },
-        { "brand": "Totto", "local": "CC_N4_4202", "role": "secondary" }
+      "keywords": [
+        "ascensor", "ascensores", "elevador", "elevator",
+        "zara", "nivel 3", "piso 3", "nivel 2", "piso 2"
       ],
-      "descriptions": {
-        "short": "Ascensor junto a Ripley en el nivel 4.",
-        "medium": "Pasillo Ripley–Totto; mudador y ascensor en la esquina de Ripley.",
-        "long": "En el pasillo lateral Ripley–Totto del Nivel 4. Ascensor en la esquina de Ripley."
-      },
-      "keywords": ["ascensor", "ascensores", "elevador", "elevator", "ripley", "nivel 4", "piso 4"],
-      "mapvx": { "poiRef": null, "mapvxId": null, "lat": null, "lng": null, "validatedAt": null }
-    },
-    {
-      "id": "ascensor-n5-comidas",
-      "type": "elevator",
-      "sector": "patio-comidas",
-      "name": "Ascensor — Patio de comidas (Nivel 5)",
-      "floors": ["5", "PB", "1", "2", "3", "4"],
-      "features": { "accesible": true },
-      "layout": "banco_vertical",
-      "anchorStores": [
-        { "brand": "Crepes y Waffles", "local": "CC_N5_5121", "role": "primary" },
-        { "brand": "Doggis", "local": "CC_N5_5525", "role": "secondary" }
-      ],
-      "descriptions": {
-        "short": "Ascensor en el patio de comidas (nivel 5).",
-        "medium": "Cerca de Crepes y Waffles / Doggis, para bajar a los niveles del mall.",
-        "long": "En el nivel de restaurantes. Referencia Crepes y Waffles o Doggis."
-      },
-      "keywords": ["ascensor", "ascensores", "elevador", "elevator", "nivel 5", "patio de comidas", "restaurantes", "comida"],
       "mapvx": { "poiRef": null, "mapvxId": null, "lat": null, "lng": null, "validatedAt": null }
     }
   ]
