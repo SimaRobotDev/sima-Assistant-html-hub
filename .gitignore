@@ -15,3 +15,5 @@ deploy/
 tools/.mapvx-local.json
 data/bathroom-mapvx-patches.json
 projects/cencomall/Assets/StreamingAssets/sima_services/data/bathroom-mapvx-patches.json
+data/elevator-mapvx-patches.json
+projects/cencomall/Assets/StreamingAssets/sima_services/data/elevator-mapvx-patches.json

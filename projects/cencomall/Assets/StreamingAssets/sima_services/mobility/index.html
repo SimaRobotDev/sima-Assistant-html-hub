@@ -1390,7 +1390,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA map-perf phase2 2026.07.21-4";
+const MOBILITY_UI_VERSION = "OTA elevators phase1 2026.07.21-5";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -2411,9 +2411,11 @@ function getInitialServiceQuery() {
 }
 
 function looksLikeServicesCatalogQuery(query) {
-  return typeof ServicesCatalog !== "undefined"
-    && ServicesCatalog.looksLikeBathroomQuery
-    && ServicesCatalog.looksLikeBathroomQuery(query);
+  if (typeof ServicesCatalog === "undefined") return false;
+  if (ServicesCatalog.looksLikeServicesQuery) {
+    return ServicesCatalog.looksLikeServicesQuery(query);
+  }
+  return !!(ServicesCatalog.looksLikeBathroomQuery && ServicesCatalog.looksLikeBathroomQuery(query));
 }
 
 function routeUnifiedSearch(query, options) {
@@ -4724,7 +4726,7 @@ function setupMapControls(result) {
 async function openPoiMapViaMapVx(opts) {
   const {
     poiType, id, floor, mall, name, local, mode,
-    anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId,
+    anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId, serviceType,
   } = opts || {};
   const container = document.getElementById("mapvx-container");
   const iframe = document.getElementById("map-iframe");
@@ -4770,6 +4772,7 @@ async function openPoiMapViaMapVx(opts) {
     const bridgeOptions = isService
       ? {
           poiType: "service",
+          serviceType: serviceType || "bathroom",
           serviceId: serviceId || id,
           id: serviceId || id,
           name,
@@ -4891,7 +4894,7 @@ function storeCatalogId(store) {
 function openPoiMap(opts) {
   const {
     poiType, id, floor, mall, name, local, catalogId, mode, storeDetail,
-    anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId,
+    anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId, serviceType,
   } = opts || {};
 
   const isService = poiType === "service";
@@ -4904,7 +4907,7 @@ function openPoiMap(opts) {
 
   logMap("info", "openPoiMap called", {
     poiType, id, catalogId: mapCatalogId, floor, mall, name,
-    local: mapLocal, serviceKey, mode,
+    local: mapLocal, serviceKey, serviceType, mode,
   });
 
   if (isService) {
@@ -4942,6 +4945,7 @@ function openPoiMap(opts) {
         poiType,
         id: serviceKey,
         serviceId: serviceKey,
+        serviceType: serviceType || "bathroom",
         floor,
         mall,
         name,
@@ -5075,6 +5079,7 @@ function openServiceMap(idx) {
 
   openPoiMap({
     poiType: "service",
+    serviceType: normalized.type || "bathroom",
     serviceId: normalized.id || normalized.catalogId,
     id: normalized.id || normalized.catalogId,
     floor: floor === "ALL" ? "" : floor,

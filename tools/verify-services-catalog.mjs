@@ -32,17 +32,33 @@ await ServicesCatalog.loadCatalog();
 
 if (!ServicesCatalog.isReady()) throw new Error("ServicesCatalog not ready");
 const all = ServicesCatalog.getAll();
-console.log("catalog ready:", all.length, "bathrooms");
-if (all.length !== 9) throw new Error("expected 9 bathrooms, got " + all.length);
+const bathrooms = all.filter((e) => e.type === "bathroom");
+const elevators = all.filter((e) => e.type === "elevator");
+console.log(
+  "catalog ready:",
+  all.length,
+  "services (",
+  bathrooms.length,
+  "bathrooms,",
+  elevators.length,
+  "elevators)"
+);
+if (bathrooms.length !== 9) throw new Error("expected 9 bathrooms, got " + bathrooms.length);
+if (elevators.length < 1) throw new Error("expected at least 1 elevator, got " + elevators.length);
 
 const cases = [
-  { q: "baños", min: 1 },
-  { q: "banos nivel 2", min: 1, max: 3 },
-  { q: "ripley nivel 3", min: 1, max: 2 },
-  { q: "mudador", min: 1, max: 4 },
-  { q: "afex", min: 1, max: 2 },
-  { q: "patio de comidas", min: 1, max: 2 },
+  { q: "baños", min: 1, type: "bathroom" },
+  { q: "banos nivel 2", min: 1, max: 3, type: "bathroom" },
+  { q: "ripley nivel 3", min: 1, max: 5 },
+  { q: "mudador", min: 1, max: 4, type: "bathroom" },
+  { q: "afex", min: 1, max: 3 },
+  { q: "patio de comidas", min: 1, max: 3 },
   { serviceId: "bano-n2-ripley", min: 1, max: 1 },
+  { q: "ascensor", min: 1, type: "elevator" },
+  { q: "ascensores", min: 1, type: "elevator" },
+  { q: "elevador ripley", min: 1, max: 3, type: "elevator" },
+  { q: "ascensor nivel 5", min: 1, max: 2, type: "elevator" },
+  { serviceId: "ascensor-n2-ripley", min: 1, max: 1 },
 ];
 
 let fails = 0;
@@ -50,9 +66,13 @@ for (const testCase of cases) {
   const results = testCase.serviceId
     ? ServicesCatalog.search("", { serviceId: testCase.serviceId })
     : ServicesCatalog.search(testCase.q);
+  const typeOk =
+    !testCase.type ||
+    results.every((row) => !row.type || row.type === testCase.type);
   const ok =
     results.length >= testCase.min &&
-    (!testCase.max || results.length <= testCase.max);
+    (!testCase.max || results.length <= testCase.max) &&
+    typeOk;
   console.log(
     (ok ? "PASS" : "FAIL") +
       " " +
@@ -77,6 +97,13 @@ for (const testCase of cases) {
   const top = ranked[0] && ranked[0].id;
   const ok = top === "bano-pb-afex";
   console.log((ok ? "PASS" : "FAIL") + ' "baños" preferFloor=PB -> top=' + (top || "-"));
+  if (!ok) fails++;
+}
+{
+  const ranked = ServicesCatalog.search("ascensor", { preferFloor: "2" });
+  const top = ranked[0] && ranked[0].id;
+  const ok = top === "ascensor-n2-ripley";
+  console.log((ok ? "PASS" : "FAIL") + ' "ascensor" preferFloor=2 -> top=' + (top || "-"));
   if (!ok) fails++;
 }
 
@@ -114,7 +141,15 @@ function hasCompleteMapvx(entry) {
   console.log(
     "mapvx catalog: complete=" +
       withMapvx.length +
-      "/9 incomplete=" +
+      "/" +
+      all.length +
+      " bathroomsComplete=" +
+      bathrooms.filter(hasCompleteMapvx).length +
+      "/9 elevatorsComplete=" +
+      elevators.filter(hasCompleteMapvx).length +
+      "/" +
+      elevators.length +
+      " incomplete=" +
       incomplete.length
   );
   for (const entry of incomplete) {
@@ -128,6 +163,13 @@ function hasCompleteMapvx(entry) {
       fails++;
     }
   }
+}
+
+if (!ServicesCatalog.looksLikeElevatorQuery("dónde está el ascensor")) {
+  console.log("FAIL looksLikeElevatorQuery");
+  fails++;
+} else {
+  console.log("PASS looksLikeElevatorQuery");
 }
 
 if (fails) {

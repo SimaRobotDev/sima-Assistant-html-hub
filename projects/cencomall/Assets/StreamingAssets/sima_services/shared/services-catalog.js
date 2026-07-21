@@ -1,5 +1,5 @@
 /**
- * Mall infrastructure services catalog (bathrooms pilot).
+ * Mall infrastructure services catalog (bathrooms + elevators).
  */
 window.ServicesCatalog = (function () {
   var catalog = null;
@@ -81,6 +81,20 @@ window.ServicesCatalog = (function () {
     return /\b(bano|banos|wc|restroom|toilet|servicio\s*sanitario|sanitario)\b/.test(n);
   }
 
+  function looksLikeElevatorQuery(query) {
+    var n = normalizeText(query);
+    if (!n) return false;
+    return /\b(ascensor|ascensores|elevador|elevadores|elevator|elevators)\b/.test(n);
+  }
+
+  function looksLikeServicesQuery(query) {
+    return looksLikeBathroomQuery(query) || looksLikeElevatorQuery(query);
+  }
+
+  function entryType(entry) {
+    return String((entry && entry.type) || "bathroom").toLowerCase();
+  }
+
   function primaryAnchor(entry) {
     var stores = (entry && entry.anchorStores) || [];
     for (var i = 0; i < stores.length; i++) {
@@ -125,7 +139,6 @@ window.ServicesCatalog = (function () {
     var m = n.match(/(?:nivel|piso|floor|level|n)\s*(\d+)/);
     if (m) return m[1];
     if (/^\d+$/.test(n)) return n;
-    // MapVX-style keys: N2, CC_N3_..., floor-2
     var mapvx = n.match(/\bn\s*(\d+)\b/) || n.match(/(\d+)/);
     if (mapvx) return mapvx[1];
     return raw.toUpperCase();
@@ -145,14 +158,24 @@ window.ServicesCatalog = (function () {
     });
   }
 
-  function scoreEntry(entry, queryNorm, floorFilter, mudadorOnly, preferFloor) {
+  function scoreEntry(entry, queryNorm, floorFilter, mudadorOnly, preferFloor, typeFilter) {
     if (!entry) return -1;
-    if (mudadorOnly && !(entry.features && entry.features.mudador)) return -1;
+    var type = entryType(entry);
+    if (typeFilter && type !== typeFilter) return -1;
+    if (mudadorOnly) {
+      if (type !== "bathroom") return -1;
+      if (!(entry.features && entry.features.mudador)) return -1;
+    }
     if (floorFilter && entry.floors && entry.floors.length) {
-      var floorOk = entry.floors.some(function (f) {
-        return floorsMatch(f, floorFilter);
-      });
-      if (!floorOk) return -1;
+      // Elevators span many floors — floor in query matches the bank's primary floor.
+      if (type === "elevator") {
+        if (!floorsMatch(entry.floors[0], floorFilter)) return -1;
+      } else {
+        var floorOk = entry.floors.some(function (f) {
+          return floorsMatch(f, floorFilter);
+        });
+        if (!floorOk) return -1;
+      }
     }
 
     var score = 0;
@@ -171,14 +194,27 @@ window.ServicesCatalog = (function () {
       if (brand && queryNorm.indexOf(brand) >= 0) score += 6;
     });
 
-    if (looksLikeBathroomQuery(queryNorm)) score += 1;
+    if (type === "bathroom" && looksLikeBathroomQuery(queryNorm)) score += 1;
+    if (type === "elevator" && looksLikeElevatorQuery(queryNorm)) score += 1;
 
-    // Totem floor context: boost same-floor bathrooms for generic "baños".
     if (preferFloor && entryOnFloor(entry, preferFloor)) {
       score += floorFilter ? 2 : 8;
+      // Elevators span many floors — boost the bank whose primary floor matches.
+      if (entry.floors && entry.floors.length && floorsMatch(entry.floors[0], preferFloor)) {
+        score += 6;
+      }
     }
 
     return score;
+  }
+
+  function inferTypeFilter(queryNorm, mudadorOnly) {
+    if (mudadorOnly) return "bathroom";
+    var bath = looksLikeBathroomQuery(queryNorm);
+    var elev = looksLikeElevatorQuery(queryNorm);
+    if (elev && !bath) return "elevator";
+    if (bath && !elev) return "bathroom";
+    return "";
   }
 
   function loadCatalog() {
@@ -227,12 +263,20 @@ window.ServicesCatalog = (function () {
     getAll: function () {
       return (catalog && catalog.services) ? catalog.services.slice() : [];
     },
+    getByType: function (type) {
+      var t = String(type || "").toLowerCase();
+      return ((catalog && catalog.services) || []).filter(function (entry) {
+        return entryType(entry) === t;
+      });
+    },
     getById: function (id) {
       if (!id) return null;
       if (!byId) buildIndex(catalog || {});
       return byId[id] || null;
     },
     looksLikeBathroomQuery: looksLikeBathroomQuery,
+    looksLikeElevatorQuery: looksLikeElevatorQuery,
+    looksLikeServicesQuery: looksLikeServicesQuery,
     toResultCard: toResultCard,
     search: function (query, options) {
       options = options || {};
@@ -242,6 +286,9 @@ window.ServicesCatalog = (function () {
       var preferFloor = normalizeFloorKey(options.preferFloor || options.totemFloor || "");
       var mudadorOnly = options.mudadorOnly != null ? options.mudadorOnly : wantsMudador(q);
       var serviceId = options.serviceId ? String(options.serviceId).trim() : "";
+      var typeFilter = options.type
+        ? String(options.type).toLowerCase()
+        : inferTypeFilter(q, mudadorOnly);
 
       if (serviceId && byId && byId[serviceId]) {
         return [toResultCard(byId[serviceId])];
@@ -249,7 +296,10 @@ window.ServicesCatalog = (function () {
 
       var scored = catalog.services
         .map(function (entry) {
-          return { entry: entry, score: scoreEntry(entry, q, floorFilter, mudadorOnly, preferFloor) };
+          return {
+            entry: entry,
+            score: scoreEntry(entry, q, floorFilter, mudadorOnly, preferFloor, typeFilter),
+          };
         })
         .filter(function (row) {
           return row.score >= 0;
@@ -258,9 +308,10 @@ window.ServicesCatalog = (function () {
           return b.score - a.score;
         });
 
-      if (!scored.length && looksLikeBathroomQuery(q)) {
+      if (!scored.length && (looksLikeBathroomQuery(q) || looksLikeElevatorQuery(q))) {
         return catalog.services
           .filter(function (entry) {
+            if (typeFilter && entryType(entry) !== typeFilter) return false;
             if (mudadorOnly && !(entry.features && entry.features.mudador)) return false;
             if (!floorFilter || !entry.floors || !entry.floors.length) return !floorFilter;
             return entry.floors.some(function (f) {
@@ -277,7 +328,10 @@ window.ServicesCatalog = (function () {
 
       if (!scored.length) return [];
 
-      var minScore = scored[0].score > 0 ? 1 : 0;
+      var topScore = scored[0].score;
+      var minScore = topScore > 0 ? 1 : 0;
+      // When a strong match exists (brand/sector), drop generic-only hits.
+      if (topScore >= 6) minScore = Math.max(minScore, topScore - 2);
       return scored
         .filter(function (row) {
           return row.score >= minScore;
