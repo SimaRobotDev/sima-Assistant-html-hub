@@ -4814,6 +4814,8 @@ async function openPoiMapViaMapVx(opts) {
     };
     container.classList.add("hidden");
     MapVxBridge.destroyMap();
+    mapVxPreloadPromise = null;
+    if (container) container.innerHTML = "";
     setMapLoadingState(false);
     stopMapZoomMeter();
     const placeholder = document.getElementById("map-placeholder");

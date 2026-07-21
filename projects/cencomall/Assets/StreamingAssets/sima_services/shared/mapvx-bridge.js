@@ -2733,6 +2733,15 @@ window.MapVxBridge = (function () {
         destroyMap();
       } else {
         log("info", "ensureMap: reusing existing map instance");
+        await waitForMapContainerLayout(containerEl);
+        try {
+          var reusedLibreMap = getLibreMap(map);
+          if (reusedLibreMap && typeof reusedLibreMap.resize === "function") {
+            reusedLibreMap.resize();
+          }
+        } catch (eResize) {
+          log("warn", "ensureMap reuse resize failed", { error: String(eResize.message || eResize) });
+        }
         return map;
       }
     }
