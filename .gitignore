@@ -10,3 +10,8 @@ UserSettings/
 Build/
 Builds/
 deploy/
+
+# Local MapVX credentials + generated bathroom patch exports (never commit apiKey)
+tools/.mapvx-local.json
+data/bathroom-mapvx-patches.json
+projects/cencomall/Assets/StreamingAssets/sima_services/data/bathroom-mapvx-patches.json

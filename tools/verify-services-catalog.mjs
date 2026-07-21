@@ -88,6 +88,48 @@ for (const entry of all) {
   }
 }
 
+function isValidCoord(value) {
+  return value != null && Number.isFinite(Number(value));
+}
+
+function hasCompleteMapvx(entry) {
+  const mv = entry.mapvx || {};
+  const poiRef = mv.poiRef ? String(mv.poiRef).trim() : "";
+  const mapvxId = mv.mapvxId ? String(mv.mapvxId).trim() : "";
+  return !!(poiRef || mapvxId) && isValidCoord(mv.lat) && isValidCoord(mv.lng) && !!mv.validatedAt;
+}
+
+{
+  const withMapvx = all.filter(hasCompleteMapvx);
+  const incomplete = all.filter((entry) => {
+    const mv = entry.mapvx || {};
+    const any =
+      mv.poiRef ||
+      mv.mapvxId ||
+      mv.lat != null ||
+      mv.lng != null ||
+      mv.validatedAt;
+    return any && !hasCompleteMapvx(entry);
+  });
+  console.log(
+    "mapvx catalog: complete=" +
+      withMapvx.length +
+      "/9 incomplete=" +
+      incomplete.length
+  );
+  for (const entry of incomplete) {
+    console.log("FAIL incomplete mapvx block:", entry.id, entry.mapvx);
+    fails++;
+  }
+  for (const entry of withMapvx) {
+    const card = ServicesCatalog.toResultCard(entry);
+    if (!isValidCoord(card.mapvxLat) || !isValidCoord(card.mapvxLng)) {
+      console.log("FAIL mapvx coords on card:", entry.id);
+      fails++;
+    }
+  }
+}
+
 if (fails) {
   console.error("\n" + fails + " services catalog test(s) failed.");
   process.exit(1);

@@ -1,0 +1,8 @@
+{
+  "apiKey": "YOUR_MAPVX_API_KEY",
+  "parentPlace": "-N19VjzEVIj2RDKu7i4r",
+  "institutionId": "-N19VgPNxo3jiBtu583Z",
+  "lang": "es",
+  "baseUrl": "http://localhost:8765",
+  "mapPath": "/map/"
+}

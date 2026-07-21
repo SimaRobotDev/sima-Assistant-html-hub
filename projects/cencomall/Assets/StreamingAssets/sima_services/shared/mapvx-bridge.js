@@ -265,12 +265,19 @@ window.MapVxBridge = (function () {
     return new Promise(function (resolve) { setTimeout(resolve, ms); });
   }
 
+  function hasCatalogMapvxCoords(options) {
+    if (!options) return false;
+    var lat = options.lat;
+    var lng = options.lng;
+    return lat != null && lng != null && isFinite(Number(lat)) && isFinite(Number(lng));
+  }
+
   function needsToiletPoiDiscovery(options) {
     if (!options) return false;
     var poiRef = options.poiRef ? String(options.poiRef).trim() : "";
     var mapvxId = options.mapvxId ? String(options.mapvxId).trim() : "";
-    if (poiRef || mapvxId) return false;
-    if (options.lat != null && options.lng != null) return false;
+    // Fast path only when catalog has verified coordinates (+ ref/id).
+    if (hasCatalogMapvxCoords(options) && (poiRef || mapvxId)) return false;
     return !!(options.anchorLocal || options.serviceId || options.id);
   }
 
@@ -3183,39 +3190,39 @@ window.MapVxBridge = (function () {
     var attempts = [];
 
     var explicitId = mapvxId || poiRef;
-    if (explicitId) {
+    if (explicitId && hasCatalogMapvxCoords(options)) {
       try {
-        var byRef = await sdk.getPlaceDetail(explicitId);
-        if (byRef && byRef.mapvxId) {
+        var byRefCoords = await sdk.getPlaceDetail(explicitId);
+        if (byRefCoords && byRefCoords.mapvxId) {
           return {
-            place: byRef,
+            place: byRefCoords,
             resolvedBy: "getPlaceDetail(poiRef)",
             lookupKey: explicitId,
             attempts: attempts,
           };
         }
-      } catch (eRef) {
-        attempts.push({ method: "getPlaceDetail(poiRef)", error: String(eRef.message || eRef) });
-      }
-
-      if (options.lat != null && options.lng != null) {
-        return {
-          place: buildSyntheticServicePlace(
-            { ref: explicitId, lat: options.lat, lng: options.lng, name: name },
-            name
-          ),
-          resolvedBy: "catalog-coords",
-          lookupKey: explicitId,
-          attempts: attempts,
-        };
+      } catch (eRefCoords) {
+        attempts.push({ method: "getPlaceDetail(poiRef)", error: String(eRefCoords.message || eRefCoords) });
       }
 
       return {
-        place: buildSyntheticServicePlace({ ref: explicitId, name: name }, name),
-        resolvedBy: "catalog-poiRef",
+        place: buildSyntheticServicePlace(
+          { ref: explicitId, lat: options.lat, lng: options.lng, name: name },
+          name
+        ),
+        resolvedBy: "catalog-coords",
         lookupKey: explicitId,
         attempts: attempts,
       };
+    }
+
+    if (explicitId) {
+      attempts.push({
+        method: "catalog-poiRef-incomplete",
+        skipped: true,
+        reason: "poiRef without lat/lng — using dynamic toilet discovery",
+        explicitId: explicitId,
+      });
     }
 
     var anchorPlace = null;
@@ -3562,7 +3569,7 @@ window.MapVxBridge = (function () {
 
     var floorHint = entry.floors && entry.floors.length ? entry.floors[0] : "";
     var mapvx = entry.mapvx || {};
-    return resolveServiceDestination({
+    var resolveOpts = {
       serviceId: entry.id,
       name: entry.name,
       floor: floorHint,
@@ -3572,7 +3579,26 @@ window.MapVxBridge = (function () {
       lat: mapvx.lat,
       lng: mapvx.lng,
       preferChangingTable: !!(entry.features && entry.features.mudador),
-    });
+    };
+
+    var parentPlace = await getParentPlaceCached(config.parentPlace).catch(function () { return null; });
+    if (parentPlace) {
+      registerParentPlace(map, parentPlace);
+    }
+
+    var preFloorId = pickFloorId(
+      null,
+      floorHint,
+      parentPlace,
+      anchorLocal || null
+    );
+    if (preFloorId && needsToiletPoiDiscovery(resolveOpts)) {
+      await applyPlaceFloorAndWait(map, config, preFloorId, parentPlace);
+      scheduleRetailPoiIconFilter(map, config);
+      await waitForLibreMapIdle(getLibreMap(map), 700);
+    }
+
+    return resolveServiceDestination(resolveOpts);
   }
 
   async function showPlace(containerEl, options) {
