@@ -1060,6 +1060,39 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   background: linear-gradient(180deg, #FFF 0%, #F9F5FE 100%);
 }
 
+.service-card-elevator {
+  border-color: #B8D4E8;
+  background: linear-gradient(180deg, #FFF 0%, #F3F8FC 100%);
+}
+
+.service-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  background: #F0EAF8;
+}
+
+.service-card-elevator .service-card-icon {
+  background: #E4F0F8;
+}
+
+.service-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.service-card-title-row .service-name {
+  margin-bottom: 0;
+}
+
 .service-card-top {
   display: flex;
   flex-direction: column;
@@ -1390,7 +1423,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA elevators banks 2026.07.21-6";
+const MOBILITY_UI_VERSION = "OTA elevators UX 2026.07.21-7";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -1445,6 +1478,7 @@ const MOBILITY_I18N = {
     surveyThanks: "¡Gracias por tu evaluación!",
     bathrooms: "Baños",
     bathroomsKids: "Niños y mudadores",
+    elevators: "Ascensores",
     allLevels: "Todos los niveles",
     level: "Nivel",
     gf: "PB",
@@ -1537,6 +1571,7 @@ const MOBILITY_I18N = {
     surveyThanks: "Thanks for your feedback!",
     bathrooms: "Restrooms",
     bathroomsKids: "Kids & changing",
+    elevators: "Elevators",
     allLevels: "All levels",
     level: "Level",
     gf: "GF",
@@ -1629,6 +1664,7 @@ const MOBILITY_I18N = {
     surveyThanks: "Obrigado pela avaliação!",
     bathrooms: "Banheiros",
     bathroomsKids: "Crianças e fraldário",
+    elevators: "Elevadores",
     allLevels: "Todos os níveis",
     level: "Nível",
     gf: "Térreo",
@@ -3546,16 +3582,32 @@ function getMapButtonLabelForFloor(floor) {
 function formatServiceFloors(floors) {
   if (!floors || !floors.length) return "";
   if (floors.includes("ALL")) return t("allLevels");
-  return floors.map((f) => formatNivel(f)).join(" · ");
+  const labels = floors.map((f) => formatNivel(f)).filter(Boolean);
+  if (labels.length <= 2) return labels.join(" · ");
+  // Compact range for multi-floor elevator banks: PB–Nivel 5
+  return labels[0] + "–" + labels[labels.length - 1];
 }
 
-function getServiceKind(name) {
-  const n = String(name || "").toLowerCase();
-  if (n.includes("niños") || n.includes("ninos") || n.includes("mudador"))
-    return "kids";
-  if (n.includes("baño") || n.includes("bano") || n.includes("wc"))
+function getServiceKind(svc) {
+  const type = String((svc && svc.type) || "").toLowerCase();
+  if (type === "elevator") return "elevator";
+  if (type === "bathroom") {
+    const n = String((svc && svc.name) || "").toLowerCase();
+    if (n.includes("niños") || n.includes("ninos") || n.includes("mudador")) return "kids";
     return "bathroom";
+  }
+  const n = String((svc && (typeof svc === "string" ? svc : svc.name)) || "").toLowerCase();
+  if (n.includes("ascensor") || n.includes("elevador") || n.includes("elevator")) return "elevator";
+  if (n.includes("niños") || n.includes("ninos") || n.includes("mudador")) return "kids";
+  if (n.includes("baño") || n.includes("bano") || n.includes("wc")) return "bathroom";
   return "";
+}
+
+function serviceKindIcon(kind) {
+  if (kind === "elevator") return "🛗";
+  if (kind === "kids") return "👶";
+  if (kind === "bathroom") return "🚻";
+  return "📍";
 }
 
 function firstCategory(category) {
@@ -4190,7 +4242,7 @@ function normalizeParkingItem(item) {
 }
 
 function renderServiceCard(svc, idx) {
-  const kind = getServiceKind(svc.name) || (svc.type === "bathroom" ? "bathroom" : "");
+  const kind = getServiceKind(svc) || (svc.type === "bathroom" ? "bathroom" : "");
   const featureBadges = [];
   if (svc.features && svc.features.mudador) {
     featureBadges.push(`<span class="store-badge store-badge-promo">${escapeHtml(t("bathroomsKids"))}</span>`);
@@ -4202,27 +4254,41 @@ function renderServiceCard(svc, idx) {
     ? `<span class="store-badge store-badge-promo">${escapeHtml(t("bathroomsKids"))}</span>`
     : kind === "bathroom" && !featureBadges.length
       ? `<span class="store-badge store-badge-floor">${escapeHtml(t("bathrooms"))}</span>`
-      : "";
+      : kind === "elevator"
+        ? `<span class="store-badge store-badge-floor">${escapeHtml(t("elevators"))}</span>`
+        : "";
   const floorsLabel = formatServiceFloors(svc.floors);
   const floorBadge = floorsLabel
     ? `<span class="store-badge store-badge-floor">${escapeHtml(floorsLabel)}</span>`
     : "";
-  const anchorBadge = svc.anchorBrand
+  // Elevators already say "junto a X · Nivel N" in location — skip duplicate "Cerca de".
+  const anchorBadge = kind !== "elevator" && svc.anchorBrand
     ? `<span class="store-badge">${escapeHtml(t("near") + " " + svc.anchorBrand)}</span>`
     : "";
   const mapBtn = svc.id
     ? `<button class="btn-service-map" type="button" onclick="event.stopPropagation(); openServiceMap(${idx})">${escapeHtml(t("viewMapService"))}</button>`
     : "";
-  const detailText = svc.description || svc.location || "";
+  // Elevators: show floor-aware location only (short). Bathrooms: location; detail if different.
+  const locText = svc.location || "";
+  const detailText = kind === "elevator"
+    ? ""
+    : (svc.description && svc.description !== locText ? svc.description : "");
+  const cardClass = kind === "elevator"
+    ? " service-card-elevator"
+    : (kind ? " service-card-bathroom" : "");
+  const icon = serviceKindIcon(kind);
 
   return `
-    <article class="service-card fade-in${kind ? " service-card-bathroom" : ""}" id="svc-${idx}" onclick="toggleServiceCard(${idx})">
+    <article class="service-card fade-in${cardClass}" id="svc-${idx}" onclick="toggleServiceCard(${idx})">
       <div class="service-card-row">
         <div class="service-card-top">
-          <div class="service-name">${escapeHtml(svc.name)}</div>
+          <div class="service-card-title-row">
+            <span class="service-card-icon" aria-hidden="true">${icon}</span>
+            <div class="service-name">${escapeHtml(svc.name)}</div>
+          </div>
           <div class="store-meta">${featureBadges.join("")}${kindBadge}${floorBadge}${anchorBadge}</div>
-          ${svc.location ? `<div class="service-loc">📍 ${escapeHtml(svc.location)}</div>` : ""}
-          ${detailText && detailText !== svc.location ? `<div class="service-desc">${escapeHtml(detailText)}</div>` : ""}
+          ${locText ? `<div class="service-loc">${escapeHtml(locText)}</div>` : ""}
+          ${detailText ? `<div class="service-desc">${escapeHtml(detailText)}</div>` : ""}
         </div>
         <div class="service-card-actions">${mapBtn}</div>
       </div>
@@ -5072,10 +5138,52 @@ function openServiceMap(idx) {
   if (!svc) return;
 
   const normalized = normalizeServiceResult(svc);
-  const floor = normalized.floors?.find((f) => f !== "ALL") || normalized.floors?.[0] || "";
+  const floors = Array.isArray(normalized.floors) ? normalized.floors : [];
+  const totemFloor = (typeof MapVxBridge !== "undefined"
+    && MapVxBridge.configSummary
+    && (MapVxBridge.configSummary().totemFloor || MapVxBridge.configSummary().floor))
+    || (window.MAPVX_CONFIG && (window.MAPVX_CONFIG.totemFloor || window.MAPVX_CONFIG.floor))
+    || "";
+  const totemKey = typeof ServicesCatalog !== "undefined" && ServicesCatalog.normalizeFloorKey
+    ? ServicesCatalog.normalizeFloorKey(totemFloor)
+    : String(totemFloor || "").trim();
+  const floorFromTotem = totemKey
+    ? floors.find(function (f) {
+        const key = ServicesCatalog.normalizeFloorKey
+          ? ServicesCatalog.normalizeFloorKey(f)
+          : String(f || "");
+        return key && key === totemKey;
+      })
+    : "";
+  // Prefer floor encoded in MapVX local (CC_N3_3208 → 3) over floors[0]=PB on multi-bank elevators.
+  let floorFromAnchor = "";
+  const localHint = String(normalized.anchorLocal || "").toUpperCase();
+  const localFloorMatch = localHint.match(/_N(\d+)_/) || localHint.match(/_PB_/);
+  if (localFloorMatch) {
+    floorFromAnchor = localFloorMatch[1] != null ? localFloorMatch[1] : "PB";
+  }
+  const floor = floorFromTotem
+    || floorFromAnchor
+    || floors.find((f) => f && f !== "ALL" && String(f).toUpperCase() !== "PB")
+    || floors.find((f) => f !== "ALL")
+    || floors[0]
+    || "";
   const canRoute = typeof MapVxBridge !== "undefined"
     && MapVxBridge.hasRouteOrigin
     && MapVxBridge.hasRouteOrigin();
+
+  // Re-resolve floor-aware anchor for elevators (Ripley N5 → Burger King, etc.).
+  let anchorLocal = normalized.anchorLocal;
+  if (normalized.type === "elevator" && typeof ServicesCatalog !== "undefined" && ServicesCatalog.getById) {
+    const entry = ServicesCatalog.getById(normalized.id || normalized.catalogId);
+    if (entry) {
+      const card = ServicesCatalog.toResultCard(entry, {
+        preferFloor: floor || totemKey || "",
+        floor: floor || totemKey || "",
+      });
+      if (card.anchorLocal) anchorLocal = card.anchorLocal;
+    }
+  }
 
   openPoiMap({
     poiType: "service",
@@ -5085,13 +5193,12 @@ function openServiceMap(idx) {
     floor: floor === "ALL" ? "" : floor,
     mall: normalized.mall || lastServicesPayload?.mall,
     name: normalized.name,
-    anchorLocal: normalized.anchorLocal,
+    anchorLocal: anchorLocal,
     poiRef: normalized.poiRef,
     mapvxId: normalized.mapvxId,
     lat: normalized.mapvxLat,
     lng: normalized.mapvxLng,
     preferChangingTable: !!(normalized.features && normalized.features.mudador),
-    // With totemPlaceId + floor context, open directly in route mode.
     mode: canRoute ? "navigation" : "place",
   });
 }

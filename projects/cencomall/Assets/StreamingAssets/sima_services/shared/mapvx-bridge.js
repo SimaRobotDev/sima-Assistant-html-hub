@@ -3017,14 +3017,97 @@ window.MapVxBridge = (function () {
   function isElevatorPoiFeature(feature) {
     if (!feature || !feature.properties) return false;
     var props = feature.properties;
-    var cls = String(props.class || "").toLowerCase();
-    var sub = String(props.subclass || "").toLowerCase();
-    if (cls === "elevator" || sub === "elevator") return true;
+    var cls = String(props.class || props.Class || "").toLowerCase();
+    var sub = String(props.subclass || props.Subtype || props.subtype || "").toLowerCase();
+    var highway = String(props.highway || "").toLowerCase();
+    var elevatorTag = String(props.elevator || "").toLowerCase();
+    var typeTag = String(props.type || props.Type || "").toLowerCase();
+    var icon = String(props.icon || props["icon-image"] || props.sprite || "").toLowerCase();
+    if (cls === "elevator" || sub === "elevator" || typeTag === "elevator") return true;
+    if (highway === "elevator") return true;
+    if (elevatorTag === "yes" || elevatorTag === "true" || elevatorTag === "1") return true;
+    if (icon.indexOf("elevator") >= 0 || icon.indexOf("ascensor") >= 0) return true;
+    // Exclude escalators / stairs even if name mentions elevator shaft nearby.
+    if (cls === "escalator" || sub === "escalator" || cls === "steps" || sub === "steps") return false;
     var name = String(props.name || props.name_en || props.name_es || "").toLowerCase();
-    if (/\b(elevator|ascensor|elevador)\b/.test(name) && !/\b(escalator|escalera)\b/.test(name)) {
+    if (/\b(elevator|ascensor|elevador)\b/.test(name) && !/\b(escalator|escalera\s*mecanic)\b/.test(name)) {
       return true;
     }
     return false;
+  }
+
+  function featureCentroid(feature) {
+    var g = feature && feature.geometry;
+    if (!g) return null;
+    if (g.type === "Point" && g.coordinates) {
+      return { lng: g.coordinates[0], lat: g.coordinates[1] };
+    }
+
+    function averageCoords(list) {
+      if (!list || !list.length) return null;
+      var sumLng = 0;
+      var sumLat = 0;
+      var n = 0;
+      list.forEach(function (c) {
+        if (!c || c.length < 2) return;
+        if (typeof c[0] !== "number" || typeof c[1] !== "number") return;
+        sumLng += Number(c[0]);
+        sumLat += Number(c[1]);
+        n += 1;
+      });
+      if (!n) return null;
+      return { lng: sumLng / n, lat: sumLat / n };
+    }
+
+    var coords = g.coordinates;
+    if (!coords || !coords.length) return null;
+    // LineString: [[lng,lat], ...]
+    if (typeof coords[0][0] === "number") return averageCoords(coords);
+    // Polygon / MultiLineString: [[[lng,lat], ...], ...]
+    if (coords[0] && typeof coords[0][0][0] === "number") return averageCoords(coords[0]);
+    // MultiPolygon: [[[[lng,lat], ...]]]
+    if (coords[0] && coords[0][0] && typeof coords[0][0][0][0] === "number") {
+      return averageCoords(coords[0][0]);
+    }
+    return null;
+  }
+
+  function sampleTransportationFeatureClasses(libreMap) {
+    var samples = [];
+    var seen = {};
+    if (!libreMap) return samples;
+    function pushProps(features) {
+      (features || []).forEach(function (f) {
+        if (!f || !f.properties || samples.length >= 12) return;
+        var cls = String(f.properties.class || f.properties.subclass || f.properties.highway || "");
+        var key = cls + "|" + String(f.properties.ref || f.id || "");
+        if (seen[key]) return;
+        seen[key] = true;
+        samples.push({
+          class: f.properties.class || null,
+          subclass: f.properties.subclass || null,
+          highway: f.properties.highway || null,
+          elevator: f.properties.elevator || null,
+          type: f.properties.type || null,
+          ref: f.properties.ref || f.properties.id || null,
+          floor_key: f.properties.floor_key != null ? f.properties.floor_key : null,
+          geom: f.geometry ? f.geometry.type : null,
+        });
+      });
+    }
+    try {
+      pushProps(libreMap.queryRenderedFeatures(undefined, {
+        layers: ["indoor-transportation-poi", "base-indoor-transportation-poi"].filter(function (id) {
+          try { return !!libreMap.getLayer(id); } catch (e) { return false; }
+        }),
+      }));
+    } catch (e1) { /* noop */ }
+    if (!samples.length) {
+      try {
+        pushProps(libreMap.queryRenderedFeatures());
+      } catch (e2) { /* noop */ }
+    }
+    return samples;
   }
 
   function queryElevatorPoiFeatures(libreMap) {
@@ -3036,56 +3119,90 @@ window.MapVxBridge = (function () {
       if (!features || !features.length) return;
       features.forEach(function (f) {
         if (!isElevatorPoiFeature(f) || !f.properties) return;
-        var ref = String(f.properties.ref || f.properties.id || f.id || "").trim();
-        if (!ref) return;
-        var floorKey = f.properties.floor_key != null ? String(f.properties.floor_key) : "";
+        var props = f.properties;
+        var centroid = featureCentroid(f);
+        var floorKey = props.floor_key != null
+          ? String(props.floor_key)
+          : (props.level != null ? String(props.level) : "");
+        var ref = String(
+          props.ref || props.id || props.osm_id || f.id || ""
+        ).trim();
+        if (!ref) {
+          if (!centroid || centroid.lat == null || centroid.lng == null) return;
+          ref = "elevator_" + centroid.lng.toFixed(6) + "_" + centroid.lat.toFixed(6);
+        }
         var key = ref + "|" + floorKey;
         if (seen[key]) return;
         seen[key] = true;
-        var coords = f.geometry && f.geometry.coordinates;
         merged.push({
           ref: ref,
-          subclass: f.properties.subclass || f.properties.class || "elevator",
-          class: f.properties.class || "elevator",
+          subclass: props.subclass || props.class || props.highway || "elevator",
+          class: props.class || props.highway || "elevator",
           floor_key: floorKey,
-          name: f.properties.name || f.properties.name_es || "Ascensor",
-          lat: coords ? coords[1] : null,
-          lng: coords ? coords[0] : null,
+          name: props.name || props.name_es || "Ascensor",
+          lat: centroid ? centroid.lat : null,
+          lng: centroid ? centroid.lng : null,
         });
       });
     }
 
-    ["indoor-transportation-poi", "base-indoor-transportation-poi"].forEach(function (layerId) {
-      try {
-        ingest(libreMap.queryRenderedFeatures(undefined, { layers: [layerId] }));
-      } catch (e) { /* noop */ }
-      try {
-        var layer = libreMap.getLayer(layerId);
-        if (layer && layer.source) {
-          ingest(libreMap.querySourceFeatures(layer.source, {
-            sourceLayer: layer.sourceLayer || "transportation",
-          }));
-        }
-      } catch (e2) { /* noop */ }
-    });
+    function ingestLayerIds(layerIds) {
+      (layerIds || []).forEach(function (layerId) {
+        try {
+          ingest(libreMap.queryRenderedFeatures(undefined, { layers: [layerId] }));
+        } catch (e) { /* noop */ }
+        try {
+          var layer = libreMap.getLayer(layerId);
+          if (layer && layer.source) {
+            ingest(libreMap.querySourceFeatures(layer.source, {
+              sourceLayer: layer.sourceLayer || layer["source-layer"] || "transportation",
+            }));
+          }
+        } catch (e2) { /* noop */ }
+      });
+    }
+
+    ingestLayerIds([
+      "indoor-transportation-poi",
+      "base-indoor-transportation-poi",
+    ]);
+
+    // Elevators may also appear as POI symbols on the poi source-layer.
+    ingestLayerIds([
+      "indoor-poi-rank1",
+      "indoor-poi-rank2",
+      "base-indoor-poi-rank1",
+      "base-indoor-poi-rank2",
+    ]);
 
     if (!merged.length) {
       try {
         var style = libreMap.getStyle && libreMap.getStyle();
         var layers = (style && style.layers) || [];
         layers.forEach(function (layer) {
-          if (!layer || layer.source !== "indoorequal") return;
-          if (layer["source-layer"] !== "transportation") return;
+          if (!layer) return;
+          var sourceLayer = layer["source-layer"];
+          var source = layer.source;
+          // MapVX / IndoorEqual transportation + poi; also accept renamed indoor sources.
+          if (sourceLayer !== "transportation" && sourceLayer !== "poi") return;
+          if (source !== "indoorequal" && String(source || "").indexOf("indoor") < 0) return;
           try {
             ingest(libreMap.queryRenderedFeatures(undefined, { layers: [layer.id] }));
           } catch (e3) { /* noop */ }
           try {
             ingest(libreMap.querySourceFeatures(layer.source, {
-              sourceLayer: "transportation",
+              sourceLayer: sourceLayer,
             }));
           } catch (e4) { /* noop */ }
         });
       } catch (e5) { /* noop */ }
+    }
+
+    // Last resort: any rendered feature matching elevator properties (viewport-dependent).
+    if (!merged.length) {
+      try {
+        ingest(libreMap.queryRenderedFeatures());
+      } catch (e6) { /* noop */ }
     }
 
     return merged;
@@ -3093,9 +3210,9 @@ window.MapVxBridge = (function () {
 
   async function collectElevatorPoisWithRetry(libreMap, floorId, maxAttempts) {
     var elevators = [];
-    var attempts = Math.max(1, maxAttempts || 3);
+    var attempts = Math.max(1, maxAttempts || 6);
     for (var i = 0; i < attempts; i++) {
-      await waitForLibreMapIdle(libreMap, 600);
+      await waitForLibreMapIdle(libreMap, 900);
       elevators = queryElevatorPoiFeatures(libreMap);
       if (elevators.length) {
         log("info", "elevator POIs ready", {
@@ -3105,9 +3222,14 @@ window.MapVxBridge = (function () {
         });
         return elevators;
       }
-      await delayMs(120 + i * 120);
+      await delayMs(250 + i * 250);
     }
-    log("warn", "elevator POIs still empty", { floorId: floorId || null, attempts: attempts });
+    var samples = sampleTransportationFeatureClasses(libreMap);
+    log("warn", "elevator POIs still empty", {
+      floorId: floorId || null,
+      attempts: attempts,
+      sampleClasses: samples,
+    });
     return elevators;
   }
 
@@ -3120,6 +3242,62 @@ window.MapVxBridge = (function () {
     if (!place) return false;
     var title = String(place.title || place.name || place.clientId || "").toLowerCase();
     return /\b(baño|banos|bano|toilet|toilets|restroom|wc|mudador|sanitario)\b/.test(title);
+  }
+
+  function placeLooksLikeElevator(place) {
+    if (!place) return false;
+    var title = String(place.title || place.name || place.clientId || "").toLowerCase();
+    if (/\b(escalator|escalera\s*mecanic|stairs|escaleras?\b)/.test(title) && !/\b(elevator|ascensor|elevador)\b/.test(title)) {
+      return false;
+    }
+    return /\b(elevator|ascensor|elevador)\b/.test(title);
+  }
+
+  async function resolveElevatorPlaceViaApi(anchorPlace, floorHint) {
+    if (!sdk || typeof sdk.getPlacesByInput !== "function") return null;
+    var config = getConfig();
+    var queries = ["ascensor", "elevator", "elevador"];
+    var candidates = [];
+    var seen = {};
+
+    for (var i = 0; i < queries.length; i++) {
+      try {
+        var rows = await sdk.getPlacesByInput(
+          queries[i],
+          config.institutionId,
+          config.parentPlace,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          floorHint ? String(floorHint) : undefined
+        );
+        (rows || []).forEach(function (place) {
+          if (!place || !place.mapvxId || seen[place.mapvxId]) return;
+          if (!placeLooksLikeElevator(place)) return;
+          seen[place.mapvxId] = true;
+          candidates.push(place);
+        });
+      } catch (e) {
+        /* continue */
+      }
+    }
+
+    if (!candidates.length) return null;
+
+    var anchorPos = anchorPlace && anchorPlace.position ? anchorPlace.position : null;
+    if (!anchorPos) return candidates[0];
+
+    var best = null;
+    var bestDist = Number.POSITIVE_INFINITY;
+    candidates.forEach(function (place) {
+      var dist = poiDistanceSq(anchorPos, place.position || place);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = place;
+      }
+    });
+    return best || candidates[0];
   }
 
   async function resolveBathroomPlaceViaApi(anchorPlace, floorHint, preferChangingTable) {
@@ -3334,40 +3512,78 @@ window.MapVxBridge = (function () {
       (anchorPlace && anchorPlace.clientId) || null
     );
 
-    var elevators = await collectElevatorPoisWithRetry(libreMap, floorId, 3);
+    // Prefer the anchor's own floor when catalog floors[0] is a multi-bank default (e.g. PB).
+    if (anchorPlace && anchorPlace.inFloors && anchorPlace.inFloors.length) {
+      floorId = anchorPlace.inFloors[0] || floorId;
+    }
+
+    if (floorId) {
+      await applyPlaceFloorAndWait(map, config, floorId, parentPlace);
+      scheduleRetailPoiIconFilter(map, config);
+    }
+    if (anchorPlace && anchorPlace.position) {
+      // querySourceFeatures / queryRenderedFeatures only see loaded viewport tiles.
+      fitMapToPlace(map, anchorPlace.position, config);
+      await waitForLibreMapIdle(getLibreMap(map), 1200);
+      await delayMs(200);
+    }
+
+    libreMap = getLibreMap(map) || libreMap;
+    var elevators = await collectElevatorPoisWithRetry(libreMap, floorId, 6);
     var anchorPos = anchorPlace && anchorPlace.position ? anchorPlace.position : null;
 
-    if (anchorPos && elevators.length) {
-      var nearest = pickNearestElevatorPoi(elevators, anchorPos, floorId);
-      if (nearest) {
-        try {
-          var byRef = await sdk.getPlaceDetail(nearest.ref);
-          if (byRef && byRef.mapvxId) {
-            attempts.push({ method: "elevator-poi+getPlaceDetail", ref: nearest.ref });
-            return {
-              place: byRef,
-              resolvedBy: "elevator-poi-place",
-              lookupKey: byRef.mapvxId,
-              elevatorPoi: nearest,
-              attempts: attempts,
-            };
-          }
-        } catch (eRef) {
-          attempts.push({ method: "elevator-poi-getPlaceDetail", error: String(eRef.message || eRef) });
-        }
-
-        attempts.push({ method: "nearest-elevator-poi", ref: nearest.ref });
+    if (!elevators.length) {
+      attempts.push({
+        method: "elevator-poi-query",
+        empty: true,
+        floorId: floorId || null,
+        anchorLocal: (anchorPlace && anchorPlace.clientId) || null,
+        sampleClasses: sampleTransportationFeatureClasses(libreMap),
+      });
+      // API fallback (same idea as bathrooms) when vector tiles yield nothing.
+      var apiElevator = await resolveElevatorPlaceViaApi(anchorPlace, floorId || floorHint);
+      if (apiElevator) {
+        attempts.push({ method: "getPlacesByInput(elevator)", mapvxId: apiElevator.mapvxId });
         return {
-          place: buildSyntheticServicePlace(nearest, "Ascensor"),
-          resolvedBy: "nearest-elevator-poi",
-          lookupKey: nearest.ref,
+          place: apiElevator,
+          resolvedBy: "api-elevator",
+          lookupKey: apiElevator.mapvxId,
+          attempts: attempts,
+        };
+      }
+      return null;
+    }
+
+    var nearest = pickNearestElevatorPoi(elevators, anchorPos || elevators[0], floorId);
+    if (!nearest) {
+      attempts.push({ method: "pickNearestElevatorPoi", empty: true, count: elevators.length });
+      return null;
+    }
+
+    try {
+      var byRef = await sdk.getPlaceDetail(nearest.ref);
+      if (byRef && byRef.mapvxId) {
+        attempts.push({ method: "elevator-poi+getPlaceDetail", ref: nearest.ref });
+        return {
+          place: byRef,
+          resolvedBy: "elevator-poi-place",
+          lookupKey: byRef.mapvxId,
           elevatorPoi: nearest,
           attempts: attempts,
         };
       }
+    } catch (eRef) {
+      attempts.push({ method: "elevator-poi-getPlaceDetail", error: String(eRef.message || eRef) });
     }
 
-    return null;
+    attempts.push({ method: "nearest-elevator-poi", ref: nearest.ref });
+    return {
+      place: buildSyntheticServicePlace(nearest, "Ascensor"),
+      resolvedBy: "nearest-elevator-poi",
+      lookupKey: nearest.ref,
+      elevatorPoi: nearest,
+      attempts: attempts,
+    };
   }
 
   function buildSyntheticServicePlace(poi, title) {
@@ -3520,6 +3736,17 @@ window.MapVxBridge = (function () {
           place: apiOnly,
           resolvedBy: "api-bathroom-floor",
           lookupKey: apiOnly.mapvxId,
+          attempts: attempts,
+        };
+      }
+    } else {
+      var apiElevatorOnly = await resolveElevatorPlaceViaApi(null, floorHint);
+      if (apiElevatorOnly) {
+        attempts.push({ method: "getPlacesByInput(elevator-floor-only)", mapvxId: apiElevatorOnly.mapvxId });
+        return {
+          place: apiElevatorOnly,
+          resolvedBy: "api-elevator-floor",
+          lookupKey: apiElevatorOnly.mapvxId,
           attempts: attempts,
         };
       }

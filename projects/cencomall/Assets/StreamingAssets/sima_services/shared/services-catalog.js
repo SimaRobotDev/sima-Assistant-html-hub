@@ -121,18 +121,42 @@ window.ServicesCatalog = (function () {
     return stores[0] || null;
   }
 
+  function formatFloorLabelEs(floorKey) {
+    var key = normalizeFloorKey(floorKey || "");
+    if (!key) return "";
+    if (key === "PB") return "Planta Baja";
+    return "Nivel " + key;
+  }
+
+  /** Short, floor-aware landmark for elevators — avoid dumping every floor's stores. */
+  function elevatorLocationHint(entry, preferFloor, anchor) {
+    var desc = (entry && entry.descriptions) || {};
+    var brand = anchor && anchor.brand ? String(anchor.brand).trim() : "";
+    var floorKey = normalizeFloorKey(preferFloor || "");
+    if (!floorKey && anchor && anchor.floors && anchor.floors.length) {
+      floorKey = normalizeFloorKey(anchor.floors[0]);
+    }
+    var floorLabel = formatFloorLabelEs(floorKey);
+    if (brand && floorLabel) return "En este piso: junto a " + brand + " · " + floorLabel;
+    if (brand) return "Junto a " + brand;
+    return desc.short || "";
+  }
+
   function toResultCard(entry, options) {
     if (!entry) return {};
     options = options || {};
     var preferFloor = options.preferFloor || options.floor || "";
     var anchor = primaryAnchor(entry, preferFloor);
     var desc = entry.descriptions || {};
+    var isElevator = entry.type === "elevator";
     return {
       id: entry.id,
       catalogId: entry.id,
       name: entry.name,
       description: desc.short || desc.medium || "",
-      location: desc.medium || desc.short || "",
+      location: isElevator
+        ? elevatorLocationHint(entry, preferFloor, anchor)
+        : (desc.medium || desc.short || ""),
       floors: entry.floors || [],
       sector: entry.sector || "",
       type: entry.type || "bathroom",

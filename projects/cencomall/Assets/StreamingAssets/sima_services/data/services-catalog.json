@@ -426,7 +426,7 @@
       "id": "ascensor-ripley",
       "type": "elevator",
       "sector": "ripley",
-      "name": "Ascensor — Sector Ripley",
+      "name": "Ascensores · Ripley",
       "floors": ["PB", "1", "2", "3", "4", "5"],
       "features": { "accesible": true },
       "layout": "banco_vertical",
@@ -442,9 +442,9 @@
         { "brand": "Burger King", "local": "CC_N5_5524", "role": "secondary", "floors": ["5"] }
       ],
       "descriptions": {
-        "short": "Banco de ascensores del sector Ripley / ancla (todos los pisos).",
-        "medium": "Misma torre vertical: Easy (PB), Jumbo–Ripley (N1), Nike Rise–Ripley (N2), Bold–Ripley (N3), Sparta–Ripley (N4), Burger King (N5).",
-        "long": "Ascensores alineados en el eje Ripley. En PB junto a Easy; en niveles 1–4 junto a Ripley; en el patio de comidas cerca de Burger King."
+        "short": "Eje Ripley / ancla, todos los pisos.",
+        "medium": "Zona Ripley: Easy (PB), Jumbo (N1), Nike/Ripley (N2), Bold (N3), Sparta (N4), Burger King (N5).",
+        "long": "Torre del sector Ripley. En cada piso la referencia es la tienda ancla de ese nivel (Easy, Jumbo, Ripley, Bold, Sparta o Burger King)."
       },
       "keywords": [
         "ascensor", "ascensores", "elevador", "elevator",
@@ -457,7 +457,7 @@
       "id": "ascensor-vitacura",
       "type": "elevator",
       "sector": "vitacura",
-      "name": "Ascensor — Sector Av. Vitacura",
+      "name": "Ascensores · Av. Vitacura",
       "floors": ["PB", "1", "2", "3", "4", "5"],
       "features": { "accesible": true },
       "layout": "banco_vertical",
@@ -471,9 +471,9 @@
         { "brand": "Barra Chalaca", "local": "CC_N5_5116", "role": "secondary", "floors": ["5"] }
       ],
       "descriptions": {
-        "short": "Banco de ascensores hacia Av. Vitacura (Decathlon / MaxiK).",
-        "medium": "Torre vertical lado Vitacura: Decathlon (PB), MaxiK y escaleras (N1), Moule–Victoria’s Secret (N2), Samsonite–Studio F (N3), Oakley–Maui (N4), Barra Chalaca (N5).",
-        "long": "Ascensores del costado Av. Vitacura. En planta baja junto a Decathlon; en niveles superiores en el pasillo de ese mismo eje."
+        "short": "Costado Av. Vitacura (Decathlon).",
+        "medium": "Lado Vitacura: Decathlon (PB), Victoria’s Secret (N2), Samsonite/Studio F (N3), Oakley (N4), Barra Chalaca (N5).",
+        "long": "Ascensores del costado Av. Vitacura. Referencia principal en PB: Decathlon."
       },
       "keywords": [
         "ascensor", "ascensores", "elevador", "elevator",
@@ -486,7 +486,7 @@
       "id": "ascensor-hm",
       "type": "elevator",
       "sector": "hm",
-      "name": "Ascensor — Sector H&M / pasillo lateral",
+      "name": "Ascensores · H&M",
       "floors": ["PB", "1", "2", "3", "4", "5"],
       "features": { "accesible": true },
       "layout": "banco_vertical",
@@ -499,14 +499,14 @@
         { "brand": "Texas Ribs", "local": "CC_N5_5144", "role": "secondary", "floors": ["5"] }
       ],
       "descriptions": {
-        "short": "Banco de ascensores del pasillo lateral (H&M / baños PB).",
-        "medium": "Torre lateral: baños PB, Blush Bar (N1), H&M (N2–N3), pasillo Fabrics (N4), Texas Ribs (N5).",
-        "long": "Ascensores del costado opuesto a Vitacura. En PB junto a los baños; en N2/N3 junto a H&M; en N5 detrás de Texas Ribs."
+        "short": "Pasillo lateral, zona H&M.",
+        "medium": "Pasillo H&M: Afex (PB), Blush Bar (N1), H&M (N2–N3), Fabrics (N4), Texas Ribs (N5).",
+        "long": "Ascensores del pasillo lateral (lado H&M), opuesto a Vitacura."
       },
       "keywords": [
         "ascensor", "ascensores", "elevador", "elevator",
         "h&m", "hm", "blush", "blush bar", "fabrics", "texas ribs",
-        "baño", "baños", "lateral"
+        "afex", "lateral"
       ],
       "mapvx": { "poiRef": null, "mapvxId": null, "lat": null, "lng": null, "validatedAt": null }
     },
@@ -514,8 +514,8 @@
       "id": "ascensor-zara",
       "type": "elevator",
       "sector": "zara",
-      "name": "Ascensor — Sector Zara (Nivel 3)",
-      "floors": ["3", "2"],
+      "name": "Ascensores · Zara",
+      "floors": ["2", "3"],
       "features": { "accesible": true },
       "layout": "banco_vertical",
       "anchorStores": [
@@ -523,9 +523,9 @@
         { "brand": "Zara", "local": "CC_N2_2156", "role": "secondary", "floors": ["2"] }
       ],
       "descriptions": {
-        "short": "Ascensor junto a Zara en el nivel 3.",
-        "medium": "Banco confirmado en N3 a un costado de Zara (también referencia Zara N2).",
-        "long": "En el Nivel 3, justo al costado de la entrada de Zara. Úsalo si estás en la zona Zara / pasillo superior."
+        "short": "Junto a Zara (N2–N3).",
+        "medium": "Al costado de Zara en el nivel 3 (también accesible desde N2).",
+        "long": "En el Nivel 3, al costado de la entrada de Zara."
       },
       "keywords": [
         "ascensor", "ascensores", "elevador", "elevator",
