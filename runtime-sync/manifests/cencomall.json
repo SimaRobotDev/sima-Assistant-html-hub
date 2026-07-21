@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.21-8",
+  "version": "2026.07.21-9",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-21T16:22:07.973Z",
+  "generatedAt": "2026-07-21T17:18:57.979Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.07.21-7",
+  "rollbackTo": "2026.07.21-8",
   "entryPoints": [
     {
       "service": "agenda",
@@ -145,13 +145,13 @@
     },
     {
       "path": "map/index.html",
-      "size": 34283,
-      "sha256": "098e9860ecef85eda363240e2d7d4ea08810840ede2391613b26bd6a857bc49a"
+      "size": 34424,
+      "sha256": "529289fdf9492ef8c5687f5d858399a159ed6a2e3f329b2f8bafff8eb53ec537"
     },
     {
       "path": "mobility/index.html",
-      "size": 166612,
-      "sha256": "ec57b715e3bfb698c56be504c4d3273fcd032104e0bbf02d5e6c294af87c98fe"
+      "size": 166613,
+      "sha256": "8440c62d28e59405817bae7e66f78cb5314c87a84e7f3f5a9b1aa8ed6ad2365b"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -200,8 +200,8 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 168538,
-      "sha256": "8d48c567446c0fdfa227be5896cfd15e6e4f6389455d9dac2e034ae3526307de"
+      "size": 173651,
+      "sha256": "39fa670b540c7577b6438e2e10c82f688250f7d9c1e33bee04d74ac3458f6036"
     },
     {
       "path": "shared/mapvx/index.js",
@@ -210,8 +210,8 @@
     },
     {
       "path": "shared/mapvx/styles.css",
-      "size": 76646,
-      "sha256": "90735526680e6ea5a82ada4ca0de4fca959e3e5454b944cb39a14e1ad9c08ae5"
+      "size": 77592,
+      "sha256": "a52efc9587d4a21f976e5a678c4b18bf393450e008dd36d2fb363d38be4b8255"
     },
     {
       "path": "shared/market-i18n.js",
