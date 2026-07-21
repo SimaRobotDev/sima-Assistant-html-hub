@@ -35,6 +35,9 @@ window.MapVxBridge = (function () {
     scheduled: false,
     visible: false,
   };
+  var serviceDestMarkerState = {
+    markerId: null,
+  };
   var routeAnimationToken = 0;
   var LOG_PREFIX = "[MapVxBridge]";
   var subPlacesCache = { key: null, data: null, loading: null };
@@ -3493,7 +3496,39 @@ window.MapVxBridge = (function () {
         best = poi;
       }
     });
-    return best;
+    return stabilizeElevatorBankPoi(best, filtered);
+  }
+
+  /**
+   * MapVX paints one icon per cabin. Prefer the bank centroid so routing lands
+   * on the group (beige shafts) instead of a random cabin at the edge.
+   * ~12 m ≈ 0.00011° lat; use squared threshold in poiDistanceSq units.
+   */
+  function stabilizeElevatorBankPoi(nearest, elevators) {
+    if (!nearest || !elevators || elevators.length < 2) return nearest;
+    var clusterRadiusSq = 0.00012 * 0.00012;
+    var cluster = elevators.filter(function (poi) {
+      return poiDistanceSq(nearest, poi) <= clusterRadiusSq;
+    });
+    if (cluster.length < 2) return nearest;
+
+    var sumLat = 0;
+    var sumLng = 0;
+    var n = 0;
+    cluster.forEach(function (poi) {
+      if (poi.lat == null || poi.lng == null) return;
+      sumLat += Number(poi.lat);
+      sumLng += Number(poi.lng);
+      n += 1;
+    });
+    if (n < 2) return nearest;
+
+    return Object.assign({}, nearest, {
+      lat: sumLat / n,
+      lng: sumLng / n,
+      bankSize: n,
+      bankStabilized: true,
+    });
   }
 
   async function resolveElevatorDestinationNearAnchor(anchorPlace, floorHint, attempts) {
@@ -3563,7 +3598,15 @@ window.MapVxBridge = (function () {
     try {
       var byRef = await sdk.getPlaceDetail(nearest.ref);
       if (byRef && byRef.mapvxId) {
-        attempts.push({ method: "elevator-poi+getPlaceDetail", ref: nearest.ref });
+        // Keep bank centroid coords when we stabilized a multi-cabin group.
+        if (nearest.bankStabilized && nearest.lat != null && nearest.lng != null) {
+          byRef.position = { lat: nearest.lat, lng: nearest.lng };
+        }
+        attempts.push({
+          method: "elevator-poi+getPlaceDetail",
+          ref: nearest.ref,
+          bankSize: nearest.bankSize || 1,
+        });
         return {
           place: byRef,
           resolvedBy: "elevator-poi-place",
@@ -3576,7 +3619,11 @@ window.MapVxBridge = (function () {
       attempts.push({ method: "elevator-poi-getPlaceDetail", error: String(eRef.message || eRef) });
     }
 
-    attempts.push({ method: "nearest-elevator-poi", ref: nearest.ref });
+    attempts.push({
+      method: "nearest-elevator-poi",
+      ref: nearest.ref,
+      bankSize: nearest.bankSize || 1,
+    });
     return {
       place: buildSyntheticServicePlace(nearest, "Ascensor"),
       resolvedBy: "nearest-elevator-poi",
@@ -3761,6 +3808,81 @@ window.MapVxBridge = (function () {
     throw err;
   }
 
+  function clearServiceDestinationMarker() {
+    if (!serviceDestMarkerState.markerId || !map) {
+      serviceDestMarkerState.markerId = null;
+      return;
+    }
+    try {
+      if (typeof map.removeMarker === "function") {
+        map.removeMarker(serviceDestMarkerState.markerId);
+      }
+    } catch (e) { /* noop */ }
+    serviceDestMarkerState.markerId = null;
+  }
+
+  function buildServiceDestinationElement(serviceType, title) {
+    var isElevator = serviceType === "elevator";
+    var wrap = document.createElement("div");
+    wrap.className = "mapvx-service-dest-marker" + (isElevator ? " is-elevator" : " is-bathroom");
+    wrap.setAttribute("role", "img");
+    wrap.setAttribute("aria-label", title || (isElevator ? "Ascensor" : "Baños"));
+
+    var badge = document.createElement("div");
+    badge.className = "mapvx-service-dest-badge";
+    if (isElevator) {
+      // Classic elevator glyph (cab + up/down) — clearer than MapVX entrance arrows.
+      badge.innerHTML =
+        '<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">' +
+        '<rect x="7" y="5" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<path d="M14 8l3.2 4.2H10.8zM14 20l-3.2-4.2h6.4z" fill="currentColor"/>' +
+        "</svg>";
+    } else {
+      badge.textContent = "🚻";
+    }
+    wrap.appendChild(badge);
+
+    var label = document.createElement("div");
+    label.className = "mapvx-service-dest-label";
+    label.textContent = isElevator ? "Ascensor" : "Baños";
+    wrap.appendChild(label);
+    return wrap;
+  }
+
+  function showServiceDestinationMarker(mapInstance, place, floorId, serviceType, title) {
+    clearServiceDestinationMarker();
+    if (!mapInstance || !place || !place.position) return null;
+    if (place.position.lat == null || place.position.lng == null) return null;
+    if (typeof mapInstance.addMarker !== "function") return null;
+
+    try {
+      var markerId = mapInstance.addMarker({
+        id: "service-dest-" + String(Date.now()),
+        coordinate: { lat: place.position.lat, lng: place.position.lng },
+        floorId: floorId || undefined,
+        text: "",
+        element: buildServiceDestinationElement(serviceType, title),
+        iconProperties: { width: 56, height: 64 },
+        anchor: "bottom",
+        rotationAlignment: "viewport",
+        pitchAlignment: "viewport",
+      });
+      if (markerId) {
+        serviceDestMarkerState.markerId = markerId;
+        log("info", "service destination marker", {
+          markerId: markerId,
+          serviceType: serviceType || null,
+          lat: place.position.lat,
+          lng: place.position.lng,
+        });
+      }
+      return markerId || null;
+    } catch (e) {
+      log("warn", "service destination marker failed", { error: String(e.message || e) });
+      return null;
+    }
+  }
+
   async function showServicePlace(containerEl, options) {
     options = options || {};
     log("info", "showServicePlace start", options);
@@ -3792,6 +3914,7 @@ window.MapVxBridge = (function () {
     var resolved = await resolveServiceDestination(options);
     var place = resolved.place;
     var mapvxId = place.mapvxId;
+    var serviceType = resolveServiceType(options);
 
     var floorId = pickFloorId(
       place,
@@ -3819,7 +3942,12 @@ window.MapVxBridge = (function () {
       await fitMapToIndoorContext(map, config, parentPlace);
     }
 
+    var displayTitle = getPlaceDisplayTitle(place) || options.name || (serviceType === "elevator" ? "Ascensor" : "Baños");
+    if (serviceType === "elevator" && place && !place.title) {
+      place.title = displayTitle;
+    }
     showPlacePopOver(map, place, floorId);
+    showServiceDestinationMarker(map, place, floorId, serviceType, displayTitle);
 
     var result = {
       mapvxId: mapvxId,
@@ -3827,13 +3955,14 @@ window.MapVxBridge = (function () {
       local: options.anchorLocal || null,
       catalogId: options.serviceId || options.id || null,
       lookupKey: resolved.lookupKey || options.serviceId || null,
-      title: getPlaceDisplayTitle(place) || options.name || "Baños",
+      title: displayTitle,
       resolvedBy: resolved.resolvedBy,
       attempts: resolved.attempts || [],
       floorId: floorId,
       selectedPlace: place,
       toiletPoi: resolved.toiletPoi || null,
       elevatorPoi: resolved.elevatorPoi || null,
+      serviceType: serviceType,
     };
     log("info", "showServicePlace success", result);
     await finalizeMapSession(result, options);
@@ -4011,9 +4140,7 @@ window.MapVxBridge = (function () {
     var config = getConfig();
     await ensureMap(containerEl || mapContainer, config);
 
-    var floorHint = entry.floors && entry.floors.length ? entry.floors[0] : "";
     var stores = entry.anchorStores || [];
-    var anchorLocal = "";
     var floorKeyLoose = function (value) {
       var raw = String(value == null ? "" : value).trim().toLowerCase();
       if (!raw) return "";
@@ -4021,6 +4148,22 @@ window.MapVxBridge = (function () {
       var m = raw.match(/(\d+)/);
       return m ? m[1] : raw;
     };
+
+    // Elevator banks list PB first — prefer primary store's floor for matching.
+    var floorHint = "";
+    if (entry.type === "elevator") {
+      for (var pi = 0; pi < stores.length; pi++) {
+        if (stores[pi].role === "primary" && stores[pi].floors && stores[pi].floors[0]) {
+          floorHint = String(stores[pi].floors[0]);
+          break;
+        }
+      }
+    }
+    if (!floorHint && entry.floors && entry.floors.length) {
+      floorHint = entry.floors[0];
+    }
+
+    var anchorLocal = "";
     var targetFloor = floorKeyLoose(floorHint);
     var pool = stores;
     if (targetFloor) {
@@ -4639,6 +4782,7 @@ window.MapVxBridge = (function () {
       try { map.removeAllRoutes(); } catch (e) { /* noop */ }
     }
     clearPlacePopOver();
+    clearServiceDestinationMarker();
     if (map && typeof map.clearColoredPlaces === "function") {
       try { map.clearColoredPlaces(); } catch (e) { /* noop */ }
     }
@@ -4653,6 +4797,7 @@ window.MapVxBridge = (function () {
 
   function destroyMap() {
     log("info", "destroyMap");
+    clearServiceDestinationMarker();
     lastMapSession = null;
     detachZoomLabelListener();
     clearStoreLabelMarkers();

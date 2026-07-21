@@ -1,16 +1,47 @@
 {
   "version": 1,
   "generatedAt": "2026-07-21T00:00:00.000Z",
-  "source": "map/index.html exportElevatorMapvxPatches or tools/match-bathroom-catalog.mjs (adapted)",
+  "source": "map/index.html exportElevatorMapvxPatches or tools/match-elevator-catalog.mjs",
   "patches": {
-    "ascensor-n2-ripley": {
+    "ascensor-ripley": {
       "poiRef": "REPLACE_ME",
       "mapvxId": null,
-      "lat": -33.417,
-      "lng": -70.606,
+      "lat": -33.4176,
+      "lng": -70.6071,
       "validatedAt": "2026-07-21",
       "resolvedBy": "nearest-elevator-poi",
-      "floor_key": null
+      "floor_key": null,
+      "bankSize": 1
+    },
+    "ascensor-vitacura": {
+      "poiRef": "REPLACE_ME",
+      "mapvxId": null,
+      "lat": -33.4175,
+      "lng": -70.6055,
+      "validatedAt": "2026-07-21",
+      "resolvedBy": "nearest-elevator-poi",
+      "floor_key": null,
+      "bankSize": 1
+    },
+    "ascensor-hm": {
+      "poiRef": "REPLACE_ME",
+      "mapvxId": null,
+      "lat": -33.4178,
+      "lng": -70.6060,
+      "validatedAt": "2026-07-21",
+      "resolvedBy": "nearest-elevator-poi",
+      "floor_key": null,
+      "bankSize": 1
+    },
+    "ascensor-zara": {
+      "poiRef": "REPLACE_ME",
+      "mapvxId": null,
+      "lat": -33.4177,
+      "lng": -70.6065,
+      "validatedAt": "2026-07-21",
+      "resolvedBy": "nearest-elevator-poi",
+      "floor_key": null,
+      "bankSize": 1
     }
   }
 }

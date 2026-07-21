@@ -556,8 +556,13 @@ async function exportElevatorMapvxPatches() {
             validatedAt: new Date().toISOString().slice(0, 10),
             resolvedBy: resolved.resolvedBy || "nearest-elevator-poi",
             floor_key: poi.floor_key || null,
+            bankSize: poi.bankSize || 1,
           };
-          logLine("✓ " + entry.id + " poiRef=" + poi.ref, "ok");
+          logLine(
+            "? " + entry.id + " poiRef=" + poi.ref +
+              (poi.bankSize > 1 ? " bank=" + poi.bankSize : ""),
+            "ok"
+          );
           continue;
         }
         const place = resolved.place;
