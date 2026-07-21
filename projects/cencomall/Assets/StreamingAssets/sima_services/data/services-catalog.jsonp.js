@@ -104,11 +104,11 @@ window.__SERVICES_CATALOG__ = {
         "volka"
       ],
       "mapvx": {
-        "poiRef": null,
-        "mapvxId": null,
-        "lat": null,
-        "lng": null,
-        "validatedAt": null
+        "poiRef": "-NDngnRTiuduXYbgJyCy",
+        "mapvxId": "-NDngnRTiuduXYbgJyCy",
+        "lat": -33.41733754716824,
+        "lng": -70.60636214911938,
+        "validatedAt": "2026-07-21"
       }
     },
     {
@@ -145,11 +145,11 @@ window.__SERVICES_CATALOG__ = {
         "central"
       ],
       "mapvx": {
-        "poiRef": null,
-        "mapvxId": null,
-        "lat": null,
-        "lng": null,
-        "validatedAt": null
+        "poiRef": "-ND5cG4BCEGNUPbShiUA",
+        "mapvxId": "-ND5cG4BCEGNUPbShiUA",
+        "lat": -33.417938660088865,
+        "lng": -70.60616668313742,
+        "validatedAt": "2026-07-21"
       }
     },
     {
@@ -186,11 +186,11 @@ window.__SERVICES_CATALOG__ = {
         "mudador"
       ],
       "mapvx": {
-        "poiRef": null,
-        "mapvxId": null,
-        "lat": null,
-        "lng": null,
-        "validatedAt": null
+        "poiRef": "-NDeEvwA9XSQQTMmX-AR",
+        "mapvxId": "-NDeEvwA9XSQQTMmX-AR",
+        "lat": -33.417621872978934,
+        "lng": -70.6070950627327,
+        "validatedAt": "2026-07-21"
       }
     },
     {
@@ -227,11 +227,11 @@ window.__SERVICES_CATALOG__ = {
         "central"
       ],
       "mapvx": {
-        "poiRef": null,
-        "mapvxId": null,
-        "lat": null,
-        "lng": null,
-        "validatedAt": null
+        "poiRef": "-NE7dF-IV3USqpdIsVJW",
+        "mapvxId": "-NE7dF-IV3USqpdIsVJW",
+        "lat": -33.417958249359835,
+        "lng": -70.60621429234743,
+        "validatedAt": "2026-07-21"
       }
     },
     {
@@ -272,11 +272,11 @@ window.__SERVICES_CATALOG__ = {
         "ripley"
       ],
       "mapvx": {
-        "poiRef": null,
-        "mapvxId": null,
-        "lat": null,
-        "lng": null,
-        "validatedAt": null
+        "poiRef": "-NE7bc9sfcOYbhv_bC8w",
+        "mapvxId": "-NE7bc9sfcOYbhv_bC8w",
+        "lat": -33.41766329044061,
+        "lng": -70.6071349605918,
+        "validatedAt": "2026-07-21"
       }
     },
     {
@@ -318,11 +318,11 @@ window.__SERVICES_CATALOG__ = {
         "central"
       ],
       "mapvx": {
-        "poiRef": null,
-        "mapvxId": null,
-        "lat": null,
-        "lng": null,
-        "validatedAt": null
+        "poiRef": "-ND_0dRJ45M2oQrUvCMX",
+        "mapvxId": "-ND_0dRJ45M2oQrUvCMX",
+        "lat": -33.418022334229725,
+        "lng": -70.60622535645962,
+        "validatedAt": "2026-07-21"
       }
     },
     {
@@ -364,11 +364,11 @@ window.__SERVICES_CATALOG__ = {
         "mudador"
       ],
       "mapvx": {
-        "poiRef": null,
-        "mapvxId": null,
-        "lat": null,
-        "lng": null,
-        "validatedAt": null
+        "poiRef": "-NE7iAG6k8loLvwgURDf",
+        "mapvxId": "-NE7iAG6k8loLvwgURDf",
+        "lat": -33.417691275200816,
+        "lng": -70.60709841549397,
+        "validatedAt": "2026-07-21"
       }
     },
     {
@@ -416,11 +416,11 @@ window.__SERVICES_CATALOG__ = {
         "comida"
       ],
       "mapvx": {
-        "poiRef": null,
-        "mapvxId": null,
-        "lat": null,
-        "lng": null,
-        "validatedAt": null
+        "poiRef": "-NE8I7MsWiQx0XEJGlDX",
+        "mapvxId": "-NE8I7MsWiQx0XEJGlDX",
+        "lat": -33.41793390269381,
+        "lng": -70.60629274696112,
+        "validatedAt": "2026-07-21"
       }
     }
   ]
