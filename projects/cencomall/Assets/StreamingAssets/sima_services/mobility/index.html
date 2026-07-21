@@ -1390,7 +1390,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA bathrooms+search+hablar 2026.07.20-4";
+const MOBILITY_UI_VERSION = "OTA map-perf phase1 2026.07.21-1";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -2868,7 +2868,9 @@ document.addEventListener("DOMContentLoaded", () => {
     " host=" + (SimaBridge.isReactNativeHost && SimaBridge.isReactNativeHost() ? "react-native" : "legacy")
   );
   logMapVxConfig("DOMContentLoaded");
-  warmupMapVxInBackground();
+  warmupMapVxInBackground().then(function () {
+    if (isMapVxConfigured()) preloadMapVxBaseMap();
+  });
   renderEntrySurvey();
   document.getElementById("btnSpeak").onclick = startVoiceInput;
   document.getElementById("btnSpeakMini").onclick = startVoiceInput;
@@ -4494,6 +4496,12 @@ async function warmupMapVxInBackground() {
   if (!cfg.apiKey || !cfg.parentPlace || !cfg.institutionId) return null;
 
   mapVxWarmupPromise = MapVxBridge.ensureReady(cfg)
+    .then(function () {
+      if (typeof MapVxBridge.prefetchMapCatalog === "function") {
+        return MapVxBridge.prefetchMapCatalog(cfg).catch(function () { return false; });
+      }
+      return true;
+    })
     .then(() => {
       SimaBridge.log("mobility map warmup completed");
       return true;
@@ -4508,7 +4516,12 @@ async function warmupMapVxInBackground() {
 }
 
 async function preloadMapVxBaseMap() {
-  if (mapVxPreloadPromise || !isMapVxConfigured()) return mapVxPreloadPromise;
+  if (mapVxPreloadPromise) return mapVxPreloadPromise;
+  if (!isMapVxConfigured()) return null;
+  if (typeof MapVxBridge !== "undefined" && MapVxBridge.hasLiveMap && MapVxBridge.hasLiveMap()) {
+    mapVxPreloadPromise = Promise.resolve(true);
+    return mapVxPreloadPromise;
+  }
 
   const cfg = applyMapVxDefaultsFromMapPage();
   if (!cfg.apiKey || !cfg.parentPlace || !cfg.institutionId) return null;
@@ -4727,8 +4740,13 @@ async function openPoiMapViaMapVx(opts) {
   setMapLoadingState(true);
   container.classList.remove("hidden");
 
+  const mapAlreadyLive = typeof MapVxBridge.hasLiveMap === "function" && MapVxBridge.hasLiveMap();
+  if (mapAlreadyLive && typeof MapVxBridge.notifyMapContainerShown === "function") {
+    MapVxBridge.notifyMapContainerShown(container);
+  }
+
   const preloadPromise = mapVxPreloadPromise;
-  const mapReused = preloadPromise ? await preloadPromise : false;
+  const mapReused = mapAlreadyLive || (preloadPromise ? await preloadPromise : false);
   if (!mapReused && typeof MapVxBridge !== "undefined" && MapVxBridge.destroyMap) {
     MapVxBridge.destroyMap();
     container.innerHTML = "";
@@ -5072,19 +5090,31 @@ function openServiceMap(idx) {
 }
 
 function closeMapView() {
+  const container = document.getElementById("mapvx-container");
+  const mapKept = typeof MapVxBridge !== "undefined"
+    && MapVxBridge.suspendMap
+    && MapVxBridge.hasLiveMap
+    && MapVxBridge.hasLiveMap();
+
   if (typeof MapVxBridge !== "undefined") {
-    if (MapVxBridge.clearActiveRoute) MapVxBridge.clearActiveRoute();
-    MapVxBridge.destroyMap();
+    if (MapVxBridge.suspendMap) {
+      MapVxBridge.suspendMap();
+    } else if (MapVxBridge.clearActiveRoute) {
+      MapVxBridge.clearActiveRoute();
+      MapVxBridge.destroyMap();
+    }
   }
-  mapVxPreloadPromise = null;
+  if (!mapKept) {
+    mapVxPreloadPromise = null;
+    if (container) container.innerHTML = "";
+  }
   stopMapZoomMeter();
   resetMapControls();
   hideStoreDetailPanel();
   document.getElementById("map-view").classList.add("hidden");
   document.getElementById("map-iframe").src = "";
   document.getElementById("map-iframe").classList.add("hidden");
-  document.getElementById("mapvx-container").classList.add("hidden");
-  document.getElementById("mapvx-container").innerHTML = "";
+  if (container) container.classList.add("hidden");
   document.getElementById("map-placeholder").classList.add("hidden");
   setMapLoadingState(false);
   setMapStatus("");

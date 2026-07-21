@@ -38,6 +38,7 @@ window.MapVxBridge = (function () {
   var routeAnimationToken = 0;
   var LOG_PREFIX = "[MapVxBridge]";
   var subPlacesCache = { key: null, data: null, loading: null };
+  var parentPlaceCache = { key: null, data: null, loading: null };
   var _zoomLabelDebounceTimer = null;
   var centroidUpdateTimer = null;
   var poiCentroidCache = {};
@@ -215,6 +216,62 @@ window.MapVxBridge = (function () {
     subPlacesCache.key = null;
     subPlacesCache.data = null;
     subPlacesCache.loading = null;
+  }
+
+  function invalidateParentPlaceCache() {
+    parentPlaceCache.key = null;
+    parentPlaceCache.data = null;
+    parentPlaceCache.loading = null;
+  }
+
+  function getParentPlaceCached(parentPlaceId) {
+    var key = String(parentPlaceId || "");
+    if (!key || !sdk || typeof sdk.getPlaceDetail !== "function") {
+      return Promise.resolve(null);
+    }
+    if (parentPlaceCache.key === key && parentPlaceCache.data) {
+      return Promise.resolve(parentPlaceCache.data);
+    }
+    if (parentPlaceCache.key === key && parentPlaceCache.loading) {
+      return parentPlaceCache.loading;
+    }
+    parentPlaceCache.key = key;
+    parentPlaceCache.loading = sdk.getPlaceDetail(parentPlaceId)
+      .then(function (place) {
+        parentPlaceCache.data = place || null;
+        parentPlaceCache.loading = null;
+        return parentPlaceCache.data;
+      })
+      .catch(function (error) {
+        parentPlaceCache.loading = null;
+        parentPlaceCache.key = null;
+        throw error;
+      });
+    return parentPlaceCache.loading;
+  }
+
+  async function prefetchMapCatalog(config) {
+    config = config || getConfig();
+    if (!isConfigured(config)) return;
+    await ensureReady(config);
+    await Promise.all([
+      getParentPlaceCached(config.parentPlace).catch(function () { return null; }),
+      getSubPlacesCached(config.parentPlace).catch(function () { return []; }),
+    ]);
+    log("info", "prefetchMapCatalog done", { parentPlace: config.parentPlace });
+  }
+
+  function delayMs(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  function needsToiletPoiDiscovery(options) {
+    if (!options) return false;
+    var poiRef = options.poiRef ? String(options.poiRef).trim() : "";
+    var mapvxId = options.mapvxId ? String(options.mapvxId).trim() : "";
+    if (poiRef || mapvxId) return false;
+    if (options.lat != null && options.lng != null) return false;
+    return !!(options.anchorLocal || options.serviceId || options.id);
   }
 
   function getSubPlacesCached(parentPlaceId) {
@@ -2527,7 +2584,7 @@ window.MapVxBridge = (function () {
 
     var parentPlace = null;
     try {
-      parentPlace = await sdk.getPlaceDetail(config.parentPlace);
+      parentPlace = await getParentPlaceCached(config.parentPlace);
     } catch (e) {
       log("warn", "ensureIndoorMapReady getPlaceDetail failed", {
         error: String(e.message || e),
@@ -2625,7 +2682,7 @@ window.MapVxBridge = (function () {
 
   async function applyPlaceFloorAndWait(mapInstance, config, floorId, parentPlace) {
     applyPlaceFloor(mapInstance, config, floorId, parentPlace);
-    await new Promise(function (r) { setTimeout(r, 200); });
+    await delayMs(50);
   }
 
   async function ensureReady(config) {
@@ -2910,9 +2967,9 @@ window.MapVxBridge = (function () {
 
   async function collectToiletPoisWithRetry(libreMap, floorId, maxAttempts) {
     var toilets = [];
-    var attempts = Math.max(1, maxAttempts || 6);
+    var attempts = Math.max(1, maxAttempts || 3);
     for (var i = 0; i < attempts; i++) {
-      await waitForLibreMapIdle(libreMap, 1500);
+      await waitForLibreMapIdle(libreMap, 600);
       toilets = queryToiletPoiFeatures(libreMap);
       if (toilets.length) {
         log("info", "toilet POIs ready", {
@@ -2922,7 +2979,7 @@ window.MapVxBridge = (function () {
         });
         return toilets;
       }
-      await new Promise(function (r) { setTimeout(r, 300 + i * 250); });
+      await delayMs(120 + i * 120);
     }
     log("warn", "toilet POIs still empty", { floorId: floorId || null, attempts: attempts });
     return toilets;
@@ -2989,7 +3046,7 @@ window.MapVxBridge = (function () {
     var config = getConfig();
     var parentPlace = null;
     try {
-      parentPlace = await sdk.getPlaceDetail(config.parentPlace);
+      parentPlace = await getParentPlaceCached(config.parentPlace);
     } catch (eParent) { /* noop */ }
 
     var floorId = pickFloorId(
@@ -2999,7 +3056,7 @@ window.MapVxBridge = (function () {
       (anchorPlace && anchorPlace.clientId) || null
     );
 
-    var toilets = await collectToiletPoisWithRetry(libreMap, floorId, 6);
+    var toilets = await collectToiletPoisWithRetry(libreMap, floorId, 3);
     var anchorPos = anchorPlace && anchorPlace.position ? anchorPlace.position : null;
 
     if (anchorPos && toilets.length) {
@@ -3232,14 +3289,10 @@ window.MapVxBridge = (function () {
     options = options || {};
     log("info", "showServicePlace start", options);
     var config = getConfig();
+    await ensureReady(config);
+    var parentPromise = getParentPlaceCached(config.parentPlace).catch(function () { return null; });
     await ensureMap(containerEl, config);
-
-    var parentPlace = null;
-    try {
-      parentPlace = await sdk.getPlaceDetail(config.parentPlace);
-    } catch (e) {
-      log("warn", "getPlaceDetail(parentPlace) failed", { error: String(e.message || e) });
-    }
+    var parentPlace = await parentPromise;
 
     if (parentPlace) {
       registerParentPlace(map, parentPlace);
@@ -3251,11 +3304,13 @@ window.MapVxBridge = (function () {
       parentPlace,
       options.anchorLocal || options.local || null
     );
-    if (preFloorId) {
+    if (preFloorId && needsToiletPoiDiscovery(options)) {
       await applyPlaceFloorAndWait(map, config, preFloorId, parentPlace);
       scheduleRetailPoiIconFilter(map, config);
-      // Give IndoorEqual POI tiles a chance to land before toilet query.
-      await waitForLibreMapIdle(getLibreMap(map), 1800);
+      await waitForLibreMapIdle(getLibreMap(map), 700);
+    } else if (preFloorId) {
+      await applyPlaceFloorAndWait(map, config, preFloorId, parentPlace);
+      scheduleRetailPoiIconFilter(map, config);
     }
 
     var resolved = await resolveServiceDestination(options);
@@ -3281,9 +3336,9 @@ window.MapVxBridge = (function () {
 
     await waitForMapContainerLayout(containerEl);
     if (place.position) {
-      await new Promise(function (r) { setTimeout(r, 250); });
+      await delayMs(50);
       fitMapToPlace(map, place.position, config);
-      await new Promise(function (r) { setTimeout(r, 450); });
+      await delayMs(80);
     } else if (parentPlace) {
       await fitMapToIndoorContext(map, config, parentPlace);
     }
@@ -3518,9 +3573,8 @@ window.MapVxBridge = (function () {
     }
     log("info", "showPlace start", options);
     var config = getConfig();
-    await ensureMap(containerEl, config);
-
-    var resolved = await resolvePlace({
+    await ensureReady(config);
+    var resolvePromise = resolvePlace({
       local: options.local,
       catalogId: options.catalogId || (options.id && /^\d+$/.test(String(options.id)) ? options.id : ""),
       id: options.id,
@@ -3528,6 +3582,10 @@ window.MapVxBridge = (function () {
       floor: options.floor,
       strictLocal: options.strictLocal,
     });
+    var parentPromise = getParentPlaceCached(config.parentPlace).catch(function () { return null; });
+    await ensureMap(containerEl, config);
+    var resolved = await resolvePromise;
+    var parentPlace = await parentPromise;
     var place = resolved.place;
     if (options.strictLocal !== false && options.local) {
       if (!clientIdMatchesCatalogLocal(place.clientId, options.local)) {
@@ -3544,11 +3602,8 @@ window.MapVxBridge = (function () {
     }
     var mapvxId = place.mapvxId;
 
-    var parentPlace = null;
-    try {
-      parentPlace = await sdk.getPlaceDetail(config.parentPlace);
-    } catch (e) {
-      log("warn", "getPlaceDetail(parentPlace) failed", { error: String(e.message || e) });
+    if (parentPlace) {
+      registerParentPlace(map, parentPlace);
     }
 
     var floorId = pickFloorId(
@@ -3563,9 +3618,6 @@ window.MapVxBridge = (function () {
       floorId: floorId,
     });
 
-    if (parentPlace) {
-      registerParentPlace(map, parentPlace);
-    }
     await applyPlaceFloorAndWait(map, config, floorId, parentPlace);
     scheduleRetailPoiIconFilter(map, config);
 
@@ -3582,9 +3634,9 @@ window.MapVxBridge = (function () {
         await fitMapToIndoorContext(map, config, parentPlace);
       }
     } else {
-      await new Promise(function (r) { setTimeout(r, 250); });
+      await delayMs(50);
       fitMapToPlace(map, place.position, config);
-      await new Promise(function (r) { setTimeout(r, 450); });
+      await delayMs(80);
     }
 
     var baselineZoom = getMapZoom(map);
@@ -3735,7 +3787,7 @@ window.MapVxBridge = (function () {
     config = config || getConfig();
     if (!config.parentPlace) return [];
     try {
-      var parent = await sdk.getPlaceDetail(config.parentPlace);
+      var parent = await getParentPlaceCached(config.parentPlace);
       var inner = (parent && parent.innerFloors) ? parent.innerFloors.slice() : [];
       inner.sort(function (a, b) { return (a.index || 0) - (b.index || 0); });
       return inner.map(function (f) {
@@ -4037,6 +4089,42 @@ window.MapVxBridge = (function () {
     return { active: true };
   }
 
+  function hasLiveMap() {
+    return !!(map && mapContainer);
+  }
+
+  function notifyMapContainerShown(containerEl) {
+    if (!map || !containerEl) return;
+    mapContainer = containerEl;
+    try {
+      var libreMap = getLibreMap(map);
+      if (libreMap && typeof libreMap.resize === "function") {
+        libreMap.resize();
+      }
+    } catch (e) {
+      log("warn", "notifyMapContainerShown resize failed", { error: String(e.message || e) });
+    }
+  }
+
+  function suspendMap() {
+    log("info", "suspendMap (keep instance)");
+    routeAnimationToken += 1;
+    if (map && typeof map.removeAllRoutes === "function") {
+      try { map.removeAllRoutes(); } catch (e) { /* noop */ }
+    }
+    clearPlacePopOver();
+    if (map && typeof map.clearColoredPlaces === "function") {
+      try { map.clearColoredPlaces(); } catch (e) { /* noop */ }
+    }
+    if (lastMapSession) {
+      lastMapSession.routeActive = false;
+      if (lastMapSession.result) {
+        lastMapSession.result.routeActive = false;
+        lastMapSession.result.routeStarted = false;
+      }
+    }
+  }
+
   function destroyMap() {
     log("info", "destroyMap");
     lastMapSession = null;
@@ -4057,6 +4145,8 @@ window.MapVxBridge = (function () {
     sdk = null;
     initPromise = null;
     storeLabelState.loading = null;
+    invalidateSubPlacesCache();
+    invalidateParentPlaceCache();
   }
 
   return {
@@ -4065,6 +4155,10 @@ window.MapVxBridge = (function () {
     log: log,
     ensureReady: ensureReady,
     ensureMap: ensureMap,
+    prefetchMapCatalog: prefetchMapCatalog,
+    hasLiveMap: hasLiveMap,
+    suspendMap: suspendMap,
+    notifyMapContainerShown: notifyMapContainerShown,
     resolvePlace: resolvePlace,
     resolveServiceDestination: resolveServiceDestination,
     matchServiceCatalogEntry: matchServiceCatalogEntry,
