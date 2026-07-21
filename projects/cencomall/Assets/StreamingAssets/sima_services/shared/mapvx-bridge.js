@@ -3657,27 +3657,35 @@ window.MapVxBridge = (function () {
 
     var explicitId = mapvxId || poiRef;
     if (explicitId && hasCatalogMapvxCoords(options)) {
+      // Phase 2: catalog lat/lng are the source of truth for the destination
+      // (poiRef can collide across banks; getPlaceDetail alone would merge them).
+      var catalogPlace = buildSyntheticServicePlace(
+        { ref: explicitId, lat: options.lat, lng: options.lng, name: name },
+        name
+      );
       try {
         var byRefCoords = await sdk.getPlaceDetail(explicitId);
         if (byRefCoords && byRefCoords.mapvxId) {
-          return {
-            place: byRefCoords,
-            resolvedBy: "getPlaceDetail(poiRef)",
-            lookupKey: explicitId,
-            attempts: attempts,
-          };
+          catalogPlace.mapvxId = byRefCoords.mapvxId;
+          catalogPlace.clientId = byRefCoords.clientId || byRefCoords.mapvxId;
+          if (byRefCoords.title) catalogPlace.title = name || byRefCoords.title;
+          catalogPlace.inFloors = byRefCoords.inFloors || catalogPlace.inFloors;
         }
       } catch (eRefCoords) {
         attempts.push({ method: "getPlaceDetail(poiRef)", error: String(eRefCoords.message || eRefCoords) });
       }
 
+      attempts.push({ method: "catalog-coords", explicitId: explicitId });
       return {
-        place: buildSyntheticServicePlace(
-          { ref: explicitId, lat: options.lat, lng: options.lng, name: name },
-          name
-        ),
+        place: catalogPlace,
         resolvedBy: "catalog-coords",
         lookupKey: explicitId,
+        elevatorPoi: serviceType === "elevator"
+          ? { ref: explicitId, lat: options.lat, lng: options.lng }
+          : null,
+        toiletPoi: serviceType === "bathroom"
+          ? { ref: explicitId, lat: options.lat, lng: options.lng }
+          : null,
         attempts: attempts,
       };
     }

@@ -428,19 +428,91 @@ window.__SERVICES_CATALOG__ = {
       "type": "elevator",
       "sector": "ripley",
       "name": "Ascensores · Ripley",
-      "floors": ["PB", "1", "2", "3", "4", "5"],
-      "features": { "accesible": true },
+      "floors": [
+        "PB",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "features": {
+        "accesible": true
+      },
       "layout": "banco_vertical",
       "anchorStores": [
-        { "brand": "Easy", "local": "CC_PB_100", "role": "secondary", "floors": ["PB"] },
-        { "brand": "JUMBO", "local": "CC_N1_1000", "role": "secondary", "floors": ["1"] },
-        { "brand": "Ripley", "local": "CC_N2_1300", "role": "primary", "floors": ["2"] },
-        { "brand": "Nike Rise", "local": "CC_N2_2192", "role": "secondary", "floors": ["2"] },
-        { "brand": "BOLD", "local": "CC_N3_3208", "role": "secondary", "floors": ["3"] },
-        { "brand": "Ripley", "local": "CC_N3_1300", "role": "secondary", "floors": ["3"] },
-        { "brand": "Sparta", "local": "CC_N4_4208", "role": "secondary", "floors": ["4"] },
-        { "brand": "Ripley", "local": "CC_N4_1300", "role": "secondary", "floors": ["4"] },
-        { "brand": "Burger King", "local": "CC_N5_5524", "role": "secondary", "floors": ["5"] }
+        {
+          "brand": "Easy",
+          "local": "CC_PB_100",
+          "role": "secondary",
+          "floors": [
+            "PB"
+          ]
+        },
+        {
+          "brand": "JUMBO",
+          "local": "CC_N1_1000",
+          "role": "secondary",
+          "floors": [
+            "1"
+          ]
+        },
+        {
+          "brand": "Ripley",
+          "local": "CC_N2_1300",
+          "role": "primary",
+          "floors": [
+            "2"
+          ]
+        },
+        {
+          "brand": "Nike Rise",
+          "local": "CC_N2_2192",
+          "role": "secondary",
+          "floors": [
+            "2"
+          ]
+        },
+        {
+          "brand": "BOLD",
+          "local": "CC_N3_3208",
+          "role": "secondary",
+          "floors": [
+            "3"
+          ]
+        },
+        {
+          "brand": "Ripley",
+          "local": "CC_N3_1300",
+          "role": "secondary",
+          "floors": [
+            "3"
+          ]
+        },
+        {
+          "brand": "Sparta",
+          "local": "CC_N4_4208",
+          "role": "secondary",
+          "floors": [
+            "4"
+          ]
+        },
+        {
+          "brand": "Ripley",
+          "local": "CC_N4_1300",
+          "role": "secondary",
+          "floors": [
+            "4"
+          ]
+        },
+        {
+          "brand": "Burger King",
+          "local": "CC_N5_5524",
+          "role": "secondary",
+          "floors": [
+            "5"
+          ]
+        }
       ],
       "descriptions": {
         "short": "Eje Ripley / ancla, todos los pisos.",
@@ -448,28 +520,103 @@ window.__SERVICES_CATALOG__ = {
         "long": "Torre del sector Ripley. En cada piso la referencia es la tienda ancla de ese nivel (Easy, Jumbo, Ripley, Bold, Sparta o Burger King)."
       },
       "keywords": [
-        "ascensor", "ascensores", "elevador", "elevator",
-        "ripley", "easy", "jumbo", "nike", "nike rise", "bold", "sparta",
-        "burger king", "bk", "ancla"
+        "ascensor",
+        "ascensores",
+        "elevador",
+        "elevator",
+        "ripley",
+        "easy",
+        "jumbo",
+        "nike",
+        "nike rise",
+        "bold",
+        "sparta",
+        "burger king",
+        "bk",
+        "ancla"
       ],
-      "mapvx": { "poiRef": null, "mapvxId": null, "lat": null, "lng": null, "validatedAt": null }
+      "mapvx": {
+        "poiRef": "-N1e2dagzGnuGIFpinw0",
+        "mapvxId": "-N1e2dagzGnuGIFpinw0",
+        "lat": -33.41780349399868,
+        "lng": -70.6073646247387,
+        "validatedAt": "2026-07-21"
+      }
     },
     {
       "id": "ascensor-vitacura",
       "type": "elevator",
       "sector": "vitacura",
       "name": "Ascensores · Av. Vitacura",
-      "floors": ["PB", "1", "2", "3", "4", "5"],
-      "features": { "accesible": true },
+      "floors": [
+        "PB",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "features": {
+        "accesible": true
+      },
       "layout": "banco_vertical",
       "anchorStores": [
-        { "brand": "Decathlon", "local": "CC_PB_300", "role": "primary", "floors": ["PB"] },
-        { "brand": "Victoria's Secret", "local": "CC_N2_2128", "role": "secondary", "floors": ["2"] },
-        { "brand": "Samsonite", "local": "CC_N3_3120", "role": "secondary", "floors": ["3"] },
-        { "brand": "Studio F", "local": "CC_N3_3124", "role": "secondary", "floors": ["3"] },
-        { "brand": "OAKLEY", "local": "CC_N4_4120", "role": "secondary", "floors": ["4"] },
-        { "brand": "Maui And Sons", "local": "CC_N4_4124", "role": "secondary", "floors": ["4"] },
-        { "brand": "Barra Chalaca", "local": "CC_N5_5116", "role": "secondary", "floors": ["5"] }
+        {
+          "brand": "Decathlon",
+          "local": "CC_PB_300",
+          "role": "primary",
+          "floors": [
+            "PB"
+          ]
+        },
+        {
+          "brand": "Victoria's Secret",
+          "local": "CC_N2_2128",
+          "role": "secondary",
+          "floors": [
+            "2"
+          ]
+        },
+        {
+          "brand": "Samsonite",
+          "local": "CC_N3_3120",
+          "role": "secondary",
+          "floors": [
+            "3"
+          ]
+        },
+        {
+          "brand": "Studio F",
+          "local": "CC_N3_3124",
+          "role": "secondary",
+          "floors": [
+            "3"
+          ]
+        },
+        {
+          "brand": "OAKLEY",
+          "local": "CC_N4_4120",
+          "role": "secondary",
+          "floors": [
+            "4"
+          ]
+        },
+        {
+          "brand": "Maui And Sons",
+          "local": "CC_N4_4124",
+          "role": "secondary",
+          "floors": [
+            "4"
+          ]
+        },
+        {
+          "brand": "Barra Chalaca",
+          "local": "CC_N5_5116",
+          "role": "secondary",
+          "floors": [
+            "5"
+          ]
+        }
       ],
       "descriptions": {
         "short": "Costado Av. Vitacura (Decathlon).",
@@ -477,27 +624,95 @@ window.__SERVICES_CATALOG__ = {
         "long": "Ascensores del costado Av. Vitacura. Referencia principal en PB: Decathlon."
       },
       "keywords": [
-        "ascensor", "ascensores", "elevador", "elevator",
-        "vitacura", "decathlon", "maxik", "victoria secret", "moule",
-        "samsonite", "studio f", "oakley", "maui", "barra chalaca"
+        "ascensor",
+        "ascensores",
+        "elevador",
+        "elevator",
+        "vitacura",
+        "decathlon",
+        "maxik",
+        "victoria secret",
+        "moule",
+        "samsonite",
+        "studio f",
+        "oakley",
+        "maui",
+        "barra chalaca"
       ],
-      "mapvx": { "poiRef": null, "mapvxId": null, "lat": null, "lng": null, "validatedAt": null }
+      "mapvx": {
+        "poiRef": "node:993809113",
+        "mapvxId": "node:993809113",
+        "lat": -33.41820479394959,
+        "lng": -70.60576099902391,
+        "validatedAt": "2026-07-21"
+      }
     },
     {
       "id": "ascensor-hm",
       "type": "elevator",
       "sector": "hm",
       "name": "Ascensores · H&M",
-      "floors": ["PB", "1", "2", "3", "4", "5"],
-      "features": { "accesible": true },
+      "floors": [
+        "PB",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "features": {
+        "accesible": true
+      },
       "layout": "banco_vertical",
       "anchorStores": [
-        { "brand": "AFEX", "local": "CC_PB_150", "role": "secondary", "floors": ["PB"] },
-        { "brand": "Blush-Bar", "local": "CC_N1_1170", "role": "secondary", "floors": ["1"] },
-        { "brand": "H&M", "local": "CC_N2_2136", "role": "primary", "floors": ["2"] },
-        { "brand": "H&M", "local": "CC_N3_2136", "role": "secondary", "floors": ["3"] },
-        { "brand": "Fabrics", "local": "CC_N4_4148", "role": "secondary", "floors": ["4"] },
-        { "brand": "Texas Ribs", "local": "CC_N5_5144", "role": "secondary", "floors": ["5"] }
+        {
+          "brand": "AFEX",
+          "local": "CC_PB_150",
+          "role": "secondary",
+          "floors": [
+            "PB"
+          ]
+        },
+        {
+          "brand": "Blush-Bar",
+          "local": "CC_N1_1170",
+          "role": "secondary",
+          "floors": [
+            "1"
+          ]
+        },
+        {
+          "brand": "H&M",
+          "local": "CC_N2_2136",
+          "role": "primary",
+          "floors": [
+            "2"
+          ]
+        },
+        {
+          "brand": "H&M",
+          "local": "CC_N3_2136",
+          "role": "secondary",
+          "floors": [
+            "3"
+          ]
+        },
+        {
+          "brand": "Fabrics",
+          "local": "CC_N4_4148",
+          "role": "secondary",
+          "floors": [
+            "4"
+          ]
+        },
+        {
+          "brand": "Texas Ribs",
+          "local": "CC_N5_5144",
+          "role": "secondary",
+          "floors": [
+            "5"
+          ]
+        }
       ],
       "descriptions": {
         "short": "Pasillo lateral, zona H&M.",
@@ -505,23 +720,57 @@ window.__SERVICES_CATALOG__ = {
         "long": "Ascensores del pasillo lateral (lado H&M), opuesto a Vitacura."
       },
       "keywords": [
-        "ascensor", "ascensores", "elevador", "elevator",
-        "h&m", "hm", "blush", "blush bar", "fabrics", "texas ribs",
-        "afex", "lateral"
+        "ascensor",
+        "ascensores",
+        "elevador",
+        "elevator",
+        "h&m",
+        "hm",
+        "blush",
+        "blush bar",
+        "fabrics",
+        "texas ribs",
+        "afex",
+        "lateral"
       ],
-      "mapvx": { "poiRef": null, "mapvxId": null, "lat": null, "lng": null, "validatedAt": null }
+      "mapvx": {
+        "poiRef": "-N2SSgpaCHzZe80nRkOx",
+        "mapvxId": "-N2SSgpaCHzZe80nRkOx",
+        "lat": -33.41743185612792,
+        "lng": -70.60591321438551,
+        "validatedAt": "2026-07-21"
+      }
     },
     {
       "id": "ascensor-zara",
       "type": "elevator",
       "sector": "zara",
       "name": "Ascensores · Zara",
-      "floors": ["2", "3"],
-      "features": { "accesible": true },
+      "floors": [
+        "2",
+        "3"
+      ],
+      "features": {
+        "accesible": true
+      },
       "layout": "banco_vertical",
       "anchorStores": [
-        { "brand": "Zara", "local": "CC_N3_2156", "role": "primary", "floors": ["3"] },
-        { "brand": "Zara", "local": "CC_N2_2156", "role": "secondary", "floors": ["2"] }
+        {
+          "brand": "Zara",
+          "local": "CC_N3_2156",
+          "role": "primary",
+          "floors": [
+            "3"
+          ]
+        },
+        {
+          "brand": "Zara",
+          "local": "CC_N2_2156",
+          "role": "secondary",
+          "floors": [
+            "2"
+          ]
+        }
       ],
       "descriptions": {
         "short": "Junto a Zara (N2–N3).",
@@ -529,10 +778,23 @@ window.__SERVICES_CATALOG__ = {
         "long": "En el Nivel 3, al costado de la entrada de Zara."
       },
       "keywords": [
-        "ascensor", "ascensores", "elevador", "elevator",
-        "zara", "nivel 3", "piso 3", "nivel 2", "piso 2"
+        "ascensor",
+        "ascensores",
+        "elevador",
+        "elevator",
+        "zara",
+        "nivel 3",
+        "piso 3",
+        "nivel 2",
+        "piso 2"
       ],
-      "mapvx": { "poiRef": null, "mapvxId": null, "lat": null, "lng": null, "validatedAt": null }
+      "mapvx": {
+        "poiRef": "-N2SSgpaCHzZe80nRkOx",
+        "mapvxId": "-N2SSgpaCHzZe80nRkOx",
+        "lat": -33.4174075093143,
+        "lng": -70.60589879751205,
+        "validatedAt": "2026-07-21"
+      }
     }
   ]
 };
