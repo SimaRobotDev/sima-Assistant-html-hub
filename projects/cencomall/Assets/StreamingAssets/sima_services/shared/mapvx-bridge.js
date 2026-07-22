@@ -3546,9 +3546,40 @@ window.MapVxBridge = (function () {
     };
   }
 
-  function biasElevatorPoiTowardAnchor(elevatorPoi, anchorPos, weight) {
+  function approxMetersBetween(a, b) {
+    if (!a || !b || a.lat == null || b.lat == null) return 0;
+    var dLat = (Number(b.lat) - Number(a.lat)) * 111320;
+    var midLat = ((Number(a.lat) + Number(b.lat)) / 2) * Math.PI / 180;
+    var dLng = (Number(b.lng) - Number(a.lng)) * 111320 * Math.cos(midLat);
+    return Math.sqrt(dLat * dLat + dLng * dLng);
+  }
+
+  /**
+   * Pull toward a landmark but never more than maxMeters from the shaft.
+   * Uncapped blends to store centroids often exit the alcove onto the main
+   * corridor (seen on Zara N3 → Hugo). A short capped step lands in the
+   * side hallway MapVX can actually route into.
+   */
+  function pullCoordsTowardCapped(from, toward, weight, maxMeters) {
+    var pulled = pullCoordsToward(from, toward, weight);
+    if (!pulled || maxMeters == null || !(Number(maxMeters) > 0)) return pulled;
+    var dist = approxMetersBetween(from, pulled);
+    if (!(dist > Number(maxMeters))) return pulled;
+    var scale = Number(maxMeters) / dist;
+    return {
+      lat: Number(from.lat) + (Number(pulled.lat) - Number(from.lat)) * scale,
+      lng: Number(from.lng) + (Number(pulled.lng) - Number(from.lng)) * scale,
+    };
+  }
+
+  function biasElevatorPoiTowardAnchor(elevatorPoi, anchorPos, weight, maxMeters) {
     if (!elevatorPoi || !anchorPos) return elevatorPoi;
-    var pulled = pullCoordsToward(elevatorPoi, anchorPos, weight == null ? 0.42 : weight);
+    var pulled = pullCoordsTowardCapped(
+      elevatorPoi,
+      anchorPos,
+      weight == null ? 0.42 : weight,
+      maxMeters
+    );
     if (!pulled || pulled.lat == null) return elevatorPoi;
     return Object.assign({}, elevatorPoi, {
       lat: pulled.lat,
@@ -3708,12 +3739,20 @@ window.MapVxBridge = (function () {
       attempts
     );
 
-    // Pick elevator bank nearest to approach/anchor, not the colliding catalog seed.
+    // Bank identity: prefer the catalog floor anchor (Zara), NEVER the corridor
+    // approach (Hugo). Approaching Hugo first was selecting/snapping onto the
+    // main corridor instead of the side alcove.
     var pickHint = seedPos;
-    if (approachPlace && approachPlace.position) {
-      pickHint = approachPlace.position;
-    } else if (anchorPlace && anchorPlace.position) {
+    if (anchorPlace && anchorPlace.position) {
       pickHint = anchorPlace.position;
+    } else if (approachPlace && approachPlace.position) {
+      pickHint = approachPlace.position;
+    }
+
+    if (map && pickHint && pickHint !== fitPos) {
+      fitMapToPlace(map, pickHint, config);
+      await waitForLibreMapIdle(getLibreMap(map), 900);
+      await delayMs(150);
     }
 
     var elevators = await collectElevatorPoisWithRetry(getLibreMap(map), floorId, 5);
@@ -3729,27 +3768,37 @@ window.MapVxBridge = (function () {
           method: "refine-elevator-floor-poi",
           ref: refined.ref,
           bankSize: refined.bankSize,
-          pickNear: approachPlace ? "approach" : (anchorPlace ? "anchor" : "catalog-seed"),
+          pickNear: anchorPlace ? "anchor" : (approachPlace ? "approach" : "catalog-seed"),
         });
       }
     }
 
-    // Keep the Ascensor pin on the shaft; routing may use a walkable approach.
+    // Pin stays on the shaft. Route target may step a few meters into the
+    // walkable side hallway (capped) so MapVX turns into the alcove.
     refined.markerLat = refined.lat;
     refined.markerLng = refined.lng;
 
     if (approachPlace && approachPlace.position) {
       var weight = options.routeApproachWeight != null ? Number(options.routeApproachWeight) : 1;
       if (!isFinite(weight)) weight = 1;
+      var maxMeters = options.routeApproachMaxMeters != null
+        ? Number(options.routeApproachMaxMeters)
+        : null;
+      var markerLat = refined.markerLat;
+      var markerLng = refined.markerLng;
       if (weight >= 0.99) {
+        // Full replace (e.g. Vitacura → ATM): enter the service pocket.
         refined.lat = Number(approachPlace.position.lat);
         refined.lng = Number(approachPlace.position.lng);
         refined.corridorBiased = true;
         refined.approachUsed = true;
       } else {
-        var markerLat = refined.markerLat;
-        var markerLng = refined.markerLng;
-        refined = biasElevatorPoiTowardAnchor(refined, approachPlace.position, weight);
+        refined = biasElevatorPoiTowardAnchor(
+          refined,
+          approachPlace.position,
+          weight,
+          isFinite(maxMeters) ? maxMeters : 12
+        );
         refined.markerLat = markerLat;
         refined.markerLng = markerLng;
         refined.approachUsed = true;
@@ -3757,7 +3806,16 @@ window.MapVxBridge = (function () {
       attempts.push({
         method: "refine-elevator-route-approach",
         weight: weight,
+        maxMeters: isFinite(maxMeters) ? maxMeters : (weight >= 0.99 ? null : 12),
         toward: approachPlace.title || options.routeApproachQuery || options.routeApproachLocal || null,
+        routeLat: refined.lat,
+        routeLng: refined.lng,
+        markerLat: markerLat,
+        markerLng: markerLng,
+        pullMeters: approxMetersBetween(
+          { lat: markerLat, lng: markerLng },
+          { lat: refined.lat, lng: refined.lng }
+        ),
       });
       return refined;
     }

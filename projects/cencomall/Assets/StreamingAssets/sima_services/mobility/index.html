@@ -1423,7 +1423,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA elevators N3 zara hugo 2026.07.22-7";
+const MOBILITY_UI_VERSION = "OTA elevators N3 zara alcove 2026.07.22-8";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -2421,6 +2421,7 @@ function enrichServicesSearchPayload(data) {
       routeApproachQuery: row.routeApproachQuery || card.routeApproachQuery,
       routeApproachLocal: row.routeApproachLocal || card.routeApproachLocal,
       routeApproachWeight: row.routeApproachWeight != null ? row.routeApproachWeight : card.routeApproachWeight,
+      routeApproachMaxMeters: row.routeApproachMaxMeters != null ? row.routeApproachMaxMeters : card.routeApproachMaxMeters,
       poiRef: row.poiRef || card.poiRef,
       mapvxId: row.mapvxId || card.mapvxId,
       mapvxLat: row.mapvxLat != null ? row.mapvxLat : card.mapvxLat,
@@ -4232,6 +4233,7 @@ function normalizeServiceResult(svc) {
     routeApproachQuery: svc.routeApproachQuery || "",
     routeApproachLocal: svc.routeApproachLocal || "",
     routeApproachWeight: svc.routeApproachWeight != null ? svc.routeApproachWeight : null,
+    routeApproachMaxMeters: svc.routeApproachMaxMeters != null ? svc.routeApproachMaxMeters : null,
     poiRef: svc.poiRef || "",
     mapvxId: svc.mapvxId || "",
     mapvxLat: svc.mapvxLat != null ? svc.mapvxLat : null,
@@ -4801,7 +4803,7 @@ async function openPoiMapViaMapVx(opts) {
   const {
     poiType, id, floor, mall, name, local, mode,
     anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId, serviceType,
-    routeApproachQuery, routeApproachLocal, routeApproachWeight,
+    routeApproachQuery, routeApproachLocal, routeApproachWeight, routeApproachMaxMeters,
   } = opts || {};
   const container = document.getElementById("mapvx-container");
   const iframe = document.getElementById("map-iframe");
@@ -4857,6 +4859,7 @@ async function openPoiMapViaMapVx(opts) {
           routeApproachQuery,
           routeApproachLocal,
           routeApproachWeight,
+          routeApproachMaxMeters,
           poiRef,
           mapvxId,
           lat,
@@ -4973,7 +4976,7 @@ function openPoiMap(opts) {
   const {
     poiType, id, floor, mall, name, local, catalogId, mode, storeDetail,
     anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId, serviceType,
-    routeApproachQuery, routeApproachLocal, routeApproachWeight,
+    routeApproachQuery, routeApproachLocal, routeApproachWeight, routeApproachMaxMeters,
   } = opts || {};
 
   const isService = poiType === "service";
@@ -5032,6 +5035,7 @@ function openPoiMap(opts) {
         routeApproachQuery,
         routeApproachLocal,
         routeApproachWeight,
+        routeApproachMaxMeters,
         poiRef,
         mapvxId,
         lat,
@@ -5193,6 +5197,7 @@ function openServiceMap(idx) {
   let routeApproachQuery = normalized.routeApproachQuery || "";
   let routeApproachLocal = normalized.routeApproachLocal || "";
   let routeApproachWeight = normalized.routeApproachWeight;
+  let routeApproachMaxMeters = normalized.routeApproachMaxMeters;
   if (normalized.type === "elevator" && typeof ServicesCatalog !== "undefined" && ServicesCatalog.getById) {
     const entry = ServicesCatalog.getById(normalized.id || normalized.catalogId);
     if (entry) {
@@ -5204,6 +5209,7 @@ function openServiceMap(idx) {
       if (card.routeApproachQuery) routeApproachQuery = card.routeApproachQuery;
       if (card.routeApproachLocal) routeApproachLocal = card.routeApproachLocal;
       if (card.routeApproachWeight != null) routeApproachWeight = card.routeApproachWeight;
+      if (card.routeApproachMaxMeters != null) routeApproachMaxMeters = card.routeApproachMaxMeters;
     }
   }
 
@@ -5219,6 +5225,7 @@ function openServiceMap(idx) {
     routeApproachQuery: routeApproachQuery || undefined,
     routeApproachLocal: routeApproachLocal || undefined,
     routeApproachWeight: routeApproachWeight != null ? routeApproachWeight : undefined,
+    routeApproachMaxMeters: routeApproachMaxMeters != null ? routeApproachMaxMeters : undefined,
     poiRef: normalized.poiRef,
     mapvxId: normalized.mapvxId,
     lat: normalized.mapvxLat,
