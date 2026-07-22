@@ -241,13 +241,9 @@ window.ServicesCatalog = (function () {
     if (preferFloor && entryOnFloor(entry, preferFloor)) {
       score += floorFilter ? 2 : 8;
       if (type === "elevator") {
-        var hasAnchorOnFloor = (entry.anchorStores || []).some(function (store) {
-          if (!store.floors || !store.floors.length) return false;
-          return store.floors.some(function (f) {
-            return floorsMatch(f, preferFloor);
-          });
-        });
-        if (hasAnchorOnFloor) score += 4;
+        // Multi-floor banks belong on every listed floor even before a
+        // per-floor landmark is curated — don't let missing N1 anchors hide them.
+        score += 4;
       } else if (entry.floors && entry.floors.length && floorsMatch(entry.floors[0], preferFloor)) {
         score += 6;
       }
@@ -383,7 +379,13 @@ window.ServicesCatalog = (function () {
       var topScore = scored[0].score;
       var minScore = topScore > 0 ? 1 : 0;
       // When a strong match exists (brand/sector), drop generic-only hits.
-      if (topScore >= 6) minScore = Math.max(minScore, topScore - 2);
+      // Elevator banks are peers on a floor — don't hide Vitacura just because
+      // Ripley/H&M scored a bit higher from floor landmarks.
+      if (typeFilter === "elevator") {
+        minScore = 1;
+      } else if (topScore >= 6) {
+        minScore = Math.max(minScore, topScore - 2);
+      }
       return scored
         .filter(function (row) {
           return row.score >= minScore;
