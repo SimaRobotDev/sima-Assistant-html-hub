@@ -3739,17 +3739,16 @@ window.MapVxBridge = (function () {
       attempts
     );
 
-    // Bank identity: prefer the catalog floor anchor (Zara), NEVER the corridor
-    // approach (Hugo). Approaching Hugo first was selecting/snapping onto the
-    // main corridor instead of the side alcove.
+    // Catalog lat/lng are bank identity. Prefer the seed over store anchors so
+    // a verified Zara patch is not overridden by the Zara store (closer to H&M).
     var pickHint = seedPos;
-    if (anchorPlace && anchorPlace.position) {
+    var pickNearLabel = "catalog-seed";
+    if ((!pickHint || pickHint.lat == null) && anchorPlace && anchorPlace.position) {
       pickHint = anchorPlace.position;
-    } else if (approachPlace && approachPlace.position) {
-      pickHint = approachPlace.position;
+      pickNearLabel = "anchor";
     }
 
-    if (map && pickHint && pickHint !== fitPos) {
+    if (map && pickHint) {
       fitMapToPlace(map, pickHint, config);
       await waitForLibreMapIdle(getLibreMap(map), 900);
       await delayMs(150);
@@ -3768,15 +3767,13 @@ window.MapVxBridge = (function () {
           method: "refine-elevator-floor-poi",
           ref: refined.ref,
           bankSize: refined.bankSize,
-          pickNear: anchorPlace ? "anchor" : (approachPlace ? "approach" : "catalog-seed"),
+          pickNear: pickNearLabel,
         });
       }
     }
 
-    // Pin stays on the shaft. Route target is walkable:
-    // - default: step from elevator toward landmark (capped)
-    // - pullFrom=landmark: start at landmark (Hugo front) and walk toward the
-    //   elevator — lands at the back of Hugo / side hallway entrance.
+    // Pin + route default to the shaft/bank. Optional routeApproach may nudge
+    // into a walkable pocket (ATM / corridor) without changing bank identity.
     refined.markerLat = refined.lat;
     refined.markerLng = refined.lng;
 

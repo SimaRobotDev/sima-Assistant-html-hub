@@ -809,30 +809,18 @@
         "accesible": true
       },
       "layout": "banco_vertical",
-      "routeApproach": [
-        {
-          "local": "CC_N3_3180",
-          "query": "Hugo",
-          "floors": [
-            "3"
-          ],
-          "pullFrom": "landmark",
-          "weight": 0.72,
-          "maxMeters": 22
-        }
-      ],
       "anchorStores": [
         {
-          "brand": "Zara",
-          "local": "CC_N3_2156",
+          "brand": "Hugo",
+          "local": "CC_N3_3180",
           "role": "primary",
           "floors": [
             "3"
           ]
         },
         {
-          "brand": "Hugo",
-          "local": "CC_N3_3180",
+          "brand": "Zara",
+          "local": "CC_N3_2156",
           "role": "secondary",
           "floors": [
             "3"
@@ -840,9 +828,9 @@
         }
       ],
       "descriptions": {
-        "short": "Junto a Zara / Hugo (Nivel 3).",
-        "medium": "Pasillo lateral junto a Hugo, al costado de Zara (Nivel 3) — no es el banco de H&M.",
-        "long": "En el Nivel 3, en el pasillo junto a Hugo hacia el área de ascensores de Zara."
+        "short": "Pasillo junto a Hugo (Nivel 3).",
+        "medium": "Banco en el pasillo lateral junto a Hugo, al costado de Zara (Nivel 3) — no es el de H&M.",
+        "long": "En el Nivel 3, ascensores del pasillo junto a Hugo (node:19041 / 19042)."
       },
       "keywords": [
         "ascensor",
@@ -855,10 +843,10 @@
         "piso 3"
       ],
       "mapvx": {
-        "poiRef": "ascensor-zara-n3",
-        "mapvxId": "ascensor-zara-n3",
-        "lat": -33.4174075093143,
-        "lng": -70.60589879751205,
+        "poiRef": "node:19041",
+        "mapvxId": "node:19041",
+        "lat": -33.41725506172419,
+        "lng": -70.60655797133222,
         "validatedAt": "2026-07-22"
       }
     }
