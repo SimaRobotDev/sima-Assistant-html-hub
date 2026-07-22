@@ -560,6 +560,15 @@ window.__SERVICES_CATALOG__ = {
         "accesible": true
       },
       "layout": "banco_vertical",
+      "routeApproach": [
+        {
+          "query": "Cajero Automático",
+          "floors": [
+            "1"
+          ],
+          "weight": 1
+        }
+      ],
       "anchorStores": [
         {
           "brand": "Decathlon",

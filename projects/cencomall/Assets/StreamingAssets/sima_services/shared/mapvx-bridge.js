@@ -3533,8 +3533,8 @@ window.MapVxBridge = (function () {
 
   /**
    * Elevator POI centroids sit inside the shaft (often non-walkable). Pull the
-   * route target toward the floor landmark so MapVX snaps to the corridor
-   * approach (e.g. Maxi K → Vitacura) instead of looping the long way around.
+   * route target toward a walkable approach POI (ATM / landmark) so MapVX enters
+   * the elevator alcove instead of stopping short or looping around.
    */
   function pullCoordsToward(from, toward, weight) {
     var w = weight == null ? 0.42 : weight;
@@ -3546,9 +3546,9 @@ window.MapVxBridge = (function () {
     };
   }
 
-  function biasElevatorPoiTowardAnchor(elevatorPoi, anchorPos) {
+  function biasElevatorPoiTowardAnchor(elevatorPoi, anchorPos, weight) {
     if (!elevatorPoi || !anchorPos) return elevatorPoi;
-    var pulled = pullCoordsToward(elevatorPoi, anchorPos, 0.42);
+    var pulled = pullCoordsToward(elevatorPoi, anchorPos, weight == null ? 0.42 : weight);
     if (!pulled || pulled.lat == null) return elevatorPoi;
     return Object.assign({}, elevatorPoi, {
       lat: pulled.lat,
@@ -3557,9 +3557,96 @@ window.MapVxBridge = (function () {
     });
   }
 
+  async function resolveRouteApproachPlace(options, seedPos, floorHint, attempts) {
+    options = options || {};
+    attempts = attempts || [];
+    var config = getConfig();
+    var local = options.routeApproachLocal ? String(options.routeApproachLocal).trim() : "";
+    var query = options.routeApproachQuery ? String(options.routeApproachQuery).trim() : "";
+    if (!local && !query) return null;
+
+    // ~45 m — approach must be the ATM next to THIS bank, not another floor wing.
+    var maxDistSq = 0.0004 * 0.0004;
+    var candidates = [];
+
+    if (local) {
+      try {
+        var byLocal = await sdk.getPlaceDetail(local);
+        if (byLocal && byLocal.position) candidates.push(byLocal);
+      } catch (eLocal) {
+        attempts.push({ method: "route-approach-local", error: String(eLocal.message || eLocal) });
+      }
+    }
+
+    if (query && sdk && typeof sdk.getPlacesByInput === "function") {
+      var queries = [query];
+      if (/cajero/i.test(query)) {
+        queries.push("Cajero", "ATM", "cajero automatico");
+      }
+      var seen = {};
+      for (var i = 0; i < queries.length; i++) {
+        try {
+          var rows = await sdk.getPlacesByInput(
+            queries[i],
+            config.institutionId,
+            config.parentPlace,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            floorHint ? String(floorHint) : undefined
+          );
+          (rows || []).forEach(function (place) {
+            if (!place || !place.mapvxId || seen[place.mapvxId]) return;
+            if (!place.position || place.position.lat == null) return;
+            seen[place.mapvxId] = true;
+            candidates.push(place);
+          });
+          if (candidates.length) break;
+        } catch (eQuery) {
+          attempts.push({
+            method: "route-approach-query",
+            query: queries[i],
+            error: String(eQuery.message || eQuery),
+          });
+        }
+      }
+    }
+
+    if (!candidates.length) return null;
+
+    var best = null;
+    var bestDist = Number.POSITIVE_INFINITY;
+    candidates.forEach(function (place) {
+      var dist = seedPos ? poiDistanceSq(seedPos, place.position) : 0;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = place;
+      }
+    });
+
+    if (!best) return null;
+    if (seedPos && bestDist > maxDistSq) {
+      attempts.push({
+        method: "route-approach-too-far",
+        mapvxId: best.mapvxId || null,
+        distSq: bestDist,
+      });
+      return null;
+    }
+
+    attempts.push({
+      method: "route-approach",
+      mapvxId: best.mapvxId || null,
+      title: best.title || query || local || null,
+    });
+    return best;
+  }
+
   /**
    * Catalog lat/lng identify the bank; on the active floor, re-snap to a local
-   * elevator POI and bias toward the floor anchor for a walkable approach.
+   * elevator POI and route toward a walkable approach (ATM / landmark).
+   * Marker stays on the elevator; routing may end at the approach POI.
    */
   async function refineElevatorCatalogForRouting(options, seed, attempts) {
     attempts = attempts || [];
@@ -3627,12 +3714,45 @@ window.MapVxBridge = (function () {
       }
     }
 
+    // Keep the Ascensor pin on the shaft; routing may use a walkable approach.
+    refined.markerLat = refined.lat;
+    refined.markerLng = refined.lng;
+
+    var approachPlace = await resolveRouteApproachPlace(
+      options,
+      { lat: refined.lat, lng: refined.lng },
+      floorHint || floorId,
+      attempts
+    );
+    if (approachPlace && approachPlace.position) {
+      var weight = options.routeApproachWeight != null ? Number(options.routeApproachWeight) : 1;
+      if (!isFinite(weight)) weight = 1;
+      if (weight >= 0.99) {
+        refined.lat = Number(approachPlace.position.lat);
+        refined.lng = Number(approachPlace.position.lng);
+        refined.corridorBiased = true;
+        refined.approachUsed = true;
+      } else {
+        refined = biasElevatorPoiTowardAnchor(refined, approachPlace.position, weight);
+        refined.markerLat = refined.markerLat;
+        refined.markerLng = refined.markerLng;
+        refined.approachUsed = true;
+      }
+      attempts.push({
+        method: "refine-elevator-route-approach",
+        weight: weight,
+        toward: approachPlace.title || options.routeApproachQuery || options.routeApproachLocal || null,
+      });
+      return refined;
+    }
+
+    // Soft fallback toward store landmark (avoid overshooting into the shop).
     var pullTarget = anchorPlace && anchorPlace.position ? anchorPlace.position : null;
     if (pullTarget) {
-      refined = biasElevatorPoiTowardAnchor(refined, pullTarget);
+      refined = biasElevatorPoiTowardAnchor(refined, pullTarget, 0.22);
       attempts.push({
         method: "refine-elevator-corridor-bias",
-        weight: 0.42,
+        weight: 0.22,
         toward: anchorLocal || null,
       });
     }
@@ -3814,12 +3934,19 @@ window.MapVxBridge = (function () {
       } catch (eRefCoords) {
         attempts.push({ method: "getPlaceDetail(poiRef)", error: String(eRefCoords.message || eRefCoords) });
       }
-      // Always keep refined coords as the route/marker position.
-      if (elevPoi.lat != null && elevPoi.lng != null) {
+      // Pin on the elevator shaft; route target may be the walkable approach (ATM).
+      if (elevPoi.markerLat != null && elevPoi.markerLng != null) {
+        catalogPlace.position = { lat: elevPoi.markerLat, lng: elevPoi.markerLng };
+      } else if (elevPoi.lat != null && elevPoi.lng != null) {
         catalogPlace.position = { lat: elevPoi.lat, lng: elevPoi.lng };
       }
 
-      attempts.push({ method: "catalog-coords", explicitId: explicitId, corridorBiased: !!elevPoi.corridorBiased });
+      attempts.push({
+        method: "catalog-coords",
+        explicitId: explicitId,
+        corridorBiased: !!elevPoi.corridorBiased,
+        approachUsed: !!elevPoi.approachUsed,
+      });
       return {
         place: catalogPlace,
         resolvedBy: "catalog-coords",

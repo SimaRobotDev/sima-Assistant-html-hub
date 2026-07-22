@@ -1423,7 +1423,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA elevators N1 vitacura corridor 2026.07.22-2";
+const MOBILITY_UI_VERSION = "OTA elevators N1 ATM approach 2026.07.22-3";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -2418,8 +2418,13 @@ function enrichServicesSearchPayload(data) {
       floors: row.floors && row.floors.length ? row.floors : card.floors,
       anchorLocal: row.anchorLocal || card.anchorLocal,
       anchorBrand: row.anchorBrand || card.anchorBrand,
+      routeApproachQuery: row.routeApproachQuery || card.routeApproachQuery,
+      routeApproachLocal: row.routeApproachLocal || card.routeApproachLocal,
+      routeApproachWeight: row.routeApproachWeight != null ? row.routeApproachWeight : card.routeApproachWeight,
       poiRef: row.poiRef || card.poiRef,
       mapvxId: row.mapvxId || card.mapvxId,
+      mapvxLat: row.mapvxLat != null ? row.mapvxLat : card.mapvxLat,
+      mapvxLng: row.mapvxLng != null ? row.mapvxLng : card.mapvxLng,
       features: row.features || card.features,
     });
   });
@@ -4224,6 +4229,9 @@ function normalizeServiceResult(svc) {
     features: features,
     anchorLocal: svc.anchorLocal || "",
     anchorBrand: svc.anchorBrand || "",
+    routeApproachQuery: svc.routeApproachQuery || "",
+    routeApproachLocal: svc.routeApproachLocal || "",
+    routeApproachWeight: svc.routeApproachWeight != null ? svc.routeApproachWeight : null,
     poiRef: svc.poiRef || "",
     mapvxId: svc.mapvxId || "",
     mapvxLat: svc.mapvxLat != null ? svc.mapvxLat : null,
@@ -4793,6 +4801,7 @@ async function openPoiMapViaMapVx(opts) {
   const {
     poiType, id, floor, mall, name, local, mode,
     anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId, serviceType,
+    routeApproachQuery, routeApproachLocal, routeApproachWeight,
   } = opts || {};
   const container = document.getElementById("mapvx-container");
   const iframe = document.getElementById("map-iframe");
@@ -4845,6 +4854,9 @@ async function openPoiMapViaMapVx(opts) {
           floor,
           mall,
           anchorLocal: anchorLocal || local,
+          routeApproachQuery,
+          routeApproachLocal,
+          routeApproachWeight,
           poiRef,
           mapvxId,
           lat,
@@ -4961,6 +4973,7 @@ function openPoiMap(opts) {
   const {
     poiType, id, floor, mall, name, local, catalogId, mode, storeDetail,
     anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId, serviceType,
+    routeApproachQuery, routeApproachLocal, routeApproachWeight,
   } = opts || {};
 
   const isService = poiType === "service";
@@ -5016,6 +5029,9 @@ function openPoiMap(opts) {
         mall,
         name,
         anchorLocal,
+        routeApproachQuery,
+        routeApproachLocal,
+        routeApproachWeight,
         poiRef,
         mapvxId,
         lat,
@@ -5174,6 +5190,9 @@ function openServiceMap(idx) {
 
   // Re-resolve floor-aware anchor for elevators (Ripley N5 → Burger King, etc.).
   let anchorLocal = normalized.anchorLocal;
+  let routeApproachQuery = normalized.routeApproachQuery || "";
+  let routeApproachLocal = normalized.routeApproachLocal || "";
+  let routeApproachWeight = normalized.routeApproachWeight;
   if (normalized.type === "elevator" && typeof ServicesCatalog !== "undefined" && ServicesCatalog.getById) {
     const entry = ServicesCatalog.getById(normalized.id || normalized.catalogId);
     if (entry) {
@@ -5182,6 +5201,9 @@ function openServiceMap(idx) {
         floor: floor || totemKey || "",
       });
       if (card.anchorLocal) anchorLocal = card.anchorLocal;
+      if (card.routeApproachQuery) routeApproachQuery = card.routeApproachQuery;
+      if (card.routeApproachLocal) routeApproachLocal = card.routeApproachLocal;
+      if (card.routeApproachWeight != null) routeApproachWeight = card.routeApproachWeight;
     }
   }
 
@@ -5194,6 +5216,9 @@ function openServiceMap(idx) {
     mall: normalized.mall || lastServicesPayload?.mall,
     name: normalized.name,
     anchorLocal: anchorLocal,
+    routeApproachQuery: routeApproachQuery || undefined,
+    routeApproachLocal: routeApproachLocal || undefined,
+    routeApproachWeight: routeApproachWeight != null ? routeApproachWeight : undefined,
     poiRef: normalized.poiRef,
     mapvxId: normalized.mapvxId,
     lat: normalized.mapvxLat,

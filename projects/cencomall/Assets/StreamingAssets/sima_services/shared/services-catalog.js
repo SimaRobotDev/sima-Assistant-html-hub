@@ -142,11 +142,28 @@ window.ServicesCatalog = (function () {
     return desc.short || "";
   }
 
+  /** Optional walkable approach (ATM / corridor POI) for elevator routing on a floor. */
+  function pickRouteApproach(entry, preferFloor) {
+    var list = (entry && entry.routeApproach) || [];
+    if (!list.length) return null;
+    var floorKey = normalizeFloorKey(preferFloor || "");
+    var matched = list.filter(function (row) {
+      if (!row) return false;
+      if (!floorKey) return true;
+      if (!row.floors || !row.floors.length) return true;
+      return row.floors.some(function (f) {
+        return floorsMatch(f, floorKey);
+      });
+    });
+    return matched[0] || null;
+  }
+
   function toResultCard(entry, options) {
     if (!entry) return {};
     options = options || {};
     var preferFloor = options.preferFloor || options.floor || "";
     var anchor = primaryAnchor(entry, preferFloor);
+    var approach = entry.type === "elevator" ? pickRouteApproach(entry, preferFloor) : null;
     var desc = entry.descriptions || {};
     var isElevator = entry.type === "elevator";
     return {
@@ -163,6 +180,9 @@ window.ServicesCatalog = (function () {
       features: entry.features || {},
       anchorLocal: anchor && anchor.local ? anchor.local : "",
       anchorBrand: anchor && anchor.brand ? anchor.brand : "",
+      routeApproachQuery: approach && approach.query ? String(approach.query) : "",
+      routeApproachLocal: approach && approach.local ? String(approach.local) : "",
+      routeApproachWeight: approach && approach.weight != null ? Number(approach.weight) : null,
       poiRef: entry.mapvx && entry.mapvx.poiRef ? entry.mapvx.poiRef : "",
       mapvxId: entry.mapvx && entry.mapvx.mapvxId ? entry.mapvx.mapvxId : "",
       mapvxLat: entry.mapvx && entry.mapvx.lat != null ? entry.mapvx.lat : null,
