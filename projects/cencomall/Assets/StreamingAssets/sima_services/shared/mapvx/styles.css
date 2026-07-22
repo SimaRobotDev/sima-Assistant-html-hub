@@ -176,7 +176,7 @@
   max-width: 48px;
   max-height: 48px;
   border-radius: 12px;
-  background: #0a0a0a;
+  background: transparent;
   object-fit: contain;
 }
 
