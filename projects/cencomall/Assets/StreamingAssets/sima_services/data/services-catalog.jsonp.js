@@ -440,6 +440,16 @@ window.__SERVICES_CATALOG__ = {
         "accesible": true
       },
       "layout": "banco_vertical",
+      "routeApproach": [
+        {
+          "local": "CC_N2_2188",
+          "query": "Natura Cosméticos",
+          "floors": [
+            "2"
+          ],
+          "weight": 0.72
+        }
+      ],
       "anchorStores": [
         {
           "brand": "Easy",
@@ -461,6 +471,14 @@ window.__SERVICES_CATALOG__ = {
           "brand": "Ripley",
           "local": "CC_N2_1300",
           "role": "primary",
+          "floors": [
+            "2"
+          ]
+        },
+        {
+          "brand": "Natura Cosméticos",
+          "local": "CC_N2_2188",
+          "role": "secondary",
           "floors": [
             "2"
           ]
@@ -527,6 +545,7 @@ window.__SERVICES_CATALOG__ = {
         "ripley",
         "easy",
         "jumbo",
+        "natura",
         "nike",
         "nike rise",
         "bold",
@@ -785,7 +804,6 @@ window.__SERVICES_CATALOG__ = {
       "sector": "zara",
       "name": "Ascensores · Zara",
       "floors": [
-        "2",
         "3"
       ],
       "features": {
@@ -800,19 +818,11 @@ window.__SERVICES_CATALOG__ = {
           "floors": [
             "3"
           ]
-        },
-        {
-          "brand": "Zara",
-          "local": "CC_N2_2156",
-          "role": "secondary",
-          "floors": [
-            "2"
-          ]
         }
       ],
       "descriptions": {
-        "short": "Junto a Zara (N2–N3).",
-        "medium": "Al costado de Zara en el nivel 3 (también accesible desde N2).",
+        "short": "Junto a Zara (Nivel 3).",
+        "medium": "Al costado de Zara en el nivel 3.",
         "long": "En el Nivel 3, al costado de la entrada de Zara."
       },
       "keywords": [
@@ -822,9 +832,7 @@ window.__SERVICES_CATALOG__ = {
         "elevator",
         "zara",
         "nivel 3",
-        "piso 3",
-        "nivel 2",
-        "piso 2"
+        "piso 3"
       ],
       "mapvx": {
         "poiRef": "-N2SSgpaCHzZe80nRkOx",

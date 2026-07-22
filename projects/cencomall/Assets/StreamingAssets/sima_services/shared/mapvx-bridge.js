@@ -3733,9 +3733,11 @@ window.MapVxBridge = (function () {
         refined.corridorBiased = true;
         refined.approachUsed = true;
       } else {
+        var markerLat = refined.markerLat;
+        var markerLng = refined.markerLng;
         refined = biasElevatorPoiTowardAnchor(refined, approachPlace.position, weight);
-        refined.markerLat = refined.markerLat;
-        refined.markerLng = refined.markerLng;
+        refined.markerLat = markerLat;
+        refined.markerLng = markerLng;
         refined.approachUsed = true;
       }
       attempts.push({
@@ -3746,17 +3748,9 @@ window.MapVxBridge = (function () {
       return refined;
     }
 
-    // Soft fallback toward store landmark (avoid overshooting into the shop).
-    var pullTarget = anchorPlace && anchorPlace.position ? anchorPlace.position : null;
-    if (pullTarget) {
-      refined = biasElevatorPoiTowardAnchor(refined, pullTarget, 0.22);
-      attempts.push({
-        method: "refine-elevator-corridor-bias",
-        weight: 0.22,
-        toward: anchorLocal || null,
-      });
-    }
-
+    // Do NOT soft-bias toward department-store centroids (Ripley/Jumbo): that
+    // pulls the target inside non-walkable polygons and MapVX snaps to nearby
+    // bathrooms. Prefer catalog / floor elevator coords as-is.
     return refined;
   }
 
@@ -3824,11 +3818,8 @@ window.MapVxBridge = (function () {
       return null;
     }
 
-    // Shaft centroids are often non-walkable; bias toward the store corridor.
-    if (anchorPos) {
-      nearest = biasElevatorPoiTowardAnchor(nearest, anchorPos);
-      attempts.push({ method: "elevator-corridor-bias", weight: 0.42 });
-    }
+    // Do not bias toward department-store centroids — MapVX snaps inside
+    // non-walkable polygons to nearby bathrooms (seen on Ripley N2).
 
     try {
       var byRef = await sdk.getPlaceDetail(nearest.ref);
