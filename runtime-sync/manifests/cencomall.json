@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.22-19",
+  "version": "2026.07.22-20",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-22T17:37:43.149Z",
+  "generatedAt": "2026-07-22T17:41:20.064Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.07.22-18",
+  "rollbackTo": "2026.07.22-19",
   "entryPoints": [
     {
       "service": "agenda",
@@ -150,8 +150,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 171470,
-      "sha256": "fe2ad51054c1014ca751d5fbee1a359e3a3d182dc440fbb39729010f889c0fa2"
+      "size": 171473,
+      "sha256": "c67f2871d59d8cc821a4e79d88fdb174cd7669f7db885f719a4a50b02b123c2c"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -211,7 +211,7 @@
     {
       "path": "shared/mapvx/styles.css",
       "size": 77782,
-      "sha256": "484eb9c68c351cf3e274d039f4340afd7ff23ab797a7b2f6f36b8c1ef8355ee6"
+      "sha256": "78de92ea4a2970b86760222498be300c939969d1bd8073d00ee63fdbfb15b97c"
     },
     {
       "path": "shared/market-i18n.js",
