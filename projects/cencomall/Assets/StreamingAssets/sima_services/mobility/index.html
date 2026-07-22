@@ -1340,7 +1340,6 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 <div class="app-shell" id="app-shell">
   <header class="cm-header">
     <button class="cm-header-close" id="cm-header-close-btn" type="button" onclick="closeWebview()">Cerrar</button>
-    <button class="cm-header-back" id="cm-header-back-btn" type="button" onclick="handleMobilityBack()">← Volver</button>
     <h1 class="cm-header-title">Cenco Costanera</h1>
   </header>
 
@@ -1400,7 +1399,6 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <div id="map-view" class="map-view hidden">
   <div class="map-view-header">
-    <button class="cm-header-close" id="map-close-btn" type="button" onclick="closeWebview()">Cerrar</button>
     <button class="cm-header-back" id="map-back-btn" type="button" onclick="closeMapView()">← Volver</button>
     <div class="map-view-title" id="map-view-title"><span class="map-view-title-text" id="map-view-title-text">Mapa</span></div>
     <div class="map-view-actions">
@@ -1428,7 +1426,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA map rounded shell 2026.07.22-12";
+const MOBILITY_UI_VERSION = "OTA header buttons 2026.07.22-13";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -2552,12 +2550,6 @@ function applyMobilityLocale() {
 
   const mapBack = document.getElementById("map-back-btn");
   if (mapBack) mapBack.textContent = t("back");
-
-  const mapClose = document.getElementById("map-close-btn");
-  if (mapClose) mapClose.textContent = t("close");
-
-  const headerBack = document.getElementById("cm-header-back-btn");
-  if (headerBack) headerBack.textContent = t("back");
 
   const headerClose = document.getElementById("cm-header-close-btn");
   if (headerClose) headerClose.textContent = t("close");
