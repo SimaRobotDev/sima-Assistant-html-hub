@@ -614,11 +614,18 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 .map-view {
   position: fixed;
-  inset: 0;
+  top: max(14px, env(safe-area-inset-top, 0px));
+  left: max(14px, env(safe-area-inset-left, 0px));
+  right: max(14px, env(safe-area-inset-right, 0px));
+  bottom: max(14px, env(safe-area-inset-bottom, 0px));
   background: var(--cm-surface);
   z-index: 100;
   display: flex;
   flex-direction: column;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--cm-shadow);
+  border: 1px solid var(--cm-line);
 }
 
 .map-view.hidden { display: none; }
@@ -639,6 +646,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   gap: 12px;
   flex-wrap: wrap;
   box-shadow: var(--cm-shadow);
+  flex-shrink: 0;
 }
 
 .map-view-actions {
@@ -1420,7 +1428,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA map header UI match 2026.07.22-11";
+const MOBILITY_UI_VERSION = "OTA map rounded shell 2026.07.22-12";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
