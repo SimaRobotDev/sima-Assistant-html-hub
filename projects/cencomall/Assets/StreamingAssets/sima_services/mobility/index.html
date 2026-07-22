@@ -1496,6 +1496,7 @@ const MOBILITY_I18N = {
     bathrooms: "Baños",
     bathroomsKids: "Niños y mudadores",
     elevators: "Ascensores",
+    customerService: "Atención al cliente",
     allLevels: "Todos los niveles",
     level: "Nivel",
     gf: "PB",
@@ -1589,6 +1590,7 @@ const MOBILITY_I18N = {
     bathrooms: "Restrooms",
     bathroomsKids: "Kids & changing",
     elevators: "Elevators",
+    customerService: "Customer service",
     allLevels: "All levels",
     level: "Level",
     gf: "GF",
@@ -1682,6 +1684,7 @@ const MOBILITY_I18N = {
     bathrooms: "Banheiros",
     bathroomsKids: "Crianças e fraldário",
     elevators: "Elevadores",
+    customerService: "Atendimento ao cliente",
     allLevels: "Todos os níveis",
     level: "Nível",
     gf: "Térreo",
@@ -2454,6 +2457,12 @@ function runServicesCatalogSearch(query, options) {
       } else if (!results.length) {
         SimaBridge.speak(t("servicesNotFound"));
       }
+      if (results.length && (options.autoMap || wantsAutoOpenServiceMap())) {
+        clearAutoMapLaunchParams();
+        window.setTimeout(function () {
+          openServiceMap(0);
+        }, 280);
+      }
     })
     .catch(function (e) {
       showSearchError(t("loadErrorTitle") + ": " + (e.message || e));
@@ -2486,6 +2495,10 @@ function enrichServicesSearchPayload(data) {
       mapvxId: row.mapvxId || card.mapvxId,
       mapvxLat: row.mapvxLat != null ? row.mapvxLat : card.mapvxLat,
       mapvxLng: row.mapvxLng != null ? row.mapvxLng : card.mapvxLng,
+      mapvxSearchQueries:
+        (row.mapvxSearchQueries && row.mapvxSearchQueries.length)
+          ? row.mapvxSearchQueries
+          : card.mapvxSearchQueries,
       features: row.features || card.features,
     });
   });
@@ -2500,6 +2513,24 @@ function getInitialServiceId() {
     || params.get("serviceId")
     || ""
   ).trim();
+}
+
+function wantsAutoOpenServiceMap() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("autoMap") === "1"
+    || params.get("autoRoute") === "1"
+    || window.MALL_SERVICE_AUTO_MAP === true
+    || window.MALL_SERVICE_AUTO_MAP === "1";
+}
+
+function clearAutoMapLaunchParams() {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("autoMap") && !url.searchParams.has("autoRoute")) return;
+    url.searchParams.delete("autoMap");
+    url.searchParams.delete("autoRoute");
+    window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+  } catch (e) { /* noop */ }
 }
 
 function getInitialServiceQuery() {
@@ -3655,6 +3686,7 @@ function formatServiceFloors(floors) {
 function getServiceKind(svc) {
   const type = String((svc && svc.type) || "").toLowerCase();
   if (type === "elevator") return "elevator";
+  if (type === "customer_service" || type === "customer-service") return "customer_service";
   if (type === "bathroom") {
     const n = String((svc && svc.name) || "").toLowerCase();
     if (n.includes("niños") || n.includes("ninos") || n.includes("mudador")) return "kids";
@@ -3662,6 +3694,9 @@ function getServiceKind(svc) {
   }
   const n = String((svc && (typeof svc === "string" ? svc : svc.name)) || "").toLowerCase();
   if (n.includes("ascensor") || n.includes("elevador") || n.includes("elevator")) return "elevator";
+  if (n.includes("atención al cliente") || n.includes("atencion al cliente") || n.includes("servicio al cliente") || n.includes("customer service")) {
+    return "customer_service";
+  }
   if (n.includes("niños") || n.includes("ninos") || n.includes("mudador")) return "kids";
   if (n.includes("baño") || n.includes("bano") || n.includes("wc")) return "bathroom";
   return "";
@@ -3671,6 +3706,7 @@ function serviceKindIcon(kind) {
   if (kind === "elevator") return "🛗";
   if (kind === "kids") return "👶";
   if (kind === "bathroom") return "🚻";
+  if (kind === "customer_service") return "ℹ️";
   return "📍";
 }
 
@@ -4297,6 +4333,7 @@ function normalizeServiceResult(svc) {
     mapvxId: svc.mapvxId || "",
     mapvxLat: svc.mapvxLat != null ? svc.mapvxLat : null,
     mapvxLng: svc.mapvxLng != null ? svc.mapvxLng : null,
+    mapvxSearchQueries: Array.isArray(svc.mapvxSearchQueries) ? svc.mapvxSearchQueries.slice() : [],
   };
 }
 
@@ -4325,7 +4362,9 @@ function renderServiceCard(svc, idx) {
       ? `<span class="store-badge store-badge-floor">${escapeHtml(t("bathrooms"))}</span>`
       : kind === "elevator"
         ? `<span class="store-badge store-badge-floor">${escapeHtml(t("elevators"))}</span>`
-        : "";
+        : kind === "customer_service"
+          ? `<span class="store-badge store-badge-floor">${escapeHtml(t("customerService") || "Atención al cliente")}</span>`
+          : "";
   const floorsLabel = formatServiceFloors(svc.floors);
   const floorBadge = floorsLabel
     ? `<span class="store-badge store-badge-floor">${escapeHtml(floorsLabel)}</span>`
@@ -4863,6 +4902,7 @@ async function openPoiMapViaMapVx(opts) {
     poiType, id, floor, mall, name, local, mode,
     anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId, serviceType,
     routeApproachQuery, routeApproachLocal, routeApproachWeight, routeApproachMaxMeters, routeApproachPullFrom,
+    searchQueries,
   } = opts || {};
   const container = document.getElementById("mapvx-container");
   const iframe = document.getElementById("map-iframe");
@@ -4924,6 +4964,7 @@ async function openPoiMapViaMapVx(opts) {
           mapvxId,
           lat,
           lng,
+          searchQueries,
           preferChangingTable: !!preferChangingTable,
         }
       : {
@@ -5037,6 +5078,7 @@ function openPoiMap(opts) {
     poiType, id, floor, mall, name, local, catalogId, mode, storeDetail,
     anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId, serviceType,
     routeApproachQuery, routeApproachLocal, routeApproachWeight, routeApproachMaxMeters, routeApproachPullFrom,
+    searchQueries,
   } = opts || {};
 
   const isService = poiType === "service";
@@ -5102,6 +5144,7 @@ function openPoiMap(opts) {
         mapvxId,
         lat,
         lng,
+        searchQueries,
         preferChangingTable,
         mode,
       }
@@ -5295,6 +5338,7 @@ function openServiceMap(idx) {
     mapvxId: normalized.mapvxId,
     lat: normalized.mapvxLat,
     lng: normalized.mapvxLng,
+    searchQueries: normalized.mapvxSearchQueries || undefined,
     preferChangingTable: !!(normalized.features && normalized.features.mudador),
     mode: canRoute ? "navigation" : "place",
   });

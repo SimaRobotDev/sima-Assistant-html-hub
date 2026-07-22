@@ -849,6 +849,71 @@
         "lng": -70.60655797133222,
         "validatedAt": "2026-07-22"
       }
+    },
+    {
+      "id": "customer-service-n1",
+      "type": "customer_service",
+      "sector": "sony-dbs-maconline",
+      "name": "Servicio al cliente (Nivel 1)",
+      "floors": [
+        "1"
+      ],
+      "features": {},
+      "layout": "modulo_central",
+      "anchorStores": [
+        {
+          "brand": "Sony",
+          "local": "CC_N1_1154",
+          "role": "primary"
+        },
+        {
+          "brand": "Dbs Beauty Store",
+          "local": "CC_N1_1158",
+          "role": "secondary"
+        },
+        {
+          "brand": "MacOnline",
+          "local": "CC_N1_1124",
+          "role": "secondary"
+        }
+      ],
+      "routeApproach": [
+        {
+          "query": "Servicio al cliente",
+          "local": "CC_N1_1154",
+          "floors": [
+            "1"
+          ],
+          "weight": 1.2,
+          "maxMeters": 45
+        }
+      ],
+      "descriptions": {
+        "short": "Módulo de servicio al cliente en Nivel 1.",
+        "medium": "Entre Dbs Beauty, Sony y MacOnline, en el pasillo central del Nivel 1.",
+        "long": "En el Nivel 1, módulo de atención / servicio al cliente ubicado en el pasillo entre Dbs Beauty Store, Sony y MacOnline."
+      },
+      "keywords": [
+        "atencion al cliente",
+        "atención al cliente",
+        "servicio al cliente",
+        "customer service",
+        "sac",
+        "informacion",
+        "información",
+        "modulo",
+        "nivel 1",
+        "sony",
+        "dbs",
+        "maconline"
+      ],
+      "mapvx": {
+        "searchQueries": [
+          "Servicio al cliente",
+          "Atención al cliente",
+          "Atencion al cliente"
+        ]
+      }
     }
   ]
 }

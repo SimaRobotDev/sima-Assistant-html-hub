@@ -178,6 +178,24 @@
       align-self: flex-start;
     }
 
+    .call-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-route {
+      border: 1px solid var(--cm-purple);
+      border-radius: 14px;
+      background: var(--cm-purple);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      padding: 12px 18px;
+      cursor: pointer;
+    }
+
     .success {
       display: none;
       text-align: center;
@@ -318,7 +336,10 @@
           Módulo de servicio al cliente en Nivel 1. Te ayudamos con tiendas, rodados y más.
         </p>
         <button class="btn-call" id="btnCall" type="button" hidden disabled aria-hidden="true">Llamar a atención al cliente</button>
-        <button class="btn-close" id="btn-close-main" type="button" onclick="closeWebview()">Cerrar</button>
+        <div class="call-actions">
+          <button class="btn-route" id="btn-route-sac" type="button" onclick="openCustomerServiceRoute()">Ver ruta</button>
+          <button class="btn-close" id="btn-close-main" type="button" onclick="closeWebview()">Cerrar</button>
+        </div>
       </div>
     </div>
 
@@ -351,7 +372,9 @@
         callTitle: "Atención al cliente",
         callDesc: "Módulo de servicio al cliente en Nivel 1. Te ayudamos con tiendas, rodados y más.",
         callBtn: "Llamar a atención al cliente",
+        routeBtn: "Ver ruta",
         close: "Cerrar",
+        speakRoute: "Te muestro cómo llegar a servicio al cliente en el nivel 1.",
         successTitle: "Reserva registrada",
         successBack: "Volver",
         stockLoading: "Consultando…",
@@ -385,7 +408,9 @@
         callTitle: "Customer service",
         callDesc: "Customer service desk on Level 1. We can help with stores, mobility aids and more.",
         callBtn: "Call customer service",
+        routeBtn: "View route",
         close: "Close",
+        speakRoute: "I'll show you how to get to customer service on level 1.",
         successTitle: "Reservation registered",
         successBack: "Back",
         stockLoading: "Checking…",
@@ -419,7 +444,9 @@
         callTitle: "Atendimento ao cliente",
         callDesc: "Módulo de atendimento no Nível 1. Ajudamos com lojas, rodas e mais.",
         callBtn: "Ligar para atendimento ao cliente",
+        routeBtn: "Ver rota",
         close: "Fechar",
+        speakRoute: "Vou mostrar como chegar ao atendimento ao cliente no nível 1.",
         successTitle: "Reserva registrada",
         successBack: "Voltar",
         stockLoading: "Consultando…",
@@ -476,6 +503,8 @@
       document.getElementById("success-title").textContent = t("successTitle");
       document.getElementById("success-back").textContent = t("successBack");
       document.getElementById("btn-close-main").textContent = t("close");
+      const routeBtn = document.getElementById("btn-route-sac");
+      if (routeBtn) routeBtn.textContent = t("routeBtn");
       const headerClose = document.getElementById("btn-close-header");
       if (headerClose) headerClose.textContent = t("close");
 
@@ -658,6 +687,29 @@
     function startCustomerCall() {
       SimaBridge.speak(t("speakCall"));
       SimaBridge.send("totem_call", { source: "servicios" });
+    }
+
+    function openCustomerServiceRoute() {
+      const payload = {
+        serviceId: "customer-service-n1",
+        serviceType: "customer_service",
+        destination: "Servicio al cliente",
+        floor: "1",
+        mapIndex: "customer_service",
+        autoMap: true,
+        autoRoute: true,
+      };
+      try { SimaBridge.speak(t("speakRoute")); } catch (eSpeak) { /* noop */ }
+      try {
+        if (SimaBridge.isReactNativeHost && SimaBridge.isReactNativeHost()) {
+          SimaBridge.send("request_directions", payload);
+          return;
+        }
+      } catch (eRn) { /* noop */ }
+      try { SimaBridge.send("request_directions", payload); } catch (eSend) { /* noop */ }
+      // Browser / UniWebView: open mobility with auto map+route.
+      window.location.href =
+        "../mobility/index.html?serviceId=customer-service-n1&autoMap=1&autoRoute=1";
     }
 
     window.handleUnityData = function(data) {

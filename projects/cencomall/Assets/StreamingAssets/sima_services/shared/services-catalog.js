@@ -242,8 +242,22 @@ window.ServicesCatalog = (function () {
     return tokensMatchAnyLemma(n.split(" "), ELEVATOR_FUZZY_LEMMAS);
   }
 
+  function looksLikeCustomerServiceQuery(query) {
+    var n = canonicalizeServiceQuery(query);
+    if (!n) return false;
+    // Avoid "servicio sanitario" (bathrooms).
+    if (/\bservicio\s+sanitario\b/.test(n)) return false;
+    return /\b(atencion\s+al\s+cliente|servicio\s+al\s+cliente|customer\s+service|\bsac\b|informacion(\s+del?\s+mall)?)\b/.test(
+      n
+    );
+  }
+
   function looksLikeServicesQuery(query) {
-    return looksLikeBathroomQuery(query) || looksLikeElevatorQuery(query);
+    return (
+      looksLikeBathroomQuery(query) ||
+      looksLikeElevatorQuery(query) ||
+      looksLikeCustomerServiceQuery(query)
+    );
   }
 
   function entryType(entry) {
@@ -344,6 +358,10 @@ window.ServicesCatalog = (function () {
       mapvxId: entry.mapvx && entry.mapvx.mapvxId ? entry.mapvx.mapvxId : "",
       mapvxLat: entry.mapvx && entry.mapvx.lat != null ? entry.mapvx.lat : null,
       mapvxLng: entry.mapvx && entry.mapvx.lng != null ? entry.mapvx.lng : null,
+      mapvxSearchQueries:
+        entry.mapvx && Array.isArray(entry.mapvx.searchQueries)
+          ? entry.mapvx.searchQueries.slice()
+          : [],
       mall: (catalog && catalog.mall) || "costanera",
     };
   }
@@ -475,6 +493,7 @@ window.ServicesCatalog = (function () {
 
     if (type === "bathroom" && looksLikeBathroomQuery(queryNorm)) score += 1;
     if (type === "elevator" && looksLikeElevatorQuery(queryNorm)) score += 1;
+    if (type === "customer_service" && looksLikeCustomerServiceQuery(queryNorm)) score += 8;
 
     if (preferFloor && entryOnFloor(entry, preferFloor)) {
       score += floorFilter ? 2 : 8;
@@ -492,8 +511,10 @@ window.ServicesCatalog = (function () {
 
   function inferTypeFilter(queryNorm, mudadorOnly) {
     if (mudadorOnly) return "bathroom";
+    var cust = looksLikeCustomerServiceQuery(queryNorm);
     var bath = looksLikeBathroomQuery(queryNorm);
     var elev = looksLikeElevatorQuery(queryNorm);
+    if (cust && !bath && !elev) return "customer_service";
     if (elev && !bath) return "elevator";
     if (bath && !elev) return "bathroom";
     return "";
@@ -558,6 +579,7 @@ window.ServicesCatalog = (function () {
     },
     looksLikeBathroomQuery: looksLikeBathroomQuery,
     looksLikeElevatorQuery: looksLikeElevatorQuery,
+    looksLikeCustomerServiceQuery: looksLikeCustomerServiceQuery,
     looksLikeServicesQuery: looksLikeServicesQuery,
     toResultCard: toResultCard,
     search: function (query, options) {
@@ -592,7 +614,10 @@ window.ServicesCatalog = (function () {
           return b.score - a.score;
         });
 
-      if (!scored.length && (looksLikeBathroomQuery(q) || looksLikeElevatorQuery(q))) {
+      if (
+        !scored.length &&
+        (looksLikeBathroomQuery(q) || looksLikeElevatorQuery(q) || looksLikeCustomerServiceQuery(q))
+      ) {
         return catalog.services
           .filter(function (entry) {
             if (typeFilter && entryType(entry) !== typeFilter) return false;

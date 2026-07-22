@@ -293,8 +293,19 @@ window.MapVxBridge = (function () {
     options = options || {};
     var raw = String(options.serviceType || options.type || "").toLowerCase().trim();
     if (raw === "elevator" || raw === "ascensor" || raw === "elevador") return "elevator";
+    if (
+      raw === "customer_service" ||
+      raw === "customer-service" ||
+      raw === "sac" ||
+      raw === "atencion" ||
+      raw === "atención"
+    ) {
+      return "customer_service";
+    }
     if (raw === "bathroom" || raw === "baño" || raw === "bano") return "bathroom";
     if (options.preferChangingTable) return "bathroom";
+    // Unknown types must not silently become bathrooms (breaks SAC / future services).
+    if (raw) return raw;
     return "bathroom";
   }
 
@@ -504,6 +515,13 @@ window.MapVxBridge = (function () {
     }
     if (/\b(bano|banos|bathroom|bathrooms|restroom|wc|toilet)\b/.test(title)) {
       return "bathroom";
+    }
+    if (
+      /\b(atencion\s+al\s+cliente|servicio\s+al\s+cliente|customer\s+service|\bsac\b|informacion)\b/.test(
+        title
+      )
+    ) {
+      return "customer_service";
     }
     return "";
   }
@@ -3394,6 +3412,92 @@ window.MapVxBridge = (function () {
     return best;
   }
 
+  function placeLooksLikeCustomerService(place) {
+    var title = normalizeText(
+      (place && (place.title || place.shortName || place.name || place.clientId)) || ""
+    );
+    if (!title) return false;
+    if (/\bservicio\s+sanitario\b/.test(title)) return false;
+    return /\b(atencion\s+al\s+cliente|servicio\s+al\s+cliente|customer\s+service|\bsac\b|informacion(\s+del?\s+mall)?|information\s+desk|info\s+desk)\b/.test(
+      title
+    );
+  }
+
+  async function resolveCustomerServicePlaceViaApi(anchorPlace, floorHint, searchQueries) {
+    if (!sdk || typeof sdk.getPlacesByInput !== "function") return null;
+    var config = getConfig();
+    var queries = Array.isArray(searchQueries) && searchQueries.length
+      ? searchQueries.slice()
+      : [
+          "Servicio al cliente",
+          "Atención al cliente",
+          "Atencion al cliente",
+          "Customer service",
+          "Información",
+        ];
+    var candidates = [];
+    var seen = {};
+
+    for (var i = 0; i < queries.length; i++) {
+      try {
+        var rows = await sdk.getPlacesByInput(
+          String(queries[i]),
+          config.institutionId,
+          config.parentPlace,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          floorHint ? String(floorHint) : undefined
+        );
+        (rows || []).forEach(function (place) {
+          if (!place || !place.mapvxId || seen[place.mapvxId]) return;
+          // Prefer named SAC / info desk; keep loose matches when title empty.
+          if (place.title || place.shortName || place.name) {
+            if (!placeLooksLikeCustomerService(place) && !placeLooksLikeInfoDeskLoose(place)) {
+              return;
+            }
+          }
+          seen[place.mapvxId] = true;
+          candidates.push(place);
+        });
+      } catch (e) {
+        /* continue */
+      }
+    }
+
+    if (!candidates.length) return null;
+
+    var ranked = candidates.slice().sort(function (a, b) {
+      var aHit = placeLooksLikeCustomerService(a) ? 0 : 1;
+      var bHit = placeLooksLikeCustomerService(b) ? 0 : 1;
+      return aHit - bHit;
+    });
+
+    var anchorPos = anchorPlace && anchorPlace.position ? anchorPlace.position : null;
+    if (!anchorPos) return ranked[0];
+
+    var best = null;
+    var bestDist = Number.POSITIVE_INFINITY;
+    ranked.forEach(function (place) {
+      var dist = poiDistanceSq(anchorPos, place.position || {});
+      // Prefer true SAC names even if a bit farther.
+      if (placeLooksLikeCustomerService(place)) dist *= 0.35;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = place;
+      }
+    });
+    return best || ranked[0];
+  }
+
+  function placeLooksLikeInfoDeskLoose(place) {
+    var title = normalizeText(
+      (place && (place.title || place.shortName || place.name || place.clientId)) || ""
+    );
+    return /\b(informacion|information|info)\b/.test(title);
+  }
+
   async function resolveToiletDestinationNearAnchor(anchorPlace, floorHint, preferChangingTable, attempts) {
     attempts = attempts || [];
     var libreMap = map && getLibreMap(map);
@@ -4009,9 +4113,19 @@ window.MapVxBridge = (function () {
     var mapvxId = options.mapvxId ? String(options.mapvxId).trim() : "";
     var anchorLocal = options.anchorLocal ? String(options.anchorLocal).trim() : "";
     var floorHint = options.floor;
-    var defaultName = serviceType === "elevator" ? "Ascensor" : "Baños";
+    var defaultName =
+      serviceType === "elevator"
+        ? "Ascensor"
+        : serviceType === "customer_service"
+          ? "Servicio al cliente"
+          : "Baños";
     var name = options.name || defaultName;
     var preferChangingTable = !!options.preferChangingTable;
+    var searchQueries = Array.isArray(options.searchQueries)
+      ? options.searchQueries
+      : Array.isArray(options.mapvxSearchQueries)
+        ? options.mapvxSearchQueries
+        : [];
     var attempts = [];
 
     var explicitId = mapvxId || poiRef;
@@ -4100,7 +4214,7 @@ window.MapVxBridge = (function () {
       }
     }
 
-    if (!anchorPlace && name) {
+    if (!anchorPlace && name && serviceType !== "customer_service") {
       try {
         var inputResults = await sdk.getPlacesByInput(
           String(name),
@@ -4118,6 +4232,53 @@ window.MapVxBridge = (function () {
       } catch (eInput) {
         attempts.push({ method: "getPlacesByInput(service)", error: String(eInput.message || eInput) });
       }
+    }
+
+    // Customer service: search MapVX by name near Sony/DBS/MacOnline; never toilet discovery.
+    if (serviceType === "customer_service") {
+      var sacPlace = await resolveCustomerServicePlaceViaApi(
+        anchorPlace,
+        floorHint || "1",
+        searchQueries
+      );
+      if (sacPlace) {
+        if (!sacPlace.title) sacPlace.title = name;
+        attempts.push({ method: "getPlacesByInput(customer-service)", mapvxId: sacPlace.mapvxId });
+        log("info", "resolved customer service destination", {
+          resolvedBy: "api-customer-service",
+          mapvxId: sacPlace.mapvxId || null,
+          anchorLocal: anchorLocal || null,
+        });
+        return {
+          place: sacPlace,
+          resolvedBy: "api-customer-service",
+          lookupKey: sacPlace.mapvxId,
+          attempts: attempts,
+        };
+      }
+      // Fallback: route to primary anchor store (Sony) — module sits in that corridor.
+      if (anchorPlace && anchorPlace.mapvxId) {
+        attempts.push({
+          method: "customer-service-anchor-fallback",
+          mapvxId: anchorPlace.mapvxId,
+          reason: "no named SAC place; using corridor anchor",
+        });
+        var anchorAsDest = Object.assign({}, anchorPlace, {
+          title: name || anchorPlace.title,
+          serviceType: "customer_service",
+        });
+        return {
+          place: anchorAsDest,
+          resolvedBy: "customer-service-anchor-fallback",
+          lookupKey: anchorPlace.mapvxId,
+          attempts: attempts,
+        };
+      }
+      var errSac = new Error(
+        "No se encontró Servicio al cliente en el mapa. Espera a que cargue el piso e inténtalo de nuevo."
+      );
+      errSac.attempts = attempts;
+      throw errSac;
     }
 
     // Anchor store is ONLY a proximity hint — never the route destination.
@@ -4223,10 +4384,19 @@ window.MapVxBridge = (function () {
 
   function buildServiceDestinationElement(serviceType, title) {
     var isElevator = serviceType === "elevator";
+    var isCustomer = serviceType === "customer_service";
     var wrap = document.createElement("div");
-    wrap.className = "mapvx-service-dest-marker" + (isElevator ? " is-elevator" : " is-bathroom");
-    wrap.setAttribute("role", "img");
-    wrap.setAttribute("aria-label", title || (isElevator ? "Ascensor" : "Baños"));
+    wrap.className =
+      "mapvx-service-dest-marker" +
+      (isElevator ? " is-elevator" : isCustomer ? " is-customer-service" : " is-bathroom");
+    wrap.setAttribute(
+      "role",
+      "img"
+    );
+    wrap.setAttribute(
+      "aria-label",
+      title || (isElevator ? "Ascensor" : isCustomer ? "Servicio al cliente" : "Baños")
+    );
 
     var badge = document.createElement("div");
     badge.className = "mapvx-service-dest-badge";
@@ -4237,6 +4407,8 @@ window.MapVxBridge = (function () {
         '<rect x="7" y="5" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>' +
         '<path d="M14 8l3.2 4.2H10.8zM14 20l-3.2-4.2h6.4z" fill="currentColor"/>' +
         "</svg>";
+    } else if (isCustomer) {
+      badge.textContent = "ℹ️";
     } else {
       badge.textContent = "🚻";
     }
@@ -4342,7 +4514,13 @@ window.MapVxBridge = (function () {
       await fitMapToIndoorContext(map, config, parentPlace);
     }
 
-    var displayTitle = getPlaceDisplayTitle(place) || options.name || (serviceType === "elevator" ? "Ascensor" : "Baños");
+    var displayTitle = getPlaceDisplayTitle(place) || options.name || (
+      serviceType === "elevator"
+        ? "Ascensor"
+        : serviceType === "customer_service"
+          ? "Servicio al cliente"
+          : "Baños"
+    );
     if (place) {
       place.serviceType = serviceType;
       if (options.name || displayTitle) {

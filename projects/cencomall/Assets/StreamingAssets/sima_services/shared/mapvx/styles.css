@@ -352,6 +352,11 @@
   color: #fff;
 }
 
+.mapvx-service-dest-marker.is-customer-service .mapvx-service-dest-badge {
+  background: #0B6E4F;
+  color: #fff;
+}
+
 .mapvx-service-dest-label {
   background: rgba(30, 22, 48, 0.92);
   color: #fff;
