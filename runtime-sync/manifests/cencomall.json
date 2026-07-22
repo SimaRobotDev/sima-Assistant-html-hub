@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.22-2",
+  "version": "2026.07.22-3",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-22T15:00:55.424Z",
+  "generatedAt": "2026-07-22T15:08:37.133Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.07.22-1",
+  "rollbackTo": "2026.07.22-2",
   "entryPoints": [
     {
       "service": "agenda",
@@ -90,13 +90,13 @@
     },
     {
       "path": "data/services-catalog.json",
-      "size": 20364,
-      "sha256": "bc5883ca701878e8cb7383e7555c9b9f663763f237f64e6a77f846ba47f7658f"
+      "size": 20532,
+      "sha256": "23d1c70117fa83478090258efc6a1cfd6160d11e1aedc3e6a5cbe61620b3beca"
     },
     {
       "path": "data/services-catalog.jsonp.js",
-      "size": 20558,
-      "sha256": "3d5ea9a84e8aea1ce8c6c5d0850d5e78cd80a1992cc53bb414587fddf61fc110"
+      "size": 20726,
+      "sha256": "2db74acae8e527b575b9889f85128cb54e8d5849c03bc7fafd99f314c39a1009"
     },
     {
       "path": "emergency/index.html",
@@ -150,8 +150,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 166630,
-      "sha256": "edc9c9bc5d25095547f946ff819c35d705abbf5132e055fef0eefa9f61862926"
+      "size": 168179,
+      "sha256": "36777362d3aa7214a5269d48cfa376b1bbe74f0e3bd14faaff1fc89be0498428"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -200,8 +200,8 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 179296,
-      "sha256": "a3e86f4c24e975fb6ba96710f8f9e4bddd53bb5095f42a835b5c630b59936fa6"
+      "size": 183637,
+      "sha256": "c7110def4ccc6e9ecf3bcb04966f9ed42ce8f21650040ad78f651227b9455e63"
     },
     {
       "path": "shared/mapvx/index.js",
@@ -240,8 +240,8 @@
     },
     {
       "path": "shared/services-catalog.js",
-      "size": 13583,
-      "sha256": "f94c299659cee935513ce3569125a3d08389dfe520b48f1799a0999a5167cbc7"
+      "size": 14535,
+      "sha256": "75523b776fd52f7533e131ce602c84ff3023e4afc65247481482bf9d29534472"
     },
     {
       "path": "shared/store-logos/casa-ideas.png",
