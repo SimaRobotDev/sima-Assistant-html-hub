@@ -811,12 +811,12 @@
       "layout": "banco_vertical",
       "routeApproach": [
         {
-          "local": "CC_N3_2156",
-          "query": "Zara",
+          "local": "CC_N3_3180",
+          "query": "Hugo",
           "floors": [
             "3"
           ],
-          "weight": 0.35
+          "weight": 0.22
         }
       ],
       "anchorStores": [
@@ -827,12 +827,20 @@
           "floors": [
             "3"
           ]
+        },
+        {
+          "brand": "Hugo",
+          "local": "CC_N3_3180",
+          "role": "secondary",
+          "floors": [
+            "3"
+          ]
         }
       ],
       "descriptions": {
-        "short": "Junto a Zara (Nivel 3).",
-        "medium": "Al costado de Zara en el nivel 3 (pasillo central, no H&M).",
-        "long": "En el Nivel 3, al costado de la entrada de Zara — banco distinto al de H&M."
+        "short": "Junto a Zara / Hugo (Nivel 3).",
+        "medium": "Pasillo lateral junto a Hugo, al costado de Zara (Nivel 3) — no es el banco de H&M.",
+        "long": "En el Nivel 3, en el pasillo junto a Hugo hacia el área de ascensores de Zara."
       },
       "keywords": [
         "ascensor",
@@ -840,6 +848,7 @@
         "elevador",
         "elevator",
         "zara",
+        "hugo",
         "nivel 3",
         "piso 3"
       ],
