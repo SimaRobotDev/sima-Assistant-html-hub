@@ -3531,6 +3531,115 @@ window.MapVxBridge = (function () {
     });
   }
 
+  /**
+   * Elevator POI centroids sit inside the shaft (often non-walkable). Pull the
+   * route target toward the floor landmark so MapVX snaps to the corridor
+   * approach (e.g. Maxi K → Vitacura) instead of looping the long way around.
+   */
+  function pullCoordsToward(from, toward, weight) {
+    var w = weight == null ? 0.42 : weight;
+    if (!from || from.lat == null || from.lng == null) return from;
+    if (!toward || toward.lat == null || toward.lng == null) return from;
+    return {
+      lat: Number(from.lat) * (1 - w) + Number(toward.lat) * w,
+      lng: Number(from.lng) * (1 - w) + Number(toward.lng) * w,
+    };
+  }
+
+  function biasElevatorPoiTowardAnchor(elevatorPoi, anchorPos) {
+    if (!elevatorPoi || !anchorPos) return elevatorPoi;
+    var pulled = pullCoordsToward(elevatorPoi, anchorPos, 0.42);
+    if (!pulled || pulled.lat == null) return elevatorPoi;
+    return Object.assign({}, elevatorPoi, {
+      lat: pulled.lat,
+      lng: pulled.lng,
+      corridorBiased: true,
+    });
+  }
+
+  /**
+   * Catalog lat/lng identify the bank; on the active floor, re-snap to a local
+   * elevator POI and bias toward the floor anchor for a walkable approach.
+   */
+  async function refineElevatorCatalogForRouting(options, seed, attempts) {
+    attempts = attempts || [];
+    options = options || {};
+    var config = getConfig();
+    var anchorLocal = options.anchorLocal ? String(options.anchorLocal).trim() : "";
+    var floorHint = options.floor;
+    var refined = {
+      ref: seed && seed.ref ? seed.ref : (options.mapvxId || options.poiRef || ""),
+      lat: seed && seed.lat != null ? Number(seed.lat) : null,
+      lng: seed && seed.lng != null ? Number(seed.lng) : null,
+      name: (seed && seed.name) || "Ascensor",
+    };
+    if (refined.lat == null || refined.lng == null) return refined;
+
+    var seedPos = { lat: refined.lat, lng: refined.lng };
+    var anchorPlace = null;
+    if (anchorLocal) {
+      try {
+        anchorPlace = await sdk.getPlaceDetail(anchorLocal);
+      } catch (eAnchor) {
+        attempts.push({ method: "refine-elevator-anchor", error: String(eAnchor.message || eAnchor) });
+      }
+    }
+
+    var parentPlace = null;
+    try {
+      parentPlace = await getParentPlaceCached(config.parentPlace);
+    } catch (eParent) { /* noop */ }
+
+    var floorId = pickFloorId(
+      anchorPlace || null,
+      floorHint,
+      parentPlace,
+      anchorLocal || null
+    );
+    if (anchorPlace && anchorPlace.inFloors && anchorPlace.inFloors.length) {
+      floorId = anchorPlace.inFloors[0] || floorId;
+    }
+
+    if (map && floorId) {
+      await applyPlaceFloorAndWait(map, config, floorId, parentPlace);
+      scheduleRetailPoiIconFilter(map, config);
+    }
+    if (map) {
+      fitMapToPlace(map, seedPos, config);
+      await waitForLibreMapIdle(getLibreMap(map), 1200);
+      await delayMs(200);
+    }
+
+    var elevators = await collectElevatorPoisWithRetry(getLibreMap(map), floorId, 5);
+    if (elevators.length) {
+      var picked = pickNearestElevatorPoi(elevators, seedPos, floorId);
+      if (picked && picked.lat != null && picked.lng != null) {
+        refined.ref = picked.ref || refined.ref;
+        refined.lat = picked.lat;
+        refined.lng = picked.lng;
+        refined.floor_key = picked.floor_key || floorId || "";
+        refined.bankSize = picked.bankSize || 1;
+        attempts.push({
+          method: "refine-elevator-floor-poi",
+          ref: refined.ref,
+          bankSize: refined.bankSize,
+        });
+      }
+    }
+
+    var pullTarget = anchorPlace && anchorPlace.position ? anchorPlace.position : null;
+    if (pullTarget) {
+      refined = biasElevatorPoiTowardAnchor(refined, pullTarget);
+      attempts.push({
+        method: "refine-elevator-corridor-bias",
+        weight: 0.42,
+        toward: anchorLocal || null,
+      });
+    }
+
+    return refined;
+  }
+
   async function resolveElevatorDestinationNearAnchor(anchorPlace, floorHint, attempts) {
     attempts = attempts || [];
     var libreMap = map && getLibreMap(map);
@@ -3595,17 +3704,24 @@ window.MapVxBridge = (function () {
       return null;
     }
 
+    // Shaft centroids are often non-walkable; bias toward the store corridor.
+    if (anchorPos) {
+      nearest = biasElevatorPoiTowardAnchor(nearest, anchorPos);
+      attempts.push({ method: "elevator-corridor-bias", weight: 0.42 });
+    }
+
     try {
       var byRef = await sdk.getPlaceDetail(nearest.ref);
       if (byRef && byRef.mapvxId) {
-        // Keep bank centroid coords when we stabilized a multi-cabin group.
-        if (nearest.bankStabilized && nearest.lat != null && nearest.lng != null) {
+        // Keep biased / bank-centroid coords for routing (not the raw place center).
+        if (nearest.lat != null && nearest.lng != null) {
           byRef.position = { lat: nearest.lat, lng: nearest.lng };
         }
         attempts.push({
           method: "elevator-poi+getPlaceDetail",
           ref: nearest.ref,
           bankSize: nearest.bankSize || 1,
+          corridorBiased: !!nearest.corridorBiased,
         });
         return {
           place: byRef,
@@ -3657,10 +3773,34 @@ window.MapVxBridge = (function () {
 
     var explicitId = mapvxId || poiRef;
     if (explicitId && hasCatalogMapvxCoords(options)) {
-      // Phase 2: catalog lat/lng are the source of truth for the destination
-      // (poiRef can collide across banks; getPlaceDetail alone would merge them).
+      // Phase 2: catalog lat/lng identify the bank (poiRef can collide across banks).
+      // For elevators, refine on the active floor and bias toward the landmark so
+      // routing approaches from the corridor (not the long loop around the shaft).
+      var elevPoi = {
+        ref: explicitId,
+        lat: Number(options.lat),
+        lng: Number(options.lng),
+        name: name,
+      };
+      if (serviceType === "elevator") {
+        try {
+          elevPoi = await refineElevatorCatalogForRouting(options, elevPoi, attempts);
+        } catch (eRefine) {
+          attempts.push({
+            method: "refine-elevator-catalog",
+            error: String(eRefine.message || eRefine),
+          });
+        }
+      }
+
       var catalogPlace = buildSyntheticServicePlace(
-        { ref: explicitId, lat: options.lat, lng: options.lng, name: name },
+        {
+          ref: elevPoi.ref || explicitId,
+          lat: elevPoi.lat,
+          lng: elevPoi.lng,
+          name: name,
+          floor_key: elevPoi.floor_key || "",
+        },
         name
       );
       try {
@@ -3674,17 +3814,19 @@ window.MapVxBridge = (function () {
       } catch (eRefCoords) {
         attempts.push({ method: "getPlaceDetail(poiRef)", error: String(eRefCoords.message || eRefCoords) });
       }
+      // Always keep refined coords as the route/marker position.
+      if (elevPoi.lat != null && elevPoi.lng != null) {
+        catalogPlace.position = { lat: elevPoi.lat, lng: elevPoi.lng };
+      }
 
-      attempts.push({ method: "catalog-coords", explicitId: explicitId });
+      attempts.push({ method: "catalog-coords", explicitId: explicitId, corridorBiased: !!elevPoi.corridorBiased });
       return {
         place: catalogPlace,
         resolvedBy: "catalog-coords",
         lookupKey: explicitId,
-        elevatorPoi: serviceType === "elevator"
-          ? { ref: explicitId, lat: options.lat, lng: options.lng }
-          : null,
+        elevatorPoi: serviceType === "elevator" ? elevPoi : null,
         toiletPoi: serviceType === "bathroom"
-          ? { ref: explicitId, lat: options.lat, lng: options.lng }
+          ? { ref: explicitId, lat: Number(options.lat), lng: Number(options.lng) }
           : null,
         attempts: attempts,
       };

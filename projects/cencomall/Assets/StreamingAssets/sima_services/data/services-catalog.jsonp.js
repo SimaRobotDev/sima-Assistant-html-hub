@@ -570,6 +570,14 @@ window.__SERVICES_CATALOG__ = {
           ]
         },
         {
+          "brand": "Maxi K",
+          "local": "CC_N1_1116",
+          "role": "primary",
+          "floors": [
+            "1"
+          ]
+        },
+        {
           "brand": "Victorinox",
           "local": "CC_N1_1118",
           "role": "secondary",
@@ -580,14 +588,6 @@ window.__SERVICES_CATALOG__ = {
         {
           "brand": "The Body Shop",
           "local": "CC_N1_1122",
-          "role": "secondary",
-          "floors": [
-            "1"
-          ]
-        },
-        {
-          "brand": "Maxi K",
-          "local": "CC_N1_1116",
           "role": "secondary",
           "floors": [
             "1"
@@ -643,9 +643,9 @@ window.__SERVICES_CATALOG__ = {
         }
       ],
       "descriptions": {
-        "short": "Costado Av. Vitacura (Decathlon / Victorinox).",
-        "medium": "Lado Vitacura: Decathlon (PB), Victorinox–Body Shop (N1), Victoria’s Secret (N2), Samsonite/Studio F (N3), Oakley (N4), Barra Chalaca (N5).",
-        "long": "Ascensores del costado Av. Vitacura. En N1 quedan entre Victorinox y The Body Shop, junto a las escaleras."
+        "short": "Costado Av. Vitacura (Decathlon / Maxi K).",
+        "medium": "Lado Vitacura: Decathlon (PB), Maxi K–Victorinox (N1), Victoria’s Secret (N2), Samsonite/Studio F (N3), Oakley (N4), Barra Chalaca (N5).",
+        "long": "Ascensores del costado Av. Vitacura. En N1 quedan junto a Maxi K / escaleras, entre Victorinox y The Body Shop."
       },
       "keywords": [
         "ascensor",
