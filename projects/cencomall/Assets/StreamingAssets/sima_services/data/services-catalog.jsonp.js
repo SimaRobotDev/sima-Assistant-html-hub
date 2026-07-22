@@ -810,6 +810,16 @@ window.__SERVICES_CATALOG__ = {
         "accesible": true
       },
       "layout": "banco_vertical",
+      "routeApproach": [
+        {
+          "local": "CC_N3_2156",
+          "query": "Zara",
+          "floors": [
+            "3"
+          ],
+          "weight": 0.35
+        }
+      ],
       "anchorStores": [
         {
           "brand": "Zara",
@@ -822,8 +832,8 @@ window.__SERVICES_CATALOG__ = {
       ],
       "descriptions": {
         "short": "Junto a Zara (Nivel 3).",
-        "medium": "Al costado de Zara en el nivel 3.",
-        "long": "En el Nivel 3, al costado de la entrada de Zara."
+        "medium": "Al costado de Zara en el nivel 3 (pasillo central, no H&M).",
+        "long": "En el Nivel 3, al costado de la entrada de Zara — banco distinto al de H&M."
       },
       "keywords": [
         "ascensor",
@@ -835,11 +845,11 @@ window.__SERVICES_CATALOG__ = {
         "piso 3"
       ],
       "mapvx": {
-        "poiRef": "-N2SSgpaCHzZe80nRkOx",
-        "mapvxId": "-N2SSgpaCHzZe80nRkOx",
+        "poiRef": "ascensor-zara-n3",
+        "mapvxId": "ascensor-zara-n3",
         "lat": -33.4174075093143,
         "lng": -70.60589879751205,
-        "validatedAt": "2026-07-21"
+        "validatedAt": "2026-07-22"
       }
     }
   ]

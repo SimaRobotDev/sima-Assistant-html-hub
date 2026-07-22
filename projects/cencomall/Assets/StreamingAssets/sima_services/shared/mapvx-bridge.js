@@ -3691,15 +3691,34 @@ window.MapVxBridge = (function () {
       await applyPlaceFloorAndWait(map, config, floorId, parentPlace);
       scheduleRetailPoiIconFilter(map, config);
     }
-    if (map) {
-      fitMapToPlace(map, seedPos, config);
+
+    // Prefer fitting near the floor landmark — catalog seed can collide across
+    // banks (H&M and Zara shared the same poiRef/coords).
+    var fitPos = (anchorPlace && anchorPlace.position) || seedPos;
+    if (map && fitPos) {
+      fitMapToPlace(map, fitPos, config);
       await waitForLibreMapIdle(getLibreMap(map), 1200);
       await delayMs(200);
     }
 
+    var approachPlace = await resolveRouteApproachPlace(
+      options,
+      (anchorPlace && anchorPlace.position) || seedPos,
+      floorHint || floorId,
+      attempts
+    );
+
+    // Pick elevator bank nearest to approach/anchor, not the colliding catalog seed.
+    var pickHint = seedPos;
+    if (approachPlace && approachPlace.position) {
+      pickHint = approachPlace.position;
+    } else if (anchorPlace && anchorPlace.position) {
+      pickHint = anchorPlace.position;
+    }
+
     var elevators = await collectElevatorPoisWithRetry(getLibreMap(map), floorId, 5);
     if (elevators.length) {
-      var picked = pickNearestElevatorPoi(elevators, seedPos, floorId);
+      var picked = pickNearestElevatorPoi(elevators, pickHint, floorId);
       if (picked && picked.lat != null && picked.lng != null) {
         refined.ref = picked.ref || refined.ref;
         refined.lat = picked.lat;
@@ -3710,6 +3729,7 @@ window.MapVxBridge = (function () {
           method: "refine-elevator-floor-poi",
           ref: refined.ref,
           bankSize: refined.bankSize,
+          pickNear: approachPlace ? "approach" : (anchorPlace ? "anchor" : "catalog-seed"),
         });
       }
     }
@@ -3718,12 +3738,6 @@ window.MapVxBridge = (function () {
     refined.markerLat = refined.lat;
     refined.markerLng = refined.lng;
 
-    var approachPlace = await resolveRouteApproachPlace(
-      options,
-      { lat: refined.lat, lng: refined.lng },
-      floorHint || floorId,
-      attempts
-    );
     if (approachPlace && approachPlace.position) {
       var weight = options.routeApproachWeight != null ? Number(options.routeApproachWeight) : 1;
       if (!isFinite(weight)) weight = 1;
