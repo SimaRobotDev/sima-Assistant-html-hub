@@ -3773,8 +3773,10 @@ window.MapVxBridge = (function () {
       }
     }
 
-    // Pin stays on the shaft. Route target may step a few meters into the
-    // walkable side hallway (capped) so MapVX turns into the alcove.
+    // Pin stays on the shaft. Route target is walkable:
+    // - default: step from elevator toward landmark (capped)
+    // - pullFrom=landmark: start at landmark (Hugo front) and walk toward the
+    //   elevator — lands at the back of Hugo / side hallway entrance.
     refined.markerLat = refined.lat;
     refined.markerLng = refined.lng;
 
@@ -3784,18 +3786,36 @@ window.MapVxBridge = (function () {
       var maxMeters = options.routeApproachMaxMeters != null
         ? Number(options.routeApproachMaxMeters)
         : null;
+      var pullFrom = String(options.routeApproachPullFrom || "elevator").toLowerCase();
       var markerLat = refined.markerLat;
       var markerLng = refined.markerLng;
-      if (weight >= 0.99) {
+      var elevPos = { lat: markerLat, lng: markerLng };
+      var landmarkPos = approachPlace.position;
+
+      if (weight >= 0.99 && pullFrom !== "landmark") {
         // Full replace (e.g. Vitacura → ATM): enter the service pocket.
-        refined.lat = Number(approachPlace.position.lat);
-        refined.lng = Number(approachPlace.position.lng);
+        refined.lat = Number(landmarkPos.lat);
+        refined.lng = Number(landmarkPos.lng);
+        refined.corridorBiased = true;
+        refined.approachUsed = true;
+      } else if (pullFrom === "landmark") {
+        // Hugo front → Ascensor: destination at the back of Hugo / hallway.
+        var fromLandmark = pullCoordsTowardCapped(
+          landmarkPos,
+          elevPos,
+          weight,
+          isFinite(maxMeters) ? maxMeters : null
+        );
+        refined.lat = fromLandmark.lat;
+        refined.lng = fromLandmark.lng;
+        refined.markerLat = markerLat;
+        refined.markerLng = markerLng;
         refined.corridorBiased = true;
         refined.approachUsed = true;
       } else {
         refined = biasElevatorPoiTowardAnchor(
           refined,
-          approachPlace.position,
+          landmarkPos,
           weight,
           isFinite(maxMeters) ? maxMeters : 12
         );
@@ -3806,14 +3826,15 @@ window.MapVxBridge = (function () {
       attempts.push({
         method: "refine-elevator-route-approach",
         weight: weight,
-        maxMeters: isFinite(maxMeters) ? maxMeters : (weight >= 0.99 ? null : 12),
+        pullFrom: pullFrom,
+        maxMeters: isFinite(maxMeters) ? maxMeters : null,
         toward: approachPlace.title || options.routeApproachQuery || options.routeApproachLocal || null,
         routeLat: refined.lat,
         routeLng: refined.lng,
         markerLat: markerLat,
         markerLng: markerLng,
         pullMeters: approxMetersBetween(
-          { lat: markerLat, lng: markerLng },
+          pullFrom === "landmark" ? landmarkPos : { lat: markerLat, lng: markerLng },
           { lat: refined.lat, lng: refined.lng }
         ),
       });

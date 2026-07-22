@@ -817,8 +817,9 @@ window.__SERVICES_CATALOG__ = {
           "floors": [
             "3"
           ],
-          "weight": 0.55,
-          "maxMeters": 11
+          "pullFrom": "landmark",
+          "weight": 0.72,
+          "maxMeters": 22
         }
       ],
       "anchorStores": [

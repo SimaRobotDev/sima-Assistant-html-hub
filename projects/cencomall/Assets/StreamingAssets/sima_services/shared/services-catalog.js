@@ -184,6 +184,7 @@ window.ServicesCatalog = (function () {
       routeApproachLocal: approach && approach.local ? String(approach.local) : "",
       routeApproachWeight: approach && approach.weight != null ? Number(approach.weight) : null,
       routeApproachMaxMeters: approach && approach.maxMeters != null ? Number(approach.maxMeters) : null,
+      routeApproachPullFrom: approach && approach.pullFrom ? String(approach.pullFrom) : "",
       poiRef: entry.mapvx && entry.mapvx.poiRef ? entry.mapvx.poiRef : "",
       mapvxId: entry.mapvx && entry.mapvx.mapvxId ? entry.mapvx.mapvxId : "",
       mapvxLat: entry.mapvx && entry.mapvx.lat != null ? entry.mapvx.lat : null,
