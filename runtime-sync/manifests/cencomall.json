@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.22-14",
+  "version": "2026.07.22-15",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-22T17:02:55.107Z",
+  "generatedAt": "2026-07-22T17:19:29.273Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.07.22-13",
+  "rollbackTo": "2026.07.22-14",
   "entryPoints": [
     {
       "service": "agenda",
@@ -150,8 +150,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 170568,
-      "sha256": "2bec26e287a91e4e6a28e7f49479e670e83e57e9d79172619828886a7b0cf4ae"
+      "size": 174067,
+      "sha256": "1610bf59f753942a280153bbf3fa7fb9bae0fb67c78b59cf1c6dac3e9ecf215e"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -237,6 +237,16 @@
       "path": "shared/qrcode.min.js",
       "size": 19927,
       "sha256": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36"
+    },
+    {
+      "path": "shared/service-icons/bathrooms.png",
+      "size": 16292,
+      "sha256": "c4c0ee3b598d7b06eadfd19fac4037675776cafd14fc5c7de6b67330ac7e14a6"
+    },
+    {
+      "path": "shared/service-icons/elevators.png",
+      "size": 15885,
+      "sha256": "37651d85f52a1ffc9705b5105c9920644ab7692ac4cc1d5f9430adfa87936c09"
     },
     {
       "path": "shared/services-catalog.js",
