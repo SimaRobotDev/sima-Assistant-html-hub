@@ -30,6 +30,7 @@ window.MapVxBridge = (function () {
     placeId: null,
     floorId: null,
     place: null,
+    serviceType: null,
     node: null,
     listenersBound: false,
     scheduled: false,
@@ -461,6 +462,50 @@ window.MapVxBridge = (function () {
     if (base.charAt(base.length - 1) !== "/") base += "/";
     if (isFileProtocol()) base = resolveAssetUrl(base);
     return base;
+  }
+
+  function serviceIconsBase(config) {
+    config = config || getConfig();
+    var base = config.serviceIconsBase || "../shared/service-icons/";
+    if (base.charAt(base.length - 1) !== "/") base += "/";
+    if (isFileProtocol()) base = resolveAssetUrl(base);
+    return base;
+  }
+
+  function getServiceIconUrl(serviceType) {
+    var type = String(serviceType || "").toLowerCase().trim();
+    if (!type) return "";
+    var base = serviceIconsBase();
+    if (type === "elevator" || type === "ascensor" || type === "elevador") {
+      return base + "elevators.png";
+    }
+    if (
+      type === "bathroom" ||
+      type === "bano" ||
+      type === "baño" ||
+      type === "kids" ||
+      type === "toilet"
+    ) {
+      return base + "bathrooms.png";
+    }
+    return "";
+  }
+
+  function inferServiceTypeFromPlace(place) {
+    if (!place) return placePopOverState.serviceType || "";
+    if (place.serviceType) return String(place.serviceType).toLowerCase().trim();
+    if (placePopOverState.serviceType) return placePopOverState.serviceType;
+    var title = normalizeText(
+      place.title || place.shortName || place.name || place.clientId || ""
+    );
+    if (!title) return "";
+    if (/\b(ascensor|ascensores|elevador|elevadores|elevator|elevators)\b/.test(title)) {
+      return "elevator";
+    }
+    if (/\b(bano|banos|bathroom|bathrooms|restroom|wc|toilet)\b/.test(title)) {
+      return "bathroom";
+    }
+    return "";
   }
 
   // Android WebView blocks fetch()/XHR on file:// URLs but <script src> works.
@@ -1041,6 +1086,14 @@ window.MapVxBridge = (function () {
 
   function getPlaceLogoUrl(place) {
     if (!place) return "";
+
+    var explicitType =
+      (place.serviceType && String(place.serviceType).toLowerCase().trim()) ||
+      placePopOverState.serviceType ||
+      "";
+    var serviceIcon = getServiceIconUrl(explicitType);
+    if (serviceIcon) return serviceIcon;
+
     var candidates = [];
     if (place.logo) {
       if (typeof place.logo === "string") {
@@ -1065,7 +1118,37 @@ window.MapVxBridge = (function () {
         return String(candidates[i]).trim();
       }
     }
-    return "";
+
+    // No store logo: last-chance service icon from title (baños / ascensores).
+    return getServiceIconUrl(inferServiceTypeFromPlace(place));
+  }
+
+  function appendPlacePopOverLogo(logoWrap, place) {
+    if (!logoWrap) return;
+    logoWrap.innerHTML = "";
+    var logoUrl = getPlaceLogoUrl(place);
+    var initials = getPlaceInitials(place);
+    var serviceType = inferServiceTypeFromPlace(place);
+    if (logoUrl) {
+      var img = document.createElement("img");
+      img.className = "mapvx-place-popover-logo" + (serviceType ? " is-service-icon" : "");
+      img.alt = "";
+      img.loading = "lazy";
+      img.src = logoUrl;
+      img.onerror = function () {
+        if (!img.parentNode) return;
+        var fallback = document.createElement("div");
+        fallback.className = "mapvx-place-popover-initials";
+        fallback.textContent = initials;
+        img.parentNode.replaceChild(fallback, img);
+      };
+      logoWrap.appendChild(img);
+      return;
+    }
+    var fallbackLogo = document.createElement("div");
+    fallbackLogo.className = "mapvx-place-popover-initials";
+    fallbackLogo.textContent = initials;
+    logoWrap.appendChild(fallbackLogo);
   }
 
   function getStoreLogoOverrideKey(place) {
@@ -1411,28 +1494,7 @@ window.MapVxBridge = (function () {
 
     var logoWrap = document.createElement("div");
     logoWrap.className = "mapvx-place-popover-logo-wrap";
-    var logoUrl = getPlaceLogoUrl(place);
-    var initials = getPlaceInitials(place);
-    if (logoUrl) {
-      var img = document.createElement("img");
-      img.className = "mapvx-place-popover-logo";
-      img.alt = "";
-      img.loading = "lazy";
-      img.src = logoUrl;
-      img.onerror = function () {
-        if (!img.parentNode) return;
-        var fallback = document.createElement("div");
-        fallback.className = "mapvx-place-popover-initials";
-        fallback.textContent = initials;
-        img.parentNode.replaceChild(fallback, img);
-      };
-      logoWrap.appendChild(img);
-    } else {
-      var fallbackLogo = document.createElement("div");
-      fallbackLogo.className = "mapvx-place-popover-initials";
-      fallbackLogo.textContent = initials;
-      logoWrap.appendChild(fallbackLogo);
-    }
+    appendPlacePopOverLogo(logoWrap, place);
 
     var body = document.createElement("div");
     body.className = "mapvx-place-popover-body";
@@ -1470,8 +1532,6 @@ window.MapVxBridge = (function () {
     var floorEl = root.querySelector("[data-mapvx-popover-floor]");
     var logoWrap = root.querySelector("[data-mapvx-popover-logo]");
     var title = getPlaceDisplayTitle(place);
-    var logoUrl = getPlaceLogoUrl(place);
-    var initials = getPlaceInitials(place);
     var floorLabel = getFloorDisplayLabel(placePopOverState.floorId || (place.inFloors && place.inFloors[0]));
 
     if (titleEl) titleEl.textContent = title;
@@ -1479,29 +1539,7 @@ window.MapVxBridge = (function () {
       floorEl.textContent = floorLabel;
       floorEl.classList.toggle("hidden", !floorLabel);
     }
-    if (logoWrap) {
-      logoWrap.innerHTML = "";
-      if (logoUrl) {
-        var img = document.createElement("img");
-        img.className = "mapvx-place-popover-logo";
-        img.alt = "";
-        img.loading = "lazy";
-        img.src = logoUrl;
-        img.onerror = function () {
-          if (!img.parentNode) return;
-          var fallback = document.createElement("div");
-          fallback.className = "mapvx-place-popover-initials";
-          fallback.textContent = initials;
-          img.parentNode.replaceChild(fallback, img);
-        };
-        logoWrap.appendChild(img);
-      } else {
-        var fallback2 = document.createElement("div");
-        fallback2.className = "mapvx-place-popover-initials";
-        fallback2.textContent = initials;
-        logoWrap.appendChild(fallback2);
-      }
-    }
+    if (logoWrap) appendPlacePopOverLogo(logoWrap, place);
   }
 
   function resolvePlaceLabelPosition(mapInstance, place, floorId) {
@@ -1580,6 +1618,7 @@ window.MapVxBridge = (function () {
     placePopOverState.placeId = null;
     placePopOverState.floorId = null;
     placePopOverState.place = null;
+    placePopOverState.serviceType = null;
     placePopOverState.node = null;
     placePopOverState.listenersBound = false;
     placePopOverState.scheduled = false;
@@ -1618,6 +1657,9 @@ window.MapVxBridge = (function () {
     placePopOverState.place = place;
     placePopOverState.placeId = place.mapvxId || place.clientId || getPlaceDisplayTitle(place) || null;
     placePopOverState.floorId = floorId || (place.inFloors && place.inFloors.length ? place.inFloors[0] : null);
+    placePopOverState.serviceType = place.serviceType
+      ? String(place.serviceType).toLowerCase().trim()
+      : null;
 
     if (typeof mapInstance.addPopOver === "function") {
       mapInstance.addPopOver({
@@ -4301,9 +4343,13 @@ window.MapVxBridge = (function () {
     }
 
     var displayTitle = getPlaceDisplayTitle(place) || options.name || (serviceType === "elevator" ? "Ascensor" : "Baños");
-    if (serviceType === "elevator" && place && !place.title) {
-      place.title = displayTitle;
+    if (place) {
+      place.serviceType = serviceType;
+      if (options.name || displayTitle) {
+        place.title = String(options.name || displayTitle);
+      }
     }
+    placePopOverState.serviceType = serviceType;
     showPlacePopOver(map, place, floorId);
     showServiceDestinationMarker(map, place, floorId, serviceType, displayTitle);
 

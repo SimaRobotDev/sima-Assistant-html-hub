@@ -1070,59 +1070,32 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   background: linear-gradient(180deg, #FFF 0%, #F3F8FC 100%);
 }
 
-.service-avatar {
-  margin: 0 auto 10px;
-  overflow: hidden;
-  padding: 0;
-}
-
-.service-avatar .service-kind-svg {
-  width: 26px;
-  height: 26px;
-  display: block;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.75;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.service-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-  border-radius: inherit;
-}
-
-.store-detail-logo.service-avatar .service-kind-svg {
-  width: 18px;
-  height: 18px;
-}
-
-.service-avatar-bathroom,
-.service-avatar-kids {
-  color: var(--cm-purple-dark);
-  background: #0a0a0a;
-}
-
-.service-avatar-elevator {
-  color: #1455A0;
-  background: #0a0a0a;
-}
-
 .service-card-icon {
-  display: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  background: #F0EAF8;
+}
+
+.service-card-elevator .service-card-icon {
+  background: #E4F0F8;
 }
 
 .service-card-title-row {
-  display: block;
-  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .service-card-title-row .service-name {
-  margin-bottom: 6px;
-  text-align: center;
+  margin-bottom: 0;
 }
 
 .service-card-top {
@@ -1131,18 +1104,6 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   gap: 6px;
   flex: 1;
   min-width: 0;
-  align-items: center;
-  text-align: center;
-}
-
-.service-card-top .store-meta {
-  justify-content: center;
-}
-
-.service-card-top .service-loc,
-.service-card-top .service-desc {
-  width: 100%;
-  text-align: left;
 }
 
 .service-card-actions {
@@ -1478,7 +1439,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA service icons 2026.07.22-15";
+const MOBILITY_UI_VERSION = "OTA map service popover icons 2026.07.22-16";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -3621,17 +3582,9 @@ function onStoreLogoError(img) {
 
 function renderStoreAvatar(result, detail) {
   const name = result.name || result.brand || "Tienda";
-  const kind = getServiceKind(result);
-  const extraClass = detail ? " store-detail-logo" : "";
-  if (kind) {
-    const iconUrl = serviceKindIconUrl(kind);
-    if (iconUrl) {
-      return `<div class="store-initials service-avatar service-avatar-${kind}${extraClass}" aria-hidden="true"><img class="service-avatar-img" src="${escapeHtml(iconUrl)}" alt="" loading="lazy" data-service-kind="${escapeHtml(kind)}" onerror="onServiceIconError(this)" /></div>`;
-    }
-    return `<div class="store-initials service-avatar service-avatar-${kind}${extraClass}" aria-hidden="true">${serviceKindSvg(kind)}</div>`;
-  }
   const initials = getStoreInitials(name);
   const logoUrl = resolveStoreLogoUrl(result);
+  const extraClass = detail ? " store-detail-logo" : "";
   if (!logoUrl) {
     return `<div class="store-initials${extraClass}">${escapeHtml(initials)}</div>`;
   }
@@ -3640,14 +3593,6 @@ function renderStoreAvatar(result, detail) {
 
 function renderStoreDetailMedia(store) {
   const name = store.name || store.brand || "Tienda";
-  const kind = getServiceKind(store);
-  if (kind) {
-    const iconUrl = serviceKindIconUrl(kind);
-    if (iconUrl) {
-      return `<div class="store-initials store-detail-logo service-avatar service-avatar-${kind}" aria-hidden="true"><img class="service-avatar-img" src="${escapeHtml(iconUrl)}" alt="" loading="lazy" data-service-kind="${escapeHtml(kind)}" onerror="onServiceIconError(this)" /></div>`;
-    }
-    return `<div class="store-initials store-detail-logo service-avatar service-avatar-${kind}" aria-hidden="true">${serviceKindSvg(kind)}</div>`;
-  }
   const initials = getStoreInitials(name);
   const photoUrl = resolveStorePhotoUrl(store);
   const logoUrl = resolveStoreLogoUrl(store);
@@ -3704,43 +3649,12 @@ function getServiceKind(svc) {
   return "";
 }
 
-function serviceKindIconUrl(kind) {
-  const base = String(window.SERVICE_ICONS_BASE || "../shared/service-icons/").replace(/\/?$/, "/");
-  if (kind === "bathroom" || kind === "kids") return base + "bathrooms.png";
-  if (kind === "elevator") return base + "elevators.png";
-  return "";
-}
-
-function serviceKindSvg(kind) {
-  if (kind === "elevator") {
-    return `<svg class="service-kind-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="2.5" width="15" height="19" rx="2.5"/><path d="M9 10.5l3-3 3 3"/><path d="M9 13.5l3 3 3-3"/><path d="M12 7.5v9"/></svg>`;
-  }
-  if (kind === "kids") {
-    return `<svg class="service-kind-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.2"/><path d="M8.5 21v-6.2c0-1.9 1.6-3.3 3.5-3.3s3.5 1.4 3.5 3.3V21"/><path d="M7 12.5h10"/><circle cx="7.2" cy="9.2" r="1.3"/><circle cx="16.8" cy="9.2" r="1.3"/></svg>`;
-  }
-  // bathroom / restroom
-  return `<svg class="service-kind-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="5.2" r="1.8"/><path d="M5.8 21V11.4c0-1.2.9-2.2 2.2-2.2h0c1.2 0 2.2 1 2.2 2.2V21"/><path d="M5.2 13.2h5.6"/><circle cx="16.2" cy="5.2" r="1.8"/><path d="M13.6 10.2h5.2l-1.1 10.8h-3z"/><path d="M14.2 14.2h4"/></svg>`;
-}
-
 function serviceKindIcon(kind) {
-  return serviceKindSvg(kind);
+  if (kind === "elevator") return "🛗";
+  if (kind === "kids") return "👶";
+  if (kind === "bathroom") return "🚻";
+  return "📍";
 }
-
-function renderServiceAvatar(kind) {
-  const safeKind = kind || "bathroom";
-  const iconUrl = serviceKindIconUrl(safeKind);
-  if (iconUrl) {
-    return `<div class="store-initials service-avatar service-avatar-${safeKind}" aria-hidden="true"><img class="service-avatar-img" src="${escapeHtml(iconUrl)}" alt="" loading="lazy" data-service-kind="${escapeHtml(safeKind)}" onerror="onServiceIconError(this)" /></div>`;
-  }
-  return `<div class="store-initials service-avatar service-avatar-${safeKind}" aria-hidden="true">${serviceKindSvg(safeKind)}</div>`;
-}
-
-function onServiceIconError(img) {
-  if (!img || !img.parentNode) return;
-  const kind = img.getAttribute("data-service-kind") || "bathroom";
-  img.parentNode.innerHTML = serviceKindSvg(kind);
-}
-window.onServiceIconError = onServiceIconError;
 
 function firstCategory(category) {
   if (!category) return "";
@@ -4413,14 +4327,16 @@ function renderServiceCard(svc, idx) {
   const cardClass = kind === "elevator"
     ? " service-card-elevator"
     : (kind ? " service-card-bathroom" : "");
-  const icon = renderServiceAvatar(kind);
+  const icon = serviceKindIcon(kind);
 
   return `
     <article class="service-card fade-in${cardClass}" id="svc-${idx}" onclick="toggleServiceCard(${idx})">
       <div class="service-card-row">
         <div class="service-card-top">
-          ${icon}
-          <div class="service-name">${escapeHtml(svc.name)}</div>
+          <div class="service-card-title-row">
+            <span class="service-card-icon" aria-hidden="true">${icon}</span>
+            <div class="service-name">${escapeHtml(svc.name)}</div>
+          </div>
           <div class="store-meta">${featureBadges.join("")}${kindBadge}${floorBadge}${anchorBadge}</div>
           ${locText ? `<div class="service-loc">${escapeHtml(locText)}</div>` : ""}
           ${detailText ? `<div class="service-desc">${escapeHtml(detailText)}</div>` : ""}
