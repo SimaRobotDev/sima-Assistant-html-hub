@@ -633,11 +633,12 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .map-view-header {
   display: flex;
   align-items: center;
-  padding: 14px 16px;
-  background: linear-gradient(135deg, var(--cm-purple-dark) 0%, var(--cm-purple) 100%);
+  padding: 14px 18px 16px;
+  background: var(--cm-purple);
   color: #fff;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
+  box-shadow: var(--cm-shadow);
 }
 
 .map-view-actions {
@@ -650,8 +651,8 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   border: none;
   background: var(--cm-pink);
   color: #fff;
-  padding: 8px 12px;
-  border-radius: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
@@ -693,14 +694,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 .map-current-floor.hidden { display: none; }
 
-.btn-back {
-  border: none;
-  background: rgba(255,255,255,0.18);
-  color: #fff;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-weight: 700;
-  cursor: pointer;
+/* Map header reuses .cm-header-back / .cm-header-close (same pills as search). */
+.map-view-header .cm-header-back,
+.map-view-header .cm-header-close {
+  order: 0;
 }
 
 .map-view-title {
@@ -708,7 +705,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   align-items: center;
   gap: 10px;
   font-weight: 800;
-  font-size: 16px;
+  font-size: 18px;
   min-width: 0;
 }
 
@@ -1395,8 +1392,8 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <div id="map-view" class="map-view hidden">
   <div class="map-view-header">
-    <button class="btn-back" id="map-back-btn" onclick="closeMapView()">← Volver</button>
-    <button class="btn-back" id="map-close-btn" type="button" onclick="closeWebview()">Cerrar</button>
+    <button class="cm-header-close" id="map-close-btn" type="button" onclick="closeWebview()">Cerrar</button>
+    <button class="cm-header-back" id="map-back-btn" type="button" onclick="closeMapView()">← Volver</button>
     <div class="map-view-title" id="map-view-title"><span class="map-view-title-text" id="map-view-title-text">Mapa</span></div>
     <div class="map-view-actions">
       <button class="btn-map-route hidden" id="map-route-btn" type="button">Ver ruta</button>
@@ -1423,7 +1420,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA elevators N3 zara coords 2026.07.22-10";
+const MOBILITY_UI_VERSION = "OTA map header UI match 2026.07.22-11";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
