@@ -234,6 +234,12 @@ window.ServicesCatalog = (function () {
       if (!floorOk) return -1;
     }
 
+    // Totem floor context: only list elevator banks that actually stop here
+    // (e.g. hide Zara N3-only when searching from Piso 2).
+    if (preferFloor && type === "elevator" && entry.floors && entry.floors.length) {
+      if (!entryOnFloor(entry, preferFloor)) return -1;
+    }
+
     var score = 0;
     var keywords = entry.keywords || [];
     keywords.forEach(function (kw) {
@@ -379,6 +385,9 @@ window.ServicesCatalog = (function () {
           .filter(function (entry) {
             if (typeFilter && entryType(entry) !== typeFilter) return false;
             if (mudadorOnly && !(entry.features && entry.features.mudador)) return false;
+            if (preferFloor && entryType(entry) === "elevator" && entry.floors && entry.floors.length) {
+              if (!entryOnFloor(entry, preferFloor)) return false;
+            }
             if (!floorFilter || !entry.floors || !entry.floors.length) return !floorFilter;
             return entry.floors.some(function (f) {
               return floorsMatch(f, floorFilter);

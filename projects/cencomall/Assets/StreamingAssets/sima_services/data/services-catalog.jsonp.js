@@ -447,7 +447,7 @@ window.__SERVICES_CATALOG__ = {
           "floors": [
             "2"
           ],
-          "weight": 0.72
+          "weight": 0.38
         }
       ],
       "anchorStores": [
