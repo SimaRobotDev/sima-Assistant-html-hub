@@ -50,6 +50,158 @@ window.ServicesCatalog = (function () {
       .trim();
   }
 
+  /** Common misspellings / EN-PT synonyms → catalog vocabulary (after normalizeText). */
+  var SERVICE_TOKEN_ALIASES = {
+    // bathrooms
+    banio: "bano",
+    banios: "banos",
+    banno: "bano",
+    bannos: "banos",
+    bannio: "bano",
+    bannios: "banos",
+    bao: "bano",
+    baos: "banos",
+    bnao: "bano",
+    bnaos: "banos",
+    banu: "bano",
+    banus: "banos",
+    bathroom: "banos",
+    bathrooms: "banos",
+    restroom: "banos",
+    restrooms: "banos",
+    toilet: "banos",
+    toilets: "banos",
+    wc: "banos",
+    wcs: "banos",
+    banheiro: "banos",
+    banheiros: "banos",
+    sanitario: "banos",
+    sanitarios: "banos",
+    aseo: "banos",
+    aseos: "banos",
+    lavabo: "banos",
+    lavabos: "banos",
+    watercloset: "banos",
+    // elevators (asensor without "c" is very common)
+    asensor: "ascensor",
+    asensores: "ascensores",
+    assensor: "ascensor",
+    assensores: "ascensores",
+    acensor: "ascensor",
+    acensores: "ascensores",
+    asencor: "ascensor",
+    asencores: "ascensores",
+    ascensr: "ascensor",
+    asensorr: "ascensor",
+    elevadr: "elevador",
+    elevdor: "elevador",
+    elevdores: "elevadores",
+    elevetors: "elevadores",
+    elevetor: "elevador",
+    elevator: "ascensor",
+    elevators: "ascensores",
+    elevador: "ascensor",
+    elevadores: "ascensores",
+    lift: "ascensor",
+    lifts: "ascensores",
+  };
+
+  var BATHROOM_INTENT_RE =
+    /\b(bann?os?|banios?|baos?|bnaos?|banus?|bathrooms?|restrooms?|toilets?|wcs?|banheiros?|sanitarios?|aseos?|lavabos?|watercloset|servicio\s*sanitario)\b/;
+  var ELEVATOR_INTENT_RE =
+    /\b(a[sc]{1,2}ensores?|asencores?|ascensr|elevadores?|elevators?|elevetors?|elevadrs?|elevdores?|lifts?)\b/;
+
+  /** Longer intent lemmas only — avoid short fuzzy collisions (e.g. banco ↔ bano). */
+  var BATHROOM_FUZZY_LEMMAS = [
+    "bathroom",
+    "bathrooms",
+    "restroom",
+    "restrooms",
+    "banheiro",
+    "banheiros",
+    "sanitario",
+    "sanitarios",
+    "lavabo",
+    "lavabos",
+  ];
+  var ELEVATOR_FUZZY_LEMMAS = [
+    "ascensor",
+    "ascensores",
+    "elevador",
+    "elevadores",
+    "elevator",
+    "elevators",
+  ];
+
+  function tokenizeQuery(query) {
+    var n = normalizeText(query);
+    if (!n) return [];
+    return n.split(" ").filter(Boolean);
+  }
+
+  function levenshteinWithin(a, b, maxDistance) {
+    if (a === b) return 0;
+    if (!a || !b) return Math.max(a ? a.length : 0, b ? b.length : 0);
+    var lenA = a.length;
+    var lenB = b.length;
+    if (Math.abs(lenA - lenB) > maxDistance) return null;
+    var prev = new Array(lenB + 1);
+    var curr = new Array(lenB + 1);
+    var i;
+    var j;
+    for (j = 0; j <= lenB; j++) prev[j] = j;
+    for (i = 1; i <= lenA; i++) {
+      curr[0] = i;
+      var minRow = curr[0];
+      for (j = 1; j <= lenB; j++) {
+        var cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+        curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+        if (curr[j] < minRow) minRow = curr[j];
+      }
+      if (minRow > maxDistance) return null;
+      var tmp = prev;
+      prev = curr;
+      curr = tmp;
+    }
+    return prev[lenB] <= maxDistance ? prev[lenB] : null;
+  }
+
+  function maxEditDistanceForToken(token) {
+    var len = token ? token.length : 0;
+    if (len < 5) return 0;
+    if (len <= 7) return 1;
+    return 2;
+  }
+
+  function tokenMatchesLemma(token, lemma) {
+    if (!token || !lemma) return false;
+    if (token === lemma) return true;
+    if (token.length >= 4 && lemma.indexOf(token) === 0) return true;
+    if (lemma.length >= 4 && token.indexOf(lemma) === 0) return true;
+    var maxD = Math.min(maxEditDistanceForToken(token), maxEditDistanceForToken(lemma));
+    if (maxD < 1) return false;
+    return levenshteinWithin(token, lemma, maxD) != null;
+  }
+
+  function tokensMatchAnyLemma(tokens, lemmas) {
+    for (var i = 0; i < tokens.length; i++) {
+      for (var j = 0; j < lemmas.length; j++) {
+        if (tokenMatchesLemma(tokens[i], lemmas[j])) return true;
+      }
+    }
+    return false;
+  }
+
+  function canonicalizeServiceQuery(query) {
+    var tokens = tokenizeQuery(query);
+    if (!tokens.length) return "";
+    return tokens
+      .map(function (token) {
+        return SERVICE_TOKEN_ALIASES[token] || token;
+      })
+      .join(" ");
+  }
+
   function buildIndex(data) {
     byId = {};
     var list = (data && data.services) || [];
@@ -59,7 +211,7 @@ window.ServicesCatalog = (function () {
   }
 
   function parseFloorFromQuery(query) {
-    var n = normalizeText(query);
+    var n = canonicalizeServiceQuery(query);
     if (!n) return null;
     if (/\b(pb|planta baja|planta\s*baja)\b/.test(n)) return "PB";
     var m = n.match(/\b(?:nivel|piso|floor|level)\s*(\d+)\b/);
@@ -69,22 +221,25 @@ window.ServicesCatalog = (function () {
   }
 
   function wantsMudador(query) {
-    return /\b(mudador|mudadores|cambiador|changing|pañal|panal|bebe|bebé|lactancia)\b/.test(
-      normalizeText(query)
+    var n = canonicalizeServiceQuery(query);
+    return /\b(mudador|mudadores|cambiador|cambiadores|changing|change\s*table|panal|panales|bebe|bebes|lactancia|nappy|diaper)\b/.test(
+      n
     );
   }
 
   function looksLikeBathroomQuery(query) {
-    var n = normalizeText(query);
+    var n = canonicalizeServiceQuery(query);
     if (!n) return false;
     if (wantsMudador(n)) return true;
-    return /\b(bano|banos|wc|restroom|toilet|servicio\s*sanitario|sanitario)\b/.test(n);
+    if (BATHROOM_INTENT_RE.test(n)) return true;
+    return tokensMatchAnyLemma(n.split(" "), BATHROOM_FUZZY_LEMMAS);
   }
 
   function looksLikeElevatorQuery(query) {
-    var n = normalizeText(query);
+    var n = canonicalizeServiceQuery(query);
     if (!n) return false;
-    return /\b(ascensor|ascensores|elevador|elevadores|elevator|elevators)\b/.test(n);
+    if (ELEVATOR_INTENT_RE.test(n)) return true;
+    return tokensMatchAnyLemma(n.split(" "), ELEVATOR_FUZZY_LEMMAS);
   }
 
   function looksLikeServicesQuery(query) {
@@ -243,7 +398,16 @@ window.ServicesCatalog = (function () {
     }
 
     var score = 0;
+    var queryTokens = String(queryNorm || "")
+      .split(" ")
+      .filter(Boolean);
     var keywords = entry.keywords || [];
+    var keywordNorms = keywords
+      .map(function (kw) {
+        return normalizeText(kw);
+      })
+      .filter(Boolean);
+
     keywords.forEach(function (kw) {
       var k = normalizeText(kw);
       if (k && queryNorm.indexOf(k) >= 0) score += 3;
@@ -254,13 +418,59 @@ window.ServicesCatalog = (function () {
 
     var anchors = entry.anchorStores || [];
     var seenBrands = {};
+    var brandNorms = [];
     anchors.forEach(function (store) {
       var brand = normalizeText(store.brand || "");
       if (!brand || seenBrands[brand]) return;
+      brandNorms.push(brand);
       if (queryNorm.indexOf(brand) >= 0) {
         seenBrands[brand] = true;
         score += 6;
       }
+    });
+
+    // Fuzzy / typo hits on landmarks (ripley, vitacura, afex…) once intent is known.
+    queryTokens.forEach(function (token) {
+      if (token.length < 4) return;
+      if (
+        SERVICE_TOKEN_ALIASES[token] === "banos" ||
+        SERVICE_TOKEN_ALIASES[token] === "bano" ||
+        SERVICE_TOKEN_ALIASES[token] === "ascensor" ||
+        SERVICE_TOKEN_ALIASES[token] === "ascensores" ||
+        token === "bano" ||
+        token === "banos" ||
+        token === "ascensor" ||
+        token === "ascensores" ||
+        token === "elevador" ||
+        token === "elevadores" ||
+        token === "wc"
+      ) {
+        return;
+      }
+
+      var best = 0;
+      keywordNorms.forEach(function (kw) {
+        var words = kw.split(" ").filter(Boolean);
+        words.forEach(function (word) {
+          if (word.length < 4) return;
+          if (word === token) best = Math.max(best, 3);
+          else if (tokenMatchesLemma(token, word)) best = Math.max(best, 2);
+        });
+      });
+      brandNorms.forEach(function (brand) {
+        var words = brand.split(" ").filter(Boolean);
+        words.forEach(function (word) {
+          if (word.length < 4) return;
+          if (word === token) best = Math.max(best, 5);
+          else if (tokenMatchesLemma(token, word)) best = Math.max(best, 4);
+        });
+      });
+      var sectorNorm = normalizeText(entry.sector || "");
+      if (sectorNorm && sectorNorm.length >= 4) {
+        if (sectorNorm === token) best = Math.max(best, 5);
+        else if (tokenMatchesLemma(token, sectorNorm)) best = Math.max(best, 3);
+      }
+      score += best;
     });
 
     if (type === "bathroom" && looksLikeBathroomQuery(queryNorm)) score += 1;
@@ -353,7 +563,7 @@ window.ServicesCatalog = (function () {
     search: function (query, options) {
       options = options || {};
       if (!catalog || !catalog.services) return [];
-      var q = normalizeText(query);
+      var q = canonicalizeServiceQuery(query);
       var floorFilter = options.floor || parseFloorFromQuery(q);
       var preferFloor = normalizeFloorKey(options.preferFloor || options.totemFloor || "");
       var mudadorOnly = options.mudadorOnly != null ? options.mudadorOnly : wantsMudador(q);

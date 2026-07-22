@@ -1221,35 +1221,48 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .cm-popular-categories {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
 }
 
 .cm-popular-categories-title {
   margin: 0;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
   color: var(--cm-muted);
   letter-spacing: 0.01em;
 }
 
 .cm-popular-categories-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
 }
 
 .cm-popular-category-chip {
   border: 1px solid #DFCFF3;
   background: #F6F1FB;
   color: var(--cm-purple-dark);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 700;
-  padding: 7px 11px;
-  border-radius: 999px;
+  line-height: 1.25;
+  padding: 14px 16px;
+  border-radius: 16px;
   cursor: pointer;
+  text-align: center;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cm-popular-category-chip:active { transform: scale(0.98); }
+
+.cm-popular-category-chip.is-service {
+  background: #EEE6F8;
+  border-color: #C9B3E8;
+}
 
 .cm-popular-category-chip.is-loading {
   border-style: dashed;
@@ -1328,7 +1341,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 }
 
 .cm-search-voice-hint {
-  margin: 0;
+  margin: 8px 0 0;
   font-size: 13px;
   color: var(--cm-muted);
   text-align: center;
@@ -1426,7 +1439,7 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA header buttons 2026.07.22-13";
+const MOBILITY_UI_VERSION = "OTA services search + popular cats 2026.07.22-14";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -2091,26 +2104,55 @@ async function renderPopularCategoriesLanding() {
 
   try {
     await MarketSearch.loadCatalog();
+    if (typeof ServicesCatalog !== "undefined" && ServicesCatalog.loadCatalog) {
+      try { await ServicesCatalog.loadCatalog(); } catch (eSvc) { /* optional */ }
+    }
     const data = MarketSearch.listCategories();
     const popular = pickPopularCategories(data.categories || [], 6);
-    if (!popular.length) {
+    const serviceHtml = buildPopularServiceChipsHtml();
+    if (!popular.length && !serviceHtml) {
       wrap.style.display = "none";
       chips.innerHTML = "";
       return;
     }
 
-    chips.innerHTML = popular.map((cat) => {
+    const storeHtml = popular.map((cat) => {
       const canonicalName = String(cat.name || "");
       const displayName = escapeHtml(localizeCategoryName(canonicalName));
       const jsName = encodeURIComponent(canonicalName);
       return `<button class="cm-popular-category-chip" type="button" onclick="selectStoreCategory(decodeURIComponent('${jsName}'))">${displayName}</button>`;
     }).join("");
+
+    chips.innerHTML = serviceHtml + storeHtml;
   } catch (e) {
     console.warn("renderPopularCategoriesLanding failed", e);
     wrap.style.display = "none";
     chips.innerHTML = "";
   }
 }
+
+function buildPopularServiceChipsHtml() {
+  const showServices =
+    typeof ServicesCatalog !== "undefined" &&
+    (ServicesCatalog.isReady ? ServicesCatalog.isReady() : true);
+  if (!showServices) return "";
+
+  const bathLabel = escapeHtml(t("bathrooms"));
+  const elevLabel = escapeHtml(t("elevators"));
+  return [
+    `<button class="cm-popular-category-chip is-service" type="button" onclick="selectPopularService('banos')">${bathLabel}</button>`,
+    `<button class="cm-popular-category-chip is-service" type="button" onclick="selectPopularService('ascensores')">${elevLabel}</button>`,
+  ].join("");
+}
+
+function selectPopularService(query) {
+  const q = String(query || "").trim();
+  if (!q) return;
+  setStoreSearchInputs(q);
+  routeUnifiedSearch(q, { source: "popular-service" });
+}
+
+window.selectPopularService = selectPopularService;
 
 function buildStoreSearchLandingHtml() {
   return `
