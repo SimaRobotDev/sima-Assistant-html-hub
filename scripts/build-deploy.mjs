@@ -5,10 +5,22 @@ import process from "process";
 import { fileURLToPath } from "url";
 
 const args = process.argv.slice(2);
-const baseUrlArg =
-  args[0] ||
-  process.env.DEPLOY_BASE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+
+function resolveDeployBaseUrl() {
+  if (args[0]) return args[0];
+  if (process.env.DEPLOY_BASE_URL) return process.env.DEPLOY_BASE_URL;
+
+  // Prefer the stable production hostname over the per-deploy VERCEL_URL
+  // (e.g. sima-assistant-html-hub-rho.vercel.app), so manifests keep a
+  // durable baseUrl that clients can cache against.
+  const productionHost =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.VERCEL_URL ||
+    "";
+  return productionHost ? `https://${productionHost.replace(/^https?:\/\//, "")}` : "";
+}
+
+const baseUrlArg = resolveDeployBaseUrl();
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, "..");

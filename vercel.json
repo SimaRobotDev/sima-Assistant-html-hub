@@ -1,4 +1,4 @@
 {
-  "buildCommand": "npm run build:deploy",
+  "buildCommand": "DEPLOY_BASE_URL=https://sima-assistant-html-hub-rho.vercel.app npm run build:deploy",
   "outputDirectory": "deploy"
 }
