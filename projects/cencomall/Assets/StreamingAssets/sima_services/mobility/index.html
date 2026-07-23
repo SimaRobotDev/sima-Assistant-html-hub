@@ -2281,12 +2281,16 @@ function showStoreSearchLanding(visible) {
 
 function updateHeaderBackVisibility() {
   const headerBack = document.getElementById("cm-header-back-btn");
-  if (!headerBack) return;
+  const headerClose = document.getElementById("cm-header-close-btn");
   const mapView = document.getElementById("map-view");
   const mapOpen = !!(mapView && !mapView.classList.contains("hidden"));
-  // Landing / home search: only Cerrar. After search or categories: show Volver.
-  const showBack = !mapOpen && !isShowingStoreSearchLanding();
-  headerBack.classList.toggle("hidden", !showBack);
+  const onLanding = isShowingStoreSearchLanding();
+  // Main menu: only Cerrar. Searches / categories / results: only Volver.
+  // Map uses its own header (map-back-btn), so hide both here while map is open.
+  const showClose = !mapOpen && onLanding;
+  const showBack = !mapOpen && !onLanding;
+  if (headerClose) headerClose.classList.toggle("hidden", !showClose);
+  if (headerBack) headerBack.classList.toggle("hidden", !showBack);
 }
 
 window.updateHeaderBackVisibility = updateHeaderBackVisibility;
@@ -2767,6 +2771,7 @@ function applyMobilityLocale() {
   }
 
   updateMapZoomMeter();
+  updateHeaderBackVisibility();
 }
 
 window.applyMobilityLocale = applyMobilityLocale;
