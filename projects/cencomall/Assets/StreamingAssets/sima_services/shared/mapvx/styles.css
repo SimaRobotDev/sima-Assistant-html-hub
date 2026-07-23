@@ -357,6 +357,11 @@
   color: #fff;
 }
 
+.mapvx-service-dest-marker.is-cowork .mapvx-service-dest-badge {
+  background: #3D1D5C;
+  color: #fff;
+}
+
 .mapvx-service-dest-label {
   background: rgba(30, 22, 48, 0.92);
   color: #fff;

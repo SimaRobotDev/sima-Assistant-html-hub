@@ -302,6 +302,7 @@ window.MapVxBridge = (function () {
     ) {
       return "customer_service";
     }
+    if (raw === "cowork" || raw === "co-work" || raw === "co_work") return "cowork";
     if (raw === "bathroom" || raw === "baño" || raw === "bano") return "bathroom";
     if (options.preferChangingTable) return "bathroom";
     // Unknown types must not silently become bathrooms (breaks SAC / future services).
@@ -522,6 +523,9 @@ window.MapVxBridge = (function () {
       )
     ) {
       return "customer_service";
+    }
+    if (/\b(cowork|co\s*work|workspace|work\s*space)\b/.test(title)) {
+      return "cowork";
     }
     return "";
   }
@@ -3423,18 +3427,29 @@ window.MapVxBridge = (function () {
     );
   }
 
-  async function resolveCustomerServicePlaceViaApi(anchorPlace, floorHint, searchQueries) {
+  function placeLooksLikeCowork(place) {
+    var title = normalizeText(
+      (place && (place.title || place.shortName || place.name || place.clientId)) || ""
+    );
+    if (!title) return false;
+    return /\b(cowork|co\s*work|espacio\s+de\s+trabajo|workspace|work\s*space)\b/.test(title);
+  }
+
+  function placeLooksLikeInfoDeskLoose(place) {
+    var title = normalizeText(
+      (place && (place.title || place.shortName || place.name || place.clientId)) || ""
+    );
+    return /\b(informacion|information|info)\b/.test(title);
+  }
+
+  async function resolveNamedAmenityPlaceViaApi(anchorPlace, floorHint, searchQueries, matchFn) {
     if (!sdk || typeof sdk.getPlacesByInput !== "function") return null;
     var config = getConfig();
     var queries = Array.isArray(searchQueries) && searchQueries.length
       ? searchQueries.slice()
-      : [
-          "Servicio al cliente",
-          "Atención al cliente",
-          "Atencion al cliente",
-          "Customer service",
-          "Información",
-        ];
+      : [];
+    if (!queries.length) return null;
+    var matcher = typeof matchFn === "function" ? matchFn : function () { return true; };
     var candidates = [];
     var seen = {};
 
@@ -3452,11 +3467,8 @@ window.MapVxBridge = (function () {
         );
         (rows || []).forEach(function (place) {
           if (!place || !place.mapvxId || seen[place.mapvxId]) return;
-          // Prefer named SAC / info desk; keep loose matches when title empty.
           if (place.title || place.shortName || place.name) {
-            if (!placeLooksLikeCustomerService(place) && !placeLooksLikeInfoDeskLoose(place)) {
-              return;
-            }
+            if (!matcher(place)) return;
           }
           seen[place.mapvxId] = true;
           candidates.push(place);
@@ -3469,8 +3481,8 @@ window.MapVxBridge = (function () {
     if (!candidates.length) return null;
 
     var ranked = candidates.slice().sort(function (a, b) {
-      var aHit = placeLooksLikeCustomerService(a) ? 0 : 1;
-      var bHit = placeLooksLikeCustomerService(b) ? 0 : 1;
+      var aHit = matcher(a) ? 0 : 1;
+      var bHit = matcher(b) ? 0 : 1;
       return aHit - bHit;
     });
 
@@ -3481,8 +3493,7 @@ window.MapVxBridge = (function () {
     var bestDist = Number.POSITIVE_INFINITY;
     ranked.forEach(function (place) {
       var dist = poiDistanceSq(anchorPos, place.position || {});
-      // Prefer true SAC names even if a bit farther.
-      if (placeLooksLikeCustomerService(place)) dist *= 0.35;
+      if (matcher(place)) dist *= 0.35;
       if (dist < bestDist) {
         bestDist = dist;
         best = place;
@@ -3491,11 +3502,27 @@ window.MapVxBridge = (function () {
     return best || ranked[0];
   }
 
-  function placeLooksLikeInfoDeskLoose(place) {
-    var title = normalizeText(
-      (place && (place.title || place.shortName || place.name || place.clientId)) || ""
-    );
-    return /\b(informacion|information|info)\b/.test(title);
+  async function resolveCustomerServicePlaceViaApi(anchorPlace, floorHint, searchQueries) {
+    var queries = Array.isArray(searchQueries) && searchQueries.length
+      ? searchQueries.slice()
+      : [
+          "Servicio al cliente",
+          "Atención al cliente",
+          "Atencion al cliente",
+          "Customer service",
+          "Información",
+        ];
+    function sacOrInfo(place) {
+      return placeLooksLikeCustomerService(place) || placeLooksLikeInfoDeskLoose(place);
+    }
+    return resolveNamedAmenityPlaceViaApi(anchorPlace, floorHint, queries, sacOrInfo);
+  }
+
+  async function resolveCoworkPlaceViaApi(anchorPlace, floorHint, searchQueries) {
+    var queries = Array.isArray(searchQueries) && searchQueries.length
+      ? searchQueries.slice()
+      : ["Cowork", "Co work", "Co-work", "Workspace"];
+    return resolveNamedAmenityPlaceViaApi(anchorPlace, floorHint, queries, placeLooksLikeCowork);
   }
 
   async function resolveToiletDestinationNearAnchor(anchorPlace, floorHint, preferChangingTable, attempts) {
@@ -4118,7 +4145,9 @@ window.MapVxBridge = (function () {
         ? "Ascensor"
         : serviceType === "customer_service"
           ? "Servicio al cliente"
-          : "Baños";
+          : serviceType === "cowork"
+            ? "Cowork"
+            : "Baños";
     var name = options.name || defaultName;
     var preferChangingTable = !!options.preferChangingTable;
     var searchQueries = Array.isArray(options.searchQueries)
@@ -4214,7 +4243,7 @@ window.MapVxBridge = (function () {
       }
     }
 
-    if (!anchorPlace && name && serviceType !== "customer_service") {
+    if (!anchorPlace && name && serviceType !== "customer_service" && serviceType !== "cowork") {
       try {
         var inputResults = await sdk.getPlacesByInput(
           String(name),
@@ -4234,51 +4263,55 @@ window.MapVxBridge = (function () {
       }
     }
 
-    // Customer service: search MapVX by name near Sony/DBS/MacOnline; never toilet discovery.
-    if (serviceType === "customer_service") {
-      var sacPlace = await resolveCustomerServicePlaceViaApi(
-        anchorPlace,
-        floorHint || "1",
-        searchQueries
-      );
-      if (sacPlace) {
-        if (!sacPlace.title) sacPlace.title = name;
-        attempts.push({ method: "getPlacesByInput(customer-service)", mapvxId: sacPlace.mapvxId });
-        log("info", "resolved customer service destination", {
-          resolvedBy: "api-customer-service",
-          mapvxId: sacPlace.mapvxId || null,
+    // Named amenities (SAC / Cowork): MapVX name search near anchors; never toilet discovery.
+    if (serviceType === "customer_service" || serviceType === "cowork") {
+      var namedPlace =
+        serviceType === "cowork"
+          ? await resolveCoworkPlaceViaApi(anchorPlace, floorHint || "2", searchQueries)
+          : await resolveCustomerServicePlaceViaApi(anchorPlace, floorHint || "1", searchQueries);
+      if (namedPlace) {
+        if (!namedPlace.title) namedPlace.title = name;
+        attempts.push({
+          method: "getPlacesByInput(" + serviceType + ")",
+          mapvxId: namedPlace.mapvxId,
+        });
+        log("info", "resolved named amenity destination", {
+          serviceType: serviceType,
+          resolvedBy: "api-" + serviceType,
+          mapvxId: namedPlace.mapvxId || null,
           anchorLocal: anchorLocal || null,
         });
         return {
-          place: sacPlace,
-          resolvedBy: "api-customer-service",
-          lookupKey: sacPlace.mapvxId,
+          place: namedPlace,
+          resolvedBy: "api-" + serviceType,
+          lookupKey: namedPlace.mapvxId,
           attempts: attempts,
         };
       }
-      // Fallback: route to primary anchor store (Sony) — module sits in that corridor.
       if (anchorPlace && anchorPlace.mapvxId) {
         attempts.push({
-          method: "customer-service-anchor-fallback",
+          method: serviceType + "-anchor-fallback",
           mapvxId: anchorPlace.mapvxId,
-          reason: "no named SAC place; using corridor anchor",
+          reason: "no named place; using corridor anchor",
         });
         var anchorAsDest = Object.assign({}, anchorPlace, {
           title: name || anchorPlace.title,
-          serviceType: "customer_service",
+          serviceType: serviceType,
         });
         return {
           place: anchorAsDest,
-          resolvedBy: "customer-service-anchor-fallback",
+          resolvedBy: serviceType + "-anchor-fallback",
           lookupKey: anchorPlace.mapvxId,
           attempts: attempts,
         };
       }
-      var errSac = new Error(
-        "No se encontró Servicio al cliente en el mapa. Espera a que cargue el piso e inténtalo de nuevo."
+      var errNamed = new Error(
+        serviceType === "cowork"
+          ? "No se encontró Cowork en el mapa. Espera a que cargue el piso e inténtalo de nuevo."
+          : "No se encontró Servicio al cliente en el mapa. Espera a que cargue el piso e inténtalo de nuevo."
       );
-      errSac.attempts = attempts;
-      throw errSac;
+      errNamed.attempts = attempts;
+      throw errNamed;
     }
 
     // Anchor store is ONLY a proximity hint — never the route destination.
@@ -4385,23 +4418,33 @@ window.MapVxBridge = (function () {
   function buildServiceDestinationElement(serviceType, title) {
     var isElevator = serviceType === "elevator";
     var isCustomer = serviceType === "customer_service";
+    var isCowork = serviceType === "cowork";
     var wrap = document.createElement("div");
     wrap.className =
       "mapvx-service-dest-marker" +
-      (isElevator ? " is-elevator" : isCustomer ? " is-customer-service" : " is-bathroom");
-    wrap.setAttribute(
-      "role",
-      "img"
-    );
+      (isElevator
+        ? " is-elevator"
+        : isCustomer
+          ? " is-customer-service"
+          : isCowork
+            ? " is-cowork"
+            : " is-bathroom");
+    wrap.setAttribute("role", "img");
     wrap.setAttribute(
       "aria-label",
-      title || (isElevator ? "Ascensor" : isCustomer ? "Servicio al cliente" : "Baños")
+      title ||
+        (isElevator
+          ? "Ascensor"
+          : isCustomer
+            ? "Servicio al cliente"
+            : isCowork
+              ? "Cowork"
+              : "Baños")
     );
 
     var badge = document.createElement("div");
     badge.className = "mapvx-service-dest-badge";
     if (isElevator) {
-      // Classic elevator glyph (cab + up/down) — clearer than MapVX entrance arrows.
       badge.innerHTML =
         '<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">' +
         '<rect x="7" y="5" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>' +
@@ -4409,6 +4452,8 @@ window.MapVxBridge = (function () {
         "</svg>";
     } else if (isCustomer) {
       badge.textContent = "ℹ️";
+    } else if (isCowork) {
+      badge.textContent = "💼";
     } else {
       badge.textContent = "🚻";
     }
@@ -4416,12 +4461,13 @@ window.MapVxBridge = (function () {
 
     var label = document.createElement("div");
     label.className = "mapvx-service-dest-label";
-    // Keep the floating chip short; popover still uses the full display title.
     label.textContent = isElevator
       ? "Ascensor"
       : isCustomer
         ? "Servicio al cliente"
-        : (title || "Baños");
+        : isCowork
+          ? "Cowork"
+          : (title || "Baños");
     wrap.appendChild(label);
     return wrap;
   }
@@ -4524,7 +4570,9 @@ window.MapVxBridge = (function () {
         ? "Ascensor"
         : serviceType === "customer_service"
           ? "Servicio al cliente"
-          : "Baños"
+          : serviceType === "cowork"
+            ? "Cowork"
+            : "Baños"
     );
     if (place) {
       place.serviceType = serviceType;

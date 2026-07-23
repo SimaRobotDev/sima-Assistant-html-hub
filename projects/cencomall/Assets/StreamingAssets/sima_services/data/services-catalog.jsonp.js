@@ -915,6 +915,65 @@ window.__SERVICES_CATALOG__ = {
           "Atencion al cliente"
         ]
       }
+    },
+    {
+      "id": "cowork-n2",
+      "type": "cowork",
+      "sector": "bubba-steve-madden",
+      "name": "Cowork (Nivel 2)",
+      "floors": [
+        "2"
+      ],
+      "features": {},
+      "layout": "local_pasillo",
+      "anchorStores": [
+        {
+          "brand": "Bubba Essentials",
+          "local": "CC_N2_2168",
+          "role": "primary"
+        },
+        {
+          "brand": "Steve Madden",
+          "local": "CC_N2_2160",
+          "role": "secondary"
+        }
+      ],
+      "routeApproach": [
+        {
+          "query": "Cowork",
+          "local": "CC_N2_2168",
+          "floors": [
+            "2"
+          ],
+          "weight": 1.2,
+          "maxMeters": 40
+        }
+      ],
+      "descriptions": {
+        "short": "Espacio Cowork en Nivel 2.",
+        "medium": "Entre Bubba y Steve Madden, en el pasillo del Nivel 2.",
+        "long": "En el Nivel 2, espacio Cowork ubicado entre Bubba Essentials y Steve Madden, frente a las escaleras mecánicas del pasillo."
+      },
+      "keywords": [
+        "cowork",
+        "co work",
+        "co-work",
+        "espacio de trabajo",
+        "trabajo",
+        "oficina",
+        "workspace",
+        "nivel 2",
+        "bubba",
+        "steve madden",
+        "madden"
+      ],
+      "mapvx": {
+        "searchQueries": [
+          "Cowork",
+          "Co work",
+          "Co-work"
+        ]
+      }
     }
   ]
 };

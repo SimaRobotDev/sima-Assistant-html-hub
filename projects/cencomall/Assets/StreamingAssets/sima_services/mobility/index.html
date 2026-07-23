@@ -1538,6 +1538,7 @@ const MOBILITY_I18N = {
     bathroomsKids: "Niños y mudadores",
     elevators: "Ascensores",
     customerService: "Atención al cliente",
+    cowork: "Cowork",
     allLevels: "Todos los niveles",
     level: "Nivel",
     gf: "PB",
@@ -1632,6 +1633,7 @@ const MOBILITY_I18N = {
     bathroomsKids: "Kids & changing",
     elevators: "Elevators",
     customerService: "Customer service",
+    cowork: "Cowork",
     allLevels: "All levels",
     level: "Level",
     gf: "GF",
@@ -1726,6 +1728,7 @@ const MOBILITY_I18N = {
     bathroomsKids: "Crianças e fraldário",
     elevators: "Elevadores",
     customerService: "Atendimento ao cliente",
+    cowork: "Cowork",
     allLevels: "Todos os níveis",
     level: "Nível",
     gf: "Térreo",
@@ -2184,9 +2187,11 @@ function buildPopularServiceChipsHtml() {
 
   const bathLabel = escapeHtml(t("bathrooms"));
   const elevLabel = escapeHtml(t("elevators"));
+  const coworkLabel = escapeHtml(t("cowork"));
   return [
     `<button class="cm-popular-category-chip is-service" type="button" onclick="selectPopularService('banos')">${bathLabel}</button>`,
     `<button class="cm-popular-category-chip is-service" type="button" onclick="selectPopularService('ascensores')">${elevLabel}</button>`,
+    `<button class="cm-popular-category-chip is-service" type="button" onclick="selectPopularService('cowork')">${coworkLabel}</button>`,
   ].join("");
 }
 
@@ -3800,6 +3805,7 @@ function getServiceKind(svc) {
   const type = String((svc && svc.type) || "").toLowerCase();
   if (type === "elevator") return "elevator";
   if (type === "customer_service" || type === "customer-service") return "customer_service";
+  if (type === "cowork") return "cowork";
   if (type === "bathroom") {
     const n = String((svc && svc.name) || "").toLowerCase();
     if (n.includes("niños") || n.includes("ninos") || n.includes("mudador")) return "kids";
@@ -3810,6 +3816,7 @@ function getServiceKind(svc) {
   if (n.includes("atención al cliente") || n.includes("atencion al cliente") || n.includes("servicio al cliente") || n.includes("customer service")) {
     return "customer_service";
   }
+  if (n.includes("cowork") || n.includes("co work") || n.includes("co-work")) return "cowork";
   if (n.includes("niños") || n.includes("ninos") || n.includes("mudador")) return "kids";
   if (n.includes("baño") || n.includes("bano") || n.includes("wc")) return "bathroom";
   return "";
@@ -3820,6 +3827,7 @@ function serviceKindIcon(kind) {
   if (kind === "kids") return "👶";
   if (kind === "bathroom") return "🚻";
   if (kind === "customer_service") return "ℹ️";
+  if (kind === "cowork") return "💼";
   return "📍";
 }
 
@@ -4477,6 +4485,8 @@ function renderServiceCard(svc, idx) {
         ? `<span class="store-badge store-badge-floor">${escapeHtml(t("elevators"))}</span>`
         : kind === "customer_service"
           ? `<span class="store-badge store-badge-floor">${escapeHtml(t("customerService") || "Atención al cliente")}</span>`
+          : kind === "cowork"
+            ? `<span class="store-badge store-badge-floor">${escapeHtml(t("cowork") || "Cowork")}</span>`
           : "";
   const floorsLabel = formatServiceFloors(svc.floors);
   const floorBadge = floorsLabel

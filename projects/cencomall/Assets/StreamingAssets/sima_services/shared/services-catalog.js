@@ -252,11 +252,18 @@ window.ServicesCatalog = (function () {
     );
   }
 
+  function looksLikeCoworkQuery(query) {
+    var n = canonicalizeServiceQuery(query);
+    if (!n) return false;
+    return /\b(cowork|co\s*work|espacio\s+de\s+trabajo|workspace|work\s*space)\b/.test(n);
+  }
+
   function looksLikeServicesQuery(query) {
     return (
       looksLikeBathroomQuery(query) ||
       looksLikeElevatorQuery(query) ||
-      looksLikeCustomerServiceQuery(query)
+      looksLikeCustomerServiceQuery(query) ||
+      looksLikeCoworkQuery(query)
     );
   }
 
@@ -494,6 +501,7 @@ window.ServicesCatalog = (function () {
     if (type === "bathroom" && looksLikeBathroomQuery(queryNorm)) score += 1;
     if (type === "elevator" && looksLikeElevatorQuery(queryNorm)) score += 1;
     if (type === "customer_service" && looksLikeCustomerServiceQuery(queryNorm)) score += 8;
+    if (type === "cowork" && looksLikeCoworkQuery(queryNorm)) score += 8;
 
     if (preferFloor && entryOnFloor(entry, preferFloor)) {
       score += floorFilter ? 2 : 8;
@@ -511,9 +519,11 @@ window.ServicesCatalog = (function () {
 
   function inferTypeFilter(queryNorm, mudadorOnly) {
     if (mudadorOnly) return "bathroom";
+    var cowork = looksLikeCoworkQuery(queryNorm);
     var cust = looksLikeCustomerServiceQuery(queryNorm);
     var bath = looksLikeBathroomQuery(queryNorm);
     var elev = looksLikeElevatorQuery(queryNorm);
+    if (cowork && !bath && !elev && !cust) return "cowork";
     if (cust && !bath && !elev) return "customer_service";
     if (elev && !bath) return "elevator";
     if (bath && !elev) return "bathroom";
@@ -580,6 +590,7 @@ window.ServicesCatalog = (function () {
     looksLikeBathroomQuery: looksLikeBathroomQuery,
     looksLikeElevatorQuery: looksLikeElevatorQuery,
     looksLikeCustomerServiceQuery: looksLikeCustomerServiceQuery,
+    looksLikeCoworkQuery: looksLikeCoworkQuery,
     looksLikeServicesQuery: looksLikeServicesQuery,
     toResultCard: toResultCard,
     search: function (query, options) {
@@ -616,7 +627,12 @@ window.ServicesCatalog = (function () {
 
       if (
         !scored.length &&
-        (looksLikeBathroomQuery(q) || looksLikeElevatorQuery(q) || looksLikeCustomerServiceQuery(q))
+        (
+          looksLikeBathroomQuery(q) ||
+          looksLikeElevatorQuery(q) ||
+          looksLikeCustomerServiceQuery(q) ||
+          looksLikeCoworkQuery(q)
+        )
       ) {
         return catalog.services
           .filter(function (entry) {
