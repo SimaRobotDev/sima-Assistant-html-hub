@@ -690,26 +690,47 @@
     }
 
     function openCustomerServiceRoute() {
+      // Goal: leave Servicios and land in Mobility already targeting SAC N1.
+      // MapVX only lives inside mobility — this page cannot draw the route itself.
+      const mobilityRel =
+        "../mobility/index.html?serviceId=customer-service-n1&autoMap=1&autoRoute=1";
       const payload = {
         serviceId: "customer-service-n1",
         serviceType: "customer_service",
         destination: "Servicio al cliente",
         floor: "1",
-        mapIndex: "customer_service",
+        query: "servicio al cliente",
         autoMap: true,
         autoRoute: true,
+        // Hints some hosts use when building the next WebView URL.
+        entry: "mobility/index.html?serviceId=customer-service-n1&autoMap=1&autoRoute=1",
+        path: "mobility/index.html?serviceId=customer-service-n1&autoMap=1&autoRoute=1",
       };
+
       try { SimaBridge.speak(t("speakRoute")); } catch (eSpeak) { /* noop */ }
+
+      // Survive a native open_stores that loads mobility WITHOUT query params.
       try {
-        if (SimaBridge.isReactNativeHost && SimaBridge.isReactNativeHost()) {
-          SimaBridge.send("request_directions", payload);
-          return;
-        }
-      } catch (eRn) { /* noop */ }
-      try { SimaBridge.send("request_directions", payload); } catch (eSend) { /* noop */ }
-      // Browser / UniWebView: open mobility with auto map+route.
-      window.location.href =
-        "../mobility/index.html?serviceId=customer-service-n1&autoMap=1&autoRoute=1";
+        sessionStorage.setItem(
+          "sima_pending_service_route",
+          JSON.stringify({
+            serviceId: "customer-service-n1",
+            autoMap: true,
+            autoRoute: true,
+            source: "servicios",
+          })
+        );
+      } catch (eStore) { /* noop */ }
+
+      // Same native door as "Abrir buscador" — Cencomall does NOT handle
+      // airport-style request_directions, so that path was a silent no-op.
+      try { SimaBridge.send("open_stores", payload); } catch (eSend) { /* noop */ }
+
+      // Same WebView / browser: navigate with deep-link query (autoMap/autoRoute).
+      // Do NOT early-return on ReactNativeWebView — that blocked this fallback.
+      try {
+        window.location.href = mobilityRel;
+      } catch (eNav) { /* noop */ }
     }
 
     window.handleUnityData = function(data) {

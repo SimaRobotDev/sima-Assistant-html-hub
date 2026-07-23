@@ -758,25 +758,41 @@
     }
 
     function openCustomerServiceRoute() {
+      // Goal: leave Servicios and land in Mobility already targeting SAC N1.
+      // MapVX only lives inside mobility — this page cannot draw the route itself.
+      const mobilityRel =
+        "../mobility/index.html?serviceId=customer-service-n1&autoMap=1&autoRoute=1";
       const payload = {
         serviceId: "customer-service-n1",
         serviceType: "customer_service",
         destination: "Servicio al cliente",
         floor: "1",
-        mapIndex: "customer_service",
+        query: "servicio al cliente",
         autoMap: true,
         autoRoute: true,
+        entry: "mobility/index.html?serviceId=customer-service-n1&autoMap=1&autoRoute=1",
+        path: "mobility/index.html?serviceId=customer-service-n1&autoMap=1&autoRoute=1",
       };
+
       try { SimaBridge.speak(t("speakRoute")); } catch (eSpeak) { /* noop */ }
+
       try {
-        if (SimaBridge.isReactNativeHost && SimaBridge.isReactNativeHost()) {
-          SimaBridge.send("request_directions", payload);
-          return;
-        }
-      } catch (eRn) { /* noop */ }
-      try { SimaBridge.send("request_directions", payload); } catch (eSend) { /* noop */ }
-      window.location.href =
-        "../mobility/index.html?serviceId=customer-service-n1&autoMap=1&autoRoute=1";
+        sessionStorage.setItem(
+          "sima_pending_service_route",
+          JSON.stringify({
+            serviceId: "customer-service-n1",
+            autoMap: true,
+            autoRoute: true,
+            source: "services-2",
+          })
+        );
+      } catch (eStore) { /* noop */ }
+
+      try { SimaBridge.send("open_stores", payload); } catch (eSend) { /* noop */ }
+
+      try {
+        window.location.href = mobilityRel;
+      } catch (eNav) { /* noop */ }
     }
 
     window.handleUnityData = function(data) {

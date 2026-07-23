@@ -4,6 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Cenco Costanera</title>
+<!-- Hide search UI on first paint when deep-linking straight into the map. -->
+<script>
+(function () {
+  try {
+    var params = new URLSearchParams(window.location.search || "");
+    var auto = params.get("autoMap") === "1" || params.get("autoRoute") === "1";
+    if (!auto) {
+      try {
+        var raw = sessionStorage.getItem("sima_pending_service_route");
+        if (raw) {
+          var pending = JSON.parse(raw);
+          auto = !!(pending && (pending.autoMap || pending.autoRoute || pending.autoMap === "1"));
+        }
+      } catch (ePending) { /* noop */ }
+    }
+    if (auto) document.documentElement.classList.add("auto-map-launch");
+  } catch (e) { /* noop */ }
+})();
+</script>
 <!-- mobility-ui-v26-market-search -->
 <link rel="stylesheet" href="../shared/app.css" />
 <link rel="stylesheet" href="../shared/mapvx/styles.css" />
@@ -635,6 +654,28 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   opacity: 0;
   pointer-events: none;
   z-index: -1;
+}
+
+/* Deep-link Ver ruta: skip search landing flash; show map shell + spinner first. */
+html.auto-map-launch .cm-body,
+html.auto-map-launch .cm-speak-fab,
+html.auto-map-launch .cm-header,
+html.auto-map-launch .cm-survey-strip {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html.auto-map-launch #map-view,
+html.auto-map-launch #map-view.hidden {
+  display: flex !important;
+}
+
+html.auto-map-launch #map-loading-circle {
+  display: flex !important;
+}
+
+html.auto-map-launch #map-loading-circle.hidden {
+  display: flex !important;
 }
 
 .map-view-header {
@@ -2450,21 +2491,29 @@ function runServicesCatalogSearch(query, options) {
         mall: "costanera",
         totemFloor: totemFloor || "",
       });
-      if (results.length === 1 && results[0].description) {
-        SimaBridge.speak(results[0].description);
-      } else if (results.length > 1) {
-        SimaBridge.speak(t("services") + ": " + results.length + " " + (t("options") || "opciones"));
-      } else if (!results.length) {
-        SimaBridge.speak(t("servicesNotFound"));
+      const willAutoMap = !!(results.length && (options.autoMap || wantsAutoOpenServiceMap()));
+      if (!willAutoMap) {
+        if (results.length === 1 && results[0].description) {
+          SimaBridge.speak(results[0].description);
+        } else if (results.length > 1) {
+          SimaBridge.speak(t("services") + ": " + results.length + " " + (t("options") || "opciones"));
+        } else if (!results.length) {
+          SimaBridge.speak(t("servicesNotFound"));
+        }
       }
-      if (results.length && (options.autoMap || wantsAutoOpenServiceMap())) {
+      if (willAutoMap) {
         clearAutoMapLaunchParams();
+        // No artificial delay on deep-link: shell is already the map view.
+        const delayMs = document.documentElement.classList.contains("auto-map-launch") ? 0 : 280;
         window.setTimeout(function () {
           openServiceMap(0);
-        }, 280);
+        }, delayMs);
+      } else {
+        clearAutoMapLaunchUi();
       }
     })
     .catch(function (e) {
+      clearAutoMapLaunchUi();
       showSearchError(t("loadErrorTitle") + ": " + (e.message || e));
     });
   return true;
@@ -2515,12 +2564,32 @@ function getInitialServiceId() {
   ).trim();
 }
 
-function wantsAutoOpenServiceMap() {
+function consumePendingServiceRoute() {
+  try {
+    const raw = sessionStorage.getItem("sima_pending_service_route");
+    if (!raw) return null;
+    sessionStorage.removeItem("sima_pending_service_route");
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function wantsAutoOpenServiceMap(extra) {
   const params = new URLSearchParams(window.location.search);
-  return params.get("autoMap") === "1"
+  if (
+    params.get("autoMap") === "1"
     || params.get("autoRoute") === "1"
     || window.MALL_SERVICE_AUTO_MAP === true
-    || window.MALL_SERVICE_AUTO_MAP === "1";
+    || window.MALL_SERVICE_AUTO_MAP === "1"
+  ) {
+    return true;
+  }
+  if (extra && (extra.autoMap || extra.autoRoute || extra.autoMap === "1" || extra.autoRoute === "1")) {
+    return true;
+  }
+  return false;
 }
 
 function clearAutoMapLaunchParams() {
@@ -2580,8 +2649,31 @@ function routeUnifiedSearch(query, options) {
   return true;
 }
 
+function clearAutoMapLaunchUi() {
+  try {
+    document.documentElement.classList.remove("auto-map-launch");
+  } catch (e) { /* noop */ }
+}
+
+function prepareAutoMapLaunchShell() {
+  if (!document.documentElement.classList.contains("auto-map-launch")) return;
+  const mapView = document.getElementById("map-view");
+  const title = document.getElementById("map-view-title-text");
+  const body = document.querySelector(".cm-body");
+  const speak = document.querySelector(".cm-speak-fab");
+  if (title) title.textContent = t("mapServiceLocation") || "Ubicación del servicio";
+  if (body) body.style.display = "none";
+  if (speak) speak.style.display = "none";
+  if (mapView) mapView.classList.remove("hidden");
+  setMapLoadingState(true);
+  setMapStatus(t("mapLoading") || "Cargando mapa…");
+  updateHeaderBackVisibility();
+}
+
 function initStoreSearchLanding() {
   if (!shouldShowStoreSearchLanding()) return;
+  // Avoid mounting/focusing the searcher when we are deep-linking into the map.
+  if (document.documentElement.classList.contains("auto-map-launch")) return;
 
   applyStoreSearchLandingLocale();
   wireStoreSearchLandingEvents();
@@ -2991,6 +3083,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initStoreSearchLanding();
   prefetchMarketCatalog();
   prefetchServicesCatalog();
+  prepareAutoMapLaunchShell();
   SimaBridge.ready("mobility");
   SimaBridge.log(
     "mobility DOM ready " + MOBILITY_UI_VERSION +
@@ -3009,20 +3102,37 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnSpeakMini").onclick = startVoiceInput;
   document.getElementById("btnSpeakSearch").onclick = submitSearchFromFab;
 
+  const pendingRoute = consumePendingServiceRoute();
   const initialQuery = getInitialSearchQuery();
-  const initialServiceId = getInitialServiceId();
+  const initialServiceId = getInitialServiceId()
+    || String((pendingRoute && pendingRoute.serviceId) || "").trim();
   const initialServiceQuery = getInitialServiceQuery();
+  const launchAutoMap = wantsAutoOpenServiceMap(pendingRoute);
 
   if (initialServiceId) {
-    SimaBridge.log("mobility initial service id: " + initialServiceId);
-    runServicesCatalogSearch("", { serviceId: initialServiceId, source: "launch" });
+    SimaBridge.log(
+      "mobility initial service id: " + initialServiceId +
+      " autoMap=" + (launchAutoMap ? "1" : "0") +
+      (pendingRoute ? " pending=1" : "")
+    );
+    runServicesCatalogSearch("", {
+      serviceId: initialServiceId,
+      source: pendingRoute ? "pending-route" : "launch",
+      autoMap: launchAutoMap,
+    });
   } else if (initialServiceQuery) {
     SimaBridge.log("mobility initial service query: " + initialServiceQuery);
-    runServicesCatalogSearch(initialServiceQuery, { source: "launch" });
+    runServicesCatalogSearch(initialServiceQuery, {
+      source: "launch",
+      autoMap: launchAutoMap,
+    });
   } else if (initialQuery) {
     SimaBridge.log("mobility initial query from launch params: " + initialQuery);
     if (looksLikeServicesCatalogQuery(initialQuery)) {
-      runServicesCatalogSearch(initialQuery, { source: "launch" });
+      runServicesCatalogSearch(initialQuery, {
+        source: "launch",
+        autoMap: launchAutoMap,
+      });
     } else {
       dispatchVoiceSearch(initialQuery, "launch");
     }
@@ -4986,6 +5096,7 @@ async function openPoiMapViaMapVx(opts) {
     attachMapZoomLabelSwitcher(result);
     logMap("info", "openPoiMapViaMapVx success", result);
     window.__mapVxLastLog = { ts: Date.now(), phase: "success", result: result };
+    clearAutoMapLaunchUi();
   } catch (e) {
     logMap("error", "openPoiMapViaMapVx failed", {
       message: e.message || String(e),
@@ -4997,6 +5108,7 @@ async function openPoiMapViaMapVx(opts) {
       message: e.message || String(e),
       attempts: e.attempts || null
     };
+    clearAutoMapLaunchUi();
     container.classList.add("hidden");
     MapVxBridge.destroyMap();
     mapVxPreloadPromise = null;
@@ -5345,6 +5457,7 @@ function openServiceMap(idx) {
 }
 
 function closeMapView() {
+  clearAutoMapLaunchUi();
   const container = document.getElementById("mapvx-container");
   const mapKept = typeof MapVxBridge !== "undefined"
     && MapVxBridge.suspendMap
