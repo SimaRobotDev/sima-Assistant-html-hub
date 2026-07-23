@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "hub-providencia",
-  "version": "2026.07.23-2",
+  "version": "2026.07.23-3",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/hub-providencia",
-  "generatedAt": "2026-07-23T16:03:11.274Z",
+  "generatedAt": "2026-07-23T16:15:49.925Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -23,13 +23,13 @@
   "files": [
     {
       "path": "cowork/index.html",
-      "size": 4921,
-      "sha256": "d99e93eb44d702723e86f25a015e6da8f49319af0cab0648fbd8ef3b5c3cd1e3"
+      "size": 5635,
+      "sha256": "22f22584d3312ae2dc320efdd67ea42758ebcfd2e1e5e062c09aec84e5fe755f"
     },
     {
       "path": "meetings/index.html",
-      "size": 6096,
-      "sha256": "614db915a4e3eee59b3fac3d92bfff777075b91edf3d9bae5d172025357aea9a"
+      "size": 6810,
+      "sha256": "c06bd291250521e3c01beb686aaa34409eeaa23fb7a26a2553ce29395315aa71"
     },
     {
       "path": "shared/app.css",

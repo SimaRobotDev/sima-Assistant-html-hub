@@ -125,17 +125,39 @@
       line-height: 1.35;
     }
 
-    .actions {
-      width: 100%;
+    .btn-back-float {
+      position: fixed;
+      top: max(16px, env(safe-area-inset-top));
+      left: max(16px, env(safe-area-inset-left));
+      z-index: 40;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
       justify-content: center;
-      margin-top: 4px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--sima-primary-strong);
+      box-shadow: 0 8px 20px rgba(16, 32, 51, 0.12);
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+      pointer-events: auto;
     }
 
-    .actions .btn {
-      min-width: 180px;
-      min-height: 52px;
-      font-weight: 700;
-      font-size: 1rem;
+    .btn-back-float svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-back-float:active {
+      transform: scale(0.96);
     }
 
     @media (max-width: 640px) {
@@ -146,6 +168,12 @@
   </style>
 </head>
 <body>
+  <button class="btn-back-float" type="button" id="btnVolver" aria-label="Volver">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  </button>
+
   <div class="modal">
     <div class="card">
       <h1 class="title">Salas de reuniones</h1>
@@ -169,10 +197,6 @@
           <div class="qr-box" id="qrRoom4"></div>
           <span class="qr-hint">Escanea para reservar</span>
         </div>
-      </div>
-
-      <div class="actions">
-        <button class="btn btn-secondary" type="button" id="btnVolver">← Volver</button>
       </div>
     </div>
   </div>
