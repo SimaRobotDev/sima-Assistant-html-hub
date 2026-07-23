@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.23-1",
+  "version": "2026.07.23-2",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-23T18:17:31.208Z",
+  "generatedAt": "2026-07-23T18:27:52.297Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.07.22-21",
+  "rollbackTo": "2026.07.23-1",
   "entryPoints": [
     {
       "service": "agenda",
@@ -200,8 +200,8 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 194303,
-      "sha256": "5cb1c3a8a0efa852daac711588c82d1c4774e9aa97384b7b8b1f39300876f14c"
+      "size": 194459,
+      "sha256": "800fe16186324c5a16404c14ad6aab6e7b4b8e98a524d00afeea996872d3b004"
     },
     {
       "path": "shared/mapvx/index.js",
