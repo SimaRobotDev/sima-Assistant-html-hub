@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.23-4",
+  "version": "2026.07.23-5",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-23T18:41:12.512Z",
+  "generatedAt": "2026-07-23T18:55:25.289Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.07.23-3",
+  "rollbackTo": "2026.07.23-4",
   "entryPoints": [
     {
       "service": "agenda",
@@ -90,13 +90,13 @@
     },
     {
       "path": "data/services-catalog.json",
-      "size": 22600,
-      "sha256": "122e519af4438ec5abada687f27c21c549eb4bcb77840437aba6f191b2e1c662"
+      "size": 23990,
+      "sha256": "0c99393de24f7afb79c82181892caacc4d7e6b02b9c349ca56644ae1bef01d7e"
     },
     {
       "path": "data/services-catalog.jsonp.js",
-      "size": 22794,
-      "sha256": "867824c82ee097bcedb1e1a05d605c5594bcf3ff7e0e39b9ff1fad3094e120b3"
+      "size": 24184,
+      "sha256": "d310e6259324f3e5dc48a49f0ba0cd5cbde5adfc1eddb06234aedcea85fa8333"
     },
     {
       "path": "emergency/index.html",
@@ -150,8 +150,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 177250,
-      "sha256": "07e2d6ef6a215bf20c9adafacb8fcd1745d96a2ef65f002454563de017b019d5"
+      "size": 177814,
+      "sha256": "12c82796a2aef28bffeb0df2dbcb61c25fe2fe72eb66d8f3e76fd787c211bd99"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -200,8 +200,8 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 194459,
-      "sha256": "800fe16186324c5a16404c14ad6aab6e7b4b8e98a524d00afeea996872d3b004"
+      "size": 196097,
+      "sha256": "ccd7f72980ace36d594b89d629d428aeebe1cf0c31c98eb740cb057ef42c37af"
     },
     {
       "path": "shared/mapvx/index.js",
@@ -210,8 +210,8 @@
     },
     {
       "path": "shared/mapvx/styles.css",
-      "size": 77898,
-      "sha256": "fc43693333d8031c5f1d0f0fda41445107afdabf2859cb41127820b82920c0d1"
+      "size": 78004,
+      "sha256": "f077daf4ae85b910ac2a33a867f9ca1642c72d8f69237f9502e25d4f9e667d2c"
     },
     {
       "path": "shared/market-i18n.js",
@@ -250,8 +250,8 @@
     },
     {
       "path": "shared/services-catalog.js",
-      "size": 22433,
-      "sha256": "2d799c5ac2b3ff5450fb29dbdfbc27a5428a0b3de8c34bc2f0da4e771bb95569"
+      "size": 22987,
+      "sha256": "cfd6d1716d50c77e083810720f8bd7cf61504703264493a6259adffd4bd0dd00"
     },
     {
       "path": "shared/store-logos/casa-ideas.png",
