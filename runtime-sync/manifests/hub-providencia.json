@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "hub-providencia",
-  "version": "2026.07.23-1",
+  "version": "2026.07.23-2",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/hub-providencia",
-  "generatedAt": "2026-07-23T16:01:13.088Z",
+  "generatedAt": "2026-07-23T16:03:11.274Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
