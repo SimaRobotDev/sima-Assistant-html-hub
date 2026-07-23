@@ -1393,8 +1393,8 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 <div class="app-shell" id="app-shell">
   <header class="cm-header">
-    <button class="cm-header-close" id="cm-header-close-btn" type="button" onclick="closeWebview()">Cerrar</button>
-    <button class="cm-header-back hidden" id="cm-header-back-btn" type="button" onclick="handleMobilityBack()">← Volver</button>
+    <button class="cm-header-close hidden" id="cm-header-close-btn" type="button" onclick="closeWebview()">Cerrar</button>
+    <button class="cm-header-back" id="cm-header-back-btn" type="button" onclick="handleMobilityBack()">← Volver</button>
     <h1 class="cm-header-title">Cenco Costanera</h1>
   </header>
 
@@ -2284,13 +2284,11 @@ function updateHeaderBackVisibility() {
   const headerClose = document.getElementById("cm-header-close-btn");
   const mapView = document.getElementById("map-view");
   const mapOpen = !!(mapView && !mapView.classList.contains("hidden"));
-  const onLanding = isShowingStoreSearchLanding();
-  // Main menu: only Cerrar. Searches / categories / results: only Volver.
-  // Map uses its own header (map-back-btn), so hide both here while map is open.
-  const showClose = !mapOpen && onLanding;
-  const showBack = !mapOpen && !onLanding;
-  if (headerClose) headerClose.classList.toggle("hidden", !showClose);
-  if (headerBack) headerBack.classList.toggle("hidden", !showBack);
+  // Always use Volver in the search header. On landing it closes the menu;
+  // deeper screens it returns within mobility (handleMobilityBack).
+  // Map uses its own header, so hide both while map is open.
+  if (headerClose) headerClose.classList.add("hidden");
+  if (headerBack) headerBack.classList.toggle("hidden", mapOpen);
 }
 
 window.updateHeaderBackVisibility = updateHeaderBackVisibility;
