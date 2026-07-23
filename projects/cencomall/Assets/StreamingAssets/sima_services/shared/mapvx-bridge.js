@@ -4416,7 +4416,12 @@ window.MapVxBridge = (function () {
 
     var label = document.createElement("div");
     label.className = "mapvx-service-dest-label";
-    label.textContent = isElevator ? "Ascensor" : "Baños";
+    // Keep the floating chip short; popover still uses the full display title.
+    label.textContent = isElevator
+      ? "Ascensor"
+      : isCustomer
+        ? "Servicio al cliente"
+        : (title || "Baños");
     wrap.appendChild(label);
     return wrap;
   }
