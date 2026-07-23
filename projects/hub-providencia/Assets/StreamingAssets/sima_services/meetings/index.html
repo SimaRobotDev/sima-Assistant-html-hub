@@ -1,72 +1,218 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Reservar salas de reuniones</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <link rel="stylesheet" href="../shared/app.css" />
-  <script src="../shared/qrcode.min.js"></script>
-  <script src="../shared/bridge.js"></script>
-  <script src="../shared/fragment.js"></script>
-</head>
-<body>
-  <div class="fragment-shell">
-    <div class="fragment-header">
-      <h1 class="fragment-title">Salas de reuniones</h1>
-      <p class="fragment-subtitle">
-        Elige una sala o escanea el QR con tu teléfono.
-      </p>
-    </div>
-
-    <div class="fragment-body">
-      <div class="room-grid">
-        <div class="room-card">
-          <h3>Sala 3</h3>
-          <p>Reserva aquí o con tu celular</p>
-          <button class="btn-room" id="btnRoom3">Reservar Sala 3</button>
-          <div class="qr-box" id="qrRoom3"></div>
-          <span class="qr-hint">Escanea para reservar</span>
-        </div>
-
-        <div class="room-card">
-          <h3>Sala 4</h3>
-          <p>Reserva aquí o con tu celular</p>
-          <button class="btn-room" id="btnRoom4">Reservar Sala 4</button>
-          <div class="qr-box" id="qrRoom4"></div>
-          <span class="qr-hint">Escanea para reservar</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    var ROOM_3_URL = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1JnuoZvitonvg2CqTInt_FvG3V6pMaIrD7L9TCnQBOtdRSS7powS1C_ph-JAL4TVEHs_DkwUsP";
-    var ROOM_4_URL = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ2zPc8rbSGhvkPVGTW34uGiBZo7ZkciXPD-jSoSj9Aivhpf76zyIIQf19TIA5FpvBQwKZNxxHZF";
-
-    var MSG_WELCOME = "Tenemos dos salas de reuniones disponibles. Elige la sala 3 o la sala 4, o escanea el código QR con tu teléfono.";
-    var MSG_ROOM_3 = "Perfecto, te muestro el calendario para reservar la sala 3.";
-    var MSG_ROOM_4 = "Te abro la reserva de la sala 4.";
-
-    function reserveRoom(url, message) {
-      SimaBridge.loadUrl(url, message);
-    }
-
-    document.getElementById("btnRoom3").addEventListener("click", function() {
-      reserveRoom(ROOM_3_URL, MSG_ROOM_3);
-    });
-
-    document.getElementById("btnRoom4").addEventListener("click", function() {
-      reserveRoom(ROOM_4_URL, MSG_ROOM_4);
-    });
-
-    document.addEventListener("DOMContentLoaded", function() {
-      SimaFragment.renderQr("qrRoom3", ROOM_3_URL, 96);
-      SimaFragment.renderQr("qrRoom4", ROOM_4_URL, 96);
-      SimaFragment.initFragmentPage({
-        screenName: "meetings",
-        welcomeText: MSG_WELCOME
-      });
-    });
-  </script>
-</body>
-</html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reservar salas de reuniones</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <link rel="stylesheet" href="../shared/app.css" />
+  <script src="../shared/qrcode.min.js"></script>
+  <script src="../shared/bridge.js"></script>
+  <script src="../shared/fragment.js"></script>
+  <style>
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(13, 74, 109, 0.14), transparent 34%),
+        radial-gradient(circle at right top, rgba(178, 232, 255, 0.5), transparent 28%),
+        linear-gradient(180deg, #f8fbfe 0%, #eef2f7 100%);
+    }
+
+    .modal {
+      width: min(100%, 860px);
+      text-align: center;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 32px 28px 28px;
+    }
+
+    .title {
+      margin: 0;
+      text-align: center;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 40ch;
+      text-align: center;
+    }
+
+    .room-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .room-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+      padding: 22px 18px;
+      border-radius: var(--sima-radius-lg);
+      border: 1px solid var(--sima-border);
+      background: var(--sima-surface-2);
+      box-shadow: 0 10px 24px rgba(16, 32, 51, 0.06);
+    }
+
+    .room-card h3 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--sima-primary-strong);
+    }
+
+    .room-card p {
+      margin: 0;
+      color: var(--sima-muted);
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+
+    .btn-room {
+      appearance: none;
+      border: 1px solid transparent;
+      border-radius: 16px;
+      min-height: 48px;
+      width: 100%;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--sima-primary);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 12px 26px rgba(13, 74, 109, 0.2);
+      transition: transform 140ms ease, background 140ms ease;
+    }
+
+    .btn-room:hover {
+      background: var(--sima-primary-strong);
+      transform: translateY(-1px);
+    }
+
+    .btn-room:active {
+      transform: translateY(0);
+    }
+
+    .qr-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 8px 18px rgba(16, 32, 51, 0.08);
+    }
+
+    .qr-box img,
+    .qr-box canvas {
+      display: block;
+      width: 96px !important;
+      height: 96px !important;
+    }
+
+    .qr-hint {
+      color: var(--sima-muted);
+      font-size: 0.85rem;
+      line-height: 1.35;
+    }
+
+    .actions {
+      width: 100%;
+      justify-content: center;
+      margin-top: 4px;
+    }
+
+    .actions .btn {
+      min-width: 180px;
+      min-height: 52px;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    @media (max-width: 640px) {
+      .room-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="modal">
+    <div class="card">
+      <h1 class="title">Salas de reuniones</h1>
+      <p class="subtitle">
+        Elige una sala o escanea el QR con tu teléfono.
+      </p>
+
+      <div class="room-grid">
+        <div class="room-card">
+          <h3>Sala 3</h3>
+          <p>Reserva aquí o con tu celular</p>
+          <button class="btn-room" id="btnRoom3" type="button">Reservar Sala 3</button>
+          <div class="qr-box" id="qrRoom3"></div>
+          <span class="qr-hint">Escanea para reservar</span>
+        </div>
+
+        <div class="room-card">
+          <h3>Sala 4</h3>
+          <p>Reserva aquí o con tu celular</p>
+          <button class="btn-room" id="btnRoom4" type="button">Reservar Sala 4</button>
+          <div class="qr-box" id="qrRoom4"></div>
+          <span class="qr-hint">Escanea para reservar</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-secondary" type="button" id="btnVolver">← Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var ROOM_3_URL = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1JnuoZvitonvg2CqTInt_FvG3V6pMaIrD7L9TCnQBOtdRSS7powS1C_ph-JAL4TVEHs_DkwUsP";
+    var ROOM_4_URL = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ2zPc8rbSGhvkPVGTW34uGiBZo7ZkciXPD-jSoSj9Aivhpf76zyIIQf19TIA5FpvBQwKZNxxHZF";
+
+    var MSG_WELCOME = "Tenemos dos salas de reuniones disponibles. Elige la sala 3 o la sala 4, o escanea el código QR con tu teléfono.";
+    var MSG_ROOM_3 = "Perfecto, te muestro el calendario para reservar la sala 3.";
+    var MSG_ROOM_4 = "Te abro la reserva de la sala 4.";
+
+    function reserveRoom(url, message) {
+      SimaBridge.loadUrl(url, message);
+    }
+
+    function closeWebview() {
+      if (window.SimaBridge && typeof SimaBridge.requestClose === "function") {
+        SimaBridge.requestClose();
+      }
+    }
+
+    document.getElementById("btnRoom3").addEventListener("click", function () {
+      reserveRoom(ROOM_3_URL, MSG_ROOM_3);
+    });
+
+    document.getElementById("btnRoom4").addEventListener("click", function () {
+      reserveRoom(ROOM_4_URL, MSG_ROOM_4);
+    });
+
+    document.getElementById("btnVolver").addEventListener("click", closeWebview);
+
+    document.addEventListener("DOMContentLoaded", function () {
+      SimaFragment.renderQr("qrRoom3", ROOM_3_URL, 96);
+      SimaFragment.renderQr("qrRoom4", ROOM_4_URL, 96);
+      SimaFragment.initFragmentPage({
+        screenName: "meetings",
+        welcomeText: MSG_WELCOME
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,57 +1,188 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Registro CoWork</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <link rel="stylesheet" href="../shared/app.css" />
-  <script src="../shared/qrcode.min.js"></script>
-  <script src="../shared/bridge.js"></script>
-  <script src="../shared/fragment.js"></script>
-</head>
-<body>
-  <div class="fragment-shell">
-    <div class="fragment-header">
-      <h1 class="fragment-title">Registro CoWork</h1>
-      <p class="fragment-subtitle">
-        Escanea el código QR con tu celular y completa el formulario para usar el espacio.
-      </p>
-    </div>
-
-    <div class="fragment-body">
-      <div class="cowork-qr-wrap">
-        <div class="qr-box" id="qrCowork"></div>
-        <span class="qr-hint">Apunta la cámara de tu teléfono al código QR</span>
-
-        <div class="cowork-steps">
-          <div class="cowork-step">
-            <span class="cowork-step-num">1</span>
-            <span>Escanea el QR con la cámara de tu celular</span>
-          </div>
-          <div class="cowork-step">
-            <span class="cowork-step-num">2</span>
-            <span>Completa el formulario de registro en Google Forms</span>
-          </div>
-          <div class="cowork-step">
-            <span class="cowork-step-num">3</span>
-            <span>¡Listo! Ya puedes usar el espacio CoWork</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    var COWORK_FORM_URL = "https://www.docs.google.com/forms/d/e/1FAIpQLScYOFbVWzWaKMKlZH0qqa8zXCoDnOhpvQ0c2TU4Rde_2BRYpg/viewform";
-    var MSG_WELCOME = "Para registrarte en el cowork, escanea el código QR con tu celular y completa el formulario de registro.";
-
-    document.addEventListener("DOMContentLoaded", function() {
-      SimaFragment.renderQr("qrCowork", COWORK_FORM_URL, 150);
-      SimaFragment.initFragmentPage({
-        screenName: "cowork",
-        welcomeText: MSG_WELCOME
-      });
-    });
-  </script>
-</body>
-</html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Registro CoWork</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <link rel="stylesheet" href="../shared/app.css" />
+  <script src="../shared/qrcode.min.js"></script>
+  <script src="../shared/bridge.js"></script>
+  <script src="../shared/fragment.js"></script>
+  <style>
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(13, 74, 109, 0.14), transparent 34%),
+        radial-gradient(circle at right top, rgba(178, 232, 255, 0.5), transparent 28%),
+        linear-gradient(180deg, #f8fbfe 0%, #eef2f7 100%);
+    }
+
+    .modal {
+      width: min(100%, 720px);
+      text-align: center;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      padding: 32px 28px 28px;
+    }
+
+    .title {
+      margin: 0;
+      text-align: center;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 34ch;
+      text-align: center;
+    }
+
+    .qr-panel {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 22px 18px;
+      border-radius: var(--sima-radius-lg);
+      border: 1px dashed rgba(13, 74, 109, 0.22);
+      background: var(--sima-surface-2);
+    }
+
+    .qr-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(16, 32, 51, 0.08);
+    }
+
+    .qr-box img,
+    .qr-box canvas {
+      display: block;
+      width: 150px !important;
+      height: 150px !important;
+    }
+
+    .qr-hint {
+      color: var(--sima-muted);
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
+    .steps {
+      width: 100%;
+      max-width: 420px;
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      text-align: left;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--sima-radius-md);
+      border: 1px solid rgba(16, 32, 51, 0.08);
+      background: #fff;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--sima-primary);
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 800;
+    }
+
+    .step span:last-child {
+      color: var(--sima-text);
+      font-size: 0.95rem;
+      line-height: 1.4;
+      padding-top: 3px;
+    }
+
+    .actions {
+      width: 100%;
+      justify-content: center;
+      margin-top: 4px;
+    }
+
+    .actions .btn {
+      min-width: 180px;
+      min-height: 52px;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="modal">
+    <div class="card">
+      <h1 class="title">Registro CoWork</h1>
+      <p class="subtitle">
+        Escanea el código QR con tu celular y completa el formulario para usar el espacio.
+      </p>
+
+      <div class="qr-panel">
+        <div class="qr-box" id="qrCowork"></div>
+        <span class="qr-hint">Apunta la cámara de tu teléfono al código QR</span>
+      </div>
+
+      <ol class="steps">
+        <li class="step">
+          <span class="step-num">1</span>
+          <span>Escanea el QR con la cámara de tu celular</span>
+        </li>
+        <li class="step">
+          <span class="step-num">2</span>
+          <span>Completa el formulario de registro en Google Forms</span>
+        </li>
+        <li class="step">
+          <span class="step-num">3</span>
+          <span>¡Listo! Ya puedes usar el espacio CoWork</span>
+        </li>
+      </ol>
+
+      <div class="actions">
+        <button class="btn btn-secondary" type="button" id="btnVolver">← Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var COWORK_FORM_URL = "https://www.docs.google.com/forms/d/e/1FAIpQLScYOFbVWzWaKMKlZH0qqa8zXCoDnOhpvQ0c2TU4Rde_2BRYpg/viewform";
+    var MSG_WELCOME = "Para registrarte en el cowork, escanea el código QR con tu celular y completa el formulario de registro.";
+
+    document.getElementById("btnVolver").addEventListener("click", function () {
+      if (window.SimaBridge && typeof SimaBridge.requestClose === "function") {
+        SimaBridge.requestClose();
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      SimaFragment.renderQr("qrCowork", COWORK_FORM_URL, 150);
+      SimaFragment.initFragmentPage({
+        screenName: "cowork",
+        welcomeText: MSG_WELCOME
+      });
+    });
+  </script>
+</body>
+</html>
