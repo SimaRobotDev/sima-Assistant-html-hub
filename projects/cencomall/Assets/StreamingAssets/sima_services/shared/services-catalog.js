@@ -255,7 +255,10 @@ window.ServicesCatalog = (function () {
   function looksLikeCoworkQuery(query) {
     var n = canonicalizeServiceQuery(query);
     if (!n) return false;
-    return /\b(cowork|co\s*work|espacio\s+de\s+trabajo|workspace|work\s*space)\b/.test(n);
+    // STT/AI often emit "coworking" / "co-working" as one token.
+    return /\b(cowork(?:ing)?|co[\s\-]*work(?:ing)?|espacio\s+de\s+trabajo|workspace|work[\s\-]*space)\b/.test(
+      n
+    );
   }
 
   function looksLikeServicesQuery(query) {

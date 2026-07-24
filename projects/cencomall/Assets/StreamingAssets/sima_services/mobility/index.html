@@ -1449,7 +1449,7 @@ html.auto-map-launch #map-loading-circle.hidden {
     <button class="cm-speak-search-btn" id="btnSpeakSearch" type="button">Buscar</button>
     <button class="cm-speak-mic-btn" id="btnSpeakMini" type="button" aria-label="Hablar" title="Hablar">Mic</button>
   </div>
-  <div class="cm-speak-version" aria-hidden="true">OTA 22/06</div>
+  <div class="cm-speak-version" aria-hidden="true">OTA 2026.07.24-2</div>
 </div>
 
 <div id="map-view" class="map-view hidden">
@@ -1481,7 +1481,7 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA service popover icons 85px 2026.07.22-20";
+const MOBILITY_UI_VERSION = "OTA 2026.07.24-2 voice services guard";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let lastPromotionPayload = null;
@@ -2363,6 +2363,18 @@ async function runMarketCatalogSearch(query, options) {
   if (!shouldUseLocalMarketCatalog()) return null;
   const q = String(query || "").trim();
   if (!q) return null;
+
+  // Last-mile: never run the store catalog for bathroom/elevator/cowork/SAC intents.
+  // Voice/AI often calls market search directly and would paint "Sin resultados" (tiendas).
+  if (!options.allowServicesAsMarket && looksLikeServicesCatalogQuery(q)) {
+    SimaBridge.log("market catalog redirected to services q=" + q);
+    runServicesCatalogSearch(q, {
+      source: options.source || "market-guard",
+      voice: !!options.voice,
+      preferFloor: options.preferFloor || getTotemFloorContext() || undefined,
+    });
+    return null;
+  }
 
   if (typeof MarketSearch === "undefined") {
     if (!options.silent) showSearchError(t("loadError"));
@@ -4662,9 +4674,25 @@ function hideWelcome() {
 }
 
 function renderMarketResults(payload) {
-  lastMarketPayload = payload;
   const results = payload.results || [];
-  const query = payload.query || "";
+  const query = String(payload.query || payload.searchQuery || "").trim();
+
+  // Absolute last-mile guard: never paint store empty/cards for service intents.
+  // Catches late native empty market_search that would overwrite a correct services UI.
+  if (query && looksLikeServicesCatalogQuery(query)) {
+    SimaBridge.log(
+      "renderMarketResults blocked for services intent q=" + query +
+      " results=" + results.length +
+      " source=" + (payload.source || "-")
+    );
+    runServicesCatalogSearch(query, {
+      source: payload.source || "market-render-guard",
+      preferFloor: payload.totemFloor || payload.floor || getTotemFloorContext() || undefined,
+    });
+    return;
+  }
+
+  lastMarketPayload = payload;
   hideWelcome();
 
   if (query) {
