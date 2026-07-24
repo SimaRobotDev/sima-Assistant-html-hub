@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.24-1",
+  "version": "2026.07.24-2",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-24T15:04:15.119Z",
+  "generatedAt": "2026-07-24T15:17:22.329Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.07.23-5",
+  "rollbackTo": "2026.07.24-1",
   "entryPoints": [
     {
       "service": "agenda",
@@ -150,8 +150,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 179015,
-      "sha256": "0796c65ca10b81a7f0cebdc691048aefb400b6313e10825cc26298d6d3e1b88e"
+      "size": 180213,
+      "sha256": "52312de871eaecd06db8d5edd41bd12db7766b04eb401beccaab9bb038a0bc9f"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -250,8 +250,8 @@
     },
     {
       "path": "shared/services-catalog.js",
-      "size": 22987,
-      "sha256": "cfd6d1716d50c77e083810720f8bd7cf61504703264493a6259adffd4bd0dd00"
+      "size": 23089,
+      "sha256": "329b43786ed5687dcefb8e20a3a01b8cb824c92986134b8713025b4c26581913"
     },
     {
       "path": "shared/store-logos/casa-ideas.png",
