@@ -3022,6 +3022,18 @@ function ingestMarketSearchPayload(data) {
   const hasResults = Array.isArray(data.results);
 
   if (query) {
+    // Voice/AI often arrives as market_search even for bathrooms/elevators/cowork/SAC.
+    // If we still paint native store results, they overwrite the correct local services UI
+    // (classic false positive: "baños" → swimsuit keywords in the store catalog).
+    if (looksLikeServicesCatalogQuery(query)) {
+      SimaBridge.log(
+        "market_search redirected to services local-catalog q=" + query +
+        " ignoredNativeResults=" + (hasResults ? data.results.length : 0)
+      );
+      dispatchVoiceSearch(query, data.source || (data.transcript ? "voice" : "native"));
+      return true;
+    }
+
     dispatchVoiceSearch(query, data.source || (data.transcript ? "voice" : "native"));
     if (hasResults && data.results.length > 0) {
       window.setTimeout(function () {
@@ -3601,6 +3613,19 @@ function renderIncomingPayload(dataJson) {
       const hasResultsArray = Array.isArray(data.results);
 
       if (incomingQuery) setStoreSearchInputs(incomingQuery);
+
+      // Same guard as ingestMarketSearchPayload: service intents must not become store cards.
+      if (incomingQuery && looksLikeServicesCatalogQuery(incomingQuery)) {
+        SimaBridge.log(
+          "market_search results ignored for services intent q=" + incomingQuery +
+          " nativeResults=" + (hasResultsArray ? data.results.length : 0)
+        );
+        runServicesCatalogSearch(incomingQuery, {
+          source: data.source || "native-redirect",
+          preferFloor: data.totemFloor || data.floor || getTotemFloorContext() || undefined,
+        });
+        break;
+      }
 
       if (hasResultsArray && data.results.length > 0) {
         renderMarketResults(Object.assign({}, data, {
