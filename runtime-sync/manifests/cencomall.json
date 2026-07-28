@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.28-1",
-  "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-28T17:32:20.868Z",
+  "version": "2026.07.28-2",
+  "baseUrl": "--version",
+  "generatedAt": "2026-07-28T22:55:29.548Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.07.24-2",
+  "rollbackTo": null,
   "entryPoints": [
     {
       "service": "agenda",
@@ -89,8 +89,8 @@
     },
     {
       "path": "data/market-catalog-i18n.jsonp.js",
-      "size": 150594,
-      "sha256": "77c3fb5f75c9e7a9f673c432f7dfe10a5a75e253fe0c1eacdbe2e8261dd6d799"
+      "size": 150592,
+      "sha256": "76de8a142260308bb82e3e334177d2f39313ba6babf2d24223b8c3001647ab5e"
     },
     {
       "path": "data/market-catalog.json",
@@ -99,8 +99,8 @@
     },
     {
       "path": "data/market-catalog.jsonp.js",
-      "size": 661483,
-      "sha256": "22b261433ee93f482f18f7ac450a8c4e72e7414a0cd1ef82aa43eac9424dcd41"
+      "size": 661481,
+      "sha256": "e89b35d08a17d17dc11fd6b84bb1a84ed4476fe5ca1f4535cfb5e806538514d6"
     },
     {
       "path": "data/services-catalog.json",
@@ -109,8 +109,8 @@
     },
     {
       "path": "data/services-catalog.jsonp.js",
-      "size": 25163,
-      "sha256": "61a9b9960f1e03ab368d3a5b5d8c3006ac10e30f6a570cb4f075e314841ef43a"
+      "size": 25161,
+      "sha256": "c02a6ef83f1382bbe4c3e0f391759b99f93156603745c0a2de0f9be5cf8c7443"
     },
     {
       "path": "emergency/index.html",
@@ -449,8 +449,8 @@
     },
     {
       "path": "shared/store-logos/store-logos.manifest.jsonp.js",
-      "size": 1540,
-      "sha256": "3c35bd9f3d933cdd2011e92977f31df6fe0661ed69f1128405d28b7b0d672804"
+      "size": 1538,
+      "sha256": "704bcc5d3ab6fa888fd60ccb211489f36a063ecb6f9f1b0a6708863f0f61bf00"
     },
     {
       "path": "shared/store-logos/zara.png",
