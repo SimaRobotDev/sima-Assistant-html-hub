@@ -24,6 +24,11 @@
 })();
 </script>
 <!-- mobility-ui-v26-market-search -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/cencobricks-tokens.css" />
+<link rel="stylesheet" href="../shared/cencobricks-shell.css" />
 <link rel="stylesheet" href="../shared/app.css" />
 <link rel="stylesheet" href="../shared/mapvx/styles.css" />
 <script src="../shared/locale.js"></script>
@@ -36,20 +41,10 @@
 <script src="../shared/mapvx/index.js"></script>
 <script src="../shared/mapvx-bridge.js"></script>
 <style>
+/* Color/type/space tokens: ../shared/cencobricks-tokens.css (--cb-* and --cm-* aliases) */
 :root {
-  --cm-purple: #280071;
-  --cm-purple-dark: #1E1630;
-  --cm-blue: #00B1FF;
-  --cm-blue-dark: #008FD0;
-  --cm-pink: #FF7E3E;
-  --cm-surface: #FFFFFF;
-  --cm-card: #FFFFFF;
-  --cm-text: #1E1630;
-  --cm-muted: #3F3468;
-  --cm-line: #ECE8F2;
-  --cm-shadow: 0 6px 16px rgba(40, 0, 113, 0.08);
   --cm-speak-bar: 132px;
-  --cm-header-height: 54px;
+  --cm-header-height: 72px;
   --cm-survey-strip-height: 0px;
 }
 
@@ -60,7 +55,11 @@ html, body {
   scroll-padding-bottom: calc(var(--cm-speak-bar) + env(safe-area-inset-bottom, 0px));
 }
 body.cencomall-theme::before { display: none; }
-body.cencomall-theme { color: var(--cm-text); margin: 0; }
+body.cencomall-theme {
+  color: var(--cm-text);
+  margin: 0;
+  font-family: var(--cb-font-body);
+}
 
 .cencomall-theme .app-shell {
   max-width: 1080px;
@@ -70,70 +69,10 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   min-height: 100%;
 }
 
+/* TopBar + .cm-body: ../shared/cencobricks-shell.css */
 .cm-header {
   position: sticky;
   top: 0;
-  z-index: 40;
-  background: var(--cm-purple);
-  color: #fff;
-  margin: 14px 14px 0;
-  border-radius: 18px 18px 0 0;
-  padding: 14px 18px 16px;
-  box-shadow: var(--cm-shadow);
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.cm-header-title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  flex: 1;
-  min-width: 0;
-}
-
-.cm-header-back {
-  appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 8px 14px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  order: -1;
-}
-
-.cm-header-close {
-  appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 8px 14px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  order: -1;
-}
-
-.cm-body {
-  margin: 0 14px 14px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: #fff;
-  border: 1px solid var(--cm-line);
-  border-top: 0;
-  border-radius: 0 0 18px 18px;
 }
 
 .cm-panel {
@@ -277,7 +216,15 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   margin-bottom: 6px;
 }
 
-.cm-results-title { font-size: 17px; font-weight: 800; margin: 0; }
+.cm-results-title {
+  margin: 0;
+  font-family: var(--cb-font-title);
+  font-size: var(--cb-topbar-title-size-s);
+  line-height: var(--cb-topbar-title-lh-s);
+  font-weight: var(--cb-topbar-title-weight);
+  letter-spacing: var(--cb-topbar-title-tracking);
+  color: var(--cm-text);
+}
 
 .cm-results-count {
   font-size: 11px;
@@ -356,19 +303,28 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .store-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
 
 .store-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 6px;
-  border-radius: 999px;
-  background: #F6F1FB;
-  color: var(--cm-purple-dark);
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--cb-tag-font);
+  font-size: var(--cb-tag-font-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px var(--cb-tag-pad-x-xs);
+  min-height: var(--cb-tag-height-xs);
+  border: none;
+  border-radius: var(--cb-tag-radius);
+  background: var(--cb-tag-neutral-fill);
+  color: var(--cb-tag-neutral-text);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.store-badge-floor { background: #EAF3FF; color: #1455A0; }
+.store-badge-floor {
+  background: var(--cb-tag-info-fill);
+  color: var(--cb-tag-info-text);
+}
 
 .store-detail {
   font-size: 10px;
@@ -388,13 +344,16 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   border: none;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 14px 12px;
+  font-family: var(--cb-btn-font);
+  font-size: var(--cb-btn-font-s);
+  font-weight: var(--cb-btn-weight);
+  line-height: 1.3;
+  padding: var(--cb-btn-pad-y-s) var(--cb-btn-pad-x-s);
   cursor: pointer;
+  /* Card footer: keep bottom corners; full pill would break the store card shell */
   border-radius: 0 0 14px 14px;
   min-height: 52px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   margin: 0;
   position: relative;
   z-index: 1;
@@ -403,9 +362,8 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 }
 
 .btn-ver-mapa {
-  background: linear-gradient(135deg, var(--cm-purple) 0%, #7440a8 100%);
-  color: #fff;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+  background: var(--cb-btn-primary-fill);
+  color: var(--cb-btn-primary-text);
   overflow: visible;
 }
 .btn-remodelacion { background: #B7B0C2; color: #fff; cursor: not-allowed; }
@@ -414,8 +372,8 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .store-card-group .store-card-top { flex: 0 0 auto; }
 
 .store-badge-locales {
-  background: #FFF3E0;
-  color: #B45309;
+  background: var(--cb-tag-alert-fill);
+  color: var(--cb-tag-alert-text);
 }
 
 .store-floors-summary {
@@ -487,13 +445,14 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 11px 12px;
-  border-radius: 10px;
+  font-family: var(--cb-btn-font);
+  font-size: var(--cb-btn-font-xs);
+  font-weight: var(--cb-btn-weight);
+  padding: var(--cb-btn-pad-y-xs) var(--cb-btn-pad-x-xs);
+  border-radius: var(--cb-btn-radius);
   cursor: pointer;
-  background: linear-gradient(135deg, var(--cm-purple) 0%, #7440a8 100%);
-  color: #fff;
+  background: var(--cb-btn-primary-fill);
+  color: var(--cb-btn-primary-text);
   white-space: nowrap;
   flex: 1 1 auto;
   flex-shrink: 1;
@@ -511,13 +470,14 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .cm-empty-copy { color: var(--cm-muted); font-size: 13px; line-height: 1.4; }
 .cm-empty-actions { margin-top: 12px; display: flex; justify-content: center; }
 .cm-empty-btn {
-  border: 1px solid var(--cm-purple);
-  background: #fff;
-  color: var(--cm-purple);
-  border-radius: 10px;
-  padding: 9px 14px;
-  font-size: 13px;
-  font-weight: 800;
+  border: 1px solid var(--cb-btn-secondary-stroke);
+  background: var(--cb-white);
+  color: var(--cb-btn-secondary-text);
+  border-radius: var(--cb-btn-radius);
+  padding: var(--cb-btn-pad-y-xs) var(--cb-btn-pad-x-s);
+  font-family: var(--cb-btn-font);
+  font-size: var(--cb-btn-font-s);
+  font-weight: var(--cb-btn-weight);
   cursor: pointer;
 }
 .cm-empty-btn:active { transform: scale(0.98); }
@@ -536,21 +496,22 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .cm-speak-btn {
   width: 100%;
   border: none;
-  border-radius: 18px;
-  min-height: 58px;
-  padding: 14px 18px;
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
+  border-radius: var(--cb-btn-radius);
+  min-height: 56px;
+  padding: var(--cb-btn-pad-y-m) var(--cb-btn-pad-x-m);
+  font-family: var(--cb-btn-font);
+  font-size: 1.125rem;
+  font-weight: var(--cb-btn-weight);
+  line-height: var(--cb-btn-lh-m);
+  color: var(--cb-btn-primary-text);
   cursor: pointer;
   pointer-events: auto;
-  /* Misma línea visual que el mic de la app RN (#0f2f78) */
-  background: #0f2f78;
-  box-shadow: 0 8px 20px rgba(15, 47, 120, 0.28);
+  background: var(--cb-btn-primary-fill);
+  box-shadow: var(--cb-shadow-down-s);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--cb-btn-gap);
 }
 
 .cm-speak-btn:active { transform: scale(0.98); }
@@ -588,29 +549,30 @@ body.cencomall-theme { color: var(--cm-text); margin: 0; }
 .cm-speak-search-btn {
   flex: 1;
   border: none;
-  border-radius: 18px;
-  min-height: 58px;
-  padding: 14px 18px;
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
+  border-radius: var(--cb-btn-radius);
+  min-height: 56px;
+  padding: var(--cb-btn-pad-y-m) var(--cb-btn-pad-x-m);
+  font-family: var(--cb-btn-font);
+  font-size: 1.125rem;
+  font-weight: var(--cb-btn-weight);
+  color: var(--cb-btn-primary-text);
   cursor: pointer;
-  background: #0f2f78;
-  box-shadow: 0 8px 20px rgba(15, 47, 120, 0.28);
+  background: var(--cb-btn-primary-fill);
+  box-shadow: var(--cb-shadow-down-s);
 }
 
 .cm-speak-mic-btn {
   width: 56px;
   min-width: 56px;
   border: none;
-  border-radius: 18px;
+  border-radius: var(--cb-btn-radius);
   padding: 0;
   font-size: 15px;
-  font-weight: 700;
-  color: #fff;
+  font-weight: var(--cb-btn-weight);
+  color: var(--cb-btn-primary-text);
   cursor: pointer;
-  background: #0f2f78;
-  box-shadow: 0 8px 20px rgba(15, 47, 120, 0.28);
+  background: var(--cb-btn-primary-fill);
+  box-shadow: var(--cb-shadow-down-s);
 }
 
 .cm-speak-search-btn:active,
@@ -681,13 +643,15 @@ html.auto-map-launch #map-loading-circle.hidden {
 .map-view-header {
   display: flex;
   align-items: center;
-  padding: 14px 18px 16px;
-  background: var(--cm-purple);
-  color: #fff;
-  gap: 12px;
+  padding: var(--cb-topbar-pad-y) var(--cb-topbar-pad-x);
+  background: var(--cb-topbar-fill);
+  color: var(--cb-topbar-title);
+  gap: var(--cb-topbar-gap);
   flex-wrap: wrap;
-  box-shadow: var(--cm-shadow);
+  box-shadow: var(--cb-topbar-decoration-shadow);
   flex-shrink: 0;
+  min-height: var(--cb-topbar-icon-btn-s);
+  box-sizing: border-box;
 }
 
 .map-view-actions {
@@ -743,7 +707,8 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 .map-current-floor.hidden { display: none; }
 
-/* Map header reuses .cm-header-back / .cm-header-close (same pills as search). */
+/* Map header reuses .cm-header-icon-btn (same icon back as search). */
+.map-view-header .cm-header-icon-btn,
 .map-view-header .cm-header-back,
 .map-view-header .cm-header-close {
   order: 0;
@@ -752,9 +717,13 @@ html.auto-map-launch #map-loading-circle.hidden {
 .map-view-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 800;
-  font-size: 18px;
+  gap: var(--cb-topbar-gap);
+  font-family: var(--cb-font-title);
+  font-weight: var(--cb-topbar-title-weight);
+  font-size: var(--cb-topbar-title-size-s);
+  line-height: var(--cb-topbar-title-lh-s);
+  letter-spacing: var(--cb-topbar-title-tracking);
+  color: var(--cb-topbar-title);
   min-width: 0;
 }
 
@@ -918,11 +887,12 @@ html.auto-map-launch #map-loading-circle.hidden {
 }
 
 .map-loading-spinner {
-  width: 54px;
-  height: 54px;
+  box-sizing: border-box;
+  width: var(--cb-spinner-size-l);
+  height: var(--cb-spinner-size-l);
   border-radius: 50%;
-  border: 4px solid rgba(91,45,142,0.14);
-  border-top-color: var(--cm-purple);
+  border: var(--cb-spinner-stroke) solid var(--cb-spinner-track);
+  border-top-color: var(--cb-spinner-indicator);
   animation: spin 0.9s linear infinite;
 }
 
@@ -964,22 +934,24 @@ html.auto-map-launch #map-loading-circle.hidden {
 }
 
 .cm-chip {
-  border: 1px solid var(--cm-line);
-  background: #fff;
-  color: var(--cm-blue-dark);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 8px 12px;
-  border-radius: 999px;
+  border: var(--cb-chip-enabled-border-w) solid var(--cb-chip-enabled-stroke);
+  background: var(--cb-chip-enabled-fill);
+  color: var(--cb-chip-enabled-text);
+  font-family: var(--cb-chip-font);
+  font-size: var(--cb-text-detail-s);
+  font-weight: var(--cb-chip-weight);
+  line-height: 1.3;
+  padding: 6px 12px;
+  min-height: 32px;
+  border-radius: var(--cb-chip-radius);
   cursor: pointer;
 }
 
 .cm-chip:active { transform: scale(0.97); }
 
 .store-badge-promo {
-  background: color-mix(in srgb, var(--cm-blue) 14%, #fff 86%);
-  color: var(--cm-blue-dark);
-  border-color: color-mix(in srgb, var(--cm-blue) 28%, #fff 72%);
+  background: var(--cb-tag-success-fill);
+  color: var(--cb-tag-success-text);
 }
 
 .promo-grid {
@@ -991,7 +963,7 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 .promo-card {
   background: #fff;
-  border-radius: 14px;
+  border-radius: var(--cb-radius-m);
   border: 1px solid var(--cm-line);
   box-shadow: var(--cm-shadow);
   overflow: hidden;
@@ -1009,31 +981,42 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 .promo-card-body { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 7px; }
 
-.promo-brand { font-size: 11px; font-weight: 800; color: var(--cm-blue-dark); }
+.promo-brand {
+  font-family: var(--cb-font-title);
+  font-size: var(--cb-text-detail-s);
+  font-weight: 600;
+  color: var(--cb-accent-600);
+}
 
 .promo-title {
-  font-size: 12px;
-  font-weight: 700;
+  font-family: var(--cb-font-title);
+  font-size: var(--cb-text-detail-m);
+  font-weight: 600;
   line-height: 1.3;
+  color: var(--cm-text);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.promo-validity { font-size: 10px; color: var(--cm-muted); }
+.promo-validity { font-size: var(--cb-text-detail-xs); color: var(--cm-muted); }
 
 .btn-promo-app {
   width: 100%;
-  border: 1px solid var(--cm-blue);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 10px 6px;
+  box-sizing: border-box;
+  border: none;
+  font-family: var(--cb-btn-font);
+  font-size: var(--cb-btn-font-xs);
+  font-weight: var(--cb-btn-weight);
+  line-height: 1.2;
+  padding: var(--cb-btn-pad-y-xs) var(--cb-btn-pad-x-xs);
   cursor: pointer;
-  background: var(--cm-blue);
-  color: #fff;
-  border-radius: 10px;
+  background: var(--cb-btn-primary-fill);
+  color: var(--cb-btn-primary-text);
+  border-radius: var(--cb-btn-radius);
   margin-top: auto;
+  text-align: center;
 }
 
 .service-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
@@ -1163,12 +1146,13 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 .btn-service-map {
   border: none;
-  border-radius: 10px;
-  background: var(--cm-purple);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 8px 12px;
+  border-radius: var(--cb-btn-radius);
+  background: var(--cb-btn-primary-fill);
+  color: var(--cb-btn-primary-text);
+  font-family: var(--cb-btn-font);
+  font-size: var(--cb-btn-font-xs);
+  font-weight: var(--cb-btn-weight);
+  padding: var(--cb-btn-pad-y-xs) var(--cb-btn-pad-x-xs);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -1183,7 +1167,7 @@ html.auto-map-launch #map-loading-circle.hidden {
 .cm-search-landing {
   display: none;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .cm-search-landing.visible {
@@ -1192,17 +1176,54 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 .cm-search-landing-title {
   margin: 0;
-  font-size: 17px;
+  font-family: var(--cb-font-title);
+  font-size: 18px;
   font-weight: 800;
-  line-height: 1.35;
-  color: var(--cm-text);
+  line-height: 1.3;
+  color: var(--cm-purple-dark);
 }
 
 .cm-search-landing-hint {
-  margin: 0;
-  font-size: 14px;
-  color: var(--cm-muted);
-  line-height: 1.45;
+  display: none;
+}
+
+.cm-catalog-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid rgba(88, 78, 128, 0.28);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.cm-catalog-search:focus-within {
+  border-color: var(--cm-blue);
+  box-shadow: 0 0 0 2px rgba(61, 148, 214, 0.15);
+}
+
+.cm-catalog-search-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--cm-purple);
+}
+
+.cm-catalog-search .cm-search-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cm-catalog-search .cm-search-input:focus {
+  outline: none;
+  border: none;
 }
 
 .cm-search-row {
@@ -1218,53 +1239,136 @@ html.auto-map-launch #map-loading-circle.hidden {
 .cm-search-input {
   flex: 1;
   min-width: 0;
-  border: 2px solid var(--cm-line);
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--cm-text);
-  background: #fff;
+  box-sizing: border-box;
+  min-height: var(--cb-input-height-l);
+  border: 1px solid var(--cb-input-stroke);
+  border-radius: var(--cb-input-radius);
+  padding: 0 var(--cb-input-pad-x);
+  font-family: var(--cb-input-font);
+  font-size: var(--cb-input-font-size);
+  font-weight: var(--cb-input-weight);
+  line-height: var(--cb-input-lh);
+  color: var(--cb-input-text);
+  background: var(--cb-input-fill);
+}
+
+.cm-search-input::placeholder {
+  color: var(--cb-input-placeholder);
+  opacity: 1;
 }
 
 .cm-search-input:focus {
   outline: none;
-  border-color: var(--cm-purple);
+  border-color: var(--cb-input-focus-stroke);
+  border-width: var(--cb-input-focus-width);
 }
 
 .cm-search-btn {
   border: none;
-  border-radius: 12px;
-  background: var(--cm-purple);
-  color: #fff;
-  font-size: 15px;
-  font-weight: 800;
-  padding: 12px 18px;
+  border-radius: var(--cb-btn-radius);
+  background: var(--cb-btn-primary-fill);
+  color: var(--cb-btn-primary-text);
+  font-family: var(--cb-btn-font);
+  font-size: var(--cb-btn-font-m);
+  font-weight: var(--cb-btn-weight);
+  line-height: var(--cb-btn-lh-m);
+  padding: var(--cb-btn-pad-y-m) var(--cb-btn-pad-x-m);
   cursor: pointer;
   white-space: nowrap;
 }
 
-.cm-categories-btn {
+.cm-categories-btn,
+.cm-catalog-all-btn {
   width: 100%;
-  border: 2px solid var(--cm-purple);
-  border-radius: 12px;
-  background: #fff;
-  color: var(--cm-purple);
-  font-size: 15px;
-  font-weight: 800;
-  padding: 12px 16px;
+  border: 1px solid var(--cb-btn-secondary-stroke);
+  border-radius: var(--cb-btn-radius);
+  background: var(--cb-white);
+  color: var(--cb-btn-secondary-text);
+  font-family: var(--cb-btn-font);
+  font-size: var(--cb-btn-font-m);
+  font-weight: var(--cb-btn-weight);
+  line-height: var(--cb-btn-lh-m);
+  padding: var(--cb-btn-pad-y-m) var(--cb-btn-pad-x-m);
   cursor: pointer;
 }
 
+.cm-catalog-all-btn {
+  border: none;
+  background: transparent;
+  color: var(--cm-blue);
+  font-weight: 800;
+  padding: 8px 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .cm-categories-btn:active,
+.cm-catalog-all-btn:active,
 .cm-search-btn:active { transform: scale(0.98); }
 
-.cm-popular-categories {
+.cm-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cm-catalog-tile {
+  appearance: none;
+  border: 1.5px solid rgba(88, 78, 128, 0.28);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--cm-purple-dark);
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  flex: 1;
-  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 10px;
+  text-align: center;
+  min-height: 108px;
+  box-sizing: border-box;
+}
+
+.cm-catalog-tile.is-large {
+  grid-column: span 3;
+  min-height: 132px;
+}
+
+.cm-catalog-tile.is-small {
+  grid-column: span 2;
+  min-height: 112px;
+}
+
+.cm-catalog-tile:active {
+  transform: scale(0.98);
+  background: #F7F3FC;
+}
+
+.cm-catalog-tile-icon {
+  width: 36px;
+  height: 36px;
+  display: block;
+  object-fit: contain;
+  color: var(--cm-purple-dark);
+}
+
+.cm-catalog-tile-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.cm-catalog-tile-label {
+  font-family: var(--cb-font-title);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--cm-purple-dark);
+}
+
+.cm-popular-categories {
+  display: none;
 }
 
 .cm-popular-categories-title {
@@ -1282,17 +1386,18 @@ html.auto-map-launch #map-loading-circle.hidden {
 }
 
 .cm-popular-category-chip {
-  border: 1px solid #DFCFF3;
-  background: #F6F1FB;
-  color: var(--cm-purple-dark);
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.25;
-  padding: 14px 16px;
-  border-radius: 16px;
+  border: var(--cb-chip-enabled-border-w) solid var(--cb-chip-enabled-stroke);
+  background: var(--cb-chip-enabled-fill);
+  color: var(--cb-chip-enabled-text);
+  font-family: var(--cb-chip-font);
+  font-size: var(--cb-chip-font-size);
+  font-weight: var(--cb-chip-weight);
+  line-height: var(--cb-chip-lh);
+  padding: 0 var(--cb-chip-pad-x);
+  border-radius: var(--cb-chip-radius);
   cursor: pointer;
   text-align: center;
-  min-height: 52px;
+  min-height: var(--cb-chip-height-l);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1301,8 +1406,10 @@ html.auto-map-launch #map-loading-circle.hidden {
 .cm-popular-category-chip:active { transform: scale(0.98); }
 
 .cm-popular-category-chip.is-service {
-  background: #EEE6F8;
-  border-color: #C9B3E8;
+  border-width: var(--cb-chip-activated-border-w);
+  border-color: var(--cb-chip-activated-stroke);
+  background: var(--cb-chip-activated-fill);
+  color: var(--cb-chip-activated-text);
 }
 
 .cm-popular-category-chip.is-loading {
@@ -1318,13 +1425,15 @@ html.auto-map-launch #map-loading-circle.hidden {
 }
 
 .cm-results-categories-link {
-  border: 1px solid var(--cm-line);
-  background: #F6F1FB;
-  color: var(--cm-purple-dark);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 5px 10px;
-  border-radius: 999px;
+  border: var(--cb-chip-enabled-border-w) solid var(--cb-chip-enabled-stroke);
+  background: var(--cb-chip-enabled-fill);
+  color: var(--cb-chip-enabled-text);
+  font-family: var(--cb-chip-font);
+  font-size: var(--cb-text-detail-xs);
+  font-weight: var(--cb-chip-weight);
+  padding: 4px 10px;
+  min-height: 28px;
+  border-radius: var(--cb-chip-radius);
   cursor: pointer;
 }
 
@@ -1354,31 +1463,271 @@ html.auto-map-launch #map-loading-circle.hidden {
   gap: 6px;
   width: 100%;
   min-height: 72px;
-  border: 1px solid var(--cm-line);
-  border-radius: 14px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #FAF7FD 100%);
-  color: var(--cm-text);
+  border: var(--cb-chip-enabled-border-w) solid var(--cb-chip-enabled-stroke);
+  border-radius: var(--cb-chip-radius);
+  background: var(--cb-white);
+  color: var(--cb-chip-enabled-text);
+  font-family: var(--cb-chip-font);
   padding: 12px;
   cursor: pointer;
   text-align: left;
-  box-shadow: 0 4px 14px rgba(61, 29, 92, 0.05);
+  box-shadow: none;
 }
 
 .cm-category-chip:active { transform: scale(0.98); }
 
 .cm-category-chip-name {
-  font-size: 13px;
-  font-weight: 800;
+  font-size: var(--cb-text-body-s);
+  font-weight: 600;
   line-height: 1.25;
+  color: var(--cb-chip-enabled-text);
 }
 
 .cm-category-chip-count {
-  font-size: 11px;
+  font-family: var(--cb-tag-font);
+  font-size: var(--cb-tag-font-xs);
+  font-weight: 600;
+  color: var(--cb-tag-neutral-text);
+  background: var(--cb-tag-neutral-fill);
+  padding: 2px var(--cb-tag-pad-x-xs);
+  border-radius: var(--cb-tag-radius);
+}
+
+.cm-category-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+  margin: 0 0 10px;
+}
+
+.cm-category-tab-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 8px 0 6px;
+  cursor: pointer;
+  font-family: var(--cb-font-title);
   font-weight: 700;
+  font-size: var(--cb-text-body-s);
+  color: var(--cm-muted);
+  border-bottom: 3px solid transparent;
+}
+
+.cm-category-tab-btn.is-active {
   color: var(--cm-purple);
-  background: #F0E9F8;
-  padding: 3px 8px;
-  border-radius: 999px;
+  border-bottom-color: var(--cm-blue);
+}
+
+.cm-category-list {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 24px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cm-category-browse {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  position: relative;
+}
+
+.cm-letter-index {
+  position: sticky;
+  top: calc(var(--cm-header-height, 64px) + 12px);
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1px;
+  padding: 6px 3px;
+  background: #EDEDF2;
+  border-radius: 10px;
+  flex-shrink: 0;
+  max-height: calc(100vh - var(--cm-header-height, 64px) - var(--cm-speak-bar, 88px) - 40px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 8;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.cm-letter-index::-webkit-scrollbar {
+  display: none;
+}
+
+.cm-letter-index-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  min-width: 26px;
+  height: 20px;
+  padding: 0 2px;
+  margin: 0;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: var(--cb-font-title);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--cm-purple-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.cm-letter-index-btn.is-active {
+  background: #B7D4EF;
+  color: var(--cm-purple-dark);
+}
+
+.cm-letter-index-btn.is-disabled {
+  opacity: 0.28;
+  pointer-events: none;
+  cursor: default;
+}
+
+.cm-letter-index-btn:active:not(.is-disabled) {
+  transform: scale(0.94);
+}
+
+.cm-category-row {
+  appearance: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 4px;
+  cursor: pointer;
+  text-align: left;
+  border-bottom: 1px solid var(--cm-line);
+  scroll-margin-top: calc(var(--cm-header-height, 64px) + 120px);
+}
+
+.cm-category-row:active { transform: scale(0.99); }
+.cm-category-row:last-child { border-bottom: none; }
+
+.cm-category-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cm-category-row-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  object-fit: contain;
+  display: block;
+}
+
+.cm-category-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cm-category-row-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--cm-purple-dark);
+  line-height: 1.1;
+}
+
+.cm-category-row-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cm-muted);
+  line-height: 1.2;
+}
+
+.cm-category-row-chevron {
+  width: 20px;
+  height: 20px;
+  color: var(--cm-purple);
+  flex-shrink: 0;
+}
+
+.cm-az-letter {
+  margin: 12px 4px 4px;
+  padding: 6px 0 4px;
+  font-family: var(--cb-font-title);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--cm-muted);
+  border-bottom: 1px solid var(--cm-line);
+  text-transform: uppercase;
+  scroll-margin-top: calc(var(--cm-header-height, 64px) + 120px);
+}
+
+.cm-az-letter:first-child {
+  margin-top: 0;
+}
+
+.cm-az-store-row {
+  appearance: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 4px;
+  cursor: pointer;
+  text-align: left;
+  border-bottom: 1px solid var(--cm-line);
+}
+
+.cm-az-store-row:active { transform: scale(0.99); }
+
+.cm-az-store-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cm-az-store-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  object-fit: contain;
+  display: block;
+  background: #F6F1FB;
+}
+
+.cm-az-store-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--cm-purple-dark);
+  background: linear-gradient(135deg, #EFE5FA 0%, #DCC9F2 100%);
+  line-height: 1;
+}
+
+.cm-az-store-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cm-purple-dark);
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cm-search-voice-hint {
@@ -1393,9 +1742,29 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 <div class="app-shell" id="app-shell">
   <header class="cm-header">
-    <button class="cm-header-close hidden" id="cm-header-close-btn" type="button" onclick="closeWebview()">Cerrar</button>
-    <button class="cm-header-back" id="cm-header-back-btn" type="button" onclick="handleMobilityBack()">← Volver</button>
-    <h1 class="cm-header-title">Cenco Costanera</h1>
+    <button class="cm-header-icon-btn hidden" id="cm-header-close-btn" type="button" onclick="closeWebview()" aria-label="Cerrar">
+      <svg class="cm-header-back-icon" width="24" height="24" viewBox="8 8 24 24" aria-hidden="true" focusable="false">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 20C12 19.4477 12.4477 19 13 19H27C27.5523 19 28 19.4477 28 20C28 20.5523 27.5523 21 27 21H13C12.4477 21 12 20.5523 12 20Z"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12.2929 19.2929C12.6834 18.9024 13.3166 18.9024 13.7071 19.2929L19.7071 25.2929C20.0976 25.6834 20.0976 26.3166 19.7071 26.7071C19.3166 27.0976 18.6834 27.0976 18.2929 26.7071L12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929Z"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7071 13.2929C20.0976 13.6834 20.0976 14.3166 19.7071 14.7071L13.7071 20.7071C13.3166 21.0976 12.6834 21.0976 12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929L18.2929 13.2929C18.6834 12.9024 19.3166 12.9024 19.7071 13.2929Z"/>
+      </svg>
+    </button>
+    <button class="cm-header-icon-btn" id="cm-header-back-btn" type="button" onclick="handleMobilityBack()" aria-label="Volver">
+      <svg class="cm-header-back-icon" width="24" height="24" viewBox="8 8 24 24" aria-hidden="true" focusable="false">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 20C12 19.4477 12.4477 19 13 19H27C27.5523 19 28 19.4477 28 20C28 20.5523 27.5523 21 27 21H13C12.4477 21 12 20.5523 12 20Z"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12.2929 19.2929C12.6834 18.9024 13.3166 18.9024 13.7071 19.2929L19.7071 25.2929C20.0976 25.6834 20.0976 26.3166 19.7071 26.7071C19.3166 27.0976 18.6834 27.0976 18.2929 26.7071L12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929Z"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7071 13.2929C20.0976 13.6834 20.0976 14.3166 19.7071 14.7071L13.7071 20.7071C13.3166 21.0976 12.6834 21.0976 12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929L18.2929 13.2929C18.6834 12.9024 19.3166 12.9024 19.7071 13.2929Z"/>
+      </svg>
+    </button>
+    <h1 class="cm-header-title">
+      <span class="cm-header-mall" role="img" aria-label="Cenco Costanera">
+        <svg class="cm-header-mall-pin" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <path stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M12 21s-6.5-5.5-6.5-11a6.5 6.5 0 1 1 13 0c0 5.5-6.5 11-6.5 11z"/>
+          <circle cx="12" cy="10" r="2.25" stroke-width="1.75"/>
+        </svg>
+        <span class="cm-header-mall-name">Cenco Costanera</span>
+      </span>
+    </h1>
   </header>
 
   <section id="survey-strip" class="cm-survey-strip hidden" aria-label="Evaluación de atención">
@@ -1412,29 +1781,26 @@ html.auto-map-launch #map-loading-circle.hidden {
   <div class="cm-body">
     <section id="resultado" class="result-block">
       <div class="cm-panel cm-search-landing" id="store-search-landing">
-        <h2 class="cm-search-landing-title" id="store-search-title">Buscar tiendas</h2>
-        <p class="cm-search-landing-hint" id="store-search-hint">
+        <h2 class="cm-search-landing-title" id="store-search-title">Explora las categorías del mall</h2>
+        <p class="cm-search-landing-hint" id="store-search-hint" hidden>
           Di el nombre de una tienda o escríbelo abajo.
         </p>
-        <div class="cm-search-row">
+        <div class="cm-catalog-search">
+          <svg class="cm-catalog-search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M16.5 16.5L21 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
           <input
             class="cm-search-input"
             id="storeSearchInput"
             type="search"
             autocomplete="off"
             enterkeyhint="search"
-            placeholder="Ej: Nike, Zara…"
+            placeholder="Buscar"
           />
-          <button class="cm-search-btn" id="storeSearchBtn" type="button">Buscar</button>
         </div>
-        <button class="cm-categories-btn" id="storeCategoriesBtn" type="button">Categorías</button>
-        <div class="cm-popular-categories" id="popularCategoriesWrap">
-          <p class="cm-popular-categories-title" id="popularCategoriesTitle">Populares</p>
-          <div class="cm-popular-categories-chips" id="popularCategoriesChips"></div>
-        </div>
-        <p class="cm-search-voice-hint" id="store-search-voice-hint">
-          También puedes usar el botón de voz abajo.
-        </p>
+        <div class="cm-catalog-grid" id="catalogFeaturedGrid" aria-label="Accesos rápidos"></div>
+        <button class="cm-catalog-all-btn" id="storeCategoriesBtn" type="button">Ver todas las categorías</button>
       </div>
       <div class="cm-panel cm-welcome" id="welcome-hint">
         Aquí verás tiendas, promociones y servicios que encuentre Cami.
@@ -1454,7 +1820,13 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 <div id="map-view" class="map-view hidden">
   <div class="map-view-header">
-    <button class="cm-header-back" id="map-back-btn" type="button" onclick="closeMapView()">← Volver</button>
+    <button class="cm-header-icon-btn" id="map-back-btn" type="button" onclick="closeMapView()" aria-label="Volver">
+      <svg class="cm-header-back-icon" width="24" height="24" viewBox="8 8 24 24" aria-hidden="true" focusable="false">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 20C12 19.4477 12.4477 19 13 19H27C27.5523 19 28 19.4477 28 20C28 20.5523 27.5523 21 27 21H13C12.4477 21 12 20.5523 12 20Z"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12.2929 19.2929C12.6834 18.9024 13.3166 18.9024 13.7071 19.2929L19.7071 25.2929C20.0976 25.6834 20.0976 26.3166 19.7071 26.7071C19.3166 27.0976 18.6834 27.0976 18.2929 26.7071L12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929Z"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7071 13.2929C20.0976 13.6834 20.0976 14.3166 19.7071 14.7071L13.7071 20.7071C13.3166 21.0976 12.6834 21.0976 12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929L18.2929 13.2929C18.6834 12.9024 19.3166 12.9024 19.7071 13.2929Z"/>
+      </svg>
+    </button>
     <div class="map-view-title" id="map-view-title"><span class="map-view-title-text" id="map-view-title-text">Mapa</span></div>
     <div class="map-view-actions">
       <button class="btn-map-route hidden" id="map-route-btn" type="button">Ver ruta</button>
@@ -1484,6 +1856,8 @@ let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
 const MOBILITY_UI_VERSION = "OTA 2026.07.24-2 voice services guard";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
+let cachedAZStoreResults = null;
+let preferredCategoriesTab = "categories";
 let lastPromotionPayload = null;
 let lastServicesPayload = null;
 let mapVxWarmupPromise = null;
@@ -1563,9 +1937,9 @@ const MOBILITY_I18N = {
     restaurantsFoundOne: "Encontré el restaurante {name}.",
     restaurantsFoundOneFloor: "Encontré el restaurante {name} en el {floor}.",
     restaurantsFoundMany: "Encontré {count} restaurantes para {query}.",
-    storeSearchTitle: "Buscar tiendas",
+    storeSearchTitle: "Explora las categorías del mall",
     storeSearchHint: "Di el nombre de una tienda o escríbelo abajo.",
-    storeSearchPlaceholder: "Ej: Nike, Zara, baños…",
+    storeSearchPlaceholder: "Buscar",
     storeSearchBtn: "Buscar",
     storeSearchVoiceHint: "También puedes usar el botón de voz abajo.",
     categories: "Categorías",
@@ -1575,8 +1949,11 @@ const MOBILITY_I18N = {
     categoriesLoading: "Cargando categorías…",
     popularCategoriesTitle: "Categorías populares",
     popularCategoriesLoading: "Cargando…",
+    viewAllCategories: "Ver todas las categorías",
+    gastronomy: "Gastronomía",
+    apparel: "Vestuario",
     backCategories: "← Ver categorías",
-    backSearch: "← Buscar tiendas",
+    backSearch: "← Catálogo",
     storesInCategory: "tiendas",
     relatedResultsFor: "Resultados relacionados para",
     retrySearch: "Intentar otra búsqueda",
@@ -1658,9 +2035,9 @@ const MOBILITY_I18N = {
     restaurantsFoundOne: "I found the restaurant {name}.",
     restaurantsFoundOneFloor: "I found the restaurant {name} on {floor}.",
     restaurantsFoundMany: "I found {count} restaurants for {query}.",
-    storeSearchTitle: "Search stores",
+    storeSearchTitle: "Explore the mall categories",
     storeSearchHint: "Say a store name or type it below.",
-    storeSearchPlaceholder: "E.g. Nike, Zara, restrooms…",
+    storeSearchPlaceholder: "Search",
     storeSearchBtn: "Search",
     storeSearchVoiceHint: "You can also use the voice button below.",
     categories: "Categories",
@@ -1670,8 +2047,11 @@ const MOBILITY_I18N = {
     categoriesLoading: "Loading categories…",
     popularCategoriesTitle: "Popular categories",
     popularCategoriesLoading: "Loading…",
+    viewAllCategories: "See all categories",
+    gastronomy: "Food & Dining",
+    apparel: "Apparel",
     backCategories: "← Browse categories",
-    backSearch: "← Search stores",
+    backSearch: "← Catalog",
     storesInCategory: "stores",
     relatedResultsFor: "Related results for",
     retrySearch: "Try another search",
@@ -1753,9 +2133,9 @@ const MOBILITY_I18N = {
     restaurantsFoundOne: "Encontrei o restaurante {name}.",
     restaurantsFoundOneFloor: "Encontrei o restaurante {name} no {floor}.",
     restaurantsFoundMany: "Encontrei {count} restaurantes para {query}.",
-    storeSearchTitle: "Buscar lojas",
+    storeSearchTitle: "Explore as categorias do mall",
     storeSearchHint: "Diga o nome de uma loja ou digite abaixo.",
-    storeSearchPlaceholder: "Ex: Nike, Zara, banheiros…",
+    storeSearchPlaceholder: "Buscar",
     storeSearchBtn: "Buscar",
     storeSearchVoiceHint: "Você também pode usar o botão de voz abaixo.",
     categories: "Categorias",
@@ -1765,8 +2145,11 @@ const MOBILITY_I18N = {
     categoriesLoading: "Carregando categorias…",
     popularCategoriesTitle: "Categorias populares",
     popularCategoriesLoading: "Carregando…",
+    viewAllCategories: "Ver todas as categorias",
+    gastronomy: "Gastronomia",
+    apparel: "Vestuário",
     backCategories: "← Ver categorias",
-    backSearch: "← Buscar lojas",
+    backSearch: "← Catálogo",
     storesInCategory: "lojas",
     relatedResultsFor: "Resultados relacionados para",
     retrySearch: "Tentar outra busca",
@@ -2054,13 +2437,15 @@ function applyStoreSearchLandingLocale() {
   }
 
   const categoriesBtn = document.getElementById("storeCategoriesBtn");
-  if (categoriesBtn) categoriesBtn.textContent = t("categories");
+  if (categoriesBtn) categoriesBtn.textContent = t("viewAllCategories") || t("categories");
 
   const popularTitle = document.getElementById("popularCategoriesTitle");
   if (popularTitle) popularTitle.textContent = t("popularCategoriesTitle");
 
   const voiceHint = document.getElementById("store-search-voice-hint");
   if (voiceHint) voiceHint.textContent = t("storeSearchVoiceHint");
+
+  renderCatalogFeaturedGrid();
 }
 
 function normalizeCategoryKey(value) {
@@ -2094,7 +2479,10 @@ function getPopularCategoryPriorityTokens() {
 }
 
 function pickPopularCategories(categories, limit) {
-  const list = Array.isArray(categories) ? categories.slice() : [];
+  const list = (Array.isArray(categories) ? categories.slice() : []).filter(function (cat) {
+    const key = normalizeCategoryKey(cat && (cat.key || cat.name));
+    return !!CENCOMALL_CATEGORY_LABEL_BY_KEY[key];
+  });
   const max = Math.max(1, Number(limit) || 6);
   if (!list.length) return [];
 
@@ -2132,67 +2520,79 @@ function pickPopularCategories(categories, limit) {
 }
 
 async function renderPopularCategoriesLanding() {
-  const wrap = document.getElementById("popularCategoriesWrap");
-  const chips = document.getElementById("popularCategoriesChips");
-  if (!wrap || !chips) return;
+  return renderCatalogFeaturedGrid();
+}
+
+function catalogIconSrc(fileName) {
+  const version = typeof CENCOMALL_CATEGORY_ICON_VERSION !== "undefined" ? CENCOMALL_CATEGORY_ICON_VERSION : "20260728-1221";
+  return "../shared/category-icons/" + fileName + "?v=" + encodeURIComponent(version);
+}
+
+function buildCatalogTileHtml(tile) {
+  const sizeClass = tile.size === "large" ? "is-large" : "is-small";
+  const iconHtml = `<img class="cm-catalog-tile-icon" src="${escapeHtml(tile.iconSrc)}" alt="" loading="lazy" />`;
+  return `
+    <button class="cm-catalog-tile ${sizeClass}" type="button"
+      onclick="${tile.onclick}"
+      aria-label="${escapeHtml(tile.label)}">
+      ${iconHtml}
+      <span class="cm-catalog-tile-label">${escapeHtml(tile.label)}</span>
+    </button>`;
+}
+
+async function renderCatalogFeaturedGrid() {
+  const grid = document.getElementById("catalogFeaturedGrid");
+  if (!grid) return;
 
   if (!shouldUseLocalMarketCatalog()) {
-    wrap.style.display = "none";
+    grid.innerHTML = "";
     return;
   }
 
-  wrap.style.display = "";
-  chips.innerHTML = `<span class="cm-popular-category-chip is-loading">${escapeHtml(t("popularCategoriesLoading"))}</span>`;
-
-  if (typeof MarketSearch === "undefined" || !MarketSearch.loadCatalog || !MarketSearch.listCategories) {
-    wrap.style.display = "none";
-    chips.innerHTML = "";
-    return;
+  if (typeof ServicesCatalog !== "undefined" && ServicesCatalog.loadCatalog) {
+    try { await ServicesCatalog.loadCatalog(); } catch (eSvc) { /* optional */ }
   }
 
-  try {
-    await MarketSearch.loadCatalog();
-    if (typeof ServicesCatalog !== "undefined" && ServicesCatalog.loadCatalog) {
-      try { await ServicesCatalog.loadCatalog(); } catch (eSvc) { /* optional */ }
-    }
-    const data = MarketSearch.listCategories();
-    const popular = pickPopularCategories(data.categories || [], 6);
-    const serviceHtml = buildPopularServiceChipsHtml();
-    if (!popular.length && !serviceHtml) {
-      wrap.style.display = "none";
-      chips.innerHTML = "";
-      return;
-    }
+  // Featured catalog without "Tiendas": 2 popular store categories + services shortcuts.
+  // Icons from DS-Bricks-Cenco-Malls-1 (solid unicolor).
+  const tiles = [
+    {
+      size: "large",
+      label: t("gastronomy"),
+      iconSrc: catalogIconSrc("kitchen.svg"),
+      onclick: "selectStoreCategory(decodeURIComponent('" + encodeURIComponent("gastronomia") + "'))",
+    },
+    {
+      size: "large",
+      label: t("apparel") || "Vestuario",
+      iconSrc: catalogIconSrc("shirt.svg"),
+      onclick: "selectStoreCategory(decodeURIComponent('" + encodeURIComponent("vestuario") + "'))",
+    },
+    {
+      size: "small",
+      label: t("bathrooms"),
+      iconSrc: catalogIconSrc("restroom.svg"),
+      onclick: "selectPopularService('banos')",
+    },
+    {
+      size: "small",
+      label: t("cowork"),
+      iconSrc: catalogIconSrc("laptop.svg"),
+      onclick: "selectPopularService('cowork')",
+    },
+    {
+      size: "small",
+      label: t("services"),
+      iconSrc: catalogIconSrc("grid-add.svg"),
+      onclick: "selectStoreCategory(decodeURIComponent('" + encodeURIComponent("servicios") + "'))",
+    },
+  ];
 
-    const storeHtml = popular.map((cat) => {
-      const canonicalName = String(cat.name || "");
-      const displayName = escapeHtml(localizeCategoryName(canonicalName));
-      const jsName = encodeURIComponent(canonicalName);
-      return `<button class="cm-popular-category-chip" type="button" onclick="selectStoreCategory(decodeURIComponent('${jsName}'))">${displayName}</button>`;
-    }).join("");
-
-    chips.innerHTML = serviceHtml + storeHtml;
-  } catch (e) {
-    console.warn("renderPopularCategoriesLanding failed", e);
-    wrap.style.display = "none";
-    chips.innerHTML = "";
-  }
+  grid.innerHTML = tiles.map(buildCatalogTileHtml).join("");
 }
 
 function buildPopularServiceChipsHtml() {
-  const showServices =
-    typeof ServicesCatalog !== "undefined" &&
-    (ServicesCatalog.isReady ? ServicesCatalog.isReady() : true);
-  if (!showServices) return "";
-
-  const bathLabel = escapeHtml(t("bathrooms"));
-  const elevLabel = escapeHtml(t("elevators"));
-  const coworkLabel = escapeHtml(t("cowork"));
-  return [
-    `<button class="cm-popular-category-chip is-service" type="button" onclick="selectPopularService('banos')">${bathLabel}</button>`,
-    `<button class="cm-popular-category-chip is-service" type="button" onclick="selectPopularService('ascensores')">${elevLabel}</button>`,
-    `<button class="cm-popular-category-chip is-service" type="button" onclick="selectPopularService('cowork')">${coworkLabel}</button>`,
-  ].join("");
+  return "";
 }
 
 function selectPopularService(query) {
@@ -2203,13 +2603,18 @@ function selectPopularService(query) {
 }
 
 window.selectPopularService = selectPopularService;
+window.renderCatalogFeaturedGrid = renderCatalogFeaturedGrid;
 
 function buildStoreSearchLandingHtml() {
   return `
       <div class="cm-panel cm-search-landing visible" id="store-search-landing">
         <h2 class="cm-search-landing-title" id="store-search-title">${escapeHtml(t("storeSearchTitle"))}</h2>
-        <p class="cm-search-landing-hint" id="store-search-hint">${escapeHtml(t("storeSearchHint"))}</p>
-        <div class="cm-search-row">
+        <p class="cm-search-landing-hint" id="store-search-hint" hidden>${escapeHtml(t("storeSearchHint"))}</p>
+        <div class="cm-catalog-search">
+          <svg class="cm-catalog-search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M16.5 16.5L21 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
           <input
             class="cm-search-input"
             id="storeSearchInput"
@@ -2218,14 +2623,9 @@ function buildStoreSearchLandingHtml() {
             enterkeyhint="search"
             placeholder="${escapeHtml(t("storeSearchPlaceholder"))}"
           />
-          <button class="cm-search-btn" id="storeSearchBtn" type="button">${escapeHtml(t("storeSearchBtn"))}</button>
         </div>
-        <button class="cm-categories-btn" id="storeCategoriesBtn" type="button">${escapeHtml(t("categories"))}</button>
-        <div class="cm-popular-categories" id="popularCategoriesWrap">
-          <p class="cm-popular-categories-title" id="popularCategoriesTitle">${escapeHtml(t("popularCategoriesTitle"))}</p>
-          <div class="cm-popular-categories-chips" id="popularCategoriesChips"></div>
-        </div>
-        <p class="cm-search-voice-hint" id="store-search-voice-hint">${escapeHtml(t("storeSearchVoiceHint"))}</p>
+        <div class="cm-catalog-grid" id="catalogFeaturedGrid" aria-label="Accesos rápidos"></div>
+        <button class="cm-catalog-all-btn" id="storeCategoriesBtn" type="button">${escapeHtml(t("viewAllCategories") || t("categories"))}</button>
       </div>`;
 }
 
@@ -2747,13 +3147,13 @@ function applyMobilityLocale() {
   if (surveyDismissBtn) surveyDismissBtn.setAttribute("aria-label", t("surveyDismiss"));
 
   const mapBack = document.getElementById("map-back-btn");
-  if (mapBack) mapBack.textContent = t("back");
+  if (mapBack) mapBack.setAttribute("aria-label", t("back").replace(/^←\s*/, ""));
 
   const headerBack = document.getElementById("cm-header-back-btn");
-  if (headerBack) headerBack.textContent = t("back");
+  if (headerBack) headerBack.setAttribute("aria-label", t("back").replace(/^←\s*/, ""));
 
   const headerClose = document.getElementById("cm-header-close-btn");
-  if (headerClose) headerClose.textContent = t("close");
+  if (headerClose) headerClose.setAttribute("aria-label", t("close"));
 
   const mapTitle = document.getElementById("map-view-title-text");
   if (mapTitle) mapTitle.textContent = t("map");
@@ -2772,8 +3172,13 @@ function applyMobilityLocale() {
     renderPopularCategoriesLanding();
   }
 
-  const categoriesGrid = document.querySelector(".cm-category-grid");
-  if (categoriesGrid && typeof MarketSearch !== "undefined" && MarketSearch.listCategories) {
+  const categoriesGrid = document.querySelector(".cm-category-grid, .cm-category-list");
+  if (
+    categoriesGrid &&
+    !(lastMarketPayload && lastMarketPayload.resultType === "az") &&
+    typeof MarketSearch !== "undefined" &&
+    MarketSearch.listCategories
+  ) {
     try {
       const data = MarketSearch.listCategories();
       if (data.categories && data.categories.length) renderStoreCategories(data.categories);
@@ -2873,6 +3278,111 @@ function handleMobilityBack() {
 
 window.handleMobilityBack = handleMobilityBack;
 
+// CencoMall uses a fixed set of ~20 categories in its app/web.
+// We filter the local catalog categories (~63) down to these.
+const CENCOMALL_CATEGORIES_20 = [
+  "Accesorios",
+  "Autocity",
+  "Automotora",
+  "Belleza",
+  "Calzado",
+  "Deportes y Outdoor",
+  "Entretención",
+  "Grandes Tiendas",
+  "Hogar",
+  "Infantil",
+  "Juguetería y Regalos",
+  "Librería y Papelería",
+  "Óptica",
+  "Pasatiempos y Manualidades",
+  "Salud",
+  "Servicios",
+  "Supermercados",
+  "Tecnología y Accesorios",
+  "Tiendas Especializadas",
+  "Vestuario",
+];
+
+const CENCOMALL_CATEGORY_LABEL_BY_KEY = (function buildLabelMap() {
+  function normalizeCategoryKey(value) {
+    return String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  const map = {};
+  CENCOMALL_CATEGORIES_20.forEach(function (label) {
+    map[normalizeCategoryKey(label)] = label;
+  });
+  return map;
+})();
+
+const CENCOMALL_CATEGORY_ICON_BY_KEY = {
+  accesorios: "../shared/category-icons/accessories.svg",
+  autocity: "../shared/category-icons/grid-add.svg",
+  automotora: "../shared/category-icons/car.svg",
+  belleza: "../shared/category-icons/beauty.svg",
+  calzado: "../shared/category-icons/shoe.svg",
+  "deportes y outdoor": "../shared/category-icons/sports.svg",
+  entretencion: "../shared/category-icons/popcorn.svg",
+  "grandes tiendas": "../shared/category-icons/store.svg",
+  hogar: "../shared/category-icons/home.svg",
+  infantil: "../shared/category-icons/smile.svg",
+  "jugueteria y regalos": "../shared/category-icons/toy.svg",
+  "libreria y papeleria": "../shared/category-icons/book.svg",
+  optica: "../shared/category-icons/eyeglass.svg",
+  "pasatiempos y manualidades": "../shared/category-icons/scissors.svg",
+  salud: "../shared/category-icons/aid-kit.svg",
+  servicios: "../shared/category-icons/grid-add.svg",
+  supermercados: "../shared/category-icons/cart.svg",
+  "tecnologia y accesorios": "../shared/category-icons/desktop.svg",
+  "tiendas especializadas": "../shared/category-icons/shopping-bag.svg",
+  vestuario: "../shared/category-icons/shirt.svg",
+};
+const CENCOMALL_CATEGORY_ICON_VERSION = "20260728-1225";
+
+function normalizeCategoryKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function resolveCenco20Categories(categories) {
+  const byKey = {};
+  (categories || []).forEach(function (c) {
+    if (!c || !c.key) return;
+    byKey[String(c.key)] = c;
+  });
+
+  const list = [];
+  CENCOMALL_CATEGORIES_20.forEach(function (label) {
+    const key = normalizeCategoryKey(label);
+    const match = byKey[key];
+    if (!match) {
+      // Fallback: try to find a category where its normalized name matches.
+      const relaxed = (categories || []).find(function (c) {
+        return c && normalizeCategoryKey(c.name) === key;
+      });
+      if (!relaxed) {
+        console.warn("Missing cenco category in local catalog:", label, "key=", key);
+        return;
+      }
+      list.push({ key, label, storeCount: relaxed.storeCount || 0 });
+      return;
+    }
+    list.push({ key, label, storeCount: match.storeCount || 0 });
+  });
+  return list;
+}
+
 async function openStoreCategories() {
   if (!shouldUseLocalMarketCatalog()) return;
   if (typeof MarketSearch === "undefined") {
@@ -2896,7 +3406,8 @@ async function openStoreCategories() {
   try {
     await MarketSearch.loadCatalog();
     const data = MarketSearch.listCategories();
-    renderStoreCategories(data.categories || []);
+    const baseCategories = resolveCenco20Categories(data.categories || []);
+    renderStoreCategories(baseCategories);
   } catch (e) {
     console.error("openStoreCategories failed", e);
     showSearchError(t("loadError"));
@@ -2917,29 +3428,347 @@ function renderStoreCategories(categories) {
     return;
   }
 
-  const chips = categories.map(function (cat) {
-    const canonicalName = String(cat.name || "");
-    const displayName = escapeHtml(localizeCategoryName(canonicalName));
-    const jsName = encodeURIComponent(canonicalName);
-    return `
-      <button class="cm-category-chip" type="button" onclick="selectStoreCategory(decodeURIComponent('${jsName}'))">
-        <span class="cm-category-chip-name">${displayName}</span>
-        <span class="cm-category-chip-count">${cat.storeCount} ${escapeHtml(t("storesInCategory"))}</span>
-      </button>`;
-  }).join("");
+  const baseCategories = categories.slice(0);
+  let currentTab = "categories";
+  let azStoreResults = Array.isArray(cachedAZStoreResults) ? cachedAZStoreResults.slice(0) : null;
+  let letterIndexObserver = null;
+  const LETTER_INDEX_KEYS = ["#"].concat("ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")).concat(["Ñ"]);
+
+  function getNameAZLetter(value) {
+    const name = String(value || "").trim();
+    if (!name) return "#";
+    const first = name.charAt(0).toUpperCase();
+    if (/[0-9]/.test(first)) return "#";
+    if (first === "Ñ") return "Ñ";
+    const base = first.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (/[A-Z]/.test(base)) return base;
+    return "#";
+  }
+
+  function getStoreAZLetter(store) {
+    return getNameAZLetter(store && (store.brand || store.name));
+  }
+
+  function collectAvailableLetters(tab) {
+    const available = {};
+    if (tab === "az") {
+      (azStoreResults || []).forEach(function (store) {
+        available[getStoreAZLetter(store)] = true;
+      });
+    } else {
+      baseCategories.forEach(function (cat) {
+        available[getNameAZLetter(cat.label || cat.key)] = true;
+      });
+    }
+    return available;
+  }
+
+  function buildLetterIndexHtml(availableMap, activeLetter) {
+    return LETTER_INDEX_KEYS.map(function (letter) {
+      const enabled = !!(availableMap && availableMap[letter]);
+      const active = enabled && activeLetter === letter;
+      const classes = [
+        "cm-letter-index-btn",
+        enabled ? "" : "is-disabled",
+        active ? "is-active" : "",
+      ].filter(Boolean).join(" ");
+      return `
+        <button class="${classes}" type="button"
+          data-letter="${escapeHtml(letter)}"
+          ${enabled ? `onclick="jumpToDirectoryLetter('${escapeHtml(letter)}')"` : "disabled"}
+          aria-label="${escapeHtml(letter)}"
+          aria-disabled="${enabled ? "false" : "true"}">${escapeHtml(letter)}</button>`;
+    }).join("");
+  }
+
+  function refreshLetterIndex(activeLetter) {
+    const nav = document.getElementById("cm-letter-index");
+    if (!nav) return;
+    const available = collectAvailableLetters(currentTab);
+    const firstEnabled = LETTER_INDEX_KEYS.find(function (l) { return available[l]; }) || "";
+    nav.innerHTML = buildLetterIndexHtml(available, activeLetter || firstEnabled);
+  }
+
+  function setActiveLetterIndex(letter) {
+    const nav = document.getElementById("cm-letter-index");
+    if (!nav) return;
+    nav.querySelectorAll(".cm-letter-index-btn").forEach(function (btn) {
+      btn.classList.toggle("is-active", btn.getAttribute("data-letter") === letter);
+    });
+  }
+
+  function disconnectLetterIndexObserver() {
+    if (letterIndexObserver) {
+      letterIndexObserver.disconnect();
+      letterIndexObserver = null;
+    }
+  }
+
+  function bindLetterIndexObserver() {
+    disconnectLetterIndexObserver();
+    const listWrap = document.getElementById("cm-category-list-wrap");
+    if (!listWrap || typeof IntersectionObserver === "undefined") return;
+
+    const targets = listWrap.querySelectorAll("[data-letter]");
+    if (!targets.length) return;
+
+    letterIndexObserver = new IntersectionObserver(function (entries) {
+      const visible = entries
+        .filter(function (e) { return e.isIntersecting; })
+        .sort(function (a, b) { return a.boundingClientRect.top - b.boundingClientRect.top; });
+      if (!visible.length) return;
+      const letter = visible[0].target.getAttribute("data-letter");
+      if (letter) setActiveLetterIndex(letter);
+    }, {
+      root: null,
+      rootMargin: "-30% 0px -55% 0px",
+      threshold: [0, 0.1, 1],
+    });
+
+    targets.forEach(function (el) { letterIndexObserver.observe(el); });
+  }
+
+  window.jumpToDirectoryLetter = function (letter) {
+    const key = String(letter || "");
+    if (!key) return;
+    const listWrap = document.getElementById("cm-category-list-wrap");
+    if (!listWrap) return;
+    const target = listWrap.querySelector('[data-letter="' + key.replace(/"/g, "") + '"]');
+    if (!target) return;
+    setActiveLetterIndex(key);
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  function buildCategoryRows(categoryList) {
+    return categoryList
+      .map(function (cat) {
+        const jsKey = encodeURIComponent(String(cat.key || ""));
+        const iconBaseSrc = CENCOMALL_CATEGORY_ICON_BY_KEY[String(cat.key || "")] || "";
+        const iconSrc = iconBaseSrc ? (iconBaseSrc + "?v=" + encodeURIComponent(CENCOMALL_CATEGORY_ICON_VERSION)) : "";
+        const letter = getNameAZLetter(cat.label || cat.key);
+        return `
+          <button class="cm-category-row" type="button" data-letter="${escapeHtml(letter)}"
+            onclick="selectStoreCategory(decodeURIComponent('${jsKey}'))"
+            aria-label="${escapeHtml(cat.label)}">
+            <div class="cm-category-row-left">
+              <img class="cm-category-row-icon" src="${escapeHtml(iconSrc)}" alt="" aria-hidden="true" loading="lazy" />
+              <div class="cm-category-row-text">
+                <div class="cm-category-row-name">${escapeHtml(cat.label)}</div>
+                <div class="cm-category-row-count">${escapeHtml(String(cat.storeCount || 0))} ${escapeHtml(t("storesInCategory"))}</div>
+              </div>
+            </div>
+            <svg class="cm-category-row-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/>
+            </svg>
+          </button>`;
+      })
+      .join("");
+  }
+
+  function groupStoresByAZLetter(stores) {
+    const groups = {};
+    (stores || []).forEach(function (store) {
+      const letter = getStoreAZLetter(store);
+      if (!groups[letter]) groups[letter] = [];
+      groups[letter].push(store);
+    });
+    const letters = Object.keys(groups).sort(function (a, b) {
+      if (a === "#") return -1;
+      if (b === "#") return 1;
+      return a.localeCompare(b, "es");
+    });
+    return letters.map(function (letter) {
+      return { letter: letter, stores: groups[letter] };
+    });
+  }
+
+  function buildAZStoreRows(stores) {
+    if (!stores || !stores.length) {
+      return `
+        <div class="cm-empty">
+          <div class="cm-empty-copy">${escapeHtml(t("storesNotFound"))}</div>
+        </div>`;
+    }
+    // Flat index must match lastMarketPayload.results for openStoreMap(idx).
+    let flatIdx = 0;
+    return groupStoresByAZLetter(stores)
+      .map(function (group) {
+        const rows = group.stores
+          .map(function (store) {
+            const idx = flatIdx++;
+            const name = String((store && (store.brand || store.name)) || "Tienda");
+            return `
+              <button class="cm-az-store-row" type="button"
+                onclick="openStoreMap(${idx})"
+                aria-label="${escapeHtml(name)}">
+                <div class="cm-az-store-left">
+                  ${renderAZStoreIcon(store)}
+                  <span class="cm-az-store-name">${escapeHtml(name)}</span>
+                </div>
+                <svg class="cm-category-row-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/>
+                </svg>
+              </button>`;
+          })
+          .join("");
+        return `<div class="cm-az-letter" role="heading" aria-level="3" data-letter="${escapeHtml(group.letter)}" id="az-section-${escapeHtml(group.letter)}">${escapeHtml(group.letter)}</div>${rows}`;
+      })
+      .join("");
+  }
+
+  function updateCategoriesHead(tab, storeCount) {
+    const titleEl = document.getElementById("cm-categories-title");
+    const countEl = document.getElementById("cm-categories-count");
+    const hintEl = document.getElementById("cm-categories-hint");
+    if (tab === "az") {
+      if (titleEl) titleEl.textContent = "A-Z";
+      if (countEl) countEl.textContent = String(storeCount || 0);
+      if (hintEl) hintEl.textContent = "";
+    } else {
+      if (titleEl) titleEl.textContent = t("categories");
+      if (countEl) countEl.textContent = String(baseCategories.length);
+      if (hintEl) hintEl.textContent = t("categoriesHint");
+    }
+  }
+
+  function commitAZPayload(stores) {
+    cachedAZStoreResults = stores || [];
+    lastMarketPayload = {
+      type: "market_search",
+      query: "A-Z",
+      results: stores || [],
+      totalMatches: (stores || []).length,
+      catalogSize: MarketSearch.getCatalogSize ? MarketSearch.getCatalogSize() : (stores || []).length,
+      source: "market-catalog-az",
+      resultType: "az",
+    };
+  }
+
+  async function computeAZStoreResults() {
+    const seen = {};
+    const stores = [];
+    for (let i = 0; i < baseCategories.length; i++) {
+      const cat = baseCategories[i];
+      try {
+        const res = MarketSearch.searchByCategory(cat.key, { limit: 200 });
+        if (res && Array.isArray(res.results) && res.results.length) {
+          res.results.forEach(function (store) {
+            const dedupeKey = normalizeCategoryKey(store && (store.brand || store.name || store.id || ""));
+            if (!dedupeKey || seen[dedupeKey]) return;
+            seen[dedupeKey] = true;
+            stores.push(store);
+          });
+        }
+      } catch (e) {
+        // Ignore category if it fails to resolve.
+      }
+      if (i % 4 === 3) await new Promise(function (r) { return setTimeout(r, 0); });
+    }
+    stores.sort(function (a, b) {
+      const an = String((a && (a.brand || a.name)) || "");
+      const bn = String((b && (b.brand || b.name)) || "");
+      const al = getStoreAZLetter(a);
+      const bl = getStoreAZLetter(b);
+      if (al === "#" && bl !== "#") return -1;
+      if (bl === "#" && al !== "#") return 1;
+      return an.localeCompare(bn, "es", { sensitivity: "base", numeric: true });
+    });
+    return stores;
+  }
+
+  function paintAZList(stores) {
+    const listWrap = document.getElementById("cm-category-list-wrap");
+    if (!listWrap) return;
+    commitAZPayload(stores);
+    updateCategoriesHead("az", (stores || []).length);
+    listWrap.innerHTML = buildAZStoreRows(stores || []);
+    refreshLetterIndex();
+    bindLetterIndexObserver();
+  }
+
+  window.setStoreCategoriesTab = function (tab) {
+    if (tab !== "categories" && tab !== "az") return;
+    currentTab = tab;
+
+    const tabsWrap = document.getElementById("cm-category-tabs-wrap");
+    if (tabsWrap) {
+      const catBtn = tabsWrap.querySelector('[data-tab="categories"]');
+      const azBtn = tabsWrap.querySelector('[data-tab="az"]');
+      if (catBtn) {
+        catBtn.classList.toggle("is-active", tab === "categories");
+        catBtn.setAttribute("aria-selected", tab === "categories" ? "true" : "false");
+      }
+      if (azBtn) {
+        azBtn.classList.toggle("is-active", tab === "az");
+        azBtn.setAttribute("aria-selected", tab === "az" ? "true" : "false");
+      }
+    }
+
+    if (tab === "categories") {
+      const listWrap = document.getElementById("cm-category-list-wrap");
+      if (!listWrap) return;
+      updateCategoriesHead("categories");
+      listWrap.innerHTML = buildCategoryRows(baseCategories);
+      refreshLetterIndex();
+      bindLetterIndexObserver();
+      return;
+    }
+
+    // A-Z: same panel, stores grouped by first letter (# for numbers).
+    const listWrap = document.getElementById("cm-category-list-wrap");
+    if (!listWrap) return;
+
+    if (azStoreResults) {
+      paintAZList(azStoreResults);
+      return;
+    }
+
+    listWrap.innerHTML = `
+      <div class="cm-empty">
+        <div class="cm-empty-copy">${escapeHtml(t("categoriesLoading"))}</div>
+      </div>`;
+    updateCategoriesHead("az", "…");
+    refreshLetterIndex();
+
+    computeAZStoreResults().then(function (stores) {
+      azStoreResults = stores || [];
+      if (currentTab !== "az") return;
+      paintAZList(azStoreResults);
+    }).catch(function () {
+      if (currentTab !== "az") return;
+      azStoreResults = [];
+      paintAZList([]);
+    });
+  };
 
   document.getElementById("resultado").innerHTML = `
     <div class="cm-panel fade-in">
       <div class="cm-results-sticky">
         <button class="cm-back-link" type="button" onclick="returnToStoreSearchLanding()">${escapeHtml(t("backSearch"))}</button>
         <div class="cm-results-head">
-          <h2 class="cm-results-title">${escapeHtml(t("categories"))}</h2>
-          <span class="cm-results-count">${categories.length}</span>
+          <h2 class="cm-results-title" id="cm-categories-title">${escapeHtml(t("categories"))}</h2>
+          <span class="cm-results-count" id="cm-categories-count">${categories.length}</span>
         </div>
-        <p class="cm-results-query">${escapeHtml(t("categoriesHint"))}</p>
+        <div class="cm-category-tabs" id="cm-category-tabs-wrap" role="tablist" aria-label="Tabs Categorías">
+          <button class="cm-category-tab-btn is-active" type="button" role="tab" aria-selected="true" data-tab="categories"
+            onclick="setStoreCategoriesTab('categories')">${escapeHtml(t("categories"))}</button>
+          <button class="cm-category-tab-btn" type="button" role="tab" aria-selected="false" data-tab="az"
+            onclick="setStoreCategoriesTab('az')">A-Z</button>
+        </div>
+        <p class="cm-results-query" id="cm-categories-hint">${escapeHtml(t("categoriesHint"))}</p>
       </div>
-      <div class="cm-category-grid">${chips}</div>
+      <div class="cm-category-browse">
+        <div id="cm-category-list-wrap" class="cm-category-list">${buildCategoryRows(baseCategories)}</div>
+        <nav id="cm-letter-index" class="cm-letter-index" aria-label="Índice alfabético">${buildLetterIndexHtml(collectAvailableLetters("categories"))}</nav>
+      </div>
     </div>`;
+
+  bindLetterIndexObserver();
+
+  if (preferredCategoriesTab === "az") {
+    preferredCategoriesTab = "categories";
+    window.setStoreCategoriesTab("az");
+  }
 }
 
 async function selectStoreCategory(categoryName) {
@@ -2975,7 +3804,12 @@ function renderMarketResultsActions() {
 function renderMarketResultsLabel(payload) {
   const query = payload.query || "";
   if (payload.resultType === "category") {
-    return `${escapeHtml(t("category"))}: <strong>${escapeHtml(localizeCategoryName(query))}</strong>`;
+    const key = normalizeCategoryKey(query);
+    const label = CENCOMALL_CATEGORY_LABEL_BY_KEY[key];
+    return `${escapeHtml(t("category"))}: <strong>${escapeHtml(label || localizeCategoryName(query))}</strong>`;
+  }
+  if (payload.resultType === "az") {
+    return `<strong>A-Z</strong>`;
   }
   if (payload.resultType === "related") {
     return `${escapeHtml(t("relatedResultsFor"))}: <strong>${escapeHtml(query)}</strong>`;
@@ -3778,8 +4612,13 @@ function onStoreDetailMediaError(img) {
 function onStoreLogoError(img) {
   const initials = img.getAttribute("data-initials") || "?";
   const hadDetail = img.classList.contains("store-detail-logo");
+  const isAz = img.classList.contains("cm-az-store-icon");
   const div = document.createElement("div");
-  div.className = hadDetail ? "store-initials store-detail-logo" : "store-initials";
+  if (isAz) {
+    div.className = "cm-az-store-icon cm-az-store-initials";
+  } else {
+    div.className = hadDetail ? "store-initials store-detail-logo" : "store-initials";
+  }
   div.textContent = initials;
   img.replaceWith(div);
 }
@@ -3793,6 +4632,16 @@ function renderStoreAvatar(result, detail) {
     return `<div class="store-initials${extraClass}">${escapeHtml(initials)}</div>`;
   }
   return `<img class="store-logo${extraClass}" src="${escapeHtml(logoUrl)}" alt="" loading="lazy" data-initials="${escapeHtml(initials)}" onerror="onStoreLogoError(this)" />`;
+}
+
+function renderAZStoreIcon(store) {
+  const name = String((store && (store.brand || store.name)) || "Tienda");
+  const initials = getStoreInitials(name);
+  const logoUrl = resolveStoreLogoUrl(store);
+  if (!logoUrl) {
+    return `<div class="cm-az-store-icon cm-az-store-initials" aria-hidden="true">${escapeHtml(initials)}</div>`;
+  }
+  return `<img class="cm-az-store-icon" src="${escapeHtml(logoUrl)}" alt="" loading="lazy" aria-hidden="true" data-initials="${escapeHtml(initials)}" onerror="onStoreLogoError(this)" />`;
 }
 
 function renderStoreDetailMedia(store) {
@@ -4695,6 +5544,14 @@ function renderMarketResults(payload) {
   lastMarketPayload = payload;
   hideWelcome();
 
+  // A-Z lives in the categories panel with letter separators; restore that UI.
+  if (payload.resultType === "az") {
+    cachedAZStoreResults = results.slice(0);
+    preferredCategoriesTab = "az";
+    openStoreCategories();
+    return;
+  }
+
   if (query) {
     setStoreSearchInputs(query);
     const inputEl = document.getElementById("storeSearchInput");
@@ -4717,7 +5574,7 @@ function renderMarketResults(payload) {
   }
 
   if (results.length === 0) {
-    const backLink = payload.resultType === "category"
+    const backLink = payload.resultType === "category" || payload.resultType === "az"
       ? `<button class="cm-back-link" type="button" onclick="openStoreCategories()">${escapeHtml(t("backCategories"))}</button>`
       : "";
     document.getElementById("resultado").innerHTML = `
@@ -4742,7 +5599,7 @@ function renderMarketResults(payload) {
   }
 
   const cardsHtml = results.map((r, idx) => renderStoreCard(r, idx)).join("");
-  const backLink = payload.resultType === "category"
+  const backLink = payload.resultType === "category" || payload.resultType === "az"
     ? `<button class="cm-back-link" type="button" onclick="openStoreCategories()">${escapeHtml(t("backCategories"))}</button>`
     : "";
 
@@ -4763,7 +5620,7 @@ function renderMarketResults(payload) {
       <div class="store-grid">${cardsHtml}</div>
     </div>`;
   preloadMapVxBaseMap();
-  if (payload.source !== "unity") {
+  if (payload.source !== "unity" && payload.resultType !== "az") {
     speakMarketResultsFound(payload);
   }
 }

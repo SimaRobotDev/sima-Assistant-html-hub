@@ -62,16 +62,34 @@
 
     .em-header-close {
       appearance: none;
-      border: 1px solid rgba(255, 255, 255, 0.55);
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: none;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.2);
+      background: transparent;
       color: #fff;
-      font-size: 14px;
-      font-weight: 700;
-      padding: 8px 14px;
       cursor: pointer;
-      white-space: nowrap;
       flex-shrink: 0;
+    }
+
+    .em-header-close:active {
+      transform: scale(0.96);
+      opacity: 0.9;
+    }
+
+    .em-header-close .cm-header-back-icon {
+      display: block;
+      width: 24px;
+      height: 24px;
+    }
+
+    .em-header-close .cm-header-back-icon path {
+      fill: currentColor;
     }
 
     .alert-banner {
@@ -197,7 +215,13 @@
   <div class="app-shell">
     <div id="mainUI">
       <header class="em-header">
-        <button class="em-header-close" id="btnCloseHeader" type="button" onclick="closeWebview()">Cerrar</button>
+        <button class="em-header-close" id="btnCloseHeader" type="button" onclick="closeWebview()" aria-label="Volver">
+          <svg class="cm-header-back-icon" width="24" height="24" viewBox="8 8 24 24" aria-hidden="true" focusable="false">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 20C12 19.4477 12.4477 19 13 19H27C27.5523 19 28 19.4477 28 20C28 20.5523 27.5523 21 27 21H13C12.4477 21 12 20.5523 12 20Z"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12.2929 19.2929C12.6834 18.9024 13.3166 18.9024 13.7071 19.2929L19.7071 25.2929C20.0976 25.6834 20.0976 26.3166 19.7071 26.7071C19.3166 27.0976 18.6834 27.0976 18.2929 26.7071L12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929Z"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7071 13.2929C20.0976 13.6834 20.0976 14.3166 19.7071 14.7071L13.7071 20.7071C13.3166 21.0976 12.6834 21.0976 12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929L18.2929 13.2929C18.6834 12.9024 19.3166 12.9024 19.7071 13.2929Z"/>
+          </svg>
+        </button>
         <h1 id="title">Emergencia</h1>
       </header>
 
@@ -280,7 +304,8 @@
       document.getElementById("alertTitle").textContent = SimaLocale.t(I18N, "alertTitle", locale);
       document.getElementById("alertBody").textContent = SimaLocale.t(I18N, "alertBody", locale);
       document.getElementById("btnCloseMain").textContent = SimaLocale.t(I18N, "close", locale);
-      document.getElementById("btnCloseHeader").textContent = SimaLocale.t(I18N, "close", locale);
+      const headerClose = document.getElementById("btnCloseHeader");
+      if (headerClose) headerClose.setAttribute("aria-label", SimaLocale.t(I18N, "close", locale));
       document.getElementById("btnCloseConnecting").textContent = SimaLocale.t(I18N, "close", locale);
       document.getElementById("btnBackConnecting").textContent = SimaLocale.t(I18N, "back", locale);
       document.getElementById("connectingTitle").textContent = SimaLocale.t(I18N, "connectingTitle", locale);

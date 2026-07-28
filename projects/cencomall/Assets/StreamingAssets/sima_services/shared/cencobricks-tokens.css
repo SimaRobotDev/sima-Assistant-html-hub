@@ -1,0 +1,371 @@
+/**
+ * Cencobricks Design System tokens (Cenco Malls)
+ * Source: Figma DS-Bricks-Cenco-Malls-1 (Fundamentals)
+ * fileKey: dwYBy94l7nL7pglvklN7MS
+ *
+ * Use --cb-* in new UI. Legacy --cm-* aliases keep existing pages working.
+ */
+:root {
+  /* ——— Fonts ——— */
+  --cb-font-title: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --cb-font-body: "Poppins", "Segoe UI", system-ui, sans-serif;
+
+  /* ——— Primary (900 = brand principal) ——— */
+  --cb-primary-50: #e7e8f2;
+  --cb-primary-100: #c4c4e0;
+  --cb-primary-200: #9e9fca;
+  --cb-primary-300: #797ab5;
+  --cb-primary-400: #5f5da5;
+  --cb-primary-500: #474296;
+  --cb-primary-600: #413a8d;
+  --cb-primary-700: #393182;
+  --cb-primary-800: #322776;
+  --cb-primary-900: #251660;
+
+  /* ——— Accent ——— */
+  --cb-accent-600: #00b1ff;
+  --cb-violet-500: #8200ff;
+
+  /* ——— Neutral ——— */
+  --cb-neutral-200: #c5c4d5;
+  --cb-neutral-400: #7d7a9d;
+  --cb-neutral-500: #645e89;
+  --cb-neutral-900: #372b57;
+
+  /* ——— Basic / surfaces ——— */
+  --cb-white: #ffffff;
+  --cb-bg-accent-light: #f5f1f8;
+  --cb-info-fill: #ecf0ff;
+  --cb-info-text: #001494;
+
+  /* ——— Spacing (px / rem @ 16) ——— */
+  --cb-space-3xs: 0.125rem; /* 2 */
+  --cb-space-xxs: 0.25rem; /* 4 */
+  --cb-space-xs: 0.5rem; /* 8 */
+  --cb-space-s: 0.75rem; /* 12 */
+  --cb-space-m: 1rem; /* 16 */
+  --cb-space-l: 1.5rem; /* 24 */
+  --cb-space-xl: 2rem; /* 32 */
+  --cb-space-xxl: 2.5rem; /* 40 */
+  --cb-space-3xl: 3rem; /* 48 */
+  --cb-space-4xl: 3.5rem; /* 56 */
+  --cb-space-5xl: 4rem; /* 64 */
+  --cb-space-6xl: 4.5rem; /* 72 */
+  --cb-space-7xl: 5rem; /* 80 */
+  --cb-space-8xl: 5.5rem; /* 88 */
+  --cb-space-9xl: 6rem; /* 96 */
+  --cb-space-10xl: 6.5rem; /* 104 */
+  --cb-space-11xl: 7rem; /* 112 */
+  --cb-space-12xl: 7.5rem; /* 120 */
+
+  /* ——— Radius (labels from Radius page) ——— */
+  --cb-radius-none: 0;
+  --cb-radius-2xs: 2px;
+  --cb-radius-xxs: 4px;
+  --cb-radius-s: 8px;
+  --cb-radius-m: 16px;
+  --cb-radius-l: 24px;
+  --cb-radius-xl: 32px;
+  --cb-radius-2xl: 40px;
+  --cb-radius-3xl: 48px;
+  --cb-radius-4xl: 56px;
+  --cb-radius-5xl: 64px;
+  --cb-radius-pill: 999px;
+
+  /* ——— Typography scale (base 16, ratio 1.25) ——— */
+  --cb-text-display-1: 11.625rem; /* 186 */
+  --cb-text-display-2: 9.312rem; /* 149 */
+  --cb-text-display-3: 7.438rem; /* 119 */
+  --cb-text-display-4: 5.938rem; /* 95 */
+  --cb-text-display-5: 4.75rem; /* 76 */
+  --cb-text-h1: 3.812rem; /* 61 */
+  --cb-text-h2: 3.062rem; /* 49 */
+  --cb-text-h3: 2.438rem; /* 39 */
+  --cb-text-h4: 1.938rem; /* 31 */
+  --cb-text-h5: 1.562rem; /* 25 */
+  --cb-text-h6: 1.25rem; /* 20 */
+  --cb-text-body-l: 1.25rem; /* 20 */
+  --cb-text-body-m: 1rem; /* 16 */
+  --cb-text-body-s: 0.875rem; /* 14 */
+  --cb-text-detail-m: 0.812rem; /* 13 */
+  --cb-text-detail-s: 0.75rem; /* 12 */
+  --cb-text-detail-xs: 0.625rem; /* 10 */
+
+  /* ——— Shadows ——— */
+  --cb-shadow-down-s:
+    0 3px 8px -1px rgba(24, 39, 75, 0.1),
+    0 4px 2px 0 rgba(24, 39, 75, 0.05);
+
+  /* ——— Principal Buttons (Figma 3244:3642) ——— */
+  --cb-btn-primary-fill: var(--cb-primary-900);
+  --cb-btn-primary-text: #f4f4f9;
+  --cb-btn-secondary-stroke: #584e80;
+  --cb-btn-secondary-text: #584e80;
+  --cb-btn-secondary-fill: transparent;
+  --cb-btn-radius: 999px;
+  --cb-btn-font: var(--cb-font-title);
+  --cb-btn-weight: 600;
+  --cb-btn-gap: var(--cb-space-xs);
+  /* size M (56) — default for totem CTAs */
+  --cb-btn-pad-y-m: 1rem; /* 16 */
+  --cb-btn-pad-x-m: 1.5rem; /* 24 */
+  --cb-btn-font-m: var(--cb-text-body-m);
+  --cb-btn-lh-m: 1.375rem; /* 22 */
+  /* size S (48) / XS (40) for compact card actions */
+  --cb-btn-pad-y-s: 0.75rem;
+  --cb-btn-pad-x-s: 1rem;
+  --cb-btn-font-s: 0.875rem;
+  --cb-btn-pad-y-xs: 0.5rem;
+  --cb-btn-pad-x-xs: 0.75rem;
+  --cb-btn-font-xs: 0.75rem;
+
+  /* ——— Input Search (Figma 511:17240) outline L, circleRadius=on ——— */
+  --cb-input-fill: var(--cb-white);
+  --cb-input-stroke: #a09fb9;
+  --cb-input-text: #584e80;
+  --cb-input-placeholder: #584e80;
+  --cb-input-focus-stroke: var(--cb-accent-600); /* #00b1ff */
+  --cb-input-focus-width: 3px;
+  --cb-input-radius: 999px;
+  --cb-input-font: var(--cb-font-body);
+  --cb-input-weight: 400;
+  --cb-input-font-size: var(--cb-text-body-m);
+  --cb-input-lh: 1.375rem; /* 22 */
+  --cb-input-height-l: 3.5rem; /* 56 */
+  --cb-input-pad-x: var(--cb-space-m); /* 16 */
+
+  /* ——— Chips (Figma 136:6454) ——— */
+  --cb-chip-radius: var(--cb-radius-s); /* 8 */
+  --cb-chip-font: var(--cb-font-title);
+  --cb-chip-weight: 400;
+  --cb-chip-font-size: var(--cb-text-body-m);
+  --cb-chip-lh: 1.375rem;
+  --cb-chip-gap: var(--cb-space-xs);
+  --cb-chip-pad-x: var(--cb-space-m);
+  --cb-chip-enabled-fill: transparent;
+  --cb-chip-enabled-stroke: #584e80;
+  --cb-chip-enabled-text: #584e80;
+  --cb-chip-enabled-border-w: 1px;
+  --cb-chip-activated-fill: #f3e7ff;
+  --cb-chip-activated-stroke: var(--cb-primary-900);
+  --cb-chip-activated-text: var(--cb-primary-900);
+  --cb-chip-activated-border-w: 2px;
+  --cb-chip-height-m: 3rem; /* 48 */
+  --cb-chip-height-l: 3.5rem; /* 56 */
+  --cb-chip-height-s: 2.5rem; /* 40 */
+
+  /* ——— Spinner (Figma 1077:100506) default ——— */
+  --cb-spinner-indicator: var(--cb-primary-900);
+  --cb-spinner-track: #c5c4d5;
+  --cb-spinner-size-m: 2.5rem; /* 40 */
+  --cb-spinner-size-l: 3rem; /* 48 */
+  --cb-spinner-stroke: 4px;
+
+  /* ——— Tags (Figma 1:1138) ——— */
+  --cb-tag-radius: var(--cb-radius-s); /* 8 */
+  --cb-tag-font: var(--cb-font-body);
+  --cb-tag-weight: 400;
+  --cb-tag-gap: var(--cb-space-xxs);
+  --cb-tag-pad-x: var(--cb-space-m);
+  --cb-tag-height-s: 2rem; /* 32 */
+  --cb-tag-font-s: var(--cb-text-body-m);
+  --cb-tag-lh-s: 1.375rem;
+  /* compact for store-card meta */
+  --cb-tag-height-xs: 1.25rem; /* 20 */
+  --cb-tag-pad-x-xs: 0.5rem;
+  --cb-tag-font-xs: var(--cb-text-detail-xs);
+  --cb-tag-neutral-fill: #e8e8ee;
+  --cb-tag-neutral-text: #584e80;
+  --cb-tag-info-fill: #ecf0ff;
+  --cb-tag-info-text: #001494;
+  --cb-tag-success-fill: #c3f1c3;
+  --cb-tag-success-text: #023c02;
+  --cb-tag-alert-fill: #fdcc8a;
+  --cb-tag-alert-text: #491804;
+
+  /* ——— TopBar Totem — Primary (Navigation / TopBarTotem) ——— */
+  --cb-topbar-fill: var(--cb-primary-900);
+  --cb-topbar-title: var(--cb-white);
+  --cb-topbar-title-size-s: var(--cb-text-h6); /* 20 */
+  --cb-topbar-title-lh-s: 1.5rem; /* 24 */
+  --cb-topbar-title-size-m: var(--cb-text-h5); /* 25 */
+  --cb-topbar-title-lh-m: 1.875rem; /* 30 */
+  --cb-topbar-title-tracking: -1px;
+  --cb-topbar-title-weight: 600;
+  --cb-topbar-gap: var(--cb-space-s);
+  /* Compact webview pads (totem DS uses 32–64; Mobility keeps denser) */
+  --cb-topbar-pad-x: 1.125rem; /* 18 */
+  --cb-topbar-pad-y: 0.875rem; /* 14 */
+  --cb-topbar-icon-btn-s: 2.5rem; /* 40 */
+  --cb-topbar-icon-btn-m: 3rem; /* 48 */
+  --cb-topbar-decoration-radius: var(--cb-radius-l); /* 24 */
+  --cb-topbar-decoration-shadow: 0 -8px 24px -1px rgba(24, 39, 75, 0.04);
+  /* Secondary Button Back on dark (outline) — Figma 6332:30884 */
+  --cb-topbar-back-fill: rgba(255, 255, 255, 0.05);
+  --cb-topbar-back-stroke: #e8e8ee;
+  --cb-topbar-back-text: #e8e8ee;
+  --cb-topbar-back-height: 2.5rem; /* 40 */
+  --cb-topbar-back-pad-x: 1rem;
+  --cb-topbar-back-pad-y: 0.5rem;
+  --cb-topbar-back-font: var(--cb-text-body-m);
+  --cb-topbar-back-lh: 1.375rem; /* 22 */
+
+  /* ——— Legacy Mobility aliases (--cm-*) → Cencobricks ——— */
+  --cm-purple: var(--cb-primary-900);
+  --cm-purple-dark: var(--cb-neutral-900);
+  --cm-blue: var(--cb-accent-600);
+  --cm-blue-dark: #008fd0;
+  --cm-pink: #ff7e3e;
+  --cm-surface: var(--cb-white);
+  --cm-card: var(--cb-white);
+  --cm-text: var(--cb-primary-900);
+  --cm-muted: var(--cb-neutral-500);
+  --cm-line: var(--cb-primary-50);
+  --cm-shadow: var(--cb-shadow-down-s);
+}
+
+/* Shared button primitives — apply via existing page classes, not new markup */
+.cb-btn-primary,
+.cb-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cb-btn-gap);
+  box-sizing: border-box;
+  border-radius: var(--cb-btn-radius);
+  font-family: var(--cb-btn-font);
+  font-weight: var(--cb-btn-weight);
+  font-size: var(--cb-btn-font-m);
+  line-height: var(--cb-btn-lh-m);
+  padding: var(--cb-btn-pad-y-m) var(--cb-btn-pad-x-m);
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.cb-btn-primary {
+  border: none;
+  background: var(--cb-btn-primary-fill);
+  color: var(--cb-btn-primary-text);
+}
+
+.cb-btn-secondary {
+  border: 1px solid var(--cb-btn-secondary-stroke);
+  background: var(--cb-btn-secondary-fill);
+  color: var(--cb-btn-secondary-text);
+}
+
+.cb-btn-primary:active,
+.cb-btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* Shared input / chip primitives — wire via existing page classes */
+.cb-input-search {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--cb-input-height-l);
+  padding: 0 var(--cb-input-pad-x);
+  border: 1px solid var(--cb-input-stroke);
+  border-radius: var(--cb-input-radius);
+  background: var(--cb-input-fill);
+  color: var(--cb-input-text);
+  font-family: var(--cb-input-font);
+  font-size: var(--cb-input-font-size);
+  font-weight: var(--cb-input-weight);
+  line-height: var(--cb-input-lh);
+}
+
+.cb-input-search::placeholder {
+  color: var(--cb-input-placeholder);
+  opacity: 1;
+}
+
+.cb-input-search:focus {
+  outline: none;
+  border-color: var(--cb-input-focus-stroke);
+  border-width: var(--cb-input-focus-width);
+  box-shadow: none;
+}
+
+.cb-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cb-chip-gap);
+  box-sizing: border-box;
+  min-height: var(--cb-chip-height-m);
+  padding: 0 var(--cb-chip-pad-x);
+  border: var(--cb-chip-enabled-border-w) solid var(--cb-chip-enabled-stroke);
+  border-radius: var(--cb-chip-radius);
+  background: var(--cb-chip-enabled-fill);
+  color: var(--cb-chip-enabled-text);
+  font-family: var(--cb-chip-font);
+  font-size: var(--cb-chip-font-size);
+  font-weight: var(--cb-chip-weight);
+  line-height: var(--cb-chip-lh);
+  cursor: pointer;
+}
+
+.cb-chip.is-activated,
+.cb-chip[aria-pressed="true"] {
+  border-width: var(--cb-chip-activated-border-w);
+  border-color: var(--cb-chip-activated-stroke);
+  background: var(--cb-chip-activated-fill);
+  color: var(--cb-chip-activated-text);
+}
+
+.cb-chip:active {
+  transform: scale(0.98);
+}
+
+.cb-spinner {
+  box-sizing: border-box;
+  width: var(--cb-spinner-size-l);
+  height: var(--cb-spinner-size-l);
+  border-radius: 50%;
+  border: var(--cb-spinner-stroke) solid var(--cb-spinner-track);
+  border-top-color: var(--cb-spinner-indicator);
+  animation: cb-spin 0.9s linear infinite;
+}
+
+@keyframes cb-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cb-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cb-tag-gap);
+  box-sizing: border-box;
+  min-height: var(--cb-tag-height-s);
+  padding: 0 var(--cb-tag-pad-x);
+  border: none;
+  border-radius: var(--cb-tag-radius);
+  font-family: var(--cb-tag-font);
+  font-size: var(--cb-tag-font-s);
+  font-weight: var(--cb-tag-weight);
+  line-height: var(--cb-tag-lh-s);
+  white-space: nowrap;
+}
+
+.cb-tag-neutral {
+  background: var(--cb-tag-neutral-fill);
+  color: var(--cb-tag-neutral-text);
+}
+
+.cb-tag-info {
+  background: var(--cb-tag-info-fill);
+  color: var(--cb-tag-info-text);
+}
+
+.cb-tag-success {
+  background: var(--cb-tag-success-fill);
+  color: var(--cb-tag-success-text);
+}
+
+.cb-tag-alert {
+  background: var(--cb-tag-alert-fill);
+  color: var(--cb-tag-alert-text);
+}

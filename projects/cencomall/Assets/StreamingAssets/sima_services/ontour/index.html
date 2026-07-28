@@ -3,76 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>On Tour — Cenco Costanera</title>
+  <title>On Tour — Cenco Malls</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/cencobricks-tokens.css" />
+  <link rel="stylesheet" href="../shared/cencobricks-shell.css" />
   <link rel="stylesheet" href="../shared/app.css" />
   <script src="../shared/qrcode.min.js"></script>
   <script src="../shared/locale.js"></script>
   <script src="../shared/bridge.js"></script>
   <style>
-    :root {
-      --cm-purple: #280071;
-      --cm-blue: #00B1FF;
-      --cm-blue-dark: #008FD0;
-      --cm-surface: #FFFFFF;
-      --cm-text: #1E1630;
-      --cm-muted: #3F3468;
-      --cm-line: #ECE8F2;
-      --cm-shadow: 0 6px 16px rgba(40, 0, 113, 0.08);
+    html, body {
+      background: transparent;
+      color: var(--cm-text);
+      font-family: var(--cb-font-body);
     }
-
-    html, body { background: transparent; color: var(--cm-text); }
     body::before { display: none; }
 
     .app-shell {
       background: transparent;
       gap: 0;
-      padding: 20px 18px 28px;
+      padding: 0 0 28px;
     }
 
-    .cm-header {
-      background: var(--cm-purple);
-      color: #fff;
-      border-radius: 18px 18px 0 0;
-      padding: 18px 20px;
-      box-shadow: 0 8px 22px rgba(40, 0, 113, 0.16);
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-      gap: 12px;
-    }
-
-    .cm-header-text {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .cm-header h1 { margin: 0 0 6px; font-size: 24px; font-weight: 800; }
-    .cm-header p { margin: 0; font-size: 15px; opacity: 0.92; line-height: 1.4; }
-
-    .cm-header-close {
-      appearance: none;
-      border: 1px solid rgba(255, 255, 255, 0.55);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.2);
-      color: #fff;
-      font-size: 14px;
-      font-weight: 700;
-      padding: 8px 14px;
-      cursor: pointer;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .card {
+    .card.cm-body-panel {
+      margin: 0 14px 14px;
+      padding: 14px;
+      gap: 14px;
+      background: var(--cb-white);
       border: 1px solid var(--cm-line);
       border-top: 0;
-      box-shadow: var(--cm-shadow);
-      background: #fff;
-      border-radius: 0 0 16px 16px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      border-radius: 0 0 var(--cb-topbar-decoration-radius) var(--cb-topbar-decoration-radius);
+      box-shadow: none;
     }
 
     .bullet-list {
@@ -91,7 +54,7 @@
       align-items: center;
       gap: 16px;
       padding: 18px 16px;
-      border-radius: 14px;
+      border-radius: var(--cb-radius-m);
       background: #fff;
       border: 1px solid var(--cm-line);
       box-shadow: var(--cm-shadow);
@@ -112,47 +75,88 @@
       max-width: none;
       padding: 0 4px;
       font-size: 18px;
-      font-weight: 700;
+      font-weight: 600;
+      font-family: var(--cb-font-title);
       line-height: 1.45;
       color: var(--cm-text);
       text-align: left;
     }
 
     .btn-primary, .btn-secondary {
-      border-radius: 14px;
-      padding: 14px 20px;
-      font-size: 15px;
-      font-weight: 800;
+      border-radius: var(--cb-btn-radius);
+      padding: var(--cb-btn-pad-y-s) var(--cb-btn-pad-x-m);
+      font-family: var(--cb-btn-font);
+      font-size: var(--cb-btn-font-m);
+      font-weight: var(--cb-btn-weight);
       cursor: pointer;
       width: 100%;
+      box-sizing: border-box;
     }
 
     .btn-primary {
-      background: var(--cm-blue);
-      color: #fff;
-      border: 1px solid var(--cm-blue);
+      background: var(--cb-btn-primary-fill);
+      color: var(--cb-btn-primary-text);
+      border: none;
     }
 
     .btn-secondary {
-      background: #fff;
-      color: var(--cm-blue-dark);
-      border: 1px solid var(--cm-blue);
+      background: var(--cb-btn-secondary-fill);
+      color: var(--cb-btn-secondary-text);
+      border: 1px solid var(--cb-btn-secondary-stroke);
       width: auto;
       align-self: flex-start;
+    }
+
+    .title {
+      font-family: var(--cb-font-title);
+      font-size: 1.125rem;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: var(--cm-text);
+      margin: 0;
+    }
+
+    .subtitle {
+      color: var(--cm-muted);
+      font-size: 0.9375rem;
+      line-height: 1.45;
+      margin: 0;
     }
   </style>
 </head>
 <body>
   <div class="app-shell">
     <header class="cm-header">
-      <button class="cm-header-close" id="btnCloseHeader" type="button" onclick="closeWebview()">Cerrar</button>
-      <div class="cm-header-text">
-        <h1 id="page-title">On Tour</h1>
-        <p id="page-subtitle">Tu pasaporte a una experiencia exclusiva en Cenco Costanera</p>
-      </div>
+      <button
+        class="cm-header-icon-btn"
+        id="btnCloseHeader"
+        type="button"
+        onclick="closeWebview()"
+        aria-label="Volver"
+      >
+        <svg class="cm-header-back-icon" width="24" height="24" viewBox="8 8 24 24" aria-hidden="true" focusable="false">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 20C12 19.4477 12.4477 19 13 19H27C27.5523 19 28 19.4477 28 20C28 20.5523 27.5523 21 27 21H13C12.4477 21 12 20.5523 12 20Z"/>
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12.2929 19.2929C12.6834 18.9024 13.3166 18.9024 13.7071 19.2929L19.7071 25.2929C20.0976 25.6834 20.0976 26.3166 19.7071 26.7071C19.3166 27.0976 18.6834 27.0976 18.2929 26.7071L12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929Z"/>
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7071 13.2929C20.0976 13.6834 20.0976 14.3166 19.7071 14.7071L13.7071 20.7071C13.3166 21.0976 12.6834 21.0976 12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929L18.2929 13.2929C18.6834 12.9024 19.3166 12.9024 19.7071 13.2929Z"/>
+        </svg>
+      </button>
+      <h1 class="cm-header-title">
+        <span class="cm-header-mall" role="img" aria-label="Cenco Costanera">
+          <svg class="cm-header-mall-pin" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+            <path stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M12 21s-6.5-5.5-6.5-11a6.5 6.5 0 1 1 13 0c0 5.5-6.5 11-6.5 11z"/>
+            <circle cx="12" cy="10" r="2.25" stroke-width="1.75"/>
+          </svg>
+          <span class="cm-header-mall-name">Cenco Costanera</span>
+        </span>
+      </h1>
     </header>
 
-    <div class="card">
+    <div class="card cm-body-panel">
+      <div class="cm-page-intro">
+        <h2 id="page-title">On Tour</h2>
+        <p id="page-subtitle">Tu pasaporte a una experiencia exclusiva en Cenco Costanera</p>
+      </div>
+
       <div class="title" id="section-title">¿De visita en Santiago?</div>
       <div class="subtitle" id="section-lead">
         Programa exclusivo para turistas con descuentos, promociones y panoramas únicos.
@@ -240,7 +244,7 @@
       document.getElementById("qr-hint").textContent = SimaLocale.t(I18N, "qrHint", currentLocale);
       document.getElementById("btnClose").textContent = SimaLocale.t(I18N, "close", currentLocale);
       const headerClose = document.getElementById("btnCloseHeader");
-      if (headerClose) headerClose.textContent = SimaLocale.t(I18N, "close", currentLocale);
+      if (headerClose) headerClose.setAttribute("aria-label", SimaLocale.t(I18N, "close", currentLocale));
 
       const pack = SimaLocale.pickPack(I18N, currentLocale);
       const benefits = pack.benefits || [];

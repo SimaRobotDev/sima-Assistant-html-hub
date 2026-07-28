@@ -1,0 +1,211 @@
+/**
+ * Cencobricks shell — TopBar Totem + content panel
+ * Requires: cencobricks-tokens.css
+ * Brand chip: .cm-header-mall (pin + mall name, no chevron)
+ */
+.cm-header {
+  position: relative;
+  z-index: 40;
+  background: var(--cb-topbar-fill);
+  color: var(--cb-topbar-title);
+  margin: 14px 14px 0;
+  border-radius: var(--cb-topbar-decoration-radius) var(--cb-topbar-decoration-radius) 0 0;
+  padding: var(--cb-topbar-pad-y) var(--cb-topbar-pad-x);
+  box-shadow: var(--cb-topbar-decoration-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--cb-topbar-gap);
+  min-height: var(--cb-topbar-icon-btn-s);
+  box-sizing: border-box;
+}
+
+.cm-header-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  line-height: 0;
+  max-width: calc(100% - 120px);
+}
+
+/* Mall chip — Navigation secondary outline (pin + name, no right chevron) */
+.cm-header-mall {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: var(--cb-topbar-back-height);
+  max-width: 100%;
+  padding: var(--cb-topbar-back-pad-y) 1.25rem;
+  border: 1px solid var(--cb-topbar-back-stroke);
+  border-radius: var(--cb-btn-radius);
+  background: var(--cb-topbar-back-fill);
+  color: var(--cb-topbar-back-text);
+  white-space: nowrap;
+}
+
+.cm-header-mall-pin {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.cm-header-mall-pin path,
+.cm-header-mall-pin circle {
+  fill: none;
+  stroke: currentColor;
+}
+
+.cm-header-mall-name {
+  font-family: var(--cb-btn-font);
+  font-size: var(--cb-topbar-back-font);
+  line-height: var(--cb-topbar-back-lh);
+  font-weight: var(--cb-btn-weight);
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm-header-logo {
+  display: block;
+  width: 204px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.cm-header-back,
+.cm-header-close {
+  appearance: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: var(--cb-topbar-back-height);
+  border: 1px solid var(--cb-topbar-back-stroke);
+  border-radius: var(--cb-btn-radius);
+  background: var(--cb-topbar-back-fill);
+  color: var(--cb-topbar-back-text);
+  font-family: var(--cb-btn-font);
+  font-size: var(--cb-topbar-back-font);
+  line-height: var(--cb-topbar-back-lh);
+  font-weight: var(--cb-btn-weight);
+  padding: var(--cb-topbar-back-pad-y) var(--cb-topbar-back-pad-x);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  order: -1;
+  position: relative;
+  z-index: 1;
+}
+
+.cm-header-back-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.cm-header-back-icon path {
+  fill: currentColor;
+}
+
+/* Tertiary icon-only (optional) — Figma 6332:6693 */
+.cm-header-icon-btn {
+  appearance: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--cb-topbar-icon-btn-s);
+  height: var(--cb-topbar-icon-btn-s);
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: var(--cb-btn-radius);
+  background: transparent;
+  color: var(--cb-white);
+  cursor: pointer;
+  flex-shrink: 0;
+  order: -1;
+  position: relative;
+  z-index: 1;
+}
+
+.cm-header-icon-btn:active,
+.cm-header-back:active,
+.cm-header-close:active {
+  transform: scale(0.96);
+  opacity: 0.9;
+}
+
+.cm-header-icon-btn .cm-header-back-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.cm-header-icon-btn .cm-header-back-icon path {
+  fill: currentColor;
+}
+
+.cm-header-icon-btn .cm-header-icon,
+.cm-header-icon-btn img {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+/* White sheet under TopBar (servicios / ontour / mobility body) */
+.cm-body,
+.cm-body-panel {
+  margin: 0 14px 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--cb-white);
+  border: 1px solid var(--cm-line);
+  border-top: 0;
+  border-radius: 0 0 var(--cb-topbar-decoration-radius) var(--cb-topbar-decoration-radius);
+  box-sizing: border-box;
+}
+
+.cm-page-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.cm-page-intro h1,
+.cm-page-intro h2 {
+  margin: 0;
+  font-family: var(--cb-font-title);
+  font-size: var(--cb-topbar-title-size-s);
+  line-height: var(--cb-topbar-title-lh-s);
+  font-weight: var(--cb-topbar-title-weight);
+  letter-spacing: var(--cb-topbar-title-tracking);
+  color: var(--cm-text);
+}
+
+.cm-page-intro p {
+  margin: 0;
+  font-family: var(--cb-font-body);
+  font-size: var(--cb-text-body-s);
+  line-height: 1.4;
+  color: var(--cm-muted);
+}

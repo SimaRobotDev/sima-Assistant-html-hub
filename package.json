@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "build:manifests": "node scripts/build-runtime-manifest.mjs",
-    "build:deploy": "node scripts/build-deploy.mjs"
+    "build:deploy": "node scripts/build-deploy.mjs",
+    "dev": "node scripts/serve-local.mjs",
+    "serve:cenco": "node scripts/serve-local.mjs"
   }
 }

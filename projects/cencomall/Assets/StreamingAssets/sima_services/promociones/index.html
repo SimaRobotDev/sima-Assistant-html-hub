@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Promociones — Cenco Malls</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/cencobricks-tokens.css" />
+  <link rel="stylesheet" href="../shared/cencobricks-shell.css" />
+  <link rel="stylesheet" href="../shared/app.css" />
+  <script src="../shared/locale.js"></script>
+  <script src="../shared/native-payload.js"></script>
+  <script src="../shared/bridge.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: transparent;
+      color: var(--cm-text);
+      font-family: var(--cb-font-body);
+    }
+    body::before { display: none; }
+
+    .app-shell {
+      background: transparent;
+      gap: 0;
+      padding: 0 0 28px;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    #mainUI.cm-body-panel {
+      gap: 12px;
+      min-height: 280px;
+    }
+
+    .cm-results-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .cm-results-title {
+      margin: 0;
+      font-family: var(--cb-font-title);
+      font-size: var(--cb-topbar-title-size-s);
+      line-height: var(--cb-topbar-title-lh-s);
+      font-weight: var(--cb-topbar-title-weight);
+      letter-spacing: var(--cb-topbar-title-tracking);
+      color: var(--cm-text);
+    }
+
+    .cm-results-count {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cm-purple);
+      background: #f0e9f8;
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
+
+    .cm-results-query {
+      margin: 0;
+      font-size: 13px;
+      color: var(--cm-muted);
+    }
+
+    .cm-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 4px 0 0;
+    }
+
+    .cm-chip {
+      border: var(--cb-chip-enabled-border-w) solid var(--cb-chip-enabled-stroke);
+      background: var(--cb-chip-enabled-fill);
+      color: var(--cb-chip-enabled-text);
+      font-family: var(--cb-chip-font);
+      font-size: var(--cb-text-detail-s);
+      font-weight: var(--cb-chip-weight);
+      line-height: 1.3;
+      padding: 6px 12px;
+      min-height: 32px;
+      border-radius: var(--cb-chip-radius);
+      cursor: pointer;
+    }
+
+    .cm-chip.is-activated,
+    .cm-chip.active {
+      border-width: var(--cb-chip-activated-border-w);
+      border-color: var(--cb-chip-activated-stroke);
+      background: var(--cb-chip-activated-fill);
+      color: var(--cb-chip-activated-text);
+    }
+
+    .promo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding-bottom: 8px;
+    }
+
+    .promo-card {
+      background: #fff;
+      border-radius: var(--cb-radius-m);
+      border: 1px solid var(--cm-line);
+      box-shadow: var(--cm-shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .promo-card-img {
+      width: 100%;
+      height: 90px;
+      object-fit: cover;
+      background: #f6f1fb;
+      border-bottom: 1px solid var(--cm-line);
+      display: block;
+    }
+
+    .promo-card-body {
+      padding: 12px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .promo-brand {
+      font-family: var(--cb-font-title);
+      font-size: var(--cb-text-detail-s);
+      font-weight: 600;
+      color: var(--cb-accent-600);
+    }
+
+    .promo-title {
+      font-family: var(--cb-font-title);
+      font-size: var(--cb-text-detail-m);
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--cm-text);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .promo-validity {
+      font-size: var(--cb-text-detail-xs);
+      color: var(--cm-muted);
+    }
+
+    .store-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .store-badge {
+      display: inline-flex;
+      align-items: center;
+      font-family: var(--cb-tag-font);
+      font-size: var(--cb-tag-font-xs);
+      font-weight: 600;
+      line-height: 1.2;
+      padding: 2px var(--cb-tag-pad-x-xs);
+      min-height: var(--cb-tag-height-xs);
+      border-radius: var(--cb-tag-radius);
+      background: var(--cb-tag-neutral-fill);
+      color: var(--cb-tag-neutral-text);
+    }
+
+    .store-badge-promo {
+      background: var(--cb-tag-success-fill);
+      color: var(--cb-tag-success-text);
+    }
+
+    .btn-promo-app {
+      width: 100%;
+      box-sizing: border-box;
+      border: none;
+      font-family: var(--cb-btn-font);
+      font-size: var(--cb-btn-font-xs);
+      font-weight: var(--cb-btn-weight);
+      line-height: 1.2;
+      padding: var(--cb-btn-pad-y-xs) var(--cb-btn-pad-x-xs);
+      cursor: pointer;
+      background: var(--cb-btn-primary-fill);
+      color: var(--cb-btn-primary-text);
+      border-radius: var(--cb-btn-radius);
+      margin-top: auto;
+      text-align: center;
+    }
+
+    .cm-empty {
+      text-align: center;
+      padding: 28px 12px;
+    }
+
+    .cm-empty-title {
+      font-family: var(--cb-font-title);
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .cm-empty-copy {
+      color: var(--cm-muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 520px) {
+      .promo-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="cm-header">
+      <button
+        class="cm-header-icon-btn"
+        id="btn-close-header"
+        type="button"
+        onclick="closeWebview()"
+        aria-label="Volver"
+      >
+        <svg class="cm-header-back-icon" width="24" height="24" viewBox="8 8 24 24" aria-hidden="true" focusable="false">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 20C12 19.4477 12.4477 19 13 19H27C27.5523 19 28 19.4477 28 20C28 20.5523 27.5523 21 27 21H13C12.4477 21 12 20.5523 12 20Z"/>
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12.2929 19.2929C12.6834 18.9024 13.3166 18.9024 13.7071 19.2929L19.7071 25.2929C20.0976 25.6834 20.0976 26.3166 19.7071 26.7071C19.3166 27.0976 18.6834 27.0976 18.2929 26.7071L12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929Z"/>
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7071 13.2929C20.0976 13.6834 20.0976 14.3166 19.7071 14.7071L13.7071 20.7071C13.3166 21.0976 12.6834 21.0976 12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929L18.2929 13.2929C18.6834 12.9024 19.3166 12.9024 19.7071 13.2929Z"/>
+        </svg>
+      </button>
+      <h1 class="cm-header-title">
+        <span class="cm-header-mall" role="img" aria-label="Cenco Costanera">
+          <svg class="cm-header-mall-pin" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+            <path stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M12 21s-6.5-5.5-6.5-11a6.5 6.5 0 1 1 13 0c0 5.5-6.5 11-6.5 11z"/>
+            <circle cx="12" cy="10" r="2.25" stroke-width="1.75"/>
+          </svg>
+          <span class="cm-header-mall-name">Cenco Costanera</span>
+        </span>
+      </h1>
+    </header>
+
+    <div id="mainUI" class="cm-body-panel">
+      <div class="cm-page-intro">
+        <h2 id="page-title">Promociones</h2>
+        <p id="page-subtitle">Descuentos y beneficios vigentes</p>
+      </div>
+      <div id="resultado">
+        <div class="cm-empty" id="loading-state">
+          <div class="cm-empty-title" id="loading-title">Cargando promociones…</div>
+          <div class="cm-empty-copy" id="loading-copy">Un momento, por favor.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var currentLocale = "es";
+    var lastPromotionPayload = null;
+    var receivedFromNative = false;
+    var demoTimer = null;
+
+    var I18N = {
+      es: {
+        pageTitle: "Promociones",
+        pageSubtitle: "Descuentos y beneficios vigentes",
+        close: "Cerrar",
+        loadingTitle: "Cargando promociones…",
+        loadingCopy: "Un momento, por favor.",
+        allDiscountsToday: "Descuentos vigentes hoy",
+        filter: "Filtro",
+        noResults: "Sin resultados",
+        promosNotFound: "No hay promociones para",
+        tryCategoryOrBrand: "Prueba otra categoría o marca.",
+        appOnly: "Solo app",
+        validUntil: "Válido hasta",
+        redeemInApp: "Canjear en la app",
+        promotions: "Promociones"
+      },
+      en: {
+        pageTitle: "Promotions",
+        pageSubtitle: "Current discounts and benefits",
+        close: "Close",
+        loadingTitle: "Loading promotions…",
+        loadingCopy: "Just a moment.",
+        allDiscountsToday: "Today's discounts",
+        filter: "Filter",
+        noResults: "No results",
+        promosNotFound: "No promotions for",
+        tryCategoryOrBrand: "Try another category or brand.",
+        appOnly: "App only",
+        validUntil: "Valid until",
+        redeemInApp: "Redeem in app",
+        promotions: "Promotions"
+      },
+      pt: {
+        pageTitle: "Promoções",
+        pageSubtitle: "Descontos e benefícios vigentes",
+        close: "Fechar",
+        loadingTitle: "Carregando promoções…",
+        loadingCopy: "Um momento, por favor.",
+        allDiscountsToday: "Descontos de hoje",
+        filter: "Filtro",
+        noResults: "Sem resultados",
+        promosNotFound: "Não há promoções para",
+        tryCategoryOrBrand: "Tente outra categoria ou marca.",
+        appOnly: "Somente app",
+        validUntil: "Válido até",
+        redeemInApp: "Resgatar no app",
+        promotions: "Promoções"
+      }
+    };
+
+    function t(key) {
+      return SimaLocale.t(I18N, key, currentLocale);
+    }
+
+    function escapeHtml(str) {
+      return String(str == null ? "" : str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function siteOrigin() {
+      return String(window.CENCOMALL_SITE_ORIGIN || "https://stg.cencomalls.cl").replace(/\/$/, "");
+    }
+
+    function resolveMediaUrl(url) {
+      var value = String(url || "").trim();
+      if (!value) return "";
+      if (/^https?:\/\//i.test(value) || value.indexOf("data:") === 0) return value;
+      if (value.charAt(0) === "/") return siteOrigin() + value;
+      return siteOrigin() + "/" + value;
+    }
+
+    function isLocalPreview() {
+      var host = String(window.location.hostname || "").toLowerCase();
+      return host === "localhost" || host === "127.0.0.1";
+    }
+
+    function closeWebview() {
+      try {
+        if (window.SimaBridge && typeof window.SimaBridge.requestClose === "function") {
+          window.SimaBridge.requestClose();
+          return;
+        }
+      } catch (e) {}
+      try {
+        if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === "function") {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: "close_webview",
+            payload: {}
+          }));
+          return;
+        }
+      } catch (e2) {}
+      try {
+        if (window.SimaBridge && typeof window.SimaBridge.send === "function") {
+          window.SimaBridge.send("close_webview", {});
+        }
+      } catch (e3) {}
+    }
+
+    function applyLocale() {
+      currentLocale = SimaLocale.readLocaleFromPage();
+      document.documentElement.lang = currentLocale;
+      document.getElementById("page-title").textContent = t("pageTitle");
+      document.getElementById("page-subtitle").textContent = t("pageSubtitle");
+      var headerClose = document.getElementById("btn-close-header");
+      if (headerClose) headerClose.setAttribute("aria-label", t("close"));
+      var loadingTitle = document.getElementById("loading-title");
+      var loadingCopy = document.getElementById("loading-copy");
+      if (loadingTitle) loadingTitle.textContent = t("loadingTitle");
+      if (loadingCopy) loadingCopy.textContent = t("loadingCopy");
+      if (lastPromotionPayload) renderPromotionResults(lastPromotionPayload);
+    }
+
+    function normalizePromoResult(promo) {
+      if (!promo || typeof promo !== "object") return {};
+      return {
+        id: promo.id || promo.Id || "",
+        title: promo.title || promo.Title || "",
+        brandName: promo.brandName || promo.BrandName || "",
+        category: promo.category || promo.Category || "",
+        description: promo.description || promo.Description || "",
+        imageUrl: promo.imageUrl || promo.ImageUrl || promo.image || promo.Image || "",
+        validityEnd: promo.validityEnd || promo.ValidityEnd || "",
+        requiresApp: promo.requiresApp === true || promo.RequiresApp === true
+          || String(promo.control || promo.Control || "").toLowerCase().indexOf("app") !== -1
+      };
+    }
+
+    function renderCategoryChips(categories, activeQuery) {
+      if (!categories || !categories.length) return "";
+      return '<div class="cm-chip-row" id="promo-chip-row">' + categories.map(function (cat) {
+        var active = activeQuery && String(activeQuery).toLowerCase() === String(cat).toLowerCase();
+        return '<button class="cm-chip' + (active ? " is-activated" : "") + '" type="button" data-cat="' + escapeHtml(cat) + '">' + escapeHtml(cat) + "</button>";
+      }).join("") + "</div>";
+    }
+
+    function bindPromotionChips() {
+      var row = document.getElementById("promo-chip-row");
+      if (!row) return;
+      row.querySelectorAll(".cm-chip[data-cat]").forEach(function (btn) {
+        btn.onclick = function () {
+          filterPromotionsByCategory(btn.getAttribute("data-cat"));
+        };
+      });
+    }
+
+    function filterPromotionsByCategory(category) {
+      if (window.SimaBridge && typeof SimaBridge.send === "function") {
+        SimaBridge.send("promotion_search", { text: category || "" });
+      }
+      // Local filter fallback while waiting for native response
+      if (lastPromotionPayload && Array.isArray(lastPromotionPayload.results) && isLocalPreview()) {
+        var q = String(category || "").toLowerCase();
+        var filtered = lastPromotionPayload.results.filter(function (p) {
+          var n = normalizePromoResult(p);
+          return String(n.category || "").toLowerCase() === q;
+        });
+        renderPromotionResults({
+          results: filtered.length ? filtered : lastPromotionPayload.results,
+          query: category || "",
+          categories: lastPromotionPayload.categories || [],
+          appUrl: lastPromotionPayload.appUrl
+        });
+      }
+    }
+
+    function openPromoInApp(promoId, url) {
+      if (window.SimaBridge && typeof SimaBridge.send === "function") {
+        SimaBridge.send("generate_qr", { url: url, id: promoId || "promo" });
+      }
+    }
+
+    function openPromoFromBtn(btn) {
+      if (!btn) return;
+      openPromoInApp(btn.getAttribute("data-promo-id") || "promo", btn.getAttribute("data-promo-url") || "https://www.cencomalls.cl/");
+    }
+
+    function renderPromoCard(promo, appUrl) {
+      var imgSrc = resolveMediaUrl(promo.imageUrl);
+      var img = imgSrc
+        ? '<img class="promo-card-img" src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" />'
+        : '<div class="promo-card-img"></div>';
+      var appBadge = promo.requiresApp
+        ? '<span class="store-badge store-badge-promo">' + escapeHtml(t("appOnly")) + "</span>"
+        : "";
+      var validity = promo.validityEnd
+        ? escapeHtml(t("validUntil")) + " " + escapeHtml(promo.validityEnd)
+        : "";
+      var cta = promo.requiresApp
+        ? '<button class="btn-promo-app" type="button" data-promo-id="' + escapeHtml(promo.id || "") +
+          '" data-promo-url="' + escapeHtml(appUrl || "https://www.cencomalls.cl/") +
+          '" onclick="openPromoFromBtn(this)">' + escapeHtml(t("redeemInApp")) + "</button>"
+        : "";
+
+      return '<article class="promo-card fade-in">' +
+        img +
+        '<div class="promo-card-body">' +
+          '<div class="promo-brand">' + escapeHtml(promo.brandName || "") + "</div>" +
+          '<div class="promo-title">' + escapeHtml(promo.title || t("promotions")) + "</div>" +
+          '<div class="store-meta">' + appBadge + "</div>" +
+          (validity ? '<div class="promo-validity">' + validity + "</div>" : "") +
+          cta +
+        "</div></article>";
+    }
+
+    function renderPromotionResults(payload) {
+      lastPromotionPayload = payload || {};
+      var results = Array.isArray(payload.results) ? payload.results : [];
+      var query = payload.query || "";
+      var categories = payload.categories || [];
+      var appUrl = payload.appUrl || "https://www.cencomalls.cl/";
+      var box = document.getElementById("resultado");
+      if (!box) return;
+
+      if (window.SimaBridge && typeof SimaBridge.log === "function") {
+        SimaBridge.log("promotion_search results=" + results.length + " query=" + query);
+      }
+
+      if (payload.message && results.length === 0) {
+        box.innerHTML =
+          '<div class="cm-empty fade-in">' +
+            '<div class="cm-empty-title">' + escapeHtml(t("promotions")) + "</div>" +
+            '<div class="cm-empty-copy">' + escapeHtml(payload.message) + "</div>" +
+          "</div>";
+        if (window.SimaBridge && typeof SimaBridge.speak === "function") {
+          SimaBridge.speak(payload.message);
+        }
+        return;
+      }
+
+      var chips = renderCategoryChips(categories, query);
+      var cardsHtml = results.length
+        ? results.map(function (p) { return renderPromoCard(normalizePromoResult(p), appUrl); }).join("")
+        : '<div class="cm-empty"><div class="cm-empty-title">' + escapeHtml(t("noResults")) + "</div>" +
+          '<div class="cm-empty-copy">' + escapeHtml(t("promosNotFound")) + ' "' + escapeHtml(query || "") + '". ' +
+          escapeHtml(t("tryCategoryOrBrand")) + "</div></div>";
+
+      box.innerHTML =
+        '<div class="fade-in">' +
+          '<div class="cm-results-head">' +
+            '<h2 class="cm-results-title">' + escapeHtml(t("promotions")) + "</h2>" +
+            '<span class="cm-results-count">' + results.length + "</span>" +
+          "</div>" +
+          '<p class="cm-results-query">' +
+            (query
+              ? escapeHtml(t("filter")) + ": <strong>" + escapeHtml(query) + "</strong>"
+              : escapeHtml(t("allDiscountsToday"))) +
+          "</p>" +
+          chips +
+          '<div class="promo-grid">' + cardsHtml + "</div>" +
+        "</div>";
+      bindPromotionChips();
+    }
+
+    function demoPayload() {
+      return {
+        type: "promotion_search",
+        query: "",
+        appUrl: "https://www.cencomalls.cl/costanera",
+        categories: ["Beneficios", "Turistas"],
+        results: [
+          {
+            id: "promo-costanera-1",
+            brandName: "Cenco Malls",
+            title: "Descuentos vigentes hoy",
+            description: "Beneficios disponibles para visitantes de Cenco Costanera.",
+            category: "Beneficios",
+            validityEnd: "Hoy",
+            requiresApp: true
+          },
+          {
+            id: "promo-costanera-2",
+            brandName: "On Tour",
+            title: "Beneficios para turistas",
+            description: "Activa tu tarjeta On Tour y accede a promociones exclusivas.",
+            category: "Turistas",
+            validityEnd: "Programa vigente",
+            requiresApp: false
+          }
+        ]
+      };
+    }
+
+    function requestPromotions(text) {
+      if (window.SimaBridge && typeof SimaBridge.send === "function") {
+        SimaBridge.send("promotion_search", { text: text || "" });
+        SimaBridge.send("open_promotions", {});
+      }
+    }
+
+    function scheduleDemoFallback() {
+      if (demoTimer) clearTimeout(demoTimer);
+      var params = new URLSearchParams(window.location.search || "");
+      var forceDemo = params.get("demo") === "1";
+      var delay = forceDemo ? 50 : (isLocalPreview() ? 600 : 2500);
+      demoTimer = setTimeout(function () {
+        if (receivedFromNative) return;
+        if (forceDemo || isLocalPreview()) {
+          renderPromotionResults(demoPayload());
+        }
+      }, delay);
+    }
+
+    window.handleUnityData = function (data) {
+      if (!data) return;
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch (e) { return; }
+      }
+
+      var type = String(data.type || data.command || "").toLowerCase();
+      var hasResults = Array.isArray(data.results);
+      var isPromo = type === "promotion_search"
+        || type === "search_promotion"
+        || type === "search_promotions"
+        || type === "open_promotions"
+        || hasResults;
+
+      if (!isPromo) return;
+
+      receivedFromNative = true;
+      if (demoTimer) clearTimeout(demoTimer);
+      renderPromotionResults({
+        query: data.query || data.text || "",
+        results: data.results || [],
+        categories: data.categories || [],
+        appUrl: data.appUrl || data.app_url || "https://www.cencomalls.cl/",
+        message: data.message || ""
+      });
+    };
+
+    window.openPromoInApp = openPromoInApp;
+    window.openPromoFromBtn = openPromoFromBtn;
+
+    SimaLocale.bindPageLocale(applyLocale);
+    applyLocale();
+    requestPromotions("");
+    scheduleDemoFallback();
+  </script>
+</body>
+</html>
