@@ -91,10 +91,17 @@ El runtime sync no cambia la fuente de verdad del asistente:
 Flujo recomendado:
 
 1. Actualizar el contenido en el repo HTML hub.
-2. Generar el manifest del proyecto.
-3. Publicar los assets y el manifest en el host remoto.
-4. Subir la nueva versión del proyecto.
-5. Monitorear que los dispositivos tomen la nueva versión.
+2. Generar el manifest del proyecto con `scripts/build-runtime-manifest-from-git.mjs` (no el builder de disco en Windows: `autocrlf` produce hashes CRLF que no coinciden con lo desplegado).
+3. Validar con `scripts/validate-runtime-manifest-from-git.mjs`.
+4. Publicar los assets y el manifest en el host remoto.
+5. Subir la nueva versión del proyecto.
+6. Monitorear que los dispositivos tomen la nueva versión.
+
+### Errores frecuentes de hashes
+
+- Manifest generado desde working tree Windows (`CRLF`) → mismatch en deploy/Unity (`LF`).
+- Pasar flags CLI mal: `baseUrl` no debe quedar como `"--version"`.
+- Incluir archivos gitignored (p. ej. `data/*-mapvx-patches.json`) que no existen en el host.
 
 ## Dónde vive el código C#
 

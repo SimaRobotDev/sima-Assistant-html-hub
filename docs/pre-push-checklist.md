@@ -19,6 +19,13 @@ Checklist corto para validar un cambio antes de publicar el repo o un mirror.
 - [ ] No asumir que la app usa `localStorage` del navegador para preferencias globales del asistente.
 - [ ] Si algún helper web o pantalla usa `localStorage`, dejar claro que es persistencia interna de esa vista y no del estado maestro del asistente.
 
+## OTA / runtime manifest
+
+- [ ] Regenerar con `scripts/build-runtime-manifest-from-git.mjs` (no el builder de disco en Windows).
+- [ ] `baseUrl` apunta al host Vercel estable del proyecto (no un flag CLI).
+- [ ] `node scripts/validate-runtime-manifest-from-git.mjs runtime-sync/manifests/<slug>.json` pasa.
+- [ ] El manifest no lista archivos gitignored (`data/*-mapvx-patches.json`).
+
 ## Validación final
 
 - [ ] Abrir el HTML en el entorno esperado y confirmar que carga sin errores.
