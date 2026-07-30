@@ -370,6 +370,14 @@ body.cencomall-theme {
   white-space: nowrap;
 }
 
+/* Improve badge spacing, padding and rounded corners */
+.store-meta { gap: 8px !important; }
+.store-badge {
+  padding: 6px 12px !important;
+  border-radius: 12px !important;
+  font-size: 12px !important;
+}
+
 .store-badge-floor {
   background: var(--cb-tag-info-fill);
   color: var(--cb-tag-info-text);
@@ -850,10 +858,44 @@ html.search-boot-loading #resultado {
 
 .store-detail-panel.hidden { display: none; }
 
-.store-detail-header {
+.service-detail-icon {
+   width: 64px;
+   height: 64px;
+   min-width: 64px;
+   border-radius: 18px;
+   display: grid;
+   place-items: center;
+   background: rgba(88, 44, 131, 0.08);
+   color: var(--cm-purple-dark);
+   font-size: 28px;
+ }
+ 
+ .store-detail-meta {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 10px;
+   margin: 10px 0 0;
+ }
+ 
+ .store-detail-desc {
+   margin: 14px 0 0;
+   font-size: 14px;
+   color: var(--cm-muted);
+   line-height: 1.6;
+ }
+
+ .store-detail-header {
   display: flex;
   gap: 12px;
   align-items: flex-start;
+}
+
+.store-detail-media-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  max-width: 180px;
 }
 
 .store-detail-head-text {
@@ -881,9 +923,7 @@ html.search-boot-loading #resultado {
 
 .store-detail-name {
   margin: 0;
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.2;
+   font-size: 20px;
 }
 
 .store-detail-schedule {
@@ -1205,17 +1245,66 @@ html.search-boot-loading #resultado {
   cursor: pointer;
 }
 
-.service-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
+.service-list { display: flex; flex-direction: column; gap: 12px !important; padding-bottom: 24px; }
+
+/* Add padding inside the list so cards don't touch the panel edges */
+.service-list { padding: 8px 12px !important; }
+
+/* Ensure each service card is visually separated from the next one */
+.service-list > article.service-card { margin: 0 !important; }
+
+/* Add a subtle separator space inside the card and ensure rounded corners */
+.service-card { padding-bottom: 18px; }
+.service-card + .service-card { margin-top: 12px; }
 
 .service-card {
-  border: 1px solid var(--cm-line);
+  display: block;
+  border: 1px solid rgba(88, 44, 131, 0.22);
   border-radius: 14px;
-  padding: 12px;
-  background: #fff;
+  padding: 18px;
+  background: linear-gradient(180deg, #FBF7FD 0%, #FFF 100%);
   cursor: pointer;
+  box-shadow: 0 6px 20px rgba(61,29,92,0.06);
+  margin: 0; /* spacing handled by .service-list gap */
+  position: relative; /* allow absolute-positioning of actions */
+  padding-right: 140px; /* reserve space for action button */
 }
 
+.service-card:hover { box-shadow: 0 10px 30px rgba(61,29,92,0.07); }
+
 .service-card.expanded .service-desc { -webkit-line-clamp: unset; white-space: normal; }
+
+.service-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+}
+
+.service-card-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(88, 44, 131, 0.08);
+  font-size: 16px;
+}
+
+.service-card-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  z-index: 40;
+}
 
 .service-name { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
 
@@ -1309,31 +1398,64 @@ html.search-boot-loading #resultado {
   min-width: 0;
 }
 
-.service-card-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
 .service-card-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr; /* single column: content fills card */
+  gap: 6px;
+  align-items: start;
 }
 
 .btn-service-map {
   border: none;
-  border-radius: var(--cb-btn-radius);
+  border-radius: 999px; /* pill */
   background: var(--cb-btn-primary-fill);
   color: var(--cb-btn-primary-text);
   font-family: var(--cb-btn-font);
   font-size: var(--cb-btn-font-xs);
   font-weight: var(--cb-btn-weight);
-  padding: var(--cb-btn-pad-y-xs) var(--cb-btn-pad-x-xs);
+  padding: 8px 16px;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(88,44,131,0.14);
+  transform: translateZ(0);
+  line-height: 1;
+}
+
+/* Ensure action buttons inside the card have consistent rounded corners */
+.service-card .service-card-actions > * {
+  border-radius: 12px;
+}
+.service-card .service-card-actions > .btn-service-map { border-radius: 999px; }
+
+/* Strong overrides to ensure the card visually encloses content and the action stays top-right */
+.service-list article.service-card,
+article.service-card {
+  background: linear-gradient(180deg, #FBF7FD 0%, #FFF 100%) !important;
+  border: 1px solid rgba(88,44,131,0.22) !important;
+  padding: 18px !important;
+  padding-right: 140px !important;
+  position: relative !important;
+  box-shadow: 0 8px 28px rgba(61,29,92,0.06) !important;
+  opacity: 1 !important;
+  border-radius: 14px !important;
+  margin-bottom: 12px !important;
+  background-clip: padding-box !important;
+  overflow: visible !important;
+}
+
+.service-list > article.service-card { margin-left: 4px !important; margin-right: 4px !important; }
+
+.service-list article.service-card .service-card-actions,
+article.service-card .service-card-actions {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 60 !important;
+}
+
+.service-list article.service-card .btn-service-map,
+article.service-card .btn-service-map {
+  display: inline-block !important;
 }
 
 .service-floor-hint {
@@ -3138,7 +3260,7 @@ function runServicesCatalogSearch(query, options) {
         // No artificial delay on deep-link: shell is already the map view.
         const delayMs = document.documentElement.classList.contains("auto-map-launch") ? 0 : 280;
         window.setTimeout(function () {
-          openServiceMap(0);
+          openServiceMap(0, options);
         }, delayMs);
       } else {
         clearAutoMapLaunchUi();
@@ -3194,6 +3316,15 @@ function getInitialServiceId() {
     || params.get("serviceId")
     || ""
   ).trim();
+}
+
+function isCustomerServiceRouteFromServicios() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("from") === "servicios";
+  } catch (e) {
+    return false;
+  }
 }
 
 function consumePendingServiceRoute() {
@@ -3567,11 +3698,19 @@ function handleMobilityBack() {
 
   // If stack is at root or above failed, close the webview when on landing.
   if (isShowingStoreSearchLanding()) {
+    if (backToServiciosIfNeeded()) {
+      window.location.href = "../servicios/index.html";
+      return;
+    }
     closeWebview();
     return;
   }
 
   // final fallback: return to landing
+  if (backToServiciosIfNeeded()) {
+    window.location.href = "../servicios/index.html";
+    return;
+  }
   returnToStoreSearchLanding();
 }
 
@@ -4397,6 +4536,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnSpeakSearch").onclick = submitSearchFromFab;
 
   const pendingRoute = consumePendingServiceRoute();
+  window.pendingServiceRouteSource = (pendingRoute && pendingRoute.source) || "";
   const initialQuery = getInitialSearchQuery();
   const initialServiceId = getInitialServiceId()
     || String((pendingRoute && pendingRoute.serviceId) || "").trim();
@@ -5238,8 +5378,8 @@ function serviceKindIcon(kind) {
   if (kind === "elevator") return '<img src="../shared/category-icons/elevator.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
   if (kind === "kids") return "👶";
   if (kind === "bathroom") return '<img src="../shared/category-icons/restroom.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
-  if (kind === "customer_service") return "ℹ️";
-  if (kind === "cowork") return "💼";
+  if (kind === "customer_service") return '<img src="../shared/category-icons/customer_service.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
+  if (kind === "cowork") return '<img src="../shared/category-icons/cowork.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
   return "📍";
 }
 
@@ -5547,10 +5687,42 @@ function renderStoreDetailPanel(store) {
   const description = String(localizeStoreDescription(store)).trim();
   panel.innerHTML = `
     <div class="store-detail-header">
-      ${renderStoreDetailMedia(store)}
+      <div class="store-detail-media-column">
+        ${renderStoreDetailMedia(store)}
+        ${scheduleText ? `<div class="store-detail-schedule"><strong>${escapeHtml(t("schedule"))}:</strong> ${escapeHtml(scheduleText)}</div>` : ""}
+      </div>
       <div class="store-detail-head-text">
         <h2 class="store-detail-name">${escapeHtml(displayName)}</h2>
-        ${scheduleText ? `<div class="store-detail-schedule"><strong>${escapeHtml(t("schedule"))}:</strong> ${escapeHtml(scheduleText)}</div>` : ""}
+        ${description ? `<p class="store-detail-desc">${escapeHtml(description)}</p>` : ""}
+      </div>
+    </div>`;
+  panel.classList.remove("hidden");
+}
+
+function renderServiceDetailPanel(service) {
+  const panel = document.getElementById("store-detail-panel");
+  if (!panel) return;
+  if (!service) {
+    panel.classList.add("hidden");
+    panel.innerHTML = "";
+    return;
+  }
+
+  const displayName = sanitizeStoreDisplayName(service.name || t("services"));
+  const kind = getServiceKind(service);
+  const icon = serviceKindIcon(kind);
+  const typeLabel = kind ? `<span class="store-badge store-badge-floor">${escapeHtml(kind === "bathroom" ? (t("bathrooms") || "Baños") : kind === "cowork" ? (t("cowork") || "Cowork") : kind === "customer_service" ? (t("customerService") || "Atención al cliente") : kind === "elevator" ? (t("elevators") || "Ascensor") : escapeHtml(t("services")))}</span>` : "";
+  const floorLabel = formatServiceFloors(service.floors) ? `<span class="store-badge store-badge-floor">${escapeHtml(formatServiceFloors(service.floors))}</span>` : "";
+  const location = service.location ? `<div class="store-detail-schedule">${escapeHtml(service.location)}</div>` : "";
+  const description = String(service.description || service.location || "").trim();
+
+  panel.innerHTML = `
+    <div class="store-detail-header">
+      <div class="store-detail-photo service-detail-icon">${icon}</div>
+      <div class="store-detail-head-text">
+        <h2 class="store-detail-name">${escapeHtml(displayName)}</h2>
+        <div class="store-detail-meta">${typeLabel}${floorLabel}</div>
+        ${location}
         ${description ? `<p class="store-detail-desc">${escapeHtml(description)}</p>` : ""}
       </div>
     </div>`;
@@ -5938,7 +6110,7 @@ function renderServiceCard(svc, idx) {
   const icon = serviceKindIcon(kind);
 
   return `
-    <article class="service-card fade-in${cardClass}" id="svc-${idx}" onclick="toggleServiceCard(${idx})">
+    <article class="service-card fade-in${cardClass}" id="svc-${idx}" style="position:relative;padding-right:140px;" onclick="openServiceMap(${idx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); openServiceMap(${idx});}">
       <div class="service-card-row">
         <div class="service-card-top">
           <div class="service-card-title-row">
@@ -5949,7 +6121,7 @@ function renderServiceCard(svc, idx) {
           ${locText ? `<div class="service-loc">${escapeHtml(locText)}</div>` : ""}
           ${detailText ? `<div class="service-desc">${escapeHtml(detailText)}</div>` : ""}
         </div>
-        <div class="service-card-actions">${mapBtn}</div>
+        <div class="service-card-actions" style="position:absolute;top:12px;right:12px;z-index:60;">${mapBtn}</div>
       </div>
     </article>`;
 }
@@ -6655,7 +6827,7 @@ function storeCatalogId(store) {
 
 function openPoiMap(opts) {
   const {
-    poiType, id, floor, mall, name, local, catalogId, mode, storeDetail,
+    poiType, id, floor, mall, name, local, catalogId, mode, storeDetail, serviceDetail,
     anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId, serviceType,
     routeApproachQuery, routeApproachLocal, routeApproachWeight, routeApproachMaxMeters, routeApproachPullFrom,
     searchQueries,
@@ -6698,6 +6870,9 @@ function openPoiMap(opts) {
   if (poiType === "store" && storeDetail) {
     renderStoreDetailPanel(storeDetail);
     speakStoreDetail(storeDetail);
+  } else if (isService && serviceDetail) {
+    renderServiceDetailPanel(serviceDetail);
+    speakStoreDetail(serviceDetail);
   } else {
     hideStoreDetailPanel();
     if (isService && name) {
@@ -6840,7 +7015,8 @@ function openStoreMap(groupIndex, locationIndex) {
   enrichStoreDetailPanel(store);
 }
 
-function openServiceMap(idx) {
+function openServiceMap(idx, options) {
+  options = options || {};
   const svc = lastServicesPayload?.results?.[idx];
   if (!svc) return;
 
@@ -6922,11 +7098,17 @@ function openServiceMap(idx) {
     lng: normalized.mapvxLng,
     searchQueries: normalized.mapvxSearchQueries || undefined,
     preferChangingTable: !!(normalized.features && normalized.features.mudador),
-    mode: canRoute ? "navigation" : "place",
+    serviceDetail: normalized,
+    mode: options.autoRoute ? "navigation" : "place",
   });
 }
 
 function closeMapView() {
+  if (backToServiciosIfNeeded()) {
+    window.location.href = "../servicios/index.html";
+    return;
+  }
+
   clearAutoMapLaunchUi();
   const container = document.getElementById("mapvx-container");
   const mapKept = typeof MapVxBridge !== "undefined"
@@ -6963,6 +7145,17 @@ function closeMapView() {
   try {
     if (currentMobilityView() === 'map') popMobilityView();
   } catch (e) {}
+}
+
+function backToServiciosIfNeeded() {
+  if (window.pendingServiceRouteSource === "servicios") return true;
+  if (isCustomerServiceRouteFromServicios()) return true;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("serviceId") === "customer-service-n1" && params.get("autoRoute") === "1";
+  } catch (e) {
+    return false;
+  }
 }
 
 function startVoiceInput() {
