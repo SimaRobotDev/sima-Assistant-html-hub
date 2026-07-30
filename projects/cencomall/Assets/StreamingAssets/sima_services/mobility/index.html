@@ -20,6 +20,27 @@
       } catch (ePending) { /* noop */ }
     }
     if (auto) document.documentElement.classList.add("auto-map-launch");
+
+    // Voice/RN launch with a query: hide empty searcher on first paint.
+    var bootQuery = String(
+      window.MALL_SEARCH_QUERY
+      || window.MALL_INITIAL_QUERY
+      || window.MALL_VOICE_QUERY
+      || params.get("q")
+      || params.get("query")
+      || params.get("search")
+      || params.get("text")
+      || ""
+    ).trim();
+    var bootService = String(
+      window.MALL_SERVICE_ID
+      || params.get("serviceId")
+      || params.get("service")
+      || ""
+    ).trim();
+    if (bootQuery || bootService) {
+      document.documentElement.classList.add("search-boot-loading");
+    }
   } catch (e) { /* noop */ }
 })();
 </script>
@@ -666,6 +687,57 @@ html.auto-map-launch #map-loading-circle {
 
 html.auto-map-launch #map-loading-circle.hidden {
   display: flex !important;
+}
+
+/* Voice/RN launch: never flash the empty store searcher while catalog resolves. */
+html.search-boot-loading .cm-search-landing,
+html.search-boot-loading .cm-speak-fab,
+html.search-boot-loading .cm-survey-strip {
+  display: none !important;
+}
+
+html.search-boot-loading #resultado {
+  min-height: 50vh;
+}
+
+.search-boot-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 48vh;
+  padding: 28px 18px;
+  text-align: center;
+}
+
+.search-boot-spinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid rgba(88, 44, 131, 0.18);
+  border-top-color: var(--cm-purple-dark, #582c83);
+  animation: searchBootSpin 0.8s linear infinite;
+}
+
+@keyframes searchBootSpin {
+  to { transform: rotate(360deg); }
+}
+
+.search-boot-title {
+  margin: 0;
+  font-family: var(--cb-font-title, inherit);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--cm-purple-dark, #582c83);
+}
+
+.search-boot-copy {
+  margin: 0;
+  max-width: 16em;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--cm-muted, #6b6475);
 }
 
 .map-view-header {
@@ -1960,7 +2032,7 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 <script>
 let MAP_SERVICE_BASE_URL = window.MALL_MAP_BASE_URL || "";
-const MOBILITY_UI_VERSION = "OTA 2026.07.24-2 voice services guard";
+const MOBILITY_UI_VERSION = "OTA 2026.07.29-2 adidas originals + search boot loading";
 const MALL_TITLE = "Cenco Costanera";
 let lastMarketPayload = null;
 let cachedAZStoreResults = null;
@@ -2002,6 +2074,8 @@ const MOBILITY_I18N = {
     voiceNoSpeech: "No se detectó voz. Intenta de nuevo.",
     redeemInApp: "Canjear en la app",
     noResults: "Sin resultados",
+    searchingTitle: "Buscando…",
+    searchingCopy: "Estamos buscando tiendas para",
     storesNotFound: "No encontramos tiendas para",
     promosNotFound: "No hay promociones para",
     tryCategoryOrBrand: "Prueba un chip de categoría o di el nombre de la marca.",
@@ -2100,6 +2174,8 @@ const MOBILITY_I18N = {
     voiceNoSpeech: "No speech detected. Try again.",
     redeemInApp: "Redeem in app",
     noResults: "No results",
+    searchingTitle: "Searching…",
+    searchingCopy: "Looking for stores matching",
     storesNotFound: "We couldn't find stores for",
     promosNotFound: "No promotions for",
     tryCategoryOrBrand: "Try a category chip or say a brand name.",
@@ -2198,6 +2274,8 @@ const MOBILITY_I18N = {
     voiceNoSpeech: "Nenhuma voz detectada. Tente novamente.",
     redeemInApp: "Resgatar no app",
     noResults: "Sem resultados",
+    searchingTitle: "Buscando…",
+    searchingCopy: "Estamos buscando lojas para",
     storesNotFound: "Não encontramos lojas para",
     promosNotFound: "Não há promoções para",
     tryCategoryOrBrand: "Tente uma categoria ou diga o nome da marca.",
@@ -2935,6 +3013,11 @@ async function runMarketCatalogSearch(query, options) {
       resultKind: foodQuery ? "restaurants" : "stores",
     };
 
+    emitMarketSearchResultsToBridge(payload, {
+      seq: options.seq != null ? options.seq : marketSearchSeq,
+      source: options.source || (options.voice ? "voice" : "text"),
+    });
+
     if (!options.skipRender) {
       renderMarketResults(payload);
       lastLocalMarketSearch = {
@@ -2950,6 +3033,29 @@ async function runMarketCatalogSearch(query, options) {
     if (!options.silent) showSearchError(t("loadError"));
     return null;
   }
+}
+
+function emitMarketSearchResultsToBridge(searchPayload, options) {
+  options = options || {};
+  if (typeof MarketSearch === "undefined" || typeof MarketSearch.toBridgeSearchPayload !== "function") {
+    return null;
+  }
+  if (!SimaBridge || typeof SimaBridge.send !== "function") return null;
+
+  const bridgePayload = MarketSearch.toBridgeSearchPayload(searchPayload || {}, {
+    query: (searchPayload && searchPayload.query) || options.query || "",
+    seq: options.seq,
+    topN: options.topN || 8,
+  });
+  // Always emit — including totalMatches: 0 — so RN/IA can continue without inventing stores.
+  SimaBridge.send("market_search_results", {
+    query: bridgePayload.query,
+    seq: bridgePayload.seq,
+    totalMatches: bridgePayload.totalMatches,
+    results: bridgePayload.results,
+    source: options.source || (searchPayload && searchPayload.source) || "market-catalog",
+  });
+  return bridgePayload;
 }
 
 function prefetchMarketCatalog() {
@@ -3200,6 +3306,16 @@ function initStoreSearchLanding() {
   if (!shouldShowStoreSearchLanding()) return;
   // Avoid mounting/focusing the searcher when we are deep-linking into the map.
   if (document.documentElement.classList.contains("auto-map-launch")) return;
+  // Voice/RN launch with a query: keep boot loading, never paint empty searcher.
+  if (
+    document.documentElement.classList.contains("search-boot-loading")
+    || getInitialSearchQuery()
+    || (typeof getInitialServiceId === "function" && getInitialServiceId())
+  ) {
+    const bootQ = getInitialSearchQuery();
+    if (bootQ) showSearchInProgress(bootQ);
+    return;
+  }
 
   applyStoreSearchLandingLocale();
   wireStoreSearchLandingEvents();
@@ -3224,7 +3340,12 @@ function applyMobilityLocale() {
   applyStoreSearchLandingLocale();
   const hasResults = !!(lastMarketPayload && Array.isArray(lastMarketPayload.results) && lastMarketPayload.results.length);
   const landingVisible = document.getElementById("store-search-landing");
-  if (shouldShowStoreSearchLanding() && !hasResults && landingVisible) {
+  if (
+    shouldShowStoreSearchLanding()
+    && !hasResults
+    && landingVisible
+    && !document.documentElement.classList.contains("search-boot-loading")
+  ) {
     showStoreSearchLanding(true);
   }
 
@@ -3317,6 +3438,7 @@ window.selectGastronomySubcategory = selectGastronomySubcategory;
 window.submitInlineStoreSearch = submitInlineStoreSearch;
 
 function returnToStoreSearchLanding() {
+  clearSearchBootLoading();
   const container = document.getElementById("resultado");
   if (!container) return;
   container.innerHTML = buildStoreSearchLandingHtml();
@@ -4083,6 +4205,10 @@ async function selectStoreCategory(categoryName) {
       source: "market-catalog",
       resultType: "category",
     };
+    emitMarketSearchResultsToBridge(payload, {
+      seq: marketSearchSeq,
+      source: "category",
+    });
     renderMarketResults(payload);
     // navigation: category results
     try { pushMobilityView('categoryResults'); } catch (e) {}
@@ -4140,21 +4266,26 @@ function setStoreSearchInputs(query) {
   if (inline) inline.value = q;
 }
 
+function clearSearchBootLoading() {
+  try {
+    document.documentElement.classList.remove("search-boot-loading");
+  } catch (e) { /* noop */ }
+}
+
 function showSearchInProgress(query) {
   const q = String(query || "").trim();
   if (!q) return;
+  document.documentElement.classList.add("search-boot-loading");
   ensureStoreSearchReady();
   hideWelcome();
   setStoreSearchInputs(q);
   const resultado = document.getElementById("resultado");
   if (!resultado) return;
   resultado.innerHTML = `
-    <div class="cm-panel fade-in">
-      <div class="cm-empty">
-        <div class="cm-empty-title">${escapeHtml(t("search"))}</div>
-        <div class="cm-empty-copy">"${escapeHtml(q)}"</div>
-        ${renderResultsSearchBar(q)}
-      </div>
+    <div class="cm-panel fade-in search-boot-panel" role="status" aria-live="polite">
+      <div class="search-boot-spinner" aria-hidden="true"></div>
+      <h2 class="search-boot-title">${escapeHtml(t("searchingTitle"))}</h2>
+      <p class="search-boot-copy">${escapeHtml(t("searchingCopy"))} “${escapeHtml(q)}”.</p>
     </div>`;
 }
 
@@ -4592,6 +4723,7 @@ function decodeBase64Utf8(b64) {
 }
 
 function showSearchError(message) {
+  clearSearchBootLoading();
   document.getElementById("resultado").innerHTML = `
     <div class="cm-panel fade-in">
       <div class="cm-empty">
@@ -4860,6 +4992,103 @@ function getStoreInitials(name) {
 
 function getCencomallSiteOrigin() {
   return String(window.CENCOMALL_SITE_ORIGIN || "https://stg.cencomalls.cl").replace(/\/$/, "");
+}
+
+function getMarketApiBase() {
+  const override = String(window.CENCOMALL_MARKET_API_BASE || "").trim();
+  if (override) return override.replace(/\/$/, "");
+  return getCencomallSiteOrigin() + "/api/market";
+}
+
+function getMarketApiHeaders() {
+  const headers = { Accept: "application/json" };
+  const token = String(window.CENCOMALL_MARKET_API_TOKEN || window.CENCOMALL_API_TOKEN || "").trim();
+  if (token) headers.Authorization = "Bearer " + token;
+  return headers;
+}
+
+const storeDetailCache = Object.create(null);
+let storeDetailRequestSeq = 0;
+
+function mergeStoreDetail(baseStore, detail) {
+  if (!baseStore) return detail || null;
+  if (!detail || typeof detail !== "object") return baseStore;
+  const photos = Array.isArray(detail.market_photos)
+    ? detail.market_photos
+    : (baseStore.market_photos || []);
+  const schedules = Array.isArray(detail.market_schedules)
+    ? detail.market_schedules
+    : (baseStore.schedules || baseStore.schedule || []);
+  const description = String(
+    detail.brand_description || detail.description || baseStore.description || ""
+  ).trim();
+  return Object.assign({}, baseStore, {
+    name: baseStore.name || detail.brand_name || detail.market_name || baseStore.brand,
+    brand: baseStore.brand || detail.brand_name || baseStore.name,
+    local: baseStore.local || String(detail.local || "").trim(),
+    id: baseStore.id || detail.id,
+    logoUrl: baseStore.logoUrl || detail.brand_logo || "",
+    brand_logo: baseStore.brand_logo || detail.brand_logo || "",
+    market_photos: photos,
+    schedules: schedules,
+    schedule: schedules,
+    description: description,
+    descriptionLocales: Object.assign({}, baseStore.descriptionLocales || {}, {
+      es: description || (baseStore.descriptionLocales && baseStore.descriptionLocales.es) || "",
+    }),
+    website: String(detail.brand_website || baseStore.website || "").trim(),
+    keywords: baseStore.keywords || String(detail.keywords || "").trim(),
+    category: baseStore.category || String(detail.brand_categories || "").trim(),
+    detailLoaded: true,
+  });
+}
+
+async function fetchStoreDetailById(storeId) {
+  const id = String(storeId || "").trim();
+  if (!id) return null;
+  if (storeDetailCache[id]) return storeDetailCache[id];
+
+  const url = getMarketApiBase() + "/" + encodeURIComponent(id);
+  try {
+    const res = await fetch(url, {
+      cache: "no-cache",
+      headers: getMarketApiHeaders(),
+    });
+    if (!res.ok) {
+      SimaBridge.log("market detail HTTP " + res.status + " id=" + id);
+      return null;
+    }
+    const raw = await res.json();
+    const detail = (raw && typeof raw === "object" && raw.data && typeof raw.data === "object")
+      ? raw.data
+      : raw;
+    if (!detail || typeof detail !== "object") return null;
+    storeDetailCache[id] = detail;
+    return detail;
+  } catch (e) {
+    SimaBridge.log("market detail fetch failed id=" + id + " err=" + (e && e.message ? e.message : e));
+    return null;
+  }
+}
+
+function enrichStoreDetailPanel(store) {
+  if (!store) return;
+  const id = storeCatalogId(store);
+  if (!id) return;
+  // Slim catalog: description/photos/schedules come from GET /market/{id}.
+  // Map open must NOT wait on this — panel updates when ready.
+  if (store.detailLoaded || store.description || (store.schedules && store.schedules.length) || (store.market_photos && store.market_photos.length)) {
+    // Still refresh if we only have slim leftovers and token is available.
+    if (store.detailLoaded) return;
+    if (store.description && store.schedules && store.schedules.length) return;
+  }
+
+  const reqId = ++storeDetailRequestSeq;
+  fetchStoreDetailById(id).then(function (detail) {
+    if (!detail || reqId !== storeDetailRequestSeq) return;
+    const merged = mergeStoreDetail(store, detail);
+    renderStoreDetailPanel(merged);
+  });
 }
 
 function resolveMediaUrl(url) {
@@ -5726,6 +5955,7 @@ function renderServiceCard(svc, idx) {
 }
 
 function renderServicesResults(payload) {
+  clearSearchBootLoading();
   lastServicesPayload = payload;
   if (payload.mapBaseUrl) MAP_SERVICE_BASE_URL = payload.mapBaseUrl;
 
@@ -5854,6 +6084,7 @@ function renderMarketResults(payload) {
     return;
   }
 
+  clearSearchBootLoading();
   lastMarketPayload = payload;
   hideWelcome();
 
@@ -6594,6 +6825,7 @@ function openStoreMap(groupIndex, locationIndex) {
     return;
   }
 
+  // Map uses `local` immediately — detail fetch must not block MapVX.
   openPoiMap({
     poiType: "store",
     id: mapCatalogId || mapLocal,
@@ -6605,8 +6837,7 @@ function openStoreMap(groupIndex, locationIndex) {
     mode: "place",
     storeDetail: store
   });
-  // mark navigation: store detail (or map to follow)
-  try { pushMobilityView('storeDetail'); } catch (e) {}
+  enrichStoreDetailPanel(store);
 }
 
 function openServiceMap(idx) {

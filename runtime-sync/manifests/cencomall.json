@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.28-3",
+  "version": "2026.07.30-004818",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-07-29T00:12:42.433Z",
+  "generatedAt": "2026-07-30T04:48:21.485Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.07.24-2",
+  "rollbackTo": null,
   "entryPoints": [
     {
       "service": "agenda",
@@ -114,8 +114,8 @@
     },
     {
       "path": "flights/index.html",
-      "size": 23698,
-      "sha256": "6f0fa900c7f32a48d7399441cf618ec390495bd49b3e3afc223352d84bf5542b"
+      "size": 24056,
+      "sha256": "a9234a34af41c037e8c5417c2c83e82ed3d3701d598df0203ec9c642d3edf651"
     },
     {
       "path": "human/img.zip",
@@ -154,8 +154,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 210730,
-      "sha256": "d2cd9234043daee834ef84e5e46aac4c6b09570eccdb7c41a605c3a1cf4fdcff"
+      "size": 220731,
+      "sha256": "ba4bda1b4b74134057f88adf06484b9cfcc26c785134fcd9b7577d02ac24b6a1"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -174,8 +174,18 @@
     },
     {
       "path": "promociones/index.html",
-      "size": 21662,
-      "sha256": "f045701612191c33b2247a8d5549556444b166394efa750b5048294c218ada11"
+      "size": 24943,
+      "sha256": "12ec4122545342e4d8b6436f08e3b84a91c391ce760c50d9838ca57042cde34f"
+    },
+    {
+      "path": "promociones/QR_App_Store_Cenco_Malls.png",
+      "size": 7068,
+      "sha256": "21feb6a297cd8acecd68e51d59eb22282b00c3bfac7e46560a9f1ec35eb3cbee"
+    },
+    {
+      "path": "promociones/QR_Google_Play_Cenco_Malls.png",
+      "size": 7783,
+      "sha256": "95ee0816cc4ff81d18d20501ce1a2a7aad6dcde973ec880bc943f4c56fe7c8ef"
     },
     {
       "path": "services-2/index.html",
@@ -228,6 +238,11 @@
       "sha256": "a182c7320869561825b6ab06c1f13486250225bafeac74c3bf91e66765e8eced"
     },
     {
+      "path": "shared/category-icons/cafeteria.svg",
+      "size": 3659,
+      "sha256": "96f6030ed4fe74a6c508da64ba5747131fd131398ae226f4f88bf5ff683ed4cf"
+    },
+    {
       "path": "shared/category-icons/car.svg",
       "size": 4858,
       "sha256": "7e0c8057193b95cc1ba3c22a1f0d26ff69bf43cc5c270763fb4694caa51d395e"
@@ -238,9 +253,29 @@
       "sha256": "6e1dd0aea8198d660dc7c9a18a0a065c019a33c908adde00f0588f78b6d21e5e"
     },
     {
+      "path": "shared/category-icons/chocolateria-confites.svg",
+      "size": 3094,
+      "sha256": "64016ccb04f841674c7dcf39e590d97d956c70aa659eca435c8515ca13eb6b6c"
+    },
+    {
+      "path": "shared/category-icons/default.svg",
+      "size": 202,
+      "sha256": "4e3ccc7df938e65ae5e604364f5b2472bdf6e402bb922d48a0ffc19e88a5c413"
+    },
+    {
       "path": "shared/category-icons/desktop.svg",
       "size": 2882,
       "sha256": "1a589437cfff3ceca5a91842339422cd7c9c14253e65f229e0af848e50429c83"
+    },
+    {
+      "path": "shared/category-icons/elevator.svg",
+      "size": 1283,
+      "sha256": "00441e0499af4645bf4737dfd44f00654b8d319ceafb55decdd2116b1fa01a71"
+    },
+    {
+      "path": "shared/category-icons/especialistas.svg",
+      "size": 1439,
+      "sha256": "44151b5a031585b4cff834751894b58cd49893c554a55ba7d30c4d231679fcad"
     },
     {
       "path": "shared/category-icons/eyeglass.svg",
@@ -260,7 +295,7 @@
     {
       "path": "shared/category-icons/kitchen.svg",
       "size": 1235,
-      "sha256": "95c156fdb7742c1c3b8ea2203fa6419cfc4619e279a53baba604e61925343943"
+      "sha256": "681b75332c8c107ec9c0758e1f8b5d04b11c787e03911011ab8cae42fb66b425"
     },
     {
       "path": "shared/category-icons/laptop.svg",
@@ -268,9 +303,19 @@
       "sha256": "0c6172c490930ff4112996a8303df8cdcee76a7310e296597b06035d6458cd07"
     },
     {
+      "path": "shared/category-icons/patio-de-comidas.svg",
+      "size": 2426,
+      "sha256": "5e7a8a6ffba98a23c10327996beb677f3e79e553090166d23a1b412994fd041e"
+    },
+    {
       "path": "shared/category-icons/popcorn.svg",
       "size": 5127,
       "sha256": "f5650b305127f43250bfe4d94f69bd7127688910af4534f64abb93bf7812a3f2"
+    },
+    {
+      "path": "shared/category-icons/qinto.svg",
+      "size": 637,
+      "sha256": "ceb7cdac053be86863a87c5cecc6c966d854301712d279ab1ac7390dc5fb9111"
     },
     {
       "path": "shared/category-icons/restroom.svg",
@@ -339,8 +384,8 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 196097,
-      "sha256": "ccd7f72980ace36d594b89d629d428aeebe1cf0c31c98eb740cb057ef42c37af"
+      "size": 196000,
+      "sha256": "76681eea1579e8ac28d12e98c0ea06f9d38c3aece3d3bb43bf7a907b51066988"
     },
     {
       "path": "shared/mapvx/index.js",
@@ -364,8 +409,8 @@
     },
     {
       "path": "shared/market-search.js",
-      "size": 36489,
-      "sha256": "9b2251a7258f659eabb9730e297db28b641d9de91a8678eb3e922b2c456d6ac7"
+      "size": 38387,
+      "sha256": "b2823cb47cbdd282081cb9d25986571e1a7e1597118dbecb55f1d4e3ee848555"
     },
     {
       "path": "shared/native-payload.js",
