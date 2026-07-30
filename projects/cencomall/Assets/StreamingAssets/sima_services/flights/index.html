@@ -262,6 +262,12 @@
       flex-shrink: 0;
     }
 
+    .service-icon[src] {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+    }
+
     .service-name {
       font-size: 12.5px;
       line-height: 13px;
@@ -498,7 +504,7 @@
         <h2 class="detail-title">Apoyo</h2>
         <p class="detail-text">Servicios útiles.</p>
         <div class="service-list">
-          <button class="service-item" onclick="openService('bathrooms')"><span class="service-icon">🚻</span><div class="service-name">Baños</div></button>
+          <button class="service-item" onclick="openService('bathrooms')"><img class="service-icon" src="shared/category-icons/restroom.svg" alt="Baños"><div class="service-name">Baños</div></button>
           <button class="service-item" onclick="openService('wifi')"><span class="service-icon">📶</span><div class="service-name">WiFi</div></button>
           <button class="service-item" onclick="openService('phone_charging')"><span class="service-icon">🔋</span><div class="service-name">Carga celular</div></button>
           <button class="service-item" onclick="openService('lost_objects')"><span class="service-icon">🔎</span><div class="service-name">Objetos perdidos</div></button>
@@ -620,6 +626,7 @@
         payload: { mapIndex: "atm", destination: "Cajero automático" }
       },
       bathrooms: {
+        iconSrc: "shared/category-icons/restroom.svg",
         icon: "🚻",
         title: "Baños",
         location: "Por completar",
@@ -723,7 +730,12 @@
 
       currentServiceKey = serviceKey;
 
-      document.getElementById("modalIcon").textContent = service.icon;
+      var modalIcon = document.getElementById("modalIcon");
+      if (service.iconSrc) {
+        modalIcon.innerHTML = '<img src="' + service.iconSrc + '" alt="">';
+      } else {
+        modalIcon.textContent = service.icon;
+      }
       document.getElementById("modalTitle").textContent = service.title;
       document.getElementById("modalLocation").textContent = service.location;
       document.getElementById("modalText").textContent = service.text;

@@ -197,6 +197,102 @@
       text-align: center;
     }
 
+    .promo-info-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(16, 24, 40, 0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 400;
+    }
+
+    .promo-info-overlay.show {
+      display: flex;
+    }
+
+    .promo-info-popup {
+      width: min(520px, 100%);
+      background: #fff;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 32px 80px rgba(8, 15, 32, 0.18);
+      max-height: calc(100vh - 40px);
+      overflow: auto;
+    }
+
+    .promo-info-popup h2 {
+      margin: 0 0 10px;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .promo-info-popup p {
+      margin: 0 0 18px;
+      color: #4B5268;
+    }
+
+    .promo-info-qr-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .promo-info-qr {
+      background: #F7F5FF;
+      border-radius: 16px;
+      border: 1px solid #E9E6F4;
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .promo-info-qr-placeholder {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: linear-gradient(180deg, #ECECF7 0%, #F8F7FC 100%);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8A84B7;
+      font-size: 13px;
+      text-align: center;
+      padding: 8px;
+    }
+
+    .promo-info-qr-image {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      border-radius: 14px;
+      display: block;
+      background: #fff;
+    }
+
+    .promo-info-qr-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #332F68;
+    }
+
+    .promo-info-popup .btn-close-popup {
+      margin-top: 18px;
+      width: 100%;
+      border: none;
+      background: #F2EFFD;
+      color: #3D2F8F;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-family: var(--cb-btn-font);
+      font-size: var(--cb-btn-font-xs);
+      cursor: pointer;
+    }
+
     .cm-empty {
       text-align: center;
       padding: 28px 12px;
@@ -264,6 +360,24 @@
           <div class="cm-empty-copy" id="loading-copy">Un momento, por favor.</div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div id="promo-info-overlay" class="promo-info-overlay" onclick="if(event.target===this){ closePromoInfoPopup(); }">
+    <div class="promo-info-popup" role="dialog" aria-modal="true" aria-labelledby="promo-info-title">
+      <h2 id="promo-info-title">Escanea el QR para descargar la App Cenco Mall</h2>
+      <p>Obtén más información, beneficios exclusivos y descuentos directamente en tu dispositivo Android o iOS.</p>
+      <div class="promo-info-qr-grid">
+        <div class="promo-info-qr">
+          <img class="promo-info-qr-image" src="QR_Google_Play_Cenco_Malls.png" alt="QR Google Play" />
+          <div class="promo-info-qr-label">Google Play</div>
+        </div>
+        <div class="promo-info-qr">
+          <img class="promo-info-qr-image" src="QR_App_Store_Cenco_Malls.png" alt="QR App Store" />
+          <div class="promo-info-qr-label">App Store</div>
+        </div>
+      </div>
+      <button class="btn-close-popup" type="button" onclick="closePromoInfoPopup()">Cerrar</button>
     </div>
   </div>
 
@@ -450,6 +564,18 @@
       }
     }
 
+    function openPromoInfoPopup() {
+      var overlay = document.getElementById("promo-info-overlay");
+      if (!overlay) return;
+      overlay.classList.add("show");
+    }
+
+    function closePromoInfoPopup() {
+      var overlay = document.getElementById("promo-info-overlay");
+      if (!overlay) return;
+      overlay.classList.remove("show");
+    }
+
     function openPromoFromBtn(btn) {
       if (!btn) return;
       openPromoInApp(btn.getAttribute("data-promo-id") || "promo", btn.getAttribute("data-promo-url") || "https://www.cencomalls.cl/");
@@ -467,9 +593,7 @@
         ? escapeHtml(t("validUntil")) + " " + escapeHtml(promo.validityEnd)
         : "";
       var cta = promo.requiresApp
-        ? '<button class="btn-promo-app" type="button" data-promo-id="' + escapeHtml(promo.id || "") +
-          '" data-promo-url="' + escapeHtml(appUrl || "https://www.cencomalls.cl/") +
-          '" onclick="openPromoFromBtn(this)">' + escapeHtml(t("redeemInApp")) + "</button>"
+        ? '<button class="btn-promo-app" type="button" onclick="openPromoInfoPopup()">Presiona para más información</button>'
         : "";
 
       return '<article class="promo-card fade-in">' +

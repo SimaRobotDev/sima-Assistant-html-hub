@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:manifests": "node scripts/build-runtime-manifest.mjs",
+    "build:manifests": "node scripts/build-runtime-manifest-from-git.mjs",
+    "build:manifests:disk": "node scripts/build-runtime-manifest.mjs",
+    "validate:manifest": "node scripts/validate-runtime-manifest-from-git.mjs",
     "build:deploy": "node scripts/build-deploy.mjs",
     "dev": "node scripts/serve-local.mjs",
     "serve:cenco": "node scripts/serve-local.mjs"

@@ -322,6 +322,9 @@ window.MarketSearch = (function () {
 
   function entryHasSneakerContext(entry, keywordList) {
     var categoryNorm = normalizeText(entry && entry.category);
+    var brandNorm = normalizeText(entry && entry.brand);
+    // Treat well-known footwear brands as sneaker context even if keywords/categories are sparse
+    if (brandNorm && (brandNorm.indexOf("adidas") >= 0 || brandNorm.indexOf("nike") >= 0 || brandNorm.indexOf("puma") >= 0 || brandNorm.indexOf("vans") >= 0 || brandNorm.indexOf("converse") >= 0 || brandNorm.indexOf("reebok") >= 0)) return true;
     var categoryMatch =
       categoryNorm.indexOf("calzado") >= 0 ||
       categoryNorm.indexOf("deportes") >= 0 ||
@@ -386,7 +389,45 @@ window.MarketSearch = (function () {
       best = Math.max(best, wordScore(text, variants[i], exactPts, prefixPts));
       if (best >= exactPts) return best;
     }
+    // If no good match, try a lightweight fuzzy match (small edit distance)
+    if (best <= 0 && token && token.length >= 3 && text) {
+      // compute fuzzy score against individual words in text
+      var words = text.split(" ");
+      for (var j = 0; j < words.length; j++) {
+        var w = words[j];
+        if (!w) continue;
+        var d = levenshteinDistance(w, token);
+        if (d === 0) return exactPts; // shouldn't happen, but safe
+        if (d === 1 && token.length >= 3) return Math.max(best, Math.floor(exactPts * 0.45));
+        if (d === 2 && token.length >= 5) best = Math.max(best, Math.floor(exactPts * 0.25));
+      }
+    }
     return best;
+  }
+
+  // Lightweight Levenshtein distance for short tokens (optimized)
+  function levenshteinDistance(a, b) {
+    if (a === b) return 0;
+    if (!a || !b) return Math.max(a ? a.length : 0, b ? b.length : 0);
+    var la = a.length;
+    var lb = b.length;
+    if (Math.abs(la - lb) > 2) return Math.abs(la - lb);
+    var v0 = new Array(lb + 1);
+    var v1 = new Array(lb + 1);
+    for (var i = 0; i <= lb; i++) v0[i] = i;
+    for (var i = 0; i < la; i++) {
+      v1[0] = i + 1;
+      var ai = a.charCodeAt(i);
+      for (var j = 0; j < lb; j++) {
+        var cost = ai === b.charCodeAt(j) ? 0 : 1;
+        var deletion = v0[j + 1] + 1;
+        var insertion = v1[j] + 1;
+        var substitution = v0[j] + cost;
+        v1[j + 1] = Math.min(deletion, insertion, substitution);
+      }
+      var tmp = v0; v0 = v1; v1 = tmp;
+    }
+    return v0[lb];
   }
 
   function parseCategoryList(rawCategories) {

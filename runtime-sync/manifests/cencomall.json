@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.28-1",
-  "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-07-28T17:32:20.868Z",
+  "version": "2026.07.28-3",
+  "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
+  "generatedAt": "2026-07-29T00:12:42.433Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": "2026.07.24-2",
   "entryPoints": [
@@ -59,28 +59,18 @@
   "files": [
     {
       "path": "agenda/index.html",
-      "size": 57375,
-      "sha256": "d73222c54c1a4224f32430b333bddfce7eca8ddf88dd76e67366de75688096bc"
+      "size": 56893,
+      "sha256": "4187ea22a979a74308f66064ceb25fec17988b4da8522377de1ca860ee1b9385"
     },
     {
       "path": "agenda/indexAgenda.html",
-      "size": 7035,
-      "sha256": "d964f252307d4907a062943edb3d9421e337dc0f7544a78cf962a7dde6cdb180"
+      "size": 6759,
+      "sha256": "915fb41dcce3a70c64db5d39b745a43a2f675f8a19f8db190abc9b5e50b3123a"
     },
     {
       "path": "call/index.html",
-      "size": 5726,
-      "sha256": "16203fc6b41ad23fa8cb1a73e6de8cd17a04b05cab37a2c49596071d70e1c234"
-    },
-    {
-      "path": "data/bathroom-mapvx-patches.json",
-      "size": 2831,
-      "sha256": "c03a06cd1cd9cce8d87d25e5a542b7040bed4152e97cee744b061c0b093b5957"
-    },
-    {
-      "path": "data/elevator-mapvx-patches.json",
-      "size": 1448,
-      "sha256": "611abd903ec694ab973cefbed181247e072e02cc505d3586ff7a0b427e268bc3"
+      "size": 5591,
+      "sha256": "98c7dbb68b4274456057484c8aefe95e691d2ed33504e891c3fc955d173a5887"
     },
     {
       "path": "data/market-catalog-i18n.json",
@@ -89,8 +79,8 @@
     },
     {
       "path": "data/market-catalog-i18n.jsonp.js",
-      "size": 150594,
-      "sha256": "77c3fb5f75c9e7a9f673c432f7dfe10a5a75e253fe0c1eacdbe2e8261dd6d799"
+      "size": 150592,
+      "sha256": "76de8a142260308bb82e3e334177d2f39313ba6babf2d24223b8c3001647ab5e"
     },
     {
       "path": "data/market-catalog.json",
@@ -99,33 +89,33 @@
     },
     {
       "path": "data/market-catalog.jsonp.js",
-      "size": 661483,
-      "sha256": "22b261433ee93f482f18f7ac450a8c4e72e7414a0cd1ef82aa43eac9424dcd41"
+      "size": 661481,
+      "sha256": "e89b35d08a17d17dc11fd6b84bb1a84ed4476fe5ca1f4535cfb5e806538514d6"
     },
     {
       "path": "data/services-catalog.json",
-      "size": 24968,
-      "sha256": "e5663644feb18ccabfc256946b61a7c28ec729dc1cf43885dd439be234a66400"
+      "size": 23990,
+      "sha256": "0c99393de24f7afb79c82181892caacc4d7e6b02b9c349ca56644ae1bef01d7e"
     },
     {
       "path": "data/services-catalog.jsonp.js",
-      "size": 25163,
-      "sha256": "61a9b9960f1e03ab368d3a5b5d8c3006ac10e30f6a570cb4f075e314841ef43a"
+      "size": 24184,
+      "sha256": "d310e6259324f3e5dc48a49f0ba0cd5cbde5adfc1eddb06234aedcea85fa8333"
     },
     {
       "path": "emergency/index.html",
-      "size": 12602,
-      "sha256": "4147a2e18c82d8f91d5a8e27cf25d734bcb5e93a87561062ba5e194024d3d075"
+      "size": 12209,
+      "sha256": "e45981d062b7808778a07ea85705f6cbacf9e936bc7a5c865b5057fc122c8ff4"
     },
     {
       "path": "FIX-BUSQUEDA-CATALOGO.md",
-      "size": 5457,
-      "sha256": "a7efe67734acb276462a9c680e6bb2a4a2ad32cf07e140416af3623b566c5635"
+      "size": 5323,
+      "sha256": "863aec71b6d8974201dd5e3f3a1fea63b198a28afe0859da2125a22f79ea39c6"
     },
     {
       "path": "flights/index.html",
-      "size": 24502,
-      "sha256": "c467e6093b6c9cf034691c05ae155c16f7bd2711548e183103cf6f44d7f8bf88"
+      "size": 23698,
+      "sha256": "6f0fa900c7f32a48d7399441cf618ec390495bd49b3e3afc223352d84bf5542b"
     },
     {
       "path": "human/img.zip",
@@ -144,18 +134,18 @@
     },
     {
       "path": "human/index.html",
-      "size": 3879,
-      "sha256": "7cd51d078d47a587a3a8f6626bc87afdf9ab97c3fb033ea254400fc7210d968d"
+      "size": 3777,
+      "sha256": "76aced319c0737b5f6c7ef72266d96e23cd36af1fdc0682e24cb4055c4d62867"
     },
     {
       "path": "IMPLEMENTACION-MAPVX-COSTANERA.md",
-      "size": 23347,
-      "sha256": "4bce9a592d8de638e311a45d9c0f920bc768471e6c5b3b80e41a1eac8134d823"
+      "size": 22893,
+      "sha256": "caf946dbae5abb3069901eba1f1a7a29319549a21145570cbb0f7c8d0fc99bc8"
     },
     {
       "path": "INFORME-CENCO-COSTANERA.md",
-      "size": 13733,
-      "sha256": "9fcb020271de6516aeb7f3fe870059a4adb7e73f0585c5bbdde034c82a0674b1"
+      "size": 13453,
+      "sha256": "fac75d7a8319447dd81c63bcbe4f5b78de02714bf7e35950f3224411f85eeab3"
     },
     {
       "path": "map/index.html",
@@ -164,53 +154,53 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 217194,
-      "sha256": "b52f3fbf12be43faab49d77756e2d366e4fbec464be44fe68aa0ad9e413e66ae"
+      "size": 210730,
+      "sha256": "d2cd9234043daee834ef84e5e46aac4c6b09570eccdb7c41a605c3a1cf4fdcff"
     },
     {
       "path": "mobility/indexMobility.html",
-      "size": 5248,
-      "sha256": "64e8082bef1806145cdff856abd3ff857b8b567618aee73afbc2700e228ef294"
+      "size": 4981,
+      "sha256": "1b7d0e5ce7090799e91168371105acd8c42f50fcc8de2823bdfb93121d438832"
     },
     {
       "path": "ontour/index.html",
-      "size": 11721,
-      "sha256": "823de5a7c23c80cff5c0b4aee97fb0c3d2de11872978102848dd9a0a2321c64c"
+      "size": 11402,
+      "sha256": "4a26e29d502b9421d342312fea95fcc7909643b8d62b8f6208b4aab2c5af0f2e"
     },
     {
       "path": "promociones-preview.html",
-      "size": 736,
-      "sha256": "adc3f0b6d3c14e06605d1691d68a63b50c363e32a9403eb69b97727048807140"
+      "size": 711,
+      "sha256": "415b28ee66c7af9c9b038fe0ed697d70676b4706e4ad57a584e278bb8644336d"
     },
     {
       "path": "promociones/index.html",
-      "size": 22282,
-      "sha256": "8fc5d2f03bd6dc47b6cda1d2c48af1b3adf2a1938c20b28b119d753b668683be"
+      "size": 21662,
+      "sha256": "f045701612191c33b2247a8d5549556444b166394efa750b5048294c218ada11"
     },
     {
       "path": "services-2/index.html",
-      "size": 34403,
-      "sha256": "18e63d13302236e74ec9c41ad2961d7dddd0a2a993e69d5b13cfe78f302159f3"
+      "size": 33538,
+      "sha256": "0eb212d1afe7bdda3464a1ed1beff5751b2357089b4b30c4e7a3ffd946e84d9b"
     },
     {
       "path": "servicios/index.html",
-      "size": 31770,
-      "sha256": "79e804115cf26688bd799efe553dd49fa3124825082650e8e0d9ed7f780d90e0"
+      "size": 30967,
+      "sha256": "e16c50086637927db2494db9fbbd4a8bd8c4c4fdee20256c5e21d5382c9e1f2d"
     },
     {
       "path": "shared/app.css",
-      "size": 5647,
-      "sha256": "0387f08c2d6270e25fdacb4552f9c2a17acfd934578215b5a9cc6ebef1e7cd08"
+      "size": 5329,
+      "sha256": "202c7b995387137c50ae606408b3443b96e43b9be353653c5387b6c5aa6a273f"
     },
     {
       "path": "shared/brand/cenco-malls-logo.svg",
-      "size": 4944,
-      "sha256": "7cc59e80dc6800a06a5ad897c1e7450cc785d1cedfcdd0d8c387867e252689a1"
+      "size": 4928,
+      "sha256": "ea3d486f0bb240c32baed5252396acff372f4af21d20b32706ac6d4d060d553f"
     },
     {
       "path": "shared/brand/icon-back.svg",
-      "size": 1017,
-      "sha256": "5819feb69b31b418f7f4be6656830410f06e0ec8b9ddf08d53a67f5a75a6a8a3"
+      "size": 1011,
+      "sha256": "f39503f8f1702722e1b2c2513af9f3f1bf739ae6535f23e3d960066910a89c39"
     },
     {
       "path": "shared/bridge.js",
@@ -219,128 +209,128 @@
     },
     {
       "path": "shared/category-icons/accessories.svg",
-      "size": 1631,
-      "sha256": "2d59394c93e877b51252a71acec12ebc8586264b485411a1eb1db730617debd7"
+      "size": 1625,
+      "sha256": "fc5142fb0593656f4efdfcefea1b98208714756757f9a431b03c87a0279324fc"
     },
     {
       "path": "shared/category-icons/aid-kit.svg",
-      "size": 3510,
-      "sha256": "7e1abc1a1cfa336c8a63d55aa5ab9496d02cedb2d4c9064fcda82133bbeca072"
+      "size": 3474,
+      "sha256": "d8ed3e53870edec1c77082bb9176f8962b8810bb8e7ec921eb65a2704a369f75"
     },
     {
       "path": "shared/category-icons/beauty.svg",
-      "size": 3660,
-      "sha256": "819b5fced09e63ee8cb81435dfafb7b8734a640efe3f2fc929d451018af2297f"
+      "size": 3621,
+      "sha256": "6d68a8fe1eb26c148427721671a793872f71be4b793643a632f7b58e5b2589c4"
     },
     {
       "path": "shared/category-icons/book.svg",
-      "size": 3849,
-      "sha256": "2abfe632cbacbd1a1afe52c0b3fa2b7cc020c9377e712691403bf8cc758fb7fe"
+      "size": 3812,
+      "sha256": "a182c7320869561825b6ab06c1f13486250225bafeac74c3bf91e66765e8eced"
     },
     {
       "path": "shared/category-icons/car.svg",
-      "size": 4915,
-      "sha256": "654a0d68fd932224607c8fd01734f56d6aa8d10ef97e196862427af10be43e2a"
+      "size": 4858,
+      "sha256": "7e0c8057193b95cc1ba3c22a1f0d26ff69bf43cc5c270763fb4694caa51d395e"
     },
     {
       "path": "shared/category-icons/cart.svg",
-      "size": 2191,
-      "sha256": "c16677f55da826348d058c2cd6ad7b91708f384f83fbe31c26c4df15deb0f148"
+      "size": 2185,
+      "sha256": "6e1dd0aea8198d660dc7c9a18a0a065c019a33c908adde00f0588f78b6d21e5e"
     },
     {
       "path": "shared/category-icons/desktop.svg",
-      "size": 2918,
-      "sha256": "b6f96750a9a08ee4d7c84f83336623f38d82df2ec715cc0f9550792d7b67e45f"
+      "size": 2882,
+      "sha256": "1a589437cfff3ceca5a91842339422cd7c9c14253e65f229e0af848e50429c83"
     },
     {
       "path": "shared/category-icons/eyeglass.svg",
-      "size": 3694,
-      "sha256": "c8a9694dece152b8db8a038aedebaa88147de1718aff818ade57026d72de326a"
+      "size": 3657,
+      "sha256": "56084a6c4445aca35c0bd38d0a96b7409648659bc7a36f3177b7246e96d6f3e5"
     },
     {
       "path": "shared/category-icons/grid-add.svg",
-      "size": 1667,
-      "sha256": "e31e2ec97f0b923c3a5bdf180fe8af43158a2bbc60c4f23c4c90fffef7ae64e8"
+      "size": 1661,
+      "sha256": "e34433b27a13e493e588de2e5e1542cfd72b657b11a167188b21cec2639c70d4"
     },
     {
       "path": "shared/category-icons/home.svg",
-      "size": 1605,
-      "sha256": "597b53e04a795a159b93e6b61a617d385ced87810da35820e900223af73e6300"
+      "size": 1600,
+      "sha256": "fccd096f750acf8378b0c0c08b35a2bcc5d043508524b6d35059e1f94059962f"
     },
     {
       "path": "shared/category-icons/kitchen.svg",
-      "size": 1239,
-      "sha256": "7bfe7c3b38c25d02071f2c6a57cfedd7f516ff29fb4a2f91f19aada77547804a"
+      "size": 1235,
+      "sha256": "95c156fdb7742c1c3b8ea2203fa6419cfc4619e279a53baba604e61925343943"
     },
     {
       "path": "shared/category-icons/laptop.svg",
-      "size": 607,
-      "sha256": "a176b1a52f449439ef90fae0b844ff1a1fb7e7f2be00f09f7d3c70f21833f93a"
+      "size": 603,
+      "sha256": "0c6172c490930ff4112996a8303df8cdcee76a7310e296597b06035d6458cd07"
     },
     {
       "path": "shared/category-icons/popcorn.svg",
-      "size": 5170,
-      "sha256": "ce53930a4e171e7996f3f02e37a2ab87632ecf76e4816f78b49f9a45d76de93f"
+      "size": 5127,
+      "sha256": "f5650b305127f43250bfe4d94f69bd7127688910af4534f64abb93bf7812a3f2"
     },
     {
       "path": "shared/category-icons/restroom.svg",
-      "size": 2999,
-      "sha256": "43ee0e8b776f31dc3a1ebe1d63d6d66e8a8ebc32208fe2a3709a9764a83dd1d8"
+      "size": 2992,
+      "sha256": "88f19917f4e623dc1000e35215af458d63344fabb891aa46e47329d46607760d"
     },
     {
       "path": "shared/category-icons/scissors.svg",
-      "size": 3908,
-      "sha256": "170e86723bb276f54cf85966a26eec62afb1c75f540e72fb513c541f4c2782f4"
+      "size": 3872,
+      "sha256": "61fa7490b268a7c1a8450ab5eb9f03ceddb54fc8e6d9694dd02181366a03f7fb"
     },
     {
       "path": "shared/category-icons/shirt.svg",
-      "size": 1179,
-      "sha256": "3217705fd8349de33447c7eb93794efcc12d73c72b04d653527a41774c90f0b7"
+      "size": 1176,
+      "sha256": "e4bf2b821128cd9777c65ddf01feb29bc51b71e21240352a79d7374158589ba9"
     },
     {
       "path": "shared/category-icons/shoe.svg",
-      "size": 3206,
-      "sha256": "13bab078635c4d4c9480806d1cb15b2c2a5dba6478e1e9501bafe53e756341ff"
+      "size": 3170,
+      "sha256": "38471f5db8ff75ca6184300901d89f9ce626fa65b641a583f4137ee9a0a43cb6"
     },
     {
       "path": "shared/category-icons/shopping-bag.svg",
-      "size": 1893,
-      "sha256": "fd1211e9eae0332e5d0577e9f0813c531062732911b3ce5cf2d3a863c936123f"
+      "size": 1889,
+      "sha256": "a5fda2641658f41d641291a39c62f1e4acd66c50125060568eca9f4ba2d166fb"
     },
     {
       "path": "shared/category-icons/smile.svg",
-      "size": 4418,
-      "sha256": "9cc0549b5e96c0d4481a608675d1aa59953f87f12fe01dc8e62b341b95149250"
+      "size": 4382,
+      "sha256": "9249eb8fd1225e0a1e9410f3b071259b23367296ee2777f72eccc43b97004130"
     },
     {
       "path": "shared/category-icons/sports.svg",
-      "size": 4675,
-      "sha256": "badfbe92f9cbde6b0be5b784f0e58427802597b8010b82a7aaf78365ed6e7815"
+      "size": 4638,
+      "sha256": "5b30a872287287fdbfa7f2a44abe8e303ef72c51d7431ca04c2f85b263c82f2c"
     },
     {
       "path": "shared/category-icons/store.svg",
-      "size": 2496,
-      "sha256": "fb21d6a73c61223e501859e5a32a82171b7f0d9c26008e65ae70c8bd69a1a639"
+      "size": 2489,
+      "sha256": "e22e547edbebd23c715388a24247eeec8c7426dc12814de85855a23337d14a8d"
     },
     {
       "path": "shared/category-icons/toy.svg",
-      "size": 4126,
-      "sha256": "1ef3efb0ea959a03e8d650863f5d114cb4339b301b150bbfa01587607e6ae4ef"
+      "size": 4090,
+      "sha256": "f52ac1f5af3046f46df08266e80ff698d8af775f5208c9075529c6de4e29cf4c"
     },
     {
       "path": "shared/cencobricks-shell.css",
-      "size": 4981,
-      "sha256": "9256c3fbc9d531805ad9b6f127ab8910e77b5f24b990e6bf86f0423d8b47ee44"
+      "size": 4770,
+      "sha256": "9309b4840f9bd3808605ad1d40374df016eb65df70598f432ea71312d8f5611a"
     },
     {
       "path": "shared/cencobricks-tokens.css",
-      "size": 11938,
-      "sha256": "a4ff2d8aa54af4319ed9956e547ca9e7825078a86ccf46ee2cfe23b4897fe000"
+      "size": 11567,
+      "sha256": "486c2a79fbc56181dd180e4a2808d02399b5701901a9169cdac9bb4f4d2f1bc1"
     },
     {
       "path": "shared/fragment.js",
-      "size": 1837,
-      "sha256": "837066a872a09403543cd6461b6e5ac69d9759866ffc8a9be021cf85d82013b4"
+      "size": 1772,
+      "sha256": "2219efef5a75df8c8f85d2e285d59f17cf47f15da2df02b6e9145e44d532ecb9"
     },
     {
       "path": "shared/locale.js",
@@ -349,28 +339,28 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 201673,
-      "sha256": "11ebdd4dd2561c6733134d7ff83dddb06ff862fa988139485fbdb81c0824ea81"
+      "size": 196097,
+      "sha256": "ccd7f72980ace36d594b89d629d428aeebe1cf0c31c98eb740cb057ef42c37af"
     },
     {
       "path": "shared/mapvx/index.js",
-      "size": 1827300,
-      "sha256": "5156a774081063b0d1bdb555834c51bf401e93e37402f916366ce87f55c6b9de"
+      "size": 1809931,
+      "sha256": "33c132f31c270a8a3698a556208ab0a9fc423d015e978ca95252ce3863da5f34"
     },
     {
       "path": "shared/mapvx/styles.css",
-      "size": 78381,
-      "sha256": "fd51f0734bb5ca47198887a23628418d4bd2fb72f434b1edc07a5af08fc4e104"
+      "size": 78004,
+      "sha256": "f077daf4ae85b910ac2a33a867f9ca1642c72d8f69237f9502e25d4f9e667d2c"
     },
     {
       "path": "shared/market-i18n.js",
-      "size": 9094,
-      "sha256": "a0483e2d4ea7a6d44f4446ad76df0c7afe03c3a48818f509dcf11074cf759c67"
+      "size": 8888,
+      "sha256": "f026d217bb0d4a95b390a826310ad3126f32999a361ac4e4724ba4bd24b983cd"
     },
     {
       "path": "shared/market-query-i18n.js",
-      "size": 10633,
-      "sha256": "2c447c518f5db1f9c1bf81dd8e9116de575690ced8da4354ab45d963e1508434"
+      "size": 10276,
+      "sha256": "9e13db053502e5bc79c6f8a71ea5b9242b8c52ee00caa575dc843dbc11a9a2c3"
     },
     {
       "path": "shared/market-search.js",
@@ -379,8 +369,8 @@
     },
     {
       "path": "shared/native-payload.js",
-      "size": 7588,
-      "sha256": "71c093263df8001e59549222d2e93e2b7a7b87306da431c69fcd97236fac5340"
+      "size": 7330,
+      "sha256": "77db230a672445c755258a91c19710e17d3476032a2cfb145f478c8c8238c44a"
     },
     {
       "path": "shared/qrcode.min.js",
@@ -399,8 +389,8 @@
     },
     {
       "path": "shared/services-catalog.js",
-      "size": 23773,
-      "sha256": "23a2b1c4132c15002a03d20f8a024a322240c448cf67f46453e569e5243f2d5e"
+      "size": 23089,
+      "sha256": "329b43786ed5687dcefb8e20a3a01b8cb824c92986134b8713025b4c26581913"
     },
     {
       "path": "shared/store-logos/casa-ideas.png",
@@ -444,13 +434,13 @@
     },
     {
       "path": "shared/store-logos/store-logos.manifest.json",
-      "size": 1324,
-      "sha256": "d0dc12dfd0b0e9826d4e035518dcd8c199e3781bfa2c194bbe38f2d47cc0f297"
+      "size": 1261,
+      "sha256": "c39e0150ee92612d3293f2c7b3880e897f7d88fd25fe3ec829f0285e77e72579"
     },
     {
       "path": "shared/store-logos/store-logos.manifest.jsonp.js",
-      "size": 1540,
-      "sha256": "3c35bd9f3d933cdd2011e92977f31df6fe0661ed69f1128405d28b7b0d672804"
+      "size": 1476,
+      "sha256": "72e7f6a8b1f31d3765fd0902bcdb4b69a569886a086475c653afd1c272d40429"
     },
     {
       "path": "shared/store-logos/zara.png",
@@ -459,13 +449,13 @@
     },
     {
       "path": "taxi/index.html",
-      "size": 10104,
-      "sha256": "ac2962ecb00ecf4986f5045a17442240cce53cfe71df3b6aea65582deea56e4e"
+      "size": 9758,
+      "sha256": "eec8a5f849ca744897c43b6f3229360dca983babb149cb78ed161f50b4497ffa"
     },
     {
       "path": "taxi/indextradica.html",
-      "size": 43660,
-      "sha256": "f4a4a8d27c3dd484503f9676a315619cdfbbeb7735b6dab57a4124bda0c895ca"
+      "size": 42165,
+      "sha256": "6e587969ec451a9307c82d71ab5a105da92aeaa37bd467432b2ea8f59ffbcac5"
     }
   ]
 }

@@ -52,9 +52,11 @@ deploy/
 - `scripts/import-project.sh`: copia el árbol `sima_services` desde un proyecto Unity fuente a `projects/<slug>/...`
 - `scripts/export-project.sh`: copia el espejo del repo de vuelta al proyecto Unity fuente
 - `scripts/sync-common.sh`: propaga los archivos comunes del directorio `shared/` a cada proyecto espejo
-- `scripts/build-runtime-manifest.mjs`: genera el manifest runtime por proyecto
+- `scripts/build-runtime-manifest-from-git.mjs`: genera el manifest runtime hasheando blobs de git (LF-safe; usar este en Windows)
+- `scripts/build-runtime-manifest.mjs`: genera el manifest desde el working tree (puede romper hashes con `core.autocrlf=true`)
 - `scripts/build-deploy.mjs`: construye la carpeta `deploy/` lista para Vercel
-- `scripts/validate-runtime-manifest.mjs`: valida un manifest generado contra el espejo local
+- `scripts/validate-runtime-manifest-from-git.mjs`: valida un manifest contra blobs de git
+- `scripts/validate-runtime-manifest.mjs`: valida un manifest contra el espejo local en disco
 
 ## Lecturas útiles
 

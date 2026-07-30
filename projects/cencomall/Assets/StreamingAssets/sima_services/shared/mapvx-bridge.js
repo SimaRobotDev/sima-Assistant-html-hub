@@ -4445,17 +4445,13 @@ window.MapVxBridge = (function () {
     var badge = document.createElement("div");
     badge.className = "mapvx-service-dest-badge";
     if (isElevator) {
-      badge.innerHTML =
-        '<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">' +
-        '<rect x="7" y="5" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>' +
-        '<path d="M14 8l3.2 4.2H10.8zM14 20l-3.2-4.2h6.4z" fill="currentColor"/>' +
-        "</svg>";
+      badge.innerHTML = '<img src="../shared/category-icons/elevator.svg" width="20" height="20" alt="" aria-hidden="true" />';
     } else if (isCustomer) {
       badge.textContent = "ℹ️";
     } else if (isCowork) {
       badge.textContent = "💼";
     } else {
-      badge.textContent = "🚻";
+      badge.innerHTML = '<img src="../shared/category-icons/restroom.svg" width="20" height="20" alt="" aria-hidden="true" />';
     }
     wrap.appendChild(badge);
 

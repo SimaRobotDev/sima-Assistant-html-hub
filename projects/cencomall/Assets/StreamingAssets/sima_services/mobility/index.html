@@ -23,6 +23,34 @@
   } catch (e) { /* noop */ }
 })();
 </script>
+<script>
+// Simple navigation stack to implement consistent "back" behavior.
+// Views: 'landing', 'categories', 'categoryResults', 'az', 'storeDetail', 'map', 'searchResults'
+window.mobilityNavStack = window.mobilityNavStack || ["landing"];
+function pushMobilityView(view) {
+  try {
+    if (!view) return;
+    const top = window.mobilityNavStack[window.mobilityNavStack.length - 1];
+    if (top === view) return;
+    window.mobilityNavStack.push(view);
+  } catch (e) {}
+}
+function popMobilityView() {
+  try {
+    if (window.mobilityNavStack && window.mobilityNavStack.length > 1) {
+      window.mobilityNavStack.pop();
+      return window.mobilityNavStack[window.mobilityNavStack.length - 1];
+    }
+  } catch (e) {}
+  return null;
+}
+function currentMobilityView() {
+  try { return window.mobilityNavStack[window.mobilityNavStack.length - 1]; } catch (e) { return null; }
+}
+function resetToLanding() {
+  window.mobilityNavStack = ["landing"];
+}
+</script>
 <!-- mobility-ui-v26-market-search -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1019,6 +1047,92 @@ html.auto-map-launch #map-loading-circle.hidden {
   text-align: center;
 }
 
+.promo-info-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.72);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 200;
+}
+
+.promo-info-overlay.show {
+  display: flex;
+}
+
+.promo-info-popup {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 32px 80px rgba(8, 15, 32, 0.18);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+}
+
+.promo-info-popup h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.promo-info-popup p {
+  margin: 0 0 18px;
+  color: #4B5268;
+}
+
+.promo-info-popup .promo-info-qr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.promo-info-qr {
+  background: #F7F5FF;
+  border-radius: 16px;
+  border: 1px solid #E9E6F4;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.promo-info-qr-placeholder {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(180deg, #ECECF7 0%, #F8F7FC 100%);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8A84B7;
+  font-size: 13px;
+  text-align: center;
+  padding: 8px;
+}
+
+.promo-info-qr-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #332F68;
+}
+
+.promo-info-popup .btn-close-popup {
+  margin-top: 18px;
+  width: 100%;
+  border: none;
+  background: #F2EFFD;
+  color: #3D2F8F;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-family: var(--cb-btn-font);
+  font-size: var(--cb-btn-font-xs);
+  cursor: pointer;
+}
+
 .service-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
 
 .service-card {
@@ -1107,19 +1221,12 @@ html.auto-map-launch #map-loading-circle.hidden {
   background: #F0EAF8;
 }
 
-.service-card-elevator .service-card-icon {
-  background: #E4F0F8;
-}
+  .service-card-icon img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+  }
 
-.service-card-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.service-card-title-row .service-name {
-  margin-bottom: 0;
 }
 
 .service-card-top {
@@ -2560,7 +2667,7 @@ async function renderCatalogFeaturedGrid() {
       size: "large",
       label: t("gastronomy"),
       iconSrc: catalogIconSrc("kitchen.svg"),
-      onclick: "selectStoreCategory(decodeURIComponent('" + encodeURIComponent("gastronomia") + "'))",
+      onclick: "openGastronomySubcategories()",
     },
     {
       size: "large",
@@ -3204,7 +3311,9 @@ function ingestPayload(data) {
 
 window.runMarketCatalogSearch = runMarketCatalogSearch;
 window.openStoreCategories = openStoreCategories;
+window.openGastronomySubcategories = openGastronomySubcategories;
 window.selectStoreCategory = selectStoreCategory;
+window.selectGastronomySubcategory = selectGastronomySubcategory;
 window.submitInlineStoreSearch = submitInlineStoreSearch;
 
 function returnToStoreSearchLanding() {
@@ -3217,6 +3326,8 @@ function returnToStoreSearchLanding() {
   showStoreSearchLanding(true);
   const input = document.getElementById("storeSearchInput");
   if (input) window.setTimeout(() => input.focus(), 200);
+  // reset nav stack to landing
+  try { resetToLanding(); } catch (e) {}
 }
 
 function retryStoreSearch(query) {
@@ -3269,10 +3380,76 @@ function handleMobilityBack() {
     closeMapView();
     return;
   }
+
+  // If a store detail panel is open, close it first (prefer intra-mobility back)
+  const storeDetailPanel = document.getElementById("store-detail-panel");
+  if (storeDetailPanel && !storeDetailPanel.classList.contains("hidden")) {
+    hideStoreDetailPanel();
+    return;
+  }
+
+  // Use the navigation stack to decide where to go back.
+  try {
+    const stack = window.mobilityNavStack || ["landing"];
+    if (stack.length > 1) {
+      // pop current view and navigate to the new top
+      popMobilityView();
+      const top = currentMobilityView();
+      if (top === "landing") {
+        returnToStoreSearchLanding();
+        return;
+      }
+      if (top === "categories") {
+        openStoreCategories();
+        return;
+      }
+        if (top === "categoryResults") {
+        if (lastMarketPayload && lastMarketPayload.resultType === "category") {
+          renderMarketResults(lastMarketPayload);
+        } else {
+          // fallback: show categories
+          openStoreCategories();
+        }
+        return;
+      }
+      if (top === "gastronomySubcategoryResults") {
+        if (lastMarketPayload && lastMarketPayload.resultType === "subcategory") {
+          renderMarketResults(lastMarketPayload);
+        } else {
+          openGastronomySubcategories(false);
+        }
+        return;
+      }
+      if (top === "gastronomyCategories") {
+        openGastronomySubcategories(false);
+        return;
+      }
+      if (top === "az") {
+        if (lastMarketPayload && lastMarketPayload.resultType === "az") {
+          renderMarketResults(lastMarketPayload);
+        } else {
+          openStoreCategories();
+        }
+        return;
+      }
+      if (top === "storeDetail") {
+        hideStoreDetailPanel();
+        return;
+      }
+      if (top === "map") {
+        closeMapView();
+        return;
+      }
+    }
+  } catch (e) { /* noop */ }
+
+  // If stack is at root or above failed, close the webview when on landing.
   if (isShowingStoreSearchLanding()) {
     closeWebview();
     return;
   }
+
+  // final fallback: return to landing
   returnToStoreSearchLanding();
 }
 
@@ -3321,6 +3498,14 @@ const CENCOMALL_CATEGORY_LABEL_BY_KEY = (function buildLabelMap() {
   return map;
 })();
 
+window.GASTRONOMY_SUBCATEGORIES = [
+  { key: "cafeteria", label: "Cafetería", query: "cafeteria gastronomia", iconSrc: "../shared/category-icons/cafeteria.svg" },
+  { key: "chocolateria-confites", label: "Chocolatería y confites", query: "chocolateria y confites gastronomia", iconSrc: "../shared/category-icons/chocolateria-confites.svg" },
+  { key: "especialistas", label: "Especialistas", query: "especialistas gastronomia", iconSrc: "../shared/category-icons/especialistas.svg" },
+  { key: "patio-de-comidas", label: "Patio de comidas", query: "patio de comidas gastronomia", iconSrc: "../shared/category-icons/patio-de-comidas.svg" },
+  { key: "qinto", label: "QINTO", query: "qinto gastronomia", iconSrc: "../shared/category-icons/qinto.svg" },
+];
+
 const CENCOMALL_CATEGORY_ICON_BY_KEY = {
   accesorios: "../shared/category-icons/accessories.svg",
   autocity: "../shared/category-icons/grid-add.svg",
@@ -3341,6 +3526,7 @@ const CENCOMALL_CATEGORY_ICON_BY_KEY = {
   supermercados: "../shared/category-icons/cart.svg",
   "tecnologia y accesorios": "../shared/category-icons/desktop.svg",
   "tiendas especializadas": "../shared/category-icons/shopping-bag.svg",
+  qinto: "../shared/category-icons/qinto.svg",
   vestuario: "../shared/category-icons/shirt.svg",
 };
 const CENCOMALL_CATEGORY_ICON_VERSION = "20260728-1225";
@@ -3408,10 +3594,118 @@ async function openStoreCategories() {
     const data = MarketSearch.listCategories();
     const baseCategories = resolveCenco20Categories(data.categories || []);
     renderStoreCategories(baseCategories);
+    // mark navigation: categories list
+    try { pushMobilityView('categories'); } catch (e) {}
   } catch (e) {
     console.error("openStoreCategories failed", e);
     showSearchError(t("loadError"));
   }
+}
+
+function buildGastronomyCategoryList() {
+  return (window.GASTRONOMY_SUBCATEGORIES || []).map(function (item) {
+    return {
+      key: item.key,
+      label: item.label,
+      storeCount: item.storeCount || 0,
+      iconSrc: item.iconSrc || "",
+    };
+  });
+}
+
+async function openGastronomySubcategories(pushView) {
+  if (!shouldUseLocalMarketCatalog()) return;
+  if (typeof MarketSearch === "undefined") {
+    showSearchError(t("loadError"));
+    return;
+  }
+
+  hideWelcome();
+  const landing = document.getElementById("store-search-landing");
+  if (landing) landing.classList.remove("visible");
+  updateHeaderBackVisibility();
+
+  document.getElementById("resultado").innerHTML = `
+    <div class="cm-panel fade-in">
+      <div class="cm-empty">
+        <div class="cm-empty-title">${escapeHtml(t("gastronomy"))}</div>
+        <div class="cm-empty-copy">${escapeHtml("Selecciona una subcategoría")}</div>
+      </div>
+    </div>`;
+
+  try {
+    await MarketSearch.loadCatalog();
+    const counts = {};
+    const items = window.GASTRONOMY_SUBCATEGORIES || [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const result = MarketSearch.search(item.query, { limit: 200 });
+      counts[item.key] = result.totalMatches || 0;
+    }
+    const categories = items.map(function (item) {
+      return {
+        key: item.key,
+        label: item.label,
+        storeCount: counts[item.key] || 0,
+        iconSrc: item.iconSrc || "",
+        onclick: "selectGastronomySubcategory('" + encodeURIComponent(item.key) + "')",
+      };
+    });
+    renderStoreCategories(categories);
+    if (pushView !== false) {
+      try { pushMobilityView('gastronomyCategories'); } catch (e) {}
+    }
+  } catch (e) {
+    console.error("openGastronomySubcategories failed", e);
+    showSearchError(t("loadError"));
+  }
+}
+
+function selectGastronomySubcategory(categoryKey) {
+  const key = String(categoryKey || "");
+  const decodedKey = key ? decodeURIComponent(key) : "";
+  const items = window.GASTRONOMY_SUBCATEGORIES || [];
+  const item = (items || []).find(function (i) { return i.key === decodedKey; });
+  if (!item) {
+    selectStoreCategory(decodedKey);
+    return;
+  }
+  try {
+    const result = MarketSearch.search(item.query, { limit: 200 });
+    const payload = {
+      type: "market_search",
+      query: item.label,
+      results: result.results || [],
+      totalMatches: result.totalMatches || 0,
+      catalogSize: result.catalogSize || MarketSearch.getCatalogSize(),
+      source: "market-catalog",
+      resultType: "subcategory",
+    };
+    renderMarketResults(payload);
+    try { pushMobilityView('gastronomySubcategoryResults'); } catch (e) {}
+  } catch (e) {
+    console.error("selectGastronomySubcategory failed", e);
+    showSearchError(t("loadError"));
+  }
+}
+
+function renderMarketResultsLabel(payload) {
+  const query = payload.query || "";
+  if (payload.resultType === "category") {
+    const key = normalizeCategoryKey(query);
+    const label = CENCOMALL_CATEGORY_LABEL_BY_KEY[key];
+    return `${escapeHtml(t("category"))}: <strong>${escapeHtml(label || localizeCategoryName(query))}</strong>`;
+  }
+  if (payload.resultType === "az") {
+    return `<strong>A-Z</strong>`;
+  }
+  if (payload.resultType === "subcategory") {
+    return `${escapeHtml(t("category"))}: <strong>${escapeHtml(query)}</strong>`;
+  }
+  if (payload.resultType === "related") {
+    return `${escapeHtml(t("relatedResultsFor"))}: <strong>${escapeHtml(query)}</strong>`;
+  }
+  return `${escapeHtml(t("search"))}: <strong>${escapeHtml(query)}</strong>`;
 }
 
 function renderStoreCategories(categories) {
@@ -3543,12 +3837,13 @@ function renderStoreCategories(categories) {
     return categoryList
       .map(function (cat) {
         const jsKey = encodeURIComponent(String(cat.key || ""));
-        const iconBaseSrc = CENCOMALL_CATEGORY_ICON_BY_KEY[String(cat.key || "")] || "";
-        const iconSrc = iconBaseSrc ? (iconBaseSrc + "?v=" + encodeURIComponent(CENCOMALL_CATEGORY_ICON_VERSION)) : "";
+        const iconBaseSrc = cat.iconSrc || CENCOMALL_CATEGORY_ICON_BY_KEY[String(cat.key || "")] || "";
+        const iconSrc = iconBaseSrc ? (iconBaseSrc + "?v=" + encodeURIComponent(CENCOMALL_CATEGORY_ICON_VERSION)) : "../shared/category-icons/default.svg";
         const letter = getNameAZLetter(cat.label || cat.key);
-        return `
+        var action = cat.onclick || "selectStoreCategory(decodeURIComponent('" + jsKey + "'))";
+      return `
           <button class="cm-category-row" type="button" data-letter="${escapeHtml(letter)}"
-            onclick="selectStoreCategory(decodeURIComponent('${jsKey}'))"
+            onclick="${action}"
             aria-label="${escapeHtml(cat.label)}">
             <div class="cm-category-row-left">
               <img class="cm-category-row-icon" src="${escapeHtml(iconSrc)}" alt="" aria-hidden="true" loading="lazy" />
@@ -3789,6 +4084,8 @@ async function selectStoreCategory(categoryName) {
       resultType: "category",
     };
     renderMarketResults(payload);
+    // navigation: category results
+    try { pushMobilityView('categoryResults'); } catch (e) {}
     SimaBridge.send("market_search", { text: name, category: name, source: "category" });
   } catch (e) {
     console.error("selectStoreCategory failed", e);
@@ -4709,9 +5006,9 @@ function getServiceKind(svc) {
 }
 
 function serviceKindIcon(kind) {
-  if (kind === "elevator") return "🛗";
+  if (kind === "elevator") return '<img src="../shared/category-icons/elevator.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
   if (kind === "kids") return "👶";
-  if (kind === "bathroom") return "🚻";
+  if (kind === "bathroom") return '<img src="../shared/category-icons/restroom.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
   if (kind === "customer_service") return "ℹ️";
   if (kind === "cowork") return "💼";
   return "📍";
@@ -5063,6 +5360,10 @@ function hideStoreDetailPanel() {
   if (!panel) return;
   panel.classList.add("hidden");
   panel.innerHTML = "";
+  // pop storeDetail view if it was top
+  try {
+    if (currentMobilityView() === 'storeDetail') popMobilityView();
+  } catch (e) {}
 }
 
 function shortenSpeechText(text, maxWords, maxChars) {
@@ -5236,7 +5537,7 @@ function renderPromoCard(promo, appUrl) {
     ? `${escapeHtml(t("validUntil"))} ${escapeHtml(promo.validityEnd)}`
     : "";
   const cta = promo.requiresApp
-    ? `<button class="btn-promo-app" type="button" onclick="openPromoInApp('${escapeHtml(promo.id || "")}', '${escapeHtml(appUrl || "https://www.cencomalls.cl/").replace(/'/g, "\\'")}')">${escapeHtml(t("redeemInApp"))}</button>`
+    ? `<button class="btn-promo-app" type="button" onclick="openPromoInfoPopup()">Presiona para más información</button>`
     : "";
 
   return `
@@ -5254,6 +5555,18 @@ function renderPromoCard(promo, appUrl) {
 
 function openPromoInApp(promoId, url) {
   SimaBridge.send("generate_qr", { url: url, id: promoId || "promo" });
+}
+
+function openPromoInfoPopup() {
+  const overlay = document.getElementById("promo-info-overlay");
+  if (!overlay) return;
+  overlay.classList.add("show");
+}
+
+function closePromoInfoPopup() {
+  const overlay = document.getElementById("promo-info-overlay");
+  if (!overlay) return;
+  overlay.classList.remove("show");
 }
 
 function renderPromotionResults(payload) {
@@ -6020,6 +6333,7 @@ async function openPoiMapViaMapVx(opts) {
     logMap("info", "openPoiMapViaMapVx success", result);
     window.__mapVxLastLog = { ts: Date.now(), phase: "success", result: result };
     clearAutoMapLaunchUi();
+    try { pushMobilityView('map'); } catch (e) {}
   } catch (e) {
     logMap("error", "openPoiMapViaMapVx failed", {
       message: e.message || String(e),
@@ -6291,6 +6605,8 @@ function openStoreMap(groupIndex, locationIndex) {
     mode: "place",
     storeDetail: store
   });
+  // mark navigation: store detail (or map to follow)
+  try { pushMobilityView('storeDetail'); } catch (e) {}
 }
 
 function openServiceMap(idx) {
@@ -6412,6 +6728,10 @@ function closeMapView() {
   document.querySelector(".cm-body").style.display = "";
   document.querySelector(".cm-speak-fab").style.display = "";
   updateHeaderBackVisibility();
+  // pop map view from nav stack if present
+  try {
+    if (currentMobilityView() === 'map') popMobilityView();
+  } catch (e) {}
 }
 
 function startVoiceInput() {
