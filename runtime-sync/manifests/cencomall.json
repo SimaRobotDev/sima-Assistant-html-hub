@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.30-checked",
+  "version": "2026.07.30-1",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-07-30T18:11:21.336Z",
+  "generatedAt": "2026-07-30T19:58:30.145Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": null,
+  "rollbackTo": "2026.07.30-checked",
   "entryPoints": [
     {
       "service": "agenda",
@@ -50,6 +50,10 @@
     {
       "service": "servicios",
       "entry": "servicios/index.html"
+    },
+    {
+      "service": "sky-costanera",
+      "entry": "sky-costanera/index.html"
     },
     {
       "service": "taxi",
@@ -506,6 +510,11 @@
       "path": "shared/store-logos/zara.png",
       "size": 46254,
       "sha256": "cf9199c4d38ec68ce04b27f1f2809a1cd97b4728200a54ce0aee93320e998e73"
+    },
+    {
+      "path": "sky-costanera/index.html",
+      "size": 29357,
+      "sha256": "107b0b844c1f2f087ec0193b80248d75bc1cec15012b918d605f60daa69e1024"
     },
     {
       "path": "taxi/index.html",

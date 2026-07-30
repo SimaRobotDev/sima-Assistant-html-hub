@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Sky Costanera — Cenco Malls</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/cencobricks-tokens.css" />
+<link rel="stylesheet" href="../shared/cencobricks-shell.css" />
+<link rel="stylesheet" href="../shared/app.css" />
+<script src="../shared/locale.js"></script>
+<script src="../shared/bridge.js"></script>
+<style>
+  html, body {
+    background: transparent;
+    color: var(--cm-text);
+    font-family: var(--cb-font-body);
+  }
+  body::before { display: none; }
+
+  .app-shell {
+    background: transparent;
+    gap: 0;
+    padding: 0 0 28px;
+  }
+
+  .card.cm-body-panel {
+    margin: 0 14px 14px;
+    padding: 18px;
+    gap: 18px;
+    background: var(--cb-white);
+    border: 1px solid var(--cm-line);
+    border-top: 0;
+    border-radius: 0 0 var(--cb-topbar-decoration-radius) var(--cb-topbar-decoration-radius);
+    box-shadow: none;
+    min-height: 60vh;
+  }
+
+  .btn-primary, .btn-secondary {
+    border-radius: var(--cb-btn-radius);
+    padding: var(--cb-btn-pad-y-s) var(--cb-btn-pad-x-m);
+    font-family: var(--cb-btn-font);
+    font-size: var(--cb-btn-font-m);
+    font-weight: var(--cb-btn-weight);
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+  }
+
+  .btn-primary {
+    background: var(--cb-btn-primary-fill);
+    color: var(--cb-btn-primary-text);
+  }
+
+  .btn-primary:active { transform: scale(0.98); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--cb-btn-secondary-text);
+    border: 1px solid var(--cb-btn-secondary-stroke);
+  }
+
+  .btn-secondary:active { transform: scale(0.98); }
+
+  .btn-text {
+    background: transparent;
+    border: none;
+    color: var(--cm-muted);
+    font-family: var(--cb-font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 6px 4px;
+    align-self: center;
+  }
+
+  /* ---- Screens ---- */
+  .sky-screen {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    animation: skyFadeIn 0.35s ease both;
+  }
+  .sky-screen.is-active { display: flex; }
+
+  @keyframes skyFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- Cover ---- */
+  .sky-hero {
+    border-radius: var(--cb-radius-l);
+    padding: 24px 20px;
+    background: linear-gradient(160deg, #1c1450 0%, #3b2f8f 45%, #00b1ff 100%);
+    color: #fff;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--cm-shadow);
+  }
+  .sky-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.16);
+    border-radius: var(--cb-radius-pill);
+    padding: 4px 14px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .sky-hero h2 {
+    margin: 4px 0 0;
+    font-family: var(--cb-font-title);
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .sky-hero p {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    opacity: 0.92;
+    max-width: 320px;
+  }
+
+  .sky-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .sky-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 12px 6px;
+    border-radius: var(--cb-radius-m);
+    background: var(--cb-bg-accent-light);
+    border: 1px solid var(--cm-line);
+  }
+  .sky-stat strong {
+    font-family: var(--cb-font-title);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--cb-primary-900);
+  }
+  .sky-stat span {
+    font-size: 0.75rem;
+    color: var(--cm-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  /* ---- Altimeter ---- */
+  .altimeter-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 16px 26px;
+    border-radius: var(--cb-radius-l);
+    background: linear-gradient(180deg, #eef6ff 0%, #ffffff 70%);
+    border: 1px solid var(--cm-line);
+  }
+  .altimeter-track {
+    position: relative;
+    width: 34px;
+    height: 190px;
+    border-radius: var(--cb-radius-pill);
+    background: #e2e6f5;
+    overflow: hidden;
+  }
+  .altimeter-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    background: linear-gradient(180deg, #00b1ff 0%, var(--cb-primary-900) 100%);
+    border-radius: var(--cb-radius-pill);
+    transition: height 0.1s linear;
+  }
+  .altimeter-pin {
+    position: absolute;
+    left: 50%;
+    bottom: 0%;
+    transform: translate(-50%, 50%);
+    font-size: 22px;
+    transition: bottom 0.1s linear;
+  }
+  .altimeter-readout {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-family: var(--cb-font-title);
+    color: var(--cb-primary-900);
+  }
+  .altimeter-height {
+    font-size: 2.75rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    min-width: 3ch;
+    text-align: right;
+  }
+  .altimeter-unit {
+    font-size: 1.25rem;
+    font-weight: 700;
+    opacity: 0.7;
+  }
+  .altimeter-floor {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--cm-muted);
+  }
+  .altimeter-fact {
+    margin: 4px 0 0;
+    min-height: 44px;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    text-align: center;
+    color: var(--cm-text);
+    transition: opacity 0.25s ease;
+  }
+
+  /* ---- Trivia ---- */
+  .trivia-progress {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--cb-accent-600);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .trivia-question {
+    margin: 0;
+    font-family: var(--cb-font-title);
+    font-size: 1.1875rem;
+    font-weight: 700;
+    color: var(--cm-text);
+    line-height: 1.35;
+  }
+  .trivia-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .trivia-option {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 16px;
+    border-radius: var(--cb-radius-m);
+    border: 1.5px solid var(--cm-line);
+    background: #fff;
+    font-family: var(--cb-font-body);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--cm-text);
+    text-align: left;
+    cursor: pointer;
+  }
+  .trivia-option:active { transform: scale(0.99); }
+  .trivia-option[disabled] { cursor: default; }
+  .trivia-option.is-correct {
+    border-color: #1f9d55;
+    background: #e9f9ee;
+    color: #10552e;
+  }
+  .trivia-option.is-incorrect {
+    border-color: #d94f4f;
+    background: #fdeeee;
+    color: #7a1f1f;
+  }
+  .trivia-feedback {
+    margin: 0;
+    min-height: 20px;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    color: var(--cb-primary-900);
+    font-weight: 600;
+  }
+
+  /* ---- Final ---- */
+  .sky-final-score {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: var(--cb-radius-pill);
+    background: var(--cb-tag-success-fill);
+    color: var(--cb-tag-success-text);
+    font-weight: 700;
+    font-size: 0.875rem;
+  }
+  #final-title {
+    margin: 0;
+    text-align: center;
+    font-family: var(--cb-font-title);
+    font-size: 1.1875rem;
+    font-weight: 700;
+    color: var(--cm-text);
+  }
+  .bullet-list {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+  .sky-final-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: auto;
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="cm-header">
+    <button
+      class="cm-header-icon-btn"
+      id="btnCloseHeader"
+      type="button"
+      onclick="closeWebview()"
+      aria-label="Volver"
+    >
+      <svg class="cm-header-back-icon" width="24" height="24" viewBox="8 8 24 24" aria-hidden="true" focusable="false">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 20C12 19.4477 12.4477 19 13 19H27C27.5523 19 28 19.4477 28 20C28 20.5523 27.5523 21 27 21H13C12.4477 21 12 20.5523 12 20Z"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12.2929 19.2929C12.6834 18.9024 13.3166 18.9024 13.7071 19.2929L19.7071 25.2929C20.0976 25.6834 20.0976 26.3166 19.7071 26.7071C19.3166 27.0976 18.6834 27.0976 18.2929 26.7071L12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929Z"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7071 13.2929C20.0976 13.6834 20.0976 14.3166 19.7071 14.7071L13.7071 20.7071C13.3166 21.0976 12.6834 21.0976 12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929L18.2929 13.2929C18.6834 12.9024 19.3166 12.9024 19.7071 13.2929Z"/>
+      </svg>
+    </button>
+    <h1 class="cm-header-title">
+      <span class="cm-header-mall" role="img" aria-label="Cenco Costanera">
+        <svg class="cm-header-mall-pin" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <path stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M12 21s-6.5-5.5-6.5-11a6.5 6.5 0 1 1 13 0c0 5.5-6.5 11-6.5 11z"/>
+          <circle cx="12" cy="10" r="2.25" stroke-width="1.75"/>
+        </svg>
+        <span class="cm-header-mall-name">Cenco Costanera</span>
+      </span>
+    </h1>
+  </header>
+
+  <div class="card cm-body-panel">
+
+    <!-- Screen 1: Cover -->
+    <section id="screen-cover" class="sky-screen is-active">
+      <div class="sky-hero">
+        <span class="sky-hero-badge" id="cover-badge">🏙️ 261 m · Piso 62</span>
+        <h2 id="cover-title">Sky Costanera</h2>
+        <p id="cover-lead">El mirador más alto de Sudamérica. Subamos juntos hasta la cima.</p>
+      </div>
+      <div class="sky-stats">
+        <div class="sky-stat"><strong>261 m</strong><span id="stat-height">Altura</span></div>
+        <div class="sky-stat"><strong>62</strong><span id="stat-floor">Piso</span></div>
+        <div class="sky-stat"><strong>360°</strong><span id="stat-view">Vista</span></div>
+      </div>
+      <button class="btn-primary" id="btn-start" type="button" onclick="startExperience()">Comenzar</button>
+      <button class="btn-text" id="btn-skip-cover" type="button" onclick="goToFinal()">Ver información rápida</button>
+    </section>
+
+    <!-- Screen 2: Altimeter -->
+    <section id="screen-altimeter" class="sky-screen">
+      <div class="altimeter-box">
+        <div class="altimeter-track">
+          <div class="altimeter-fill" id="altimeter-fill"></div>
+          <div class="altimeter-pin" id="altimeter-pin">🚡</div>
+        </div>
+        <div class="altimeter-readout">
+          <span class="altimeter-height" id="altimeter-height">0</span><span class="altimeter-unit">m</span>
+        </div>
+        <div class="altimeter-floor" id="altimeter-floor">Piso 0</div>
+        <p class="altimeter-fact" id="altimeter-fact"></p>
+      </div>
+      <button class="btn-primary" id="btn-altimeter-next" type="button" style="display:none" onclick="goToTrivia()">Siguiente</button>
+      <button class="btn-text" id="btn-skip-altimeter" type="button" onclick="goToTrivia()">Saltar</button>
+    </section>
+
+    <!-- Screen 3: Trivia -->
+    <section id="screen-trivia" class="sky-screen">
+      <div class="trivia-progress" id="trivia-progress">Pregunta 1 de 2</div>
+      <h3 class="trivia-question" id="trivia-question"></h3>
+      <div class="trivia-options" id="trivia-options"></div>
+      <p class="trivia-feedback" id="trivia-feedback"></p>
+      <button class="btn-primary" id="btn-trivia-next" type="button" style="display:none" onclick="nextTriviaStep()">Siguiente</button>
+    </section>
+
+    <!-- Screen 4: Final -->
+    <section id="screen-final" class="sky-screen">
+      <div class="sky-final-score" id="final-score" style="display:none"></div>
+      <h3 id="final-title">Sky Costanera te espera</h3>
+      <ul class="bullet-list" id="final-facts"></ul>
+      <div class="sky-final-actions">
+        <button class="btn-primary" id="btn-route" type="button" onclick="goToSkyCostaneraRoute()">Ver ruta</button>
+        <button class="btn-secondary" id="btn-close" type="button" onclick="closeWebview()">Cerrar</button>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+let currentLocale = "es";
+
+const I18N = {
+  es: {
+    coverBadge: "🏙️ 261 m · Piso 62",
+    coverTitle: "Sky Costanera",
+    coverLead: "El mirador más alto de Sudamérica. Subamos juntos hasta la cima.",
+    statHeight: "Altura",
+    statFloor: "Piso",
+    statView: "Vista",
+    start: "Comenzar",
+    skipToInfo: "Ver información rápida",
+    skip: "Saltar",
+    next: "Siguiente",
+    seeResult: "Ver resultado",
+    altimeterFloorPrefix: "Piso",
+    altimeterFacts: [
+      { atMeters: 0, text: "Subamos juntos los 62 pisos de la Gran Torre Costanera 🏗️" },
+      { atMeters: 90, text: "Vas dejando atrás el mall y sus tiendas, muy por debajo de tus pies 👇" },
+      { atMeters: 253, text: "¡Piso 61! Aquí está el primer mirador, vidriado, a 253 metros 🌤️" },
+      { atMeters: 261, text: "¡Llegaste a la cima! Piso 62, a cielo abierto, 261 metros y 360° de Santiago 🏙️" }
+    ],
+    triviaProgress: "Pregunta {n} de {total}",
+    triviaQuestions: [
+      {
+        question: "¿Sky Costanera es el mirador más alto de…?",
+        options: ["Sudamérica", "Europa", "Solo de Chile"],
+        correctIndex: 0,
+        feedbackCorrect: "¡Correcto! Es el mirador más alto de Sudamérica, a 261 metros de altura.",
+        feedbackWrong: "Casi… es el mirador más alto de Sudamérica, a 261 metros de altura."
+      },
+      {
+        question: "¿En qué pisos de la torre está el mirador?",
+        options: ["Piso 61 y 62", "Piso 30", "Piso 100"],
+        correctIndex: 0,
+        feedbackCorrect: "¡Exacto! Piso 61 (vidriado) y piso 62 (a cielo abierto).",
+        feedbackWrong: "Está en el piso 61 (vidriado) y el piso 62 (a cielo abierto)."
+      }
+    ],
+    scoreLabel: "{correct}/{total} correctas 🎉",
+    finalTitle: "Sky Costanera te espera",
+    finalFacts: [
+      "Mirador más alto de Sudamérica — 261 m, piso 62",
+      "Vista 360° a la Cordillera de los Andes y Santiago",
+      "Abierto todos los días de 10:00 a 22:00 hrs",
+      "Horario sunset especial entre 16:00 y 18:00 hrs"
+    ],
+    viewRoute: "Ver ruta",
+    close: "Cerrar",
+    speakIntro: "Te invito a subir a Sky Costanera, el mirador más alto de Sudamérica. Toca comenzar para vivir la experiencia.",
+    speakFinal: "Puedo mostrarte cómo llegar a Sky Costanera, en el nivel PB del mall.",
+    speakRoute: "Te muestro cómo llegar a Sky Costanera."
+  },
+  en: {
+    coverBadge: "🏙️ 261 m · Floor 62",
+    coverTitle: "Sky Costanera",
+    coverLead: "The highest viewpoint in South America. Let's climb to the top together.",
+    statHeight: "Height",
+    statFloor: "Floor",
+    statView: "View",
+    start: "Start",
+    skipToInfo: "See quick info",
+    skip: "Skip",
+    next: "Next",
+    seeResult: "See result",
+    altimeterFloorPrefix: "Floor",
+    altimeterFacts: [
+      { atMeters: 0, text: "Let's climb the 62 floors of the Gran Torre Costanera together 🏗️" },
+      { atMeters: 90, text: "You're leaving the mall and its stores far below your feet 👇" },
+      { atMeters: 253, text: "Floor 61! Here's the first viewpoint, glassed-in, at 253 meters 🌤️" },
+      { atMeters: 261, text: "You made it! Floor 62, open-air, 261 meters and a 360° view of Santiago 🏙️" }
+    ],
+    triviaProgress: "Question {n} of {total}",
+    triviaQuestions: [
+      {
+        question: "Sky Costanera is the highest viewpoint in…?",
+        options: ["South America", "Europe", "Only Chile"],
+        correctIndex: 0,
+        feedbackCorrect: "Correct! It's the highest viewpoint in South America, at 261 meters.",
+        feedbackWrong: "Close… it's the highest viewpoint in South America, at 261 meters."
+      },
+      {
+        question: "Which floors is the viewpoint on?",
+        options: ["Floors 61 and 62", "Floor 30", "Floor 100"],
+        correctIndex: 0,
+        feedbackCorrect: "Exactly! Floor 61 (glassed-in) and floor 62 (open-air).",
+        feedbackWrong: "It's on floor 61 (glassed-in) and floor 62 (open-air)."
+      }
+    ],
+    scoreLabel: "{correct}/{total} correct 🎉",
+    finalTitle: "Sky Costanera awaits",
+    finalFacts: [
+      "Highest viewpoint in South America — 261 m, floor 62",
+      "360° views of the Andes mountains and Santiago",
+      "Open every day from 10:00 to 22:00",
+      "Special sunset hours between 16:00 and 18:00"
+    ],
+    viewRoute: "View route",
+    close: "Close",
+    speakIntro: "Let me take you up to Sky Costanera, the highest viewpoint in South America. Tap start to begin.",
+    speakFinal: "I can show you how to get to Sky Costanera, on the mall's ground floor.",
+    speakRoute: "I'll show you how to get to Sky Costanera."
+  },
+  pt: {
+    coverBadge: "🏙️ 261 m · Piso 62",
+    coverTitle: "Sky Costanera",
+    coverLead: "O mirante mais alto da América do Sul. Vamos subir juntos até o topo.",
+    statHeight: "Altura",
+    statFloor: "Piso",
+    statView: "Vista",
+    start: "Começar",
+    skipToInfo: "Ver informações rápidas",
+    skip: "Pular",
+    next: "Próximo",
+    seeResult: "Ver resultado",
+    altimeterFloorPrefix: "Piso",
+    altimeterFacts: [
+      { atMeters: 0, text: "Vamos subir juntos os 62 andares da Gran Torre Costanera 🏗️" },
+      { atMeters: 90, text: "Você está deixando o shopping e suas lojas bem abaixo dos seus pés 👇" },
+      { atMeters: 253, text: "Piso 61! Aqui está o primeiro mirante, envidraçado, a 253 metros 🌤️" },
+      { atMeters: 261, text: "Você chegou ao topo! Piso 62, a céu aberto, 261 metros e vista 360° de Santiago 🏙️" }
+    ],
+    triviaProgress: "Pergunta {n} de {total}",
+    triviaQuestions: [
+      {
+        question: "O Sky Costanera é o mirante mais alto da…?",
+        options: ["América do Sul", "Europa", "Só do Chile"],
+        correctIndex: 0,
+        feedbackCorrect: "Correto! É o mirante mais alto da América do Sul, a 261 metros de altura.",
+        feedbackWrong: "Quase… é o mirante mais alto da América do Sul, a 261 metros de altura."
+      },
+      {
+        question: "Em quais andares está o mirante?",
+        options: ["Piso 61 e 62", "Piso 30", "Piso 100"],
+        correctIndex: 0,
+        feedbackCorrect: "Exato! Piso 61 (envidraçado) e piso 62 (a céu aberto).",
+        feedbackWrong: "Está no piso 61 (envidraçado) e no piso 62 (a céu aberto)."
+      }
+    ],
+    scoreLabel: "{correct}/{total} corretas 🎉",
+    finalTitle: "Sky Costanera te espera",
+    finalFacts: [
+      "Mirante mais alto da América do Sul — 261 m, piso 62",
+      "Vista 360° da Cordilheira dos Andes e de Santiago",
+      "Aberto todos os dias, das 10h às 22h",
+      "Horário especial de pôr do sol entre 16h e 18h"
+    ],
+    viewRoute: "Ver rota",
+    close: "Fechar",
+    speakIntro: "Vou te levar até o Sky Costanera, o mirante mais alto da América do Sul. Toque em começar para viver a experiência.",
+    speakFinal: "Posso te mostrar como chegar ao Sky Costanera, no nível térreo do shopping.",
+    speakRoute: "Vou te mostrar como chegar ao Sky Costanera."
+  }
+};
+
+function t(key) {
+  return SimaLocale.t(I18N, key, currentLocale);
+}
+
+function fmt(str, vars) {
+  return String(str || "").replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null ? vars[k] : m));
+}
+
+function closeWebview() {
+  try {
+    if (window.SimaBridge && typeof window.SimaBridge.requestClose === "function") {
+      window.SimaBridge.requestClose();
+      return;
+    }
+  } catch (e) {}
+  try {
+    if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === "function") {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: "close_webview", payload: {} }));
+      return;
+    }
+  } catch (e2) {}
+  try {
+    if (window.SimaBridge && typeof window.SimaBridge.send === "function") {
+      window.SimaBridge.send("close_webview", {});
+    }
+  } catch (e3) {}
+}
+
+function goToSkyCostaneraRoute() {
+  // Sky Costanera lives in the market catalog: id 7366, local CC_PB_180 (PB level).
+  // Mirrors the "Ver ruta" pattern used by servicios/index.html: hand off to
+  // mobility with a query so MapVX (which only lives there) can draw the route.
+  const query = "Sky Costanera";
+  const mobilityRel =
+    "../mobility/index.html?q=" + encodeURIComponent(query) + "&autoMap=1&autoRoute=1";
+  const payload = {
+    destination: "Sky Costanera",
+    query: query,
+    local: "CC_PB_180",
+    floor: "PB",
+    autoMap: true,
+    autoRoute: true,
+    entry: "mobility/index.html?q=" + encodeURIComponent(query) + "&autoMap=1&autoRoute=1",
+    path: "mobility/index.html?q=" + encodeURIComponent(query) + "&autoMap=1&autoRoute=1",
+  };
+
+  try { SimaBridge.speak(t("speakRoute")); } catch (eSpeak) { /* noop */ }
+  try { SimaBridge.log("sky_costanera route -> " + query); } catch (eLog) { /* noop */ }
+  try { SimaBridge.send("open_stores", payload); } catch (eSend) { /* noop */ }
+  try { window.location.href = mobilityRel; } catch (eNav) { /* noop */ }
+}
+
+/* ---------------- Screen navigation ---------------- */
+
+const SCREENS = ["cover", "altimeter", "trivia", "final"];
+
+function showScreen(name) {
+  SCREENS.forEach((s) => {
+    const el = document.getElementById("screen-" + s);
+    if (el) el.classList.toggle("is-active", s === name);
+  });
+  try { SimaBridge.log("sky_costanera screen=" + name); } catch (e) { /* noop */ }
+}
+
+function startExperience() {
+  showScreen("altimeter");
+  runAltimeter();
+}
+
+function goToTrivia() {
+  stopAltimeter();
+  showScreen("trivia");
+  triviaIndex = 0;
+  triviaCorrect = 0;
+  renderTriviaStep();
+}
+
+function goToFinal() {
+  stopAltimeter();
+  showScreen("final");
+  renderFinal();
+  try { SimaBridge.speak(t("speakFinal")); } catch (e) { /* noop */ }
+}
+
+/* ---------------- Altimeter ---------------- */
+
+const ALTIMETER_TARGET_M = 261;
+const ALTIMETER_TARGET_FLOOR = 62;
+const ALTIMETER_DURATION_MS = 4200;
+
+let altimeterRaf = null;
+let altimeterStartTs = null;
+let altimeterLastFactIdx = -1;
+
+function easeOutCubic(x) {
+  return 1 - Math.pow(1 - x, 3);
+}
+
+function runAltimeter() {
+  const fill = document.getElementById("altimeter-fill");
+  const pin = document.getElementById("altimeter-pin");
+  const heightEl = document.getElementById("altimeter-height");
+  const floorEl = document.getElementById("altimeter-floor");
+  const factEl = document.getElementById("altimeter-fact");
+  const nextBtn = document.getElementById("btn-altimeter-next");
+  const skipBtn = document.getElementById("btn-skip-altimeter");
+
+  nextBtn.style.display = "none";
+  skipBtn.style.display = "";
+  altimeterLastFactIdx = -1;
+  altimeterStartTs = null;
+
+  const facts = SimaLocale.pickPack(I18N, currentLocale).altimeterFacts || [];
+
+  function step(ts) {
+    if (!altimeterStartTs) altimeterStartTs = ts;
+    const elapsed = ts - altimeterStartTs;
+    const progress = Math.min(1, elapsed / ALTIMETER_DURATION_MS);
+    const eased = easeOutCubic(progress);
+    const meters = Math.round(eased * ALTIMETER_TARGET_M);
+    const floor = Math.max(0, Math.round(eased * ALTIMETER_TARGET_FLOOR));
+
+    fill.style.height = (eased * 100) + "%";
+    pin.style.bottom = (eased * 100) + "%";
+    heightEl.textContent = String(meters);
+    floorEl.textContent = t("altimeterFloorPrefix") + " " + floor;
+
+    let factIdx = -1;
+    for (let i = 0; i < facts.length; i++) {
+      if (meters >= facts[i].atMeters) factIdx = i;
+    }
+    if (factIdx !== altimeterLastFactIdx && factIdx >= 0) {
+      altimeterLastFactIdx = factIdx;
+      factEl.style.opacity = 0;
+      window.setTimeout(() => {
+        factEl.textContent = facts[factIdx].text;
+        factEl.style.opacity = 1;
+      }, 120);
+    }
+
+    if (progress < 1) {
+      altimeterRaf = window.requestAnimationFrame(step);
+    } else {
+      altimeterRaf = null;
+      skipBtn.style.display = "none";
+      nextBtn.style.display = "";
+    }
+  }
+
+  altimeterRaf = window.requestAnimationFrame(step);
+}
+
+function stopAltimeter() {
+  if (altimeterRaf) {
+    window.cancelAnimationFrame(altimeterRaf);
+    altimeterRaf = null;
+  }
+}
+
+/* ---------------- Trivia ---------------- */
+
+let triviaIndex = 0;
+let triviaCorrect = 0;
+let triviaAnswered = false;
+
+function renderTriviaStep() {
+  const questions = SimaLocale.pickPack(I18N, currentLocale).triviaQuestions || [];
+  const total = questions.length;
+  const q = questions[triviaIndex];
+  if (!q) { goToFinal(); return; }
+
+  triviaAnswered = false;
+
+  document.getElementById("trivia-progress").textContent = fmt(t("triviaProgress"), {
+    n: triviaIndex + 1,
+    total: total,
+  });
+  document.getElementById("trivia-question").textContent = q.question;
+  document.getElementById("trivia-feedback").textContent = "";
+
+  const optionsEl = document.getElementById("trivia-options");
+  optionsEl.innerHTML = "";
+  q.options.forEach((label, idx) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "trivia-option";
+    btn.textContent = label;
+    btn.onclick = () => answerTrivia(idx);
+    optionsEl.appendChild(btn);
+  });
+
+  document.getElementById("btn-trivia-next").style.display = "none";
+}
+
+function answerTrivia(selectedIdx) {
+  if (triviaAnswered) return;
+  triviaAnswered = true;
+
+  const questions = SimaLocale.pickPack(I18N, currentLocale).triviaQuestions || [];
+  const q = questions[triviaIndex];
+  const isCorrect = selectedIdx === q.correctIndex;
+  if (isCorrect) triviaCorrect++;
+
+  const optionButtons = document.querySelectorAll("#trivia-options .trivia-option");
+  optionButtons.forEach((btn, idx) => {
+    btn.disabled = true;
+    if (idx === q.correctIndex) btn.classList.add("is-correct");
+    if (idx === selectedIdx && !isCorrect) btn.classList.add("is-incorrect");
+  });
+
+  document.getElementById("trivia-feedback").textContent = isCorrect
+    ? q.feedbackCorrect
+    : q.feedbackWrong;
+
+  const questions2 = questions;
+  const isLast = triviaIndex >= questions2.length - 1;
+  const nextBtn = document.getElementById("btn-trivia-next");
+  nextBtn.textContent = isLast ? t("seeResult") : t("next");
+  nextBtn.style.display = "";
+
+  try { SimaBridge.log("sky_costanera trivia q=" + (triviaIndex + 1) + " correct=" + isCorrect); } catch (e) { /* noop */ }
+}
+
+function nextTriviaStep() {
+  triviaIndex++;
+  const questions = SimaLocale.pickPack(I18N, currentLocale).triviaQuestions || [];
+  if (triviaIndex >= questions.length) {
+    goToFinal();
+  } else {
+    renderTriviaStep();
+  }
+}
+
+/* ---------------- Final ---------------- */
+
+function renderFinal() {
+  const pack = SimaLocale.pickPack(I18N, currentLocale);
+  const questions = pack.triviaQuestions || [];
+  const scoreEl = document.getElementById("final-score");
+
+  if (triviaIndex > 0) {
+    scoreEl.style.display = "";
+    scoreEl.textContent = fmt(t("scoreLabel"), { correct: triviaCorrect, total: questions.length });
+  } else {
+    scoreEl.style.display = "none";
+  }
+
+  document.getElementById("final-title").textContent = t("finalTitle");
+  const factsEl = document.getElementById("final-facts");
+  const facts = pack.finalFacts || [];
+  factsEl.innerHTML = facts.map((f) => "<li>" + f + "</li>").join("");
+  document.getElementById("btn-route").textContent = t("viewRoute");
+  document.getElementById("btn-close").textContent = t("close");
+}
+
+/* ---------------- Locale wiring ---------------- */
+
+function applyLocale() {
+  currentLocale = SimaLocale.readLocaleFromPage();
+  document.documentElement.lang = currentLocale;
+
+  document.getElementById("cover-badge").textContent = t("coverBadge");
+  document.getElementById("cover-title").textContent = t("coverTitle");
+  document.getElementById("cover-lead").textContent = t("coverLead");
+  document.getElementById("stat-height").textContent = t("statHeight");
+  document.getElementById("stat-floor").textContent = t("statFloor");
+  document.getElementById("stat-view").textContent = t("statView");
+  document.getElementById("btn-start").textContent = t("start");
+  document.getElementById("btn-skip-cover").textContent = t("skipToInfo");
+  document.getElementById("btn-skip-altimeter").textContent = t("skip");
+  document.getElementById("btn-altimeter-next").textContent = t("next");
+
+  const headerClose = document.getElementById("btnCloseHeader");
+  if (headerClose) headerClose.setAttribute("aria-label", t("close"));
+
+  renderFinal();
+}
+
+let introSpoken = false;
+
+function speakPageIntro() {
+  if (introSpoken) return;
+  if (typeof SimaBridge === "undefined" || typeof SimaBridge.speak !== "function") return;
+  introSpoken = true;
+  SimaBridge.speak(t("speakIntro"));
+}
+
+window.handleUnityData = function (data) {
+  if (!data) return;
+  if (typeof data === "string") {
+    try { data = JSON.parse(data); } catch (e) { return; }
+  }
+  applyLocale();
+};
+
+SimaLocale.bindPageLocale(applyLocale);
+
+window.addEventListener("load", () => {
+  applyLocale();
+  showScreen("cover");
+  SimaBridge.ready("sky-costanera");
+  speakPageIntro();
+});
+</script>
+</body>
+</html>
