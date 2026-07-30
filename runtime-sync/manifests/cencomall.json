@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.29-1",
+  "version": "2026.07.29-2",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-07-30T01:33:30.916Z",
+  "generatedAt": "2026-07-30T04:02:10.909Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.07.28-3",
+  "rollbackTo": "2026.07.29-1",
   "entryPoints": [
     {
       "service": "agenda",
@@ -114,8 +114,8 @@
     },
     {
       "path": "FIX-BUSQUEDA-CATALOGO.md",
-      "size": 5323,
-      "sha256": "863aec71b6d8974201dd5e3f3a1fea63b198a28afe0859da2125a22f79ea39c6"
+      "size": 5497,
+      "sha256": "70faf648c04a3b47dc8345edd97a49fc6546a63ec19764ee3687164d766eb029"
     },
     {
       "path": "flights/index.html",
@@ -159,8 +159,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 215862,
-      "sha256": "bf15d065d6799a34b748d438ecfdecadad9793e16c4d4f9cadbe5b9658039b01"
+      "size": 218691,
+      "sha256": "9b097b5e8ac58b43b307f1a177145d478939c913a7b2c29ee97ee54e0a5438a3"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -369,8 +369,8 @@
     },
     {
       "path": "shared/market-search.js",
-      "size": 46886,
-      "sha256": "7600070d2326d68f1e144ffc29371f54e841ca05c6d532efa7aa024b44fdc70f"
+      "size": 48276,
+      "sha256": "25a05abb318ed25658902698445513cf5defb30e7a2e98f75c2cda237a84d0b1"
     },
     {
       "path": "shared/native-payload.js",
