@@ -3,7 +3,7 @@
   "project": "cencomall",
   "version": "2026.07.30-checked",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-07-30T04:55:03.738Z",
+  "generatedAt": "2026-07-30T18:11:21.336Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -159,8 +159,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 228582,
-      "sha256": "b0a016022f9e6687186fa7a02b444977a64883e7352e783ffa8c881dee87f89b"
+      "size": 235216,
+      "sha256": "da2497192e5551b9edbea1458fae4557ca252c884b571f2daeee4770f9b517bd"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -179,8 +179,8 @@
     },
     {
       "path": "promociones/index.html",
-      "size": 24943,
-      "sha256": "12ec4122545342e4d8b6436f08e3b84a91c391ce760c50d9838ca57042cde34f"
+      "size": 25231,
+      "sha256": "882d01e840ec303205973a5069c6a097220df587ac52ef2ef1d57c48a248cbf1"
     },
     {
       "path": "promociones/QR_App_Store_Cenco_Malls.png",
@@ -199,8 +199,8 @@
     },
     {
       "path": "servicios/index.html",
-      "size": 30967,
-      "sha256": "e16c50086637927db2494db9fbbd4a8bd8c4c4fdee20256c5e21d5382c9e1f2d"
+      "size": 30578,
+      "sha256": "f2c577381c3c0aece509fa83165bd4033098873f3e753815433ce17dbf528f00"
     },
     {
       "path": "shared/app.css",
@@ -261,6 +261,16 @@
       "path": "shared/category-icons/chocolateria-confites.svg",
       "size": 3094,
       "sha256": "64016ccb04f841674c7dcf39e590d97d956c70aa659eca435c8515ca13eb6b6c"
+    },
+    {
+      "path": "shared/category-icons/cowork.svg",
+      "size": 602,
+      "sha256": "3eff3bb986a6c9b3531e4d93f329d9056ef56340d8b72982a62448f3e2af264c"
+    },
+    {
+      "path": "shared/category-icons/customer_service.svg",
+      "size": 3485,
+      "sha256": "07d89b163fae1eecab69c00d3a8450c58f646aed727af76365c5181911e28902"
     },
     {
       "path": "shared/category-icons/default.svg",
