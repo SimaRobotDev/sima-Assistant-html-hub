@@ -101,6 +101,8 @@ const queries = [
   { q: "zapatillas", min: 3 },
   { q: "nike zapatillas", min: 1, expectBrand: "nike" },
   { q: "adidas zapatillas", min: 1, expectBrand: "adidas" },
+  { q: "adidas original", min: 1, expectBrand: "adidas original" },
+  { q: "adidas originals", min: 1, expectBrand: "adidas original" },
   { q: "zapatos deportivos", min: 3, rejectBrand: /econ[oó]pticas|gmo|ray ban|sunglass|all nutrition|winkler|place vendome/i },
   { q: "ropa mujer", min: 1 },
   { q: "vestuario", min: 3 },

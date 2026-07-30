@@ -346,6 +346,10 @@ window.MarketSearch = (function () {
       add("vestir");
       add("office");
       add("elegante");
+    } else if (t === "original" || t === "originals" || t === "originales" || t === "originale") {
+      add("original");
+      add("originals");
+      add("originales");
     }
     return out;
   }
@@ -768,13 +772,37 @@ window.MarketSearch = (function () {
     return 0;
   }
 
+  function brandLineMatchesQuery(entry, queryNorm, tokens) {
+    if (!entry) return false;
+    var brandNorm = normalizeText(entry.brand || entry.name);
+    if (!brandNorm || !queryNorm) return false;
+    var brandCompact = brandNorm.replace(/ /g, "");
+    var queryCompact = queryNorm.replace(/ /g, "");
+    if (brandNorm === queryNorm || brandCompact === queryCompact) return true;
+    if (queryCompact.length >= 6 && (
+      brandCompact.indexOf(queryCompact) === 0 ||
+      queryCompact.indexOf(brandCompact) === 0
+    )) return true;
+    // All non-product tokens appear in the brand (adidas + original → Adidas Originals).
+    var brandTokens = (tokens || []).filter(function (token) {
+      return token && !isProductOnlyToken(token) && !isSportModifierToken(token) && !isFormalFootwearToken(token);
+    });
+    if (!brandTokens.length) return false;
+    return brandTokens.every(function (token) {
+      return scoreTokenAgainstText(brandNorm, token, 1, 1) > 0;
+    });
+  }
+
   function applyRelevanceFilter(matches, queryNorm, tokens) {
     if (!matches.length) return matches;
 
     if (queryHasFootwearIntent(tokens, queryNorm)) {
       var footwearMatches = matches.filter(function (match) {
         if (entryIsOffTopicForFootwear(match.entry)) return false;
-        return entryHasSneakerContext(match.entry, parseKeywordList(match.entry.keywords));
+        if (entryHasSneakerContext(match.entry, parseKeywordList(match.entry.keywords))) return true;
+        // Keep brand-line stores even when "adidas"/"nike" mark the query as footwear
+        // intent (e.g. "Adidas Originals" for "adidas original").
+        return brandLineMatchesQuery(match.entry, queryNorm, tokens);
       });
       if (footwearMatches.length) return footwearMatches;
     }
