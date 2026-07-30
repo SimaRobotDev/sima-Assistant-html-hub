@@ -726,19 +726,6 @@
 
       try { SimaBridge.speak(t("speakRoute")); } catch (eSpeak) { /* noop */ }
 
-      // Survive a native open_stores that loads mobility WITHOUT query params.
-      try {
-        sessionStorage.setItem(
-          "sima_pending_service_route",
-          JSON.stringify({
-            serviceId: "customer-service-n1",
-            autoMap: true,
-            autoRoute: true,
-            source: "servicios",
-          })
-        );
-      } catch (eStore) { /* noop */ }
-
       // Same native door as "Abrir buscador" — Cencomall does NOT handle
       // airport-style request_directions, so that path was a silent no-op.
       try { SimaBridge.send("open_stores", payload); } catch (eSend) { /* noop */ }

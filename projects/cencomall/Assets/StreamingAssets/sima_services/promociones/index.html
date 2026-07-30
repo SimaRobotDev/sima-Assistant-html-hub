@@ -593,7 +593,7 @@
         ? escapeHtml(t("validUntil")) + " " + escapeHtml(promo.validityEnd)
         : "";
       var cta = promo.requiresApp
-        ? '<button class="btn-promo-app" type="button" onclick="openPromoInfoPopup()">Presiona para más información</button>'
+        ? '<button class="btn-promo-app" type="button" data-promo-info="true">Presiona para más información</button>'
         : "";
 
       return '<article class="promo-card fade-in">' +
@@ -605,6 +605,15 @@
           (validity ? '<div class="promo-validity">' + validity + "</div>" : "") +
           cta +
         "</div></article>";
+    }
+
+    function bindPromotionButtons() {
+      document.querySelectorAll(".btn-promo-app[data-promo-info]").forEach(function (btn) {
+        btn.onclick = function (event) {
+          event.stopPropagation();
+          openPromoInfoPopup();
+        };
+      });
     }
 
     function renderPromotionResults(payload) {
@@ -654,6 +663,7 @@
           '<div class="promo-grid">' + cardsHtml + "</div>" +
         "</div>";
       bindPromotionChips();
+      bindPromotionButtons();
     }
 
     function demoPayload() {
