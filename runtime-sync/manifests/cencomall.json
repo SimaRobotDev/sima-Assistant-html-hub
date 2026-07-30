@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.30-004818",
+  "version": "2026.07.30-checked",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-07-30T04:48:21.485Z",
+  "generatedAt": "2026-07-30T04:55:03.738Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -84,13 +84,13 @@
     },
     {
       "path": "data/market-catalog.json",
-      "size": 661290,
-      "sha256": "c1a32f425d1ecb128514a45bc4d7174020c0ec814e94d68b2f440f24105543a9"
+      "size": 234105,
+      "sha256": "9c2f456a898012fb2266e2b4fd262487c74c2ed156fc2a6e8867166b2c919248"
     },
     {
       "path": "data/market-catalog.jsonp.js",
-      "size": 661481,
-      "sha256": "e89b35d08a17d17dc11fd6b84bb1a84ed4476fe5ca1f4535cfb5e806538514d6"
+      "size": 234295,
+      "sha256": "b6c9523bb5a8ee8e46dd30ad4f6dc286bdb90f08bc4c003fedd0208835f18a19"
     },
     {
       "path": "data/services-catalog.json",
@@ -103,14 +103,19 @@
       "sha256": "d310e6259324f3e5dc48a49f0ba0cd5cbde5adfc1eddb06234aedcea85fa8333"
     },
     {
+      "path": "docs/MARKET-CATALOG-SLIM.md",
+      "size": 2157,
+      "sha256": "b614f629fe6d7024faa76da78565d2c4ebc28cc1fb264baa579679b277e5eb18"
+    },
+    {
       "path": "emergency/index.html",
       "size": 12209,
       "sha256": "e45981d062b7808778a07ea85705f6cbacf9e936bc7a5c865b5057fc122c8ff4"
     },
     {
       "path": "FIX-BUSQUEDA-CATALOGO.md",
-      "size": 5323,
-      "sha256": "863aec71b6d8974201dd5e3f3a1fea63b198a28afe0859da2125a22f79ea39c6"
+      "size": 5497,
+      "sha256": "70faf648c04a3b47dc8345edd97a49fc6546a63ec19764ee3687164d766eb029"
     },
     {
       "path": "flights/index.html",
@@ -154,8 +159,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 220731,
-      "sha256": "ba4bda1b4b74134057f88adf06484b9cfcc26c785134fcd9b7577d02ac24b6a1"
+      "size": 228582,
+      "sha256": "b0a016022f9e6687186fa7a02b444977a64883e7352e783ffa8c881dee87f89b"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -409,8 +414,8 @@
     },
     {
       "path": "shared/market-search.js",
-      "size": 38387,
-      "sha256": "b2823cb47cbdd282081cb9d25986571e1a7e1597118dbecb55f1d4e3ee848555"
+      "size": 50174,
+      "sha256": "157858c44be2c98a23f7fcd39b5a6be8099509ec67f14d1d999e941f5016653b"
     },
     {
       "path": "shared/native-payload.js",
