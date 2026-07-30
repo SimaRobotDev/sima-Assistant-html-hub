@@ -88,6 +88,44 @@ Si Unity ya conoce la marca/tienda que el usuario pidió por voz o texto antes
 de navegar a `mobility`, debe pasarla por alguno de estos canales para que
 quede reflejada en el buscador y dispare la búsqueda local/híbrida.
 
+## Mobility: resultados de catálogo → RN (`market_search_results`)
+
+Tras cada `runMarketCatalogSearch` / `MarketSearch.search` (texto HTML, voz o
+payload RN), el HTML emite resultados reales al bridge para que la IA arme la
+respuesta **sin inventar tiendas**:
+
+```json
+{
+  "type": "market_search_results",
+  "payload": {
+    "query": "nike zapatillas",
+    "seq": 3,
+    "totalMatches": 4,
+    "results": [
+      {
+        "id": "12345",
+        "local": "CC_N3_3208",
+        "name": "Nike",
+        "floor": "Nivel 3",
+        "score": 980
+      }
+    ],
+    "source": "voice"
+  }
+}
+```
+
+Reglas:
+
+- Se emite también con `totalMatches: 0` y `results: []`.
+- `id` = CMS; `local` = MapVX (abrir mapa sin esperar detail).
+- Top N por defecto: 8.
+- Evento distinto de `market_search` (ese solo notifica el query hacia nativo en modo híbrido).
+
+Detalle de tienda (descripción/fotos/horarios): `GET /api/market/{id}` con
+`window.CENCOMALL_MARKET_API_TOKEN` opcional. Ver
+`projects/cencomall/.../docs/MARKET-CATALOG-SLIM.md`.
+
 ## Eventos observados
 
 | type | uso |
@@ -101,3 +139,5 @@ quede reflejada en el buscador y dispare la búsqueda local/híbrida.
 | `load_url` | abrir contenido externo |
 | `generate_qr` | crear código QR |
 | `mapvx_log` | depuración de mapa |
+| `market_search` | HTML → RN: query (modo híbrido) |
+| `market_search_results` | HTML → RN: resultados reales del catálogo OTA |

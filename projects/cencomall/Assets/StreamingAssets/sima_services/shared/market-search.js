@@ -54,11 +54,71 @@ window.MarketSearch = (function () {
       .trim();
   }
 
+  var QUERY_STOP_WORDS = {
+    a: true,
+    an: true,
+    the: true,
+    to: true,
+    for: true,
+    of: true,
+    in: true,
+    on: true,
+    at: true,
+    is: true,
+    are: true,
+    me: true,
+    my: true,
+    i: true,
+    im: true,
+    want: true,
+    need: true,
+    find: true,
+    show: true,
+    search: true,
+    look: true,
+    where: true,
+    please: true,
+    de: true,
+    del: true,
+    la: true,
+    el: true,
+    los: true,
+    las: true,
+    un: true,
+    una: true,
+    unos: true,
+    unas: true,
+    y: true,
+    o: true,
+    en: true,
+    por: true,
+    para: true,
+    con: true,
+    que: true,
+    quiero: true,
+    necesito: true,
+    buscar: true,
+    busca: true,
+    busco: true,
+    donde: true,
+    esta: true,
+    estan: true,
+    hay: true,
+    tienda: true,
+    local: true,
+    comprar: true,
+    dame: true,
+    muestrame: true,
+    muestra: true,
+  };
+
   function tokenizeQuery(query) {
     var normalized = normalizeText(query);
     if (!normalized) return [];
     return normalized.split(" ").filter(function (token) {
-      return token.length > 0;
+      if (!token || token.length < 1) return false;
+      if (QUERY_STOP_WORDS[token]) return false;
+      return true;
     });
   }
 
@@ -78,40 +138,50 @@ window.MarketSearch = (function () {
   }
 
   function mapCatalogEntry(item) {
-    var brand = String(item.brand_name || "").trim();
-    var marketName = String(item.market_name || "").trim();
+    var brand = String(item.brand_name || item.brand || item.name || "").trim();
+    var marketName = String(item.market_name || item.marketName || "").trim();
+    var categories = String(
+      item.brand_categories
+      || item.category
+      || (item.brand_level1_categories && item.brand_level1_categories[0])
+      || ""
+    ).trim();
+    var subCats = Array.isArray(item.brand_sub_categories)
+      ? item.brand_sub_categories.map(function (c) { return String(c || "").trim(); }).filter(Boolean)
+      : [];
+    if (subCats.length) {
+      categories = [categories].concat(subCats).filter(Boolean).join(",");
+    }
     return {
       id: String(item.id != null ? item.id : ""),
       name: brand || marketName || "Tienda",
       brand: brand || marketName,
       marketName: marketName,
-      floor: formatFloorFromLevels(item.market_levels),
-      category: String(
-        item.brand_categories
-        || (item.brand_level1_categories && item.brand_level1_categories[0])
-        || ""
-      ).trim(),
+      floor: formatFloorFromLevels(item.market_levels || item.floor),
+      category: categories,
       local: String(item.local || "").trim(),
-      logoUrl: String(item.brand_logo || "").trim(),
-      brand_logo: String(item.brand_logo || "").trim(),
+      logoUrl: String(item.brand_logo || item.logoUrl || item.logo || "").trim(),
+      brand_logo: String(item.brand_logo || item.logoUrl || item.logo || "").trim(),
+      // Slim OTA omits photos/schedules/description; keep empty defaults for UI.
       market_photos: Array.isArray(item.market_photos)
         ? item.market_photos.map(function (url) { return String(url || "").trim(); }).filter(Boolean)
         : [],
-      description: String(item.brand_description || "").trim(),
+      description: String(item.brand_description || item.description || "").trim(),
       descriptionLocales: {
-        es: String(item.brand_description || "").trim(),
+        es: String(item.brand_description || item.description || "").trim(),
         en: String(item.brand_description_en || item.brand_description_en_us || "").trim(),
         pt: String(item.brand_description_pt || item.brand_description_pt_br || "").trim(),
       },
       keywords: String(item.keywords || "").trim(),
       mall: String(item.mall || "").trim(),
       available: isAvailable(item),
-      schedules: item.market_schedules || [],
-      website: String(item.brand_website || "").trim(),
+      schedules: item.market_schedules || item.schedules || [],
+      website: String(item.brand_website || item.website || "").trim(),
       source: "market-catalog",
     };
   }
 
+  // Phrase blob intentionally excludes description (do not rank by description).
   function buildSearchBlob(entry) {
     return normalizeText([
       entry.id,
@@ -121,12 +191,9 @@ window.MarketSearch = (function () {
       entry.marketName,
       entry.category,
       entry.keywords,
-      entry.description,
     ].join(" "));
   }
 
-  // Token matching skips long descriptions to avoid city-name noise
-  // (e.g. "paris" in "parisino", "falabella" in travel copy).
   function buildTokenBlob(entry) {
     return normalizeText([
       entry.id,
@@ -139,12 +206,17 @@ window.MarketSearch = (function () {
     ].join(" "));
   }
 
+  function buildCategoryBlob(entry) {
+    return normalizeText(entry.category || "");
+  }
+
   function buildIndex(entries) {
     return entries.map(function (entry) {
       return {
         entry: entry,
         blob: buildSearchBlob(entry),
         tokenBlob: buildTokenBlob(entry),
+        categoryBlob: buildCategoryBlob(entry),
         brandKey: normalizeText(entry.brand || entry.name),
       };
     });
@@ -240,6 +312,7 @@ window.MarketSearch = (function () {
 
     add(stripLightInflection(t));
     if (t === "zapatos" || t === "zapato") {
+      // Do not auto-expand to sneakers when paired with "formales" — handled in scoreEntry.
       add("zapatillas");
       add("zapatilla");
       add("calzado");
@@ -253,8 +326,79 @@ window.MarketSearch = (function () {
     } else if (t === "deportivos" || t === "deportivo" || t === "deportiva" || t === "deportivas") {
       add("deporte");
       add("deportes");
+    } else if (t === "ropa" || t === "vestimenta" || t === "indumentaria") {
+      add("vestuario");
+      add("moda");
+    } else if (t === "vestuario") {
+      add("ropa");
+      add("moda");
+    } else if (t === "mujer" || t === "mujeres" || t === "dama" || t === "damas") {
+      add("mujer");
+      add("dama");
+      add("women");
+    } else if (t === "hombre" || t === "hombres" || t === "caballero" || t === "caballeros") {
+      add("hombre");
+      add("caballero");
+      add("men");
+    } else if (t === "formales" || t === "formal" || t === "vestir") {
+      add("formal");
+      add("formales");
+      add("vestir");
+      add("office");
+      add("elegante");
     }
     return out;
+  }
+
+  function isProductOnlyToken(token) {
+    var t = normalizeText(token);
+    return (
+      t === "zapatillas" ||
+      t === "zapatilla" ||
+      t === "zapatos" ||
+      t === "zapato" ||
+      t === "calzado" ||
+      t === "calzados" ||
+      t === "shoes" ||
+      t === "shoe" ||
+      t === "sneakers" ||
+      t === "sneaker" ||
+      t === "tenis" ||
+      t === "ropa" ||
+      t === "vestuario" ||
+      t === "moda"
+    );
+  }
+
+  function isFormalFootwearToken(token) {
+    var t = normalizeText(token);
+    return t === "formales" || t === "formal" || t === "vestir" || t === "office" || t === "elegante";
+  }
+
+  function queryHasFormalFootwearIntent(tokens) {
+    if (!tokens || !tokens.length) return false;
+    var hasShoe = tokens.some(function (token) {
+      var t = normalizeText(token);
+      return t === "zapatos" || t === "zapato" || t === "calzado" || t === "calzados" || t === "shoes" || t === "shoe";
+    });
+    return hasShoe && tokens.some(isFormalFootwearToken);
+  }
+
+  function entryHasFormalFootwearContext(entry, keywordList) {
+    var blob = normalizeText([
+      entry && entry.category,
+      entry && entry.keywords,
+      (keywordList || []).join(" "),
+    ].join(" "));
+    return (
+      blob.indexOf("formal") >= 0 ||
+      blob.indexOf("vestir") >= 0 ||
+      blob.indexOf("elegante") >= 0 ||
+      blob.indexOf("office") >= 0 ||
+      blob.indexOf("oxford") >= 0 ||
+      blob.indexOf("mocasin") >= 0 ||
+      blob.indexOf("taco") >= 0
+    );
   }
 
   function isFootwearIntentToken(token) {
@@ -416,6 +560,7 @@ window.MarketSearch = (function () {
     var entry = indexedEntry.entry;
     var blob = indexedEntry.blob;
     var tokenBlob = indexedEntry.tokenBlob || blob;
+    var categoryBlob = indexedEntry.categoryBlob || buildCategoryBlob(entry);
     var score = 0;
 
     if (!queryNorm) return 0;
@@ -441,19 +586,33 @@ window.MarketSearch = (function () {
     ) brandScore = 780;
     else if (queryNorm.indexOf(brandNorm + " ") === 0) brandScore = 700;
 
+    // Exact / strong brand wins over keyword soup and category hits.
     if (brandScore >= 700) return score + brandScore + 200;
 
     var keywordList = parseKeywordList(entry.keywords);
     var sneakerIntentQuery = tokens.some(isSneakerIntentToken);
     var footwearIntent = queryHasFootwearIntent(tokens, queryNorm);
+    var formalFootwearIntent = queryHasFormalFootwearIntent(tokens);
     var sportOnlyQuery = isAmbiguousSportOnlyQuery(tokens);
     var sneakerContextEntry = entryHasSneakerContext(entry, keywordList);
+    var formalContextEntry = entryHasFormalFootwearContext(entry, keywordList);
 
     if (footwearIntent && entryIsOffTopicForFootwear(entry) && !sneakerContextEntry) {
       return 0;
     }
     if (sportOnlyQuery && entryIsOffTopicForSportModifier(entry)) {
       return 0;
+    }
+    // "zapatos formales" should not surface pure sneaker sports shops without formal signal.
+    if (formalFootwearIntent && sneakerContextEntry && !formalContextEntry) {
+      var categoryNorm = normalizeText(entry.category);
+      if (
+        categoryNorm.indexOf("deportes") >= 0 &&
+        categoryNorm.indexOf("calzado") < 0 &&
+        categoryNorm.indexOf("vestuario") < 0
+      ) {
+        return 0;
+      }
     }
 
     if (queryNorm.indexOf(" ") >= 0 && blob.indexOf(queryNorm) >= 0) score += 300;
@@ -463,19 +622,40 @@ window.MarketSearch = (function () {
     var matchedTokens = 0;
     var matchedViaShoeSynonym = false;
     var brandAnchored = false;
+    var keywordSoup = keywordList.length > 12;
     tokens.forEach(function (token) {
       if (!token) return;
       var best = 0;
+      var matchLayer = ""; // brand | keyword | category | blob
       var variants = tokenVariants(token);
 
+      // Hierarchy: brand > keyword > category > generic blob.
       variants.forEach(function (variant) {
-        if (localNorm && localNorm === variant) best = Math.max(best, 400);
-        else best = Math.max(best, wordScore(localNorm, variant, 400, 300));
+        if (localNorm && localNorm === variant) {
+          best = Math.max(best, 400);
+          matchLayer = "brand";
+        } else {
+          var localHit = wordScore(localNorm, variant, 400, 300);
+          if (localHit > best) {
+            best = localHit;
+            matchLayer = "brand";
+          }
+        }
 
-        if (brandNorm === variant) best = Math.max(best, 350);
-        else best = Math.max(best, wordScore(brandNorm, variant, 320, 220));
+        if (brandNorm === variant) {
+          best = Math.max(best, 350);
+          matchLayer = "brand";
+        } else {
+          var brandHit = wordScore(brandNorm, variant, 320, 220);
+          if (brandHit > best) {
+            best = brandHit;
+            matchLayer = "brand";
+          }
+        }
       });
-      if (scoreTokenAgainstText(brandNorm, token, 1, 1) > 0) brandAnchored = true;
+      if (scoreTokenAgainstText(brandNorm, token, 1, 1) > 0 && !isProductOnlyToken(token)) {
+        brandAnchored = true;
+      }
 
       var keywordHit = 0;
       var sneakerReferralHit = false;
@@ -486,21 +666,39 @@ window.MarketSearch = (function () {
         });
         if (hit <= 0) return;
         // Multimarca resellers list many brand names in keywords (Block, etc.).
-        if (keywordList.length > 12 && !brandContainsToken(brandNorm, token)) {
+        if (keywordSoup && !brandContainsToken(brandNorm, token)) {
           if (!(sneakerIntentQuery && sneakerContextEntry)) return;
           sneakerReferralHit = true;
         }
         if (brandContainsToken(brandNorm, token) || keyword === brandNorm) {
           keywordHit = Math.max(keywordHit, hit);
-        } else if (keywordList.length <= 12) {
+        } else if (!keywordSoup) {
           keywordHit = Math.max(keywordHit, hit);
         } else if (sneakerReferralHit) {
           keywordHit = Math.max(keywordHit, hit + 140);
         }
       });
-      best = Math.max(best, keywordHit);
+      if (keywordHit > best) {
+        best = keywordHit;
+        matchLayer = "keyword";
+      }
 
-      best = Math.max(best, scoreTokenAgainstText(tokenBlob, token, 120, 80));
+      var categoryHit = scoreTokenAgainstText(categoryBlob, token, 160, 100);
+      if (categoryHit > best) {
+        best = categoryHit;
+        matchLayer = "category";
+      }
+
+      var blobHit = scoreTokenAgainstText(tokenBlob, token, 90, 60);
+      if (blobHit > best) {
+        best = blobHit;
+        matchLayer = matchLayer || "blob";
+      }
+
+      // Keyword-soup penalty: generic blob/category hits without brand/keyword layer.
+      if (keywordSoup && matchLayer === "blob") {
+        best = Math.floor(best * 0.35);
+      }
 
       if (best > 0) {
         score += best;
@@ -529,10 +727,19 @@ window.MarketSearch = (function () {
     }
 
     if (footwearIntent && sneakerContextEntry) score += 120;
+    if (formalFootwearIntent && formalContextEntry) score += 140;
     if (footwearIntent && entryIsOffTopicForFootwear(entry)) return 0;
     if (sportOnlyQuery && entryIsOffTopicForSportModifier(entry)) return 0;
 
     score += 80 * Math.max(matchedTokens, 1);
+
+    // Brand store must outrank keyword-soup resellers for "marca + producto".
+    if (brandAnchored && matchedTokens >= tokens.length && tokens.length > 1) {
+      score += 420;
+    } else if (!brandAnchored && keywordSoup) {
+      score = Math.max(0, score - 220);
+    }
+
     return score;
   }
 
@@ -633,7 +840,9 @@ window.MarketSearch = (function () {
     if (!entries.length) return null;
 
     if (entries.length === 1) {
-      return entries[0];
+      var single = Object.assign({}, entries[0]);
+      single._searchScore = group.score;
+      return single;
     }
 
     var head = entries[0];
@@ -670,6 +879,127 @@ window.MarketSearch = (function () {
       }),
       _searchScore: group.score,
     };
+  }
+
+  function setCatalog(items, options) {
+    options = options || {};
+    if (!Array.isArray(items)) {
+      throw new Error("MarketSearch.setCatalog expects an array");
+    }
+
+    var dropped = 0;
+    var mapped = [];
+    items.forEach(function (item) {
+      var entry = mapCatalogEntry(item || {});
+      if (!entry.id || !entry.local) {
+        dropped += 1;
+        return;
+      }
+      mapped.push(entry);
+    });
+
+    if (!mapped.length && items.length) {
+      throw new Error("MarketSearch.setCatalog: no items with both id and local");
+    }
+
+    catalog = mapped;
+    indexed = buildIndex(catalog);
+    localBrandIndex = buildLocalBrandIndex(catalog);
+    loadPromise = Promise.resolve(catalog);
+
+    if (dropped && options.silent !== true) {
+      try {
+        console.warn("[MarketSearch] setCatalog dropped " + dropped + " items missing id/local");
+      } catch (e) { /* noop */ }
+    }
+
+    return {
+      catalogSize: catalog.length,
+      dropped: dropped,
+    };
+  }
+
+  function flattenBridgeResults(results, limit) {
+    var out = [];
+    var max = Math.max(1, Number(limit) || 8);
+    (results || []).forEach(function (result) {
+      if (!result || out.length >= max) return;
+      if (result.isGroup && Array.isArray(result.locations) && result.locations.length) {
+        result.locations.forEach(function (loc) {
+          if (out.length >= max) return;
+          var local = String((loc && loc.local) || result.local || "").trim();
+          var id = (loc && loc.id != null && loc.id !== "") ? loc.id : result.id;
+          if (!local && (id == null || id === "")) return;
+          out.push({
+            id: id,
+            local: local,
+            name: String((loc && loc.name) || result.name || result.brand || "").trim(),
+            floor: String((loc && loc.floor) || result.floor || "").trim() || undefined,
+            score: result._searchScore,
+          });
+        });
+        return;
+      }
+      var localSingle = String(result.local || "").trim();
+      if (!localSingle && (result.id == null || result.id === "")) return;
+      out.push({
+        id: result.id,
+        local: localSingle,
+        name: String(result.name || result.brand || "").trim(),
+        floor: String(result.floor || "").trim() || undefined,
+        score: result._searchScore,
+      });
+    });
+    return out;
+  }
+
+  function toBridgeSearchPayload(searchResult, options) {
+    options = options || {};
+    var topN = options.topN != null ? Number(options.topN) : 8;
+    if (!isFinite(topN) || topN <= 0) topN = 8;
+    var query = String((searchResult && (searchResult.query || searchResult.searchQuery)) || options.query || "").trim();
+    var results = flattenBridgeResults((searchResult && searchResult.results) || [], topN);
+    return {
+      type: "market_search_results",
+      query: query,
+      seq: options.seq,
+      totalMatches: Number((searchResult && searchResult.totalMatches) || 0) || 0,
+      results: results,
+    };
+  }
+
+  function logSearchDebug(query, tokens, matches, results) {
+    var top5 = (matches || []).slice(0, 5).map(function (m) {
+      return {
+        name: (m.entry && (m.entry.brand || m.entry.name)) || "",
+        id: m.entry && m.entry.id,
+        local: m.entry && m.entry.local,
+        score: m.score,
+      };
+    });
+    var payload = {
+      q: String(query || ""),
+      tokens: tokens || [],
+      totalMatches: (matches && matches.length) || 0,
+      top5: top5,
+      returned: (results && results.length) || 0,
+    };
+    try {
+      console.log("[MarketSearch]", payload);
+    } catch (e) { /* noop */ }
+    try {
+      if (typeof window !== "undefined" && window.SimaBridge && typeof window.SimaBridge.log === "function") {
+        window.SimaBridge.log(
+          "market_search_debug q=" + payload.q +
+          " tokens=" + payload.tokens.join("+") +
+          " total=" + payload.totalMatches +
+          " top=" + top5.map(function (t) {
+            return (t.name || "?") + ":" + t.score + ":" + (t.local || "-");
+          }).join("|")
+        );
+      }
+    } catch (e2) { /* noop */ }
+    return payload;
   }
 
   function loadCatalog() {
@@ -741,11 +1071,13 @@ window.MarketSearch = (function () {
       .filter(Boolean)
       .slice(0, limit);
 
+    logSearchDebug(query, tokens, matches, results);
+
     // Prefer exact multi-token matches; avoid vague "related" fallbacks for
     // product intents (e.g. shoes) where unrelated categories pollute results.
     if (!results.length && options.allowRelated !== false) {
-      var tokens = tokenizeQuery(query);
-      if (queryHasFootwearIntent(tokens, normalizeText(query))) {
+      var relatedTokens = tokenizeQuery(query);
+      if (queryHasFootwearIntent(relatedTokens, normalizeText(query))) {
         return {
           query: query,
           results: [],
@@ -1134,6 +1466,7 @@ window.MarketSearch = (function () {
 
   return {
     loadCatalog: loadCatalog,
+    setCatalog: setCatalog,
     search: search,
     searchVoice: searchVoice,
     searchRelated: searchRelated,
@@ -1144,5 +1477,7 @@ window.MarketSearch = (function () {
     getBrandByLocal: getBrandByLocal,
     normalizeText: normalizeText,
     catalogUrl: catalogUrl,
+    toBridgeSearchPayload: toBridgeSearchPayload,
+    flattenBridgeResults: flattenBridgeResults,
   };
 })();

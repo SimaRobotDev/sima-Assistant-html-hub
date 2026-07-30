@@ -2828,6 +2828,11 @@ async function runMarketCatalogSearch(query, options) {
       resultKind: foodQuery ? "restaurants" : "stores",
     };
 
+    emitMarketSearchResultsToBridge(payload, {
+      seq: options.seq != null ? options.seq : marketSearchSeq,
+      source: options.source || (options.voice ? "voice" : "text"),
+    });
+
     if (!options.skipRender) {
       renderMarketResults(payload);
       lastLocalMarketSearch = {
@@ -2843,6 +2848,29 @@ async function runMarketCatalogSearch(query, options) {
     if (!options.silent) showSearchError(t("loadError"));
     return null;
   }
+}
+
+function emitMarketSearchResultsToBridge(searchPayload, options) {
+  options = options || {};
+  if (typeof MarketSearch === "undefined" || typeof MarketSearch.toBridgeSearchPayload !== "function") {
+    return null;
+  }
+  if (!SimaBridge || typeof SimaBridge.send !== "function") return null;
+
+  const bridgePayload = MarketSearch.toBridgeSearchPayload(searchPayload || {}, {
+    query: (searchPayload && searchPayload.query) || options.query || "",
+    seq: options.seq,
+    topN: options.topN || 8,
+  });
+  // Always emit — including totalMatches: 0 — so RN/IA can continue without inventing stores.
+  SimaBridge.send("market_search_results", {
+    query: bridgePayload.query,
+    seq: bridgePayload.seq,
+    totalMatches: bridgePayload.totalMatches,
+    results: bridgePayload.results,
+    source: options.source || (searchPayload && searchPayload.source) || "market-catalog",
+  });
+  return bridgePayload;
 }
 
 function prefetchMarketCatalog() {
@@ -3788,6 +3816,10 @@ async function selectStoreCategory(categoryName) {
       source: "market-catalog",
       resultType: "category",
     };
+    emitMarketSearchResultsToBridge(payload, {
+      seq: marketSearchSeq,
+      source: "category",
+    });
     renderMarketResults(payload);
     SimaBridge.send("market_search", { text: name, category: name, source: "category" });
   } catch (e) {
@@ -4563,6 +4595,103 @@ function getStoreInitials(name) {
 
 function getCencomallSiteOrigin() {
   return String(window.CENCOMALL_SITE_ORIGIN || "https://stg.cencomalls.cl").replace(/\/$/, "");
+}
+
+function getMarketApiBase() {
+  const override = String(window.CENCOMALL_MARKET_API_BASE || "").trim();
+  if (override) return override.replace(/\/$/, "");
+  return getCencomallSiteOrigin() + "/api/market";
+}
+
+function getMarketApiHeaders() {
+  const headers = { Accept: "application/json" };
+  const token = String(window.CENCOMALL_MARKET_API_TOKEN || window.CENCOMALL_API_TOKEN || "").trim();
+  if (token) headers.Authorization = "Bearer " + token;
+  return headers;
+}
+
+const storeDetailCache = Object.create(null);
+let storeDetailRequestSeq = 0;
+
+function mergeStoreDetail(baseStore, detail) {
+  if (!baseStore) return detail || null;
+  if (!detail || typeof detail !== "object") return baseStore;
+  const photos = Array.isArray(detail.market_photos)
+    ? detail.market_photos
+    : (baseStore.market_photos || []);
+  const schedules = Array.isArray(detail.market_schedules)
+    ? detail.market_schedules
+    : (baseStore.schedules || baseStore.schedule || []);
+  const description = String(
+    detail.brand_description || detail.description || baseStore.description || ""
+  ).trim();
+  return Object.assign({}, baseStore, {
+    name: baseStore.name || detail.brand_name || detail.market_name || baseStore.brand,
+    brand: baseStore.brand || detail.brand_name || baseStore.name,
+    local: baseStore.local || String(detail.local || "").trim(),
+    id: baseStore.id || detail.id,
+    logoUrl: baseStore.logoUrl || detail.brand_logo || "",
+    brand_logo: baseStore.brand_logo || detail.brand_logo || "",
+    market_photos: photos,
+    schedules: schedules,
+    schedule: schedules,
+    description: description,
+    descriptionLocales: Object.assign({}, baseStore.descriptionLocales || {}, {
+      es: description || (baseStore.descriptionLocales && baseStore.descriptionLocales.es) || "",
+    }),
+    website: String(detail.brand_website || baseStore.website || "").trim(),
+    keywords: baseStore.keywords || String(detail.keywords || "").trim(),
+    category: baseStore.category || String(detail.brand_categories || "").trim(),
+    detailLoaded: true,
+  });
+}
+
+async function fetchStoreDetailById(storeId) {
+  const id = String(storeId || "").trim();
+  if (!id) return null;
+  if (storeDetailCache[id]) return storeDetailCache[id];
+
+  const url = getMarketApiBase() + "/" + encodeURIComponent(id);
+  try {
+    const res = await fetch(url, {
+      cache: "no-cache",
+      headers: getMarketApiHeaders(),
+    });
+    if (!res.ok) {
+      SimaBridge.log("market detail HTTP " + res.status + " id=" + id);
+      return null;
+    }
+    const raw = await res.json();
+    const detail = (raw && typeof raw === "object" && raw.data && typeof raw.data === "object")
+      ? raw.data
+      : raw;
+    if (!detail || typeof detail !== "object") return null;
+    storeDetailCache[id] = detail;
+    return detail;
+  } catch (e) {
+    SimaBridge.log("market detail fetch failed id=" + id + " err=" + (e && e.message ? e.message : e));
+    return null;
+  }
+}
+
+function enrichStoreDetailPanel(store) {
+  if (!store) return;
+  const id = storeCatalogId(store);
+  if (!id) return;
+  // Slim catalog: description/photos/schedules come from GET /market/{id}.
+  // Map open must NOT wait on this — panel updates when ready.
+  if (store.detailLoaded || store.description || (store.schedules && store.schedules.length) || (store.market_photos && store.market_photos.length)) {
+    // Still refresh if we only have slim leftovers and token is available.
+    if (store.detailLoaded) return;
+    if (store.description && store.schedules && store.schedules.length) return;
+  }
+
+  const reqId = ++storeDetailRequestSeq;
+  fetchStoreDetailById(id).then(function (detail) {
+    if (!detail || reqId !== storeDetailRequestSeq) return;
+    const merged = mergeStoreDetail(store, detail);
+    renderStoreDetailPanel(merged);
+  });
 }
 
 function resolveMediaUrl(url) {
@@ -6280,6 +6409,7 @@ function openStoreMap(groupIndex, locationIndex) {
     return;
   }
 
+  // Map uses `local` immediately — detail fetch must not block MapVX.
   openPoiMap({
     poiType: "store",
     id: mapCatalogId || mapLocal,
@@ -6291,6 +6421,7 @@ function openStoreMap(groupIndex, locationIndex) {
     mode: "place",
     storeDetail: store
   });
+  enrichStoreDetailPanel(store);
 }
 
 function openServiceMap(idx) {

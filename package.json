@@ -7,6 +7,9 @@
     "build:manifests:disk": "node scripts/build-runtime-manifest.mjs",
     "validate:manifest": "node scripts/validate-runtime-manifest-from-git.mjs",
     "build:deploy": "node scripts/build-deploy.mjs",
+    "build:market-catalog-slim": "node tools/build-market-catalog-slim.mjs",
+    "build:jsonp": "node tools/build-jsonp-assets.mjs",
+    "test:market-search": "node tools/verify-market-search.mjs",
     "dev": "node scripts/serve-local.mjs",
     "serve:cenco": "node scripts/serve-local.mjs"
   }

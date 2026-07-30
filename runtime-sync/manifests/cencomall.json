@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.28-3",
+  "version": "2026.07.29-1",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-07-29T00:12:42.433Z",
+  "generatedAt": "2026-07-30T01:33:30.916Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.07.24-2",
+  "rollbackTo": "2026.07.28-3",
   "entryPoints": [
     {
       "service": "agenda",
@@ -84,13 +84,13 @@
     },
     {
       "path": "data/market-catalog.json",
-      "size": 661290,
-      "sha256": "c1a32f425d1ecb128514a45bc4d7174020c0ec814e94d68b2f440f24105543a9"
+      "size": 234105,
+      "sha256": "9c2f456a898012fb2266e2b4fd262487c74c2ed156fc2a6e8867166b2c919248"
     },
     {
       "path": "data/market-catalog.jsonp.js",
-      "size": 661481,
-      "sha256": "e89b35d08a17d17dc11fd6b84bb1a84ed4476fe5ca1f4535cfb5e806538514d6"
+      "size": 234295,
+      "sha256": "b6c9523bb5a8ee8e46dd30ad4f6dc286bdb90f08bc4c003fedd0208835f18a19"
     },
     {
       "path": "data/services-catalog.json",
@@ -101,6 +101,11 @@
       "path": "data/services-catalog.jsonp.js",
       "size": 24184,
       "sha256": "d310e6259324f3e5dc48a49f0ba0cd5cbde5adfc1eddb06234aedcea85fa8333"
+    },
+    {
+      "path": "docs/MARKET-CATALOG-SLIM.md",
+      "size": 2157,
+      "sha256": "b614f629fe6d7024faa76da78565d2c4ebc28cc1fb264baa579679b277e5eb18"
     },
     {
       "path": "emergency/index.html",
@@ -154,8 +159,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 210730,
-      "sha256": "d2cd9234043daee834ef84e5e46aac4c6b09570eccdb7c41a605c3a1cf4fdcff"
+      "size": 215862,
+      "sha256": "bf15d065d6799a34b748d438ecfdecadad9793e16c4d4f9cadbe5b9658039b01"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -364,8 +369,8 @@
     },
     {
       "path": "shared/market-search.js",
-      "size": 36489,
-      "sha256": "9b2251a7258f659eabb9730e297db28b641d9de91a8678eb3e922b2c456d6ac7"
+      "size": 46886,
+      "sha256": "7600070d2326d68f1e144ffc29371f54e841ca05c6d532efa7aa024b44fdc70f"
     },
     {
       "path": "shared/native-payload.js",

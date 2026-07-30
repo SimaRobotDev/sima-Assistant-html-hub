@@ -1,5 +1,9 @@
 # Fix búsqueda de tiendas (Costanera) — diagnóstico y acciones
 
+> Actualización OTA slim / bridge resultados: ver
+> [`docs/MARKET-CATALOG-SLIM.md`](./docs/MARKET-CATALOG-SLIM.md) y
+> `docs/bridge-contract.md` (`market_search_results`).
+
 Diagnóstico a partir del `logcat` de la build `2026.07.02-1` corriendo en emulador
 (BlueStacks / Android WebView). Explica por qué "McDonald's" y otras búsquedas
 no devuelven resultados, y separa lo ya corregido en la webapp de lo que debe
