@@ -32,6 +32,10 @@
       "entry": "map/index.html"
     },
     {
+      "service": "mapvx-embed",
+      "entry": "mapvx-embed/index.html"
+    },
+    {
       "service": "mobility",
       "entry": "mobility/index.html"
     },
@@ -66,6 +70,11 @@
       "path": "agenda/indexAgenda.html",
       "size": 6759,
       "sha256": "915fb41dcce3a70c64db5d39b745a43a2f675f8a19f8db190abc9b5e50b3123a"
+    },
+    {
+      "path": "assistant-embed.js",
+      "size": 2512,
+      "sha256": "75701bb6ebdc682a8c7e85ce0bb1ee1255d0633770674fad44572c4d082101b0"
     },
     {
       "path": "call/index.html",
@@ -156,6 +165,31 @@
       "path": "map/index.html",
       "size": 34426,
       "sha256": "51d87ccf43d4fbe7da864f116d789e513bf90e595551db1bb7131c820d1f3a0c"
+    },
+    {
+      "path": "mapvx-embed/bridge.js",
+      "size": 2750,
+      "sha256": "4ab3e7c07d8bb3c34e70b2a1f3da806ec9652c56a95c6c7bc045a1f3ff191354"
+    },
+    {
+      "path": "mapvx-embed/index.html",
+      "size": 2436,
+      "sha256": "1fc211e1b8666618650aa3abce62811d869b57c85a8c2044b9a41aff7bcecb95"
+    },
+    {
+      "path": "mapvx-embed/README.md",
+      "size": 349,
+      "sha256": "e902d0c2fc82e0f236dd760b2c8f900bb28c3f8cfcea230252b78c7a93de3de8"
+    },
+    {
+      "path": "mapvx-embed/register-sw.js",
+      "size": 196,
+      "sha256": "0119c57f9d29e0f1d644a7ffba32d50bd25efc8c256b04e87b97be294cc6b9f3"
+    },
+    {
+      "path": "mapvx-embed/sw.js",
+      "size": 478,
+      "sha256": "b70a9e41ddc356c951408bbf556c26eb8ec39211acba2368e9a586a220c66ef5"
     },
     {
       "path": "mobility/index.html",
