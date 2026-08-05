@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.07.30-2",
+  "version": "2026.08.05-1",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-07-30T18:37:07.657Z",
+  "generatedAt": "2026-08-05T22:07:39.435Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "HEAD",
+  "rollbackTo": null,
   "entryPoints": [
     {
       "service": "agenda",
@@ -193,8 +193,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 235216,
-      "sha256": "da2497192e5551b9edbea1458fae4557ca252c884b571f2daeee4770f9b517bd"
+      "size": 236762,
+      "sha256": "a0f75846a2261fd9a9e90570cd345b1c22c2db039b37c02ed1f5e657bec9e2e9"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -213,8 +213,8 @@
     },
     {
       "path": "promociones/index.html",
-      "size": 25231,
-      "sha256": "882d01e840ec303205973a5069c6a097220df587ac52ef2ef1d57c48a248cbf1"
+      "size": 28060,
+      "sha256": "e36edaaeb669215a7be5c59b96f96900ca721d2b18644544d48f79766d6f27b9"
     },
     {
       "path": "promociones/QR_App_Store_Cenco_Malls.png",
