@@ -182,6 +182,14 @@ con botón Reintentar. Requiere `window.MAPVX_CONFIG` (`apiKey`, `parentPlace`,
 navegador reutiliza las credenciales guardadas por `map/index.html` en
 `sessionStorage`.
 
+La ficha resuelve primero `id`, `local`, nombre, piso y logo contra el mismo
+`data/market-catalog.json` usado por `mobility`. El catálogo OTA es intencionalmente
+liviano y no incluye descripción/fotos/horarios. React Native, que sí consume
+`/market` con autenticación Basic, entrega esos campos de presentación mediante
+`window.applyStoreDetail(detail)`; las credenciales CMS nunca se exponen en el
+WebView. Si ese payload no llega, el logo y los datos básicos del catálogo OTA
+siguen mostrándose.
+
 ## Eventos observados
 
 | type | uso |

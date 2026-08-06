@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.08.06-1",
+  "version": "2026.08.06-2",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-08-06T15:07:10.077Z",
+  "generatedAt": "2026-08-06T16:16:40.301Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.08.05-1",
+  "rollbackTo": "2026.08.06-1",
   "entryPoints": [
     {
       "service": "agenda",
@@ -462,8 +462,8 @@
     },
     {
       "path": "shared/market-search.js",
-      "size": 50174,
-      "sha256": "157858c44be2c98a23f7fcd39b5a6be8099509ec67f14d1d999e941f5016653b"
+      "size": 51418,
+      "sha256": "986ac8160cbfe4b26009e82895052eafc9306c436fb816c388193cc5ca167a12"
     },
     {
       "path": "shared/native-payload.js",
@@ -557,8 +557,8 @@
     },
     {
       "path": "store-map/index.html",
-      "size": 29011,
-      "sha256": "38ea4f01c70de064a9768dd83b0905e80760aea54aab7ebe3d9f24c8c9477649"
+      "size": 31127,
+      "sha256": "eb7e76dc74558a22a3d2d46a3813881bb78e5352362a6948acce70c9816012fc"
     },
     {
       "path": "taxi/index.html",
