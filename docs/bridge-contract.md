@@ -126,6 +126,62 @@ Detalle de tienda (descripción/fotos/horarios): `GET /api/market/{id}` con
 `window.CENCOMALL_MARKET_API_TOKEN` opcional. Ver
 `projects/cencomall/.../docs/MARKET-CATALOG-SLIM.md`.
 
+## Store map: abrir una tienda directo en el mapa (`store-map/index.html`)
+
+Pantalla independiente para el caso "la IA sabe qué tienda es y quiere mostrarla
+en el mapa", sin pasar por el buscador de `mobility`. Acepta tres tipos de
+identificador y los distingue por la forma del valor, no por el nombre del campo:
+
+| identificador | forma | ejemplo |
+| --- | --- | --- |
+| `local` (clientId MapVX) | texto no numérico | `CC_N3_3208` |
+| `mapvxId` (id interno MapVX) | empieza con `-` | `-N19VjzEVIj2RDKu7i4r` |
+| `catalogId` (id CMS/catálogo) | solo dígitos | `12345` |
+
+Prioridad de resolución: `local` → `mapvxId` → `catalogId` → `name`. Si un valor
+llega en el campo equivocado (por ejemplo `mapvxId=CC_N3_3208`) se reclasifica
+por su forma.
+
+Tres formas de entrada, todas equivalentes:
+
+1. URL: `store-map/index.html?local=CC_N3_3208`, `?mapvxId=-N19…`, `?id=12345`.
+   `?id=` acepta cualquiera de los tres y se autodetecta. Extras: `name`,
+   `floor`, `locale`, `from=<carpeta>` (destino del botón Volver), `route=1`
+   (traza la ruta si hay `totemPlaceId`), `debug=1` (panel de trazas).
+2. Payload nativo vía `handleUnityData` (el bridge ya normaliza envoltorios
+   `{ type, payload }`). Se aceptan alias: `clientId`, `storeId`, `placeId`,
+   `store`, `storeName`, `level`, `piso`. Si el payload no trae identificador,
+   se ignora.
+3. `window.openStoreMapById("-N19VjzEVIj2RDKu7i4r")` o con objeto
+   `window.openStoreMapById({ local: "CC_N3_3208", route: true })`, pensado para
+   `injectJavaScript` desde React Native.
+
+Si la página se abre sin identificador queda esperando y se resuelve con el
+primer payload que llegue, así que la app puede abrir el WebView primero y
+mandar la tienda después.
+
+Respuestas hacia nativo:
+
+```json
+{
+  "type": "store_map_opened",
+  "payload": {
+    "request": { "local": "CC_N3_3208", "mapvxId": "", "catalogId": "", "name": "", "floor": "" },
+    "mapvxId": "-N19…",
+    "clientId": "CC_N3_3208",
+    "title": "Adidas",
+    "floorId": "…",
+    "resolvedBy": "getPlaceDetail(local)"
+  }
+}
+```
+
+Ante fallo emite `store_map_error` con `{ request, error }` y muestra un estado
+con botón Reintentar. Requiere `window.MAPVX_CONFIG` (`apiKey`, `parentPlace`,
+`institutionId`); espera hasta 8 s por la inyección nativa antes de fallar. En
+navegador reutiliza las credenciales guardadas por `map/index.html` en
+`sessionStorage`.
+
 ## Eventos observados
 
 | type | uso |
@@ -141,3 +197,5 @@ Detalle de tienda (descripción/fotos/horarios): `GET /api/market/{id}` con
 | `mapvx_log` | depuración de mapa |
 | `market_search` | HTML → RN: query (modo híbrido) |
 | `market_search_results` | HTML → RN: resultados reales del catálogo OTA |
+| `store_map_opened` | HTML → RN: tienda resuelta y centrada en el mapa |
+| `store_map_error` | HTML → RN: no se pudo resolver el identificador |

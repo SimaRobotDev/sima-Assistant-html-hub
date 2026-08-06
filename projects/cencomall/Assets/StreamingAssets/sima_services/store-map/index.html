@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Mapa de tienda — Cenco Malls</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/cencobricks-tokens.css" />
+  <link rel="stylesheet" href="../shared/cencobricks-shell.css" />
+  <link rel="stylesheet" href="../shared/app.css" />
+  <link rel="stylesheet" href="../shared/store-detail.css" />
+  <link rel="stylesheet" href="../shared/mapvx/styles.css" />
+  <script src="../shared/locale.js"></script>
+  <script src="../shared/native-payload.js"></script>
+  <script src="../shared/bridge.js"></script>
+  <script src="../shared/store-detail.js"></script>
+  <script src="../shared/mapvx/index.js"></script>
+  <script src="../shared/mapvx-bridge.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--cm-surface, #f4f0f8);
+      color: var(--cm-text, #1e1630);
+      font-family: var(--cb-font-body, system-ui, sans-serif);
+    }
+    body::before { display: none; }
+
+    .store-map-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .store-map-header {
+      display: flex;
+      align-items: center;
+      gap: var(--cb-topbar-gap, 8px);
+      padding: var(--cb-topbar-pad-y, 10px) var(--cb-topbar-pad-x, 14px);
+      background: var(--cb-topbar-fill, #3d1d5c);
+      color: var(--cb-topbar-title, #ffffff);
+      box-shadow: var(--cb-topbar-decoration-shadow, 0 2px 10px rgba(0, 0, 0, 0.18));
+      min-height: var(--cb-topbar-icon-btn-s, 44px);
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+
+    .store-map-title {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      font-family: var(--cb-font-title, inherit);
+      font-weight: var(--cb-topbar-title-weight, 700);
+      font-size: var(--cb-topbar-title-size-s, 16px);
+      line-height: var(--cb-topbar-title-lh-s, 1.3);
+      letter-spacing: var(--cb-topbar-title-tracking, 0);
+      color: inherit;
+    }
+
+    .store-map-title-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .store-map-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .store-map-pill {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 13px;
+      white-space: nowrap;
+      cursor: pointer;
+      background: var(--cm-pink, #e6007e);
+      color: #fff;
+    }
+
+    .store-map-pill.ghost {
+      background: rgba(255, 255, 255, 0.18);
+      color: #fff;
+    }
+
+    .store-map-pill:disabled,
+    .store-map-pill.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .store-map-stage {
+      position: relative;
+      flex: 1;
+      min-height: 240px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    #mapvx-container {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .store-map-floor {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--cm-purple-dark, #3d1d5c);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(61, 29, 92, 0.1);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* MapLibre +/- controls should not collide with the floor pill. */
+    .store-map-stage .maplibregl-ctrl-top-right { top: 58px; right: 10px; }
+
+    .store-map-status {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      box-sizing: border-box;
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .store-map-status-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      text-align: center;
+      max-width: 22em;
+    }
+
+    .store-map-spinner {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 3px solid rgba(88, 44, 131, 0.18);
+      border-top-color: var(--cm-purple-dark, #582c83);
+      animation: storeMapSpin 0.8s linear infinite;
+    }
+
+    @keyframes storeMapSpin { to { transform: rotate(360deg); } }
+
+    .store-map-status-title {
+      margin: 0;
+      font-family: var(--cb-font-title, inherit);
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--cm-purple-dark, #582c83);
+    }
+
+    .store-map-status-copy {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--cm-muted, #6b6475);
+    }
+
+    .store-map-status-detail {
+      margin: 0;
+      max-width: 100%;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #8a8296;
+      word-break: break-word;
+    }
+
+    .store-map-status-retry {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      background: var(--cm-purple-dark, #582c83);
+      color: #fff;
+    }
+
+    .store-map-debug {
+      flex-shrink: 0;
+      max-height: 28vh;
+      overflow: auto;
+      margin: 0;
+      padding: 10px 14px;
+      background: #14101c;
+      color: #d7cfe6;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="store-map-shell">
+    <header class="store-map-header">
+      <button
+        class="cm-header-icon-btn"
+        id="store-map-back"
+        type="button"
+        aria-label="Volver"
+      >
+        <svg class="cm-header-back-icon" width="24" height="24" viewBox="8 8 24 24" aria-hidden="true" focusable="false">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 20C12 19.4477 12.4477 19 13 19H27C27.5523 19 28 19.4477 28 20C28 20.5523 27.5523 21 27 21H13C12.4477 21 12 20.5523 12 20Z"/>
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12.2929 19.2929C12.6834 18.9024 13.3166 18.9024 13.7071 19.2929L19.7071 25.2929C20.0976 25.6834 20.0976 26.3166 19.7071 26.7071C19.3166 27.0976 18.6834 27.0976 18.2929 26.7071L12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929Z"/>
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7071 13.2929C20.0976 13.6834 20.0976 14.3166 19.7071 14.7071L13.7071 20.7071C13.3166 21.0976 12.6834 21.0976 12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929L18.2929 13.2929C18.6834 12.9024 19.3166 12.9024 19.7071 13.2929Z"/>
+        </svg>
+      </button>
+      <h1 class="store-map-title">
+        <span class="store-map-title-text" id="store-map-title-text">Mapa de tienda</span>
+      </h1>
+      <div class="store-map-actions">
+        <button class="store-map-pill hidden" id="store-map-route" type="button">Ver ruta</button>
+      </div>
+    </header>
+
+    <div class="store-detail-panel hidden" id="store-detail-panel"></div>
+
+    <div class="store-map-stage" id="store-map-stage">
+      <div class="store-map-floor hidden" id="store-map-floor"></div>
+      <div id="mapvx-container"></div>
+      <div class="store-map-status" id="store-map-status" role="status" aria-live="polite">
+        <div class="store-map-status-card">
+          <div class="store-map-spinner hidden" id="store-map-spinner"></div>
+          <p class="store-map-status-title" id="store-map-status-title">Cargando mapa…</p>
+          <p class="store-map-status-copy" id="store-map-status-copy"></p>
+          <button class="store-map-status-retry hidden" id="store-map-status-retry" type="button">Reintentar</button>
+          <p class="store-map-status-detail" id="store-map-status-detail"></p>
+        </div>
+      </div>
+    </div>
+
+    <pre class="store-map-debug hidden" id="store-map-debug"></pre>
+  </div>
+
+<script>
+const STORE_MAP_VERSION = "store-map 2026.08.05-base";
+const MAPVX_CONFIG_STORAGE_KEY = "cencomall_mapvx_test_config";
+const DEFAULT_PARENT_PLACE = "-N19VjzEVIj2RDKu7i4r";
+const DEFAULT_INSTITUTION_ID = "-N19VgPNxo3jiBtu583Z";
+const CONFIG_WAIT_MS = 8000;
+
+const I18N = {
+  es: {
+    title: "Mapa de tienda",
+    loading: "Cargando mapa…",
+    loadingCopy: "Ubicando la tienda en el mapa del mall.",
+    waiting: "Esperando la tienda",
+    waitingCopy: "Aún no llega un identificador de tienda para mostrar.",
+    waitingHint: "Prueba con ?local=CC_N3_3208, ?mapvxId=-N19… o ?id=12345",
+    notFound: "No encontramos esa tienda",
+    notFoundCopy: "El identificador no coincide con ningún local del mapa.",
+    configMissing: "Mapa no configurado",
+    configMissingCopy: "Faltan credenciales de MapVX para iniciar el mapa.",
+    configMissingHint: "En navegador: abre map/index.html, guarda la api-key y vuelve a esta página.",
+    genericError: "No pudimos abrir el mapa",
+    retry: "Reintentar",
+    viewRoute: "Ver ruta",
+    clearRoute: "Ocultar ruta",
+    routeNeedsTotem: "Ruta no disponible",
+    back: "Volver",
+  },
+  en: {
+    title: "Store map",
+    loading: "Loading map…",
+    loadingCopy: "Locating the store on the mall map.",
+    waiting: "Waiting for a store",
+    waitingCopy: "No store identifier has arrived yet.",
+    waitingHint: "Try ?local=CC_N3_3208, ?mapvxId=-N19… or ?id=12345",
+    notFound: "We couldn't find that store",
+    notFoundCopy: "The identifier does not match any place on the map.",
+    configMissing: "Map not configured",
+    configMissingCopy: "MapVX credentials are missing.",
+    configMissingHint: "In a browser: open map/index.html, save the api-key and reload this page.",
+    genericError: "We couldn't open the map",
+    retry: "Retry",
+    viewRoute: "View route",
+    clearRoute: "Hide route",
+    routeNeedsTotem: "Route unavailable",
+    back: "Back",
+  },
+  pt: {
+    title: "Mapa da loja",
+    loading: "Carregando mapa…",
+    loadingCopy: "Localizando a loja no mapa do shopping.",
+    waiting: "Aguardando a loja",
+    waitingCopy: "Ainda não chegou um identificador de loja.",
+    waitingHint: "Use ?local=CC_N3_3208, ?mapvxId=-N19… ou ?id=12345",
+    notFound: "Não encontramos essa loja",
+    notFoundCopy: "O identificador não corresponde a nenhum local do mapa.",
+    configMissing: "Mapa não configurado",
+    configMissingCopy: "Faltam credenciais do MapVX.",
+    configMissingHint: "No navegador: abra map/index.html, salve a api-key e recarregue esta página.",
+    genericError: "Não conseguimos abrir o mapa",
+    retry: "Tentar de novo",
+    viewRoute: "Ver rota",
+    clearRoute: "Ocultar rota",
+    routeNeedsTotem: "Rota indisponível",
+    back: "Voltar",
+  },
+};
+
+const IDENTIFIER_FIELDS = {
+  local: ["local", "clientId", "client_id", "storeLocal", "store_local", "localCode", "local_code"],
+  mapvxId: ["mapvxId", "mapvx_id", "mapvxPlaceId", "mapvx_place_id", "mapvxid"],
+  catalogId: ["catalogId", "catalog_id", "storeId", "store_id", "cmsId", "cms_id"],
+};
+const GENERIC_ID_FIELDS = ["id", "placeId", "place_id", "store", "target"];
+const NAME_FIELDS = ["name", "storeName", "store_name", "brand", "title", "query", "text"];
+const FLOOR_FIELDS = ["floor", "level", "piso", "nivel"];
+
+let currentLocale = "es";
+let lastRequest = null;
+let lastResult = null;
+let lastStoreDetail = null;
+let requestSeq = 0;
+let routeActive = false;
+const debugEntries = [];
+const debugEnabled = readFlag("debug");
+
+function t(key) {
+  return SimaLocale.t(I18N, key, currentLocale);
+}
+
+function logDebug(label, payload) {
+  const line = payload === undefined ? label : label + " " + safeJson(payload);
+  debugEntries.push(line);
+  if (debugEntries.length > 40) debugEntries.shift();
+  try {
+    if (window.SimaBridge && SimaBridge.log) SimaBridge.log("[store-map] " + line);
+  } catch (e) { /* noop */ }
+  renderDebug();
+}
+
+function safeJson(value) {
+  try {
+    return JSON.stringify(value);
+  } catch (e) {
+    return String(value);
+  }
+}
+
+function renderDebug() {
+  if (!debugEnabled) return;
+  const el = document.getElementById("store-map-debug");
+  if (!el) return;
+  el.classList.remove("hidden");
+  el.textContent = [STORE_MAP_VERSION].concat(debugEntries).join("\n");
+  el.scrollTop = el.scrollHeight;
+}
+
+function queryParams() {
+  const out = {};
+  try {
+    new URLSearchParams(window.location.search).forEach(function (value, key) {
+      out[key] = value;
+    });
+  } catch (e) { /* noop */ }
+  return out;
+}
+
+function readFlag(name) {
+  const params = queryParams();
+  const raw = params[name];
+  if (raw == null) return false;
+  const value = String(raw).toLowerCase();
+  return value === "" || value === "1" || value === "true" || value === "yes";
+}
+
+function pickFirst(source, keys) {
+  if (!source || typeof source !== "object") return "";
+  for (let i = 0; i < keys.length; i++) {
+    const value = source[keys[i]];
+    if (value == null) continue;
+    if (typeof value === "object") continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+/**
+ * MapVX internal ids are Firebase push keys ("-N19VjzEVIj2RDKu7i4r"),
+ * CMS catalog ids are numeric, and everything else is treated as the
+ * MapVX clientId of the store ("CC_N3_3208").
+ */
+function classifyIdentifier(value) {
+  const raw = String(value == null ? "" : value).trim();
+  if (!raw) return null;
+  if (/^\d+$/.test(raw)) return { kind: "catalogId", value: raw };
+  if (/^-[A-Za-z0-9_-]{10,}$/.test(raw)) return { kind: "mapvxId", value: raw };
+  return { kind: "local", value: raw };
+}
+
+function buildRequest(source) {
+  const request = {
+    local: "",
+    mapvxId: "",
+    catalogId: "",
+    name: "",
+    floor: "",
+    storeDetail: {},
+  };
+  if (!source || typeof source !== "object") return request;
+
+  Object.keys(IDENTIFIER_FIELDS).forEach(function (kind) {
+    const raw = pickFirst(source, IDENTIFIER_FIELDS[kind]);
+    if (!raw) return;
+    // A caller may put a clientId under mapvxId (or vice versa); trust the
+    // shape of the value over the field name it arrived in.
+    const classified = classifyIdentifier(raw);
+    const slot = classified && !request[classified.kind] ? classified.kind : kind;
+    if (!request[slot]) request[slot] = raw;
+  });
+
+  const generic = pickFirst(source, GENERIC_ID_FIELDS);
+  if (generic) {
+    const classified = classifyIdentifier(generic);
+    if (classified && !request[classified.kind]) request[classified.kind] = classified.value;
+  }
+
+  request.name = pickFirst(source, NAME_FIELDS);
+  request.floor = pickFirst(source, FLOOR_FIELDS);
+  if (source.storeDetail && typeof source.storeDetail === "object") {
+    request.storeDetail = source.storeDetail;
+  }
+  return request;
+}
+
+function hasIdentifier(request) {
+  return !!(request && (request.local || request.mapvxId || request.catalogId || request.name));
+}
+
+function describeRequest(request) {
+  const parts = [];
+  if (request.local) parts.push("local=" + request.local);
+  if (request.mapvxId) parts.push("mapvxId=" + request.mapvxId);
+  if (request.catalogId) parts.push("id=" + request.catalogId);
+  if (request.name) parts.push("name=" + request.name);
+  if (request.floor) parts.push("floor=" + request.floor);
+  return parts.join(" ");
+}
+
+function applyMapVxDefaults() {
+  if (!window.MAPVX_CONFIG) window.MAPVX_CONFIG = {};
+  const cfg = window.MAPVX_CONFIG;
+
+  // Native hosts inject MAPVX_CONFIG; in a plain browser we reuse the
+  // credentials saved by map/index.html so the page is testable locally.
+  if (!cfg.apiKey) {
+    let stored = null;
+    try {
+      const raw = sessionStorage.getItem(MAPVX_CONFIG_STORAGE_KEY);
+      stored = raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      stored = null;
+    }
+    if (stored) {
+      if (stored.apiKey) cfg.apiKey = stored.apiKey;
+      if (!cfg.parentPlace && stored.parentPlace) cfg.parentPlace = stored.parentPlace;
+      if (!cfg.institutionId && stored.institutionId) cfg.institutionId = stored.institutionId;
+      if (!cfg.totemPlaceId && stored.totemPlaceId) cfg.totemPlaceId = stored.totemPlaceId;
+      if (!cfg.lang && stored.lang) cfg.lang = stored.lang;
+    }
+  }
+
+  if (!cfg.parentPlace) cfg.parentPlace = DEFAULT_PARENT_PLACE;
+  if (!cfg.institutionId) cfg.institutionId = DEFAULT_INSTITUTION_ID;
+  if (!cfg.showStoreLabels) cfg.showStoreLabels = "featured";
+  if (cfg.storeLabelMax == null) cfg.storeLabelMax = 0;
+  if (cfg.storeLabelZoomDelta == null || !isFinite(Number(cfg.storeLabelZoomDelta))) {
+    cfg.storeLabelZoomDelta = 1.2;
+  }
+  if (cfg.totemPlaceId == null) cfg.totemPlaceId = "";
+  if (!cfg.lang) cfg.lang = currentLocale;
+
+  if (!window.MAPVX_ASSETS_BASE) window.MAPVX_ASSETS_BASE = "../shared/mapvx/";
+  return cfg;
+}
+
+function isMapVxConfigured() {
+  return typeof MapVxBridge !== "undefined"
+    && typeof MapVxBridge.isConfigured === "function"
+    && MapVxBridge.isConfigured(applyMapVxDefaults());
+}
+
+function missingConfigFields() {
+  const cfg = applyMapVxDefaults();
+  const missing = [];
+  if (!cfg.apiKey) missing.push("apiKey");
+  if (!cfg.parentPlace) missing.push("parentPlace");
+  if (!cfg.institutionId) missing.push("institutionId");
+  return missing;
+}
+
+/** Native hosts sometimes inject MAPVX_CONFIG a few frames after load. */
+function waitForMapVxConfig(timeoutMs) {
+  if (isMapVxConfigured()) return Promise.resolve(true);
+  const deadline = Date.now() + (timeoutMs || CONFIG_WAIT_MS);
+  return new Promise(function (resolve) {
+    const timer = setInterval(function () {
+      if (isMapVxConfigured()) {
+        clearInterval(timer);
+        resolve(true);
+        return;
+      }
+      if (Date.now() >= deadline) {
+        clearInterval(timer);
+        resolve(false);
+      }
+    }, 150);
+  });
+}
+
+function setStatus(state, options) {
+  options = options || {};
+  const box = document.getElementById("store-map-status");
+  const spinner = document.getElementById("store-map-spinner");
+  const title = document.getElementById("store-map-status-title");
+  const copy = document.getElementById("store-map-status-copy");
+  const detail = document.getElementById("store-map-status-detail");
+  const retry = document.getElementById("store-map-status-retry");
+  if (!box) return;
+
+  if (state === "ready") {
+    box.classList.add("hidden");
+    return;
+  }
+
+  box.classList.remove("hidden");
+  spinner.classList.toggle("hidden", state !== "loading");
+  retry.classList.toggle("hidden", !options.retry);
+  retry.textContent = t("retry");
+  title.textContent = options.title || "";
+  copy.textContent = options.copy || "";
+  detail.textContent = options.detail || "";
+  detail.classList.toggle("hidden", !options.detail);
+}
+
+function setTitle(text) {
+  const el = document.getElementById("store-map-title-text");
+  if (el) el.textContent = text || t("title");
+  document.title = (text ? text + " — " : "") + t("title");
+}
+
+function buildStoreDetail(request) {
+  const inline = request && request.storeDetail && typeof request.storeDetail === "object"
+    ? request.storeDetail
+    : {};
+  return Object.assign({}, inline, {
+    id: request.catalogId || inline.id || "",
+    catalogId: request.catalogId || inline.catalogId || inline.id || "",
+    local: request.local || inline.local || "",
+    name: request.name || inline.name || inline.brand || "",
+    floor: request.floor || inline.floor || inline.location || "",
+  });
+}
+
+function renderStoreDetail(store) {
+  const panel = document.getElementById("store-detail-panel");
+  if (!panel || typeof StoreDetail === "undefined") return;
+  StoreDetail.render(panel, store, { locale: currentLocale });
+}
+
+function resolveFloorLabel(floorId) {
+  try {
+    const floors = (typeof MapVxBridge !== "undefined" && MapVxBridge.getMapFloors)
+      ? MapVxBridge.getMapFloors() || []
+      : [];
+    const active = floors.find(function (floor) { return floor.key === floorId; });
+    return active ? active.label : "";
+  } catch (e) {
+    return "";
+  }
+}
+
+function renderFloorBadge(floorId) {
+  const badge = document.getElementById("store-map-floor");
+  if (!badge) return;
+  const label = resolveFloorLabel(floorId);
+  badge.textContent = label;
+  badge.classList.toggle("hidden", !label);
+}
+
+function renderRouteButton() {
+  const btn = document.getElementById("store-map-route");
+  if (!btn) return;
+  const canRoute = typeof MapVxBridge !== "undefined"
+    && MapVxBridge.hasRouteOrigin
+    && MapVxBridge.hasRouteOrigin();
+  if (!canRoute) {
+    btn.classList.add("hidden");
+    return;
+  }
+  btn.classList.remove("hidden");
+  btn.disabled = false;
+  btn.classList.remove("disabled");
+  btn.textContent = routeActive ? t("clearRoute") : t("viewRoute");
+}
+
+async function onRouteToggle() {
+  const btn = document.getElementById("store-map-route");
+  if (!btn || btn.disabled || typeof MapVxBridge === "undefined" || !MapVxBridge.toggleRouteToTarget) return;
+  btn.disabled = true;
+  try {
+    const state = await MapVxBridge.toggleRouteToTarget();
+    routeActive = !!(state && state.active);
+    logDebug("route toggled", { active: routeActive });
+  } catch (error) {
+    logDebug("route toggle failed", { error: String(error.message || error) });
+  }
+  btn.disabled = false;
+  renderRouteButton();
+}
+
+async function openStoreMap(request, meta) {
+  const seq = ++requestSeq;
+  lastRequest = request;
+  lastStoreDetail = buildStoreDetail(request);
+  routeActive = false;
+  renderRouteButton();
+  logDebug("open request", Object.assign({ source: (meta && meta.source) || "unknown" }, request));
+
+  if (!hasIdentifier(request)) {
+    setStatus("empty", {
+      title: t("waiting"),
+      copy: t("waitingCopy"),
+      detail: isNativeHost() ? "" : t("waitingHint"),
+    });
+    return null;
+  }
+
+  setStatus("loading", { title: t("loading"), copy: t("loadingCopy") });
+  if (request.name) setTitle(request.name);
+  renderStoreDetail(lastStoreDetail);
+
+  if (typeof StoreDetail !== "undefined" && StoreDetail.enrich) {
+    StoreDetail.enrich(lastStoreDetail).then(function (enriched) {
+      if (seq !== requestSeq || !enriched) return;
+      lastStoreDetail = enriched;
+      renderStoreDetail(lastStoreDetail);
+    }).catch(function (error) {
+      logDebug("store detail enrichment failed", {
+        error: String(error && (error.message || error)),
+      });
+    });
+  }
+
+  const configured = await waitForMapVxConfig(CONFIG_WAIT_MS);
+  if (seq !== requestSeq) return null;
+  if (!configured) {
+    const missing = missingConfigFields();
+    logDebug("config incomplete", { missing: missing });
+    setStatus("error", {
+      title: t("configMissing"),
+      copy: t("configMissingCopy") + (isNativeHost() ? "" : " " + t("configMissingHint")),
+      detail: "missing: " + missing.join(", "),
+      retry: true,
+    });
+    return null;
+  }
+
+  const container = document.getElementById("mapvx-container");
+  const options = {
+    local: request.local || undefined,
+    // resolvePlace matches catalogId against both clientId and mapvxId,
+    // so the internal MapVX id travels in the same slot.
+    catalogId: request.mapvxId || request.catalogId || undefined,
+    id: request.catalogId || request.mapvxId || undefined,
+    name: request.name || undefined,
+    floor: request.floor || undefined,
+  };
+
+  const wantsRoute = readFlag("route") || !!(meta && meta.route);
+
+  try {
+    const result = wantsRoute && MapVxBridge.showRouteTo
+      ? await MapVxBridge.showRouteTo(container, options)
+      : await MapVxBridge.showPlace(container, options);
+    if (seq !== requestSeq) return null;
+
+    lastResult = result;
+    routeActive = !!result.routeActive;
+    setTitle(result.title || request.name || "");
+    renderFloorBadge(result.floorId);
+    if (typeof StoreDetail !== "undefined" && StoreDetail.merge) {
+      lastStoreDetail = StoreDetail.merge(lastStoreDetail, {
+        name: result.title || request.name || "",
+        local: result.clientId || request.local || "",
+        floor: request.floor || resolveFloorLabel(result.floorId),
+      });
+      renderStoreDetail(lastStoreDetail);
+    }
+    renderRouteButton();
+    setStatus("ready");
+    logDebug("open success", {
+      mapvxId: result.mapvxId,
+      clientId: result.clientId,
+      title: result.title,
+      resolvedBy: result.resolvedBy,
+      floorId: result.floorId,
+    });
+    notifyNative("store_map_opened", {
+      request: request,
+      mapvxId: result.mapvxId,
+      clientId: result.clientId,
+      title: result.title,
+      floorId: result.floorId,
+      resolvedBy: result.resolvedBy,
+    });
+    return result;
+  } catch (error) {
+    if (seq !== requestSeq) return null;
+    const message = String(error && (error.message || error));
+    const notFound = /no se encontr|not found|otro local/i.test(message);
+    logDebug("open failed", { error: message });
+    setStatus("error", {
+      title: notFound ? t("notFound") : t("genericError"),
+      copy: notFound ? t("notFoundCopy") : message,
+      detail: describeRequest(request),
+      retry: true,
+    });
+    notifyNative("store_map_error", { request: request, error: message });
+    return null;
+  }
+}
+
+function notifyNative(type, payload) {
+  try {
+    if (window.SimaBridge && typeof SimaBridge.send === "function") {
+      SimaBridge.send(type, payload);
+    }
+  } catch (e) { /* noop */ }
+}
+
+function isNativeHost() {
+  try {
+    if (window.SimaBridge && typeof SimaBridge.canReachNativeHost === "function") {
+      return !!SimaBridge.canReachNativeHost();
+    }
+  } catch (e) { /* noop */ }
+  return false;
+}
+
+function closeWebview() {
+  try {
+    if (window.SimaBridge && typeof window.SimaBridge.requestClose === "function") {
+      window.SimaBridge.requestClose();
+      return;
+    }
+  } catch (e) { /* noop */ }
+  try {
+    if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === "function") {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: "close_webview", payload: {} }));
+      return;
+    }
+  } catch (e2) { /* noop */ }
+  try {
+    if (window.SimaBridge && typeof window.SimaBridge.send === "function") {
+      window.SimaBridge.send("close_webview", {});
+    }
+  } catch (e3) { /* noop */ }
+}
+
+function handleBack() {
+  const from = queryParams().from;
+  if (from && /^[a-z0-9_-]+$/i.test(from)) {
+    window.location.href = "../" + from + "/index.html";
+    return;
+  }
+  if (isNativeHost()) {
+    closeWebview();
+    return;
+  }
+  if (window.history.length > 1) {
+    window.history.back();
+    return;
+  }
+  closeWebview();
+}
+
+function applyLocale() {
+  currentLocale = SimaLocale.readLocaleFromPage();
+  document.documentElement.lang = currentLocale;
+  document.getElementById("store-map-back").setAttribute("aria-label", t("back"));
+  setTitle(lastResult ? lastResult.title : (lastRequest && lastRequest.name) || "");
+  if (lastStoreDetail) renderStoreDetail(lastStoreDetail);
+  renderRouteButton();
+  if (!lastResult && !hasIdentifier(lastRequest)) {
+    setStatus("empty", {
+      title: t("waiting"),
+      copy: t("waitingCopy"),
+      detail: isNativeHost() ? "" : t("waitingHint"),
+    });
+  }
+}
+
+// Native entry point: the app (or the assistant) pushes a payload with any of
+// the supported store identifiers, before or after the page is loaded.
+window.handleUnityData = function (data) {
+  if (!data || typeof data !== "object") return;
+  const request = buildRequest(data);
+  if (!hasIdentifier(request)) {
+    logDebug("payload ignored (no identifier)", { type: data.type || null });
+    return;
+  }
+  openStoreMap(request, { source: "native", route: !!(data.route || data.autoRoute) });
+};
+
+// Direct entry point for RN injectJavaScript / assistant tooling.
+window.openStoreMapById = function (payload) {
+  const source = typeof payload === "string" ? { id: payload } : (payload || {});
+  return openStoreMap(buildRequest(source), { source: "injected", route: !!source.route });
+};
+
+document.addEventListener("DOMContentLoaded", function () {
+  currentLocale = SimaLocale.readLocaleFromPage();
+  SimaLocale.bindPageLocale(applyLocale);
+  applyMapVxDefaults();
+  renderDebug();
+
+  document.getElementById("store-map-back").addEventListener("click", handleBack);
+  document.getElementById("store-map-route").addEventListener("click", onRouteToggle);
+  document.getElementById("store-map-status-retry").addEventListener("click", function () {
+    if (lastRequest) openStoreMap(lastRequest, { source: "retry" });
+  });
+
+  applyLocale();
+
+  try {
+    if (window.SimaBridge && typeof SimaBridge.ready === "function") SimaBridge.ready("store-map");
+  } catch (e) { /* noop */ }
+
+  openStoreMap(buildRequest(queryParams()), { source: "query" });
+});
+</script>
+</body>
+</html>

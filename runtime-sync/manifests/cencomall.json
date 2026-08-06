@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.08.05-1",
+  "version": "2026.08.06-1",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-08-05T22:07:39.435Z",
+  "generatedAt": "2026-08-06T15:06:01.945Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": null,
+  "rollbackTo": "2026.08.05-1",
   "entryPoints": [
     {
       "service": "agenda",
@@ -54,6 +54,10 @@
     {
       "service": "servicios",
       "entry": "servicios/index.html"
+    },
+    {
+      "service": "store-map",
+      "entry": "store-map/index.html"
     },
     {
       "service": "taxi",
@@ -193,8 +197,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 236762,
-      "sha256": "a0f75846a2261fd9a9e90570cd345b1c22c2db039b37c02ed1f5e657bec9e2e9"
+      "size": 238160,
+      "sha256": "647e1d69b73753c66299d211fdbfe3bc373d160a5991917797bacdab032fadd9"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -233,8 +237,8 @@
     },
     {
       "path": "servicios/index.html",
-      "size": 30578,
-      "sha256": "f2c577381c3c0aece509fa83165bd4033098873f3e753815433ce17dbf528f00"
+      "size": 31465,
+      "sha256": "210a4aa08423941ee205a9644b0fccb660ea15070e5a88f42bf217ee388ad259"
     },
     {
       "path": "shared/app.css",
@@ -487,6 +491,16 @@
       "sha256": "329b43786ed5687dcefb8e20a3a01b8cb824c92986134b8713025b4c26581913"
     },
     {
+      "path": "shared/store-detail.css",
+      "size": 2034,
+      "sha256": "7faddcd167863db5fa6f4f3a51e69fc12d60b9493d6fa62f1c39f73a52bfc07c"
+    },
+    {
+      "path": "shared/store-detail.js",
+      "size": 9164,
+      "sha256": "ee0db8206f3a6be93d7060f85a6b6abe723e5a4e4b8f7957645858710a677886"
+    },
+    {
       "path": "shared/store-logos/casa-ideas.png",
       "size": 40165,
       "sha256": "f3be847cf63d0985dd96d367450f9186f3108791fd9203f6d7a73817b27a08e1"
@@ -540,6 +554,11 @@
       "path": "shared/store-logos/zara.png",
       "size": 46254,
       "sha256": "cf9199c4d38ec68ce04b27f1f2809a1cd97b4728200a54ce0aee93320e998e73"
+    },
+    {
+      "path": "store-map/index.html",
+      "size": 29011,
+      "sha256": "38ea4f01c70de064a9768dd83b0905e80760aea54aab7ebe3d9f24c8c9477649"
     },
     {
       "path": "taxi/index.html",
