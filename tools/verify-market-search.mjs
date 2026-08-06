@@ -90,6 +90,20 @@ if (MS.getCatalogSize() !== catalog.length) {
 }
 console.log("loadCatalog (fetch path): OK size=" + MS.getCatalogSize());
 
+const exactFogo = MS.findExact({ local: "CC_N5_5560" });
+if (
+  !exactFogo ||
+  String(exactFogo.id) !== "28101" ||
+  !String(exactFogo.logoUrl || exactFogo.brand_logo || "").includes("Fogo")
+) {
+  throw new Error("findExact did not resolve local CC_N5_5560 with its catalog logo");
+}
+const exactFogoById = MS.findExact({ id: "28101" });
+if (!exactFogoById || exactFogoById.local !== "CC_N5_5560") {
+  throw new Error("findExact did not resolve catalog id 28101");
+}
+console.log("findExact (local/id + logo): OK");
+
 const queries = [
   { q: "mcdonald", min: 1, expectBrand: "mc donald" },
   { q: "adidas", min: 1, expectBrand: "adidas" },

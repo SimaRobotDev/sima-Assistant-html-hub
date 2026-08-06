@@ -12,10 +12,20 @@
     var auto = params.get("autoMap") === "1" || params.get("autoRoute") === "1";
     if (!auto) {
       try {
-        var raw = sessionStorage.getItem("sima_pending_service_route");
+        var raw = "";
+        try { raw = sessionStorage.getItem("sima_pending_service_route") || ""; } catch (eSessionRead) { /* noop */ }
+        if (!raw) {
+          try { raw = localStorage.getItem("sima_pending_service_route") || ""; } catch (eLocalRead) { /* noop */ }
+        }
         if (raw) {
           var pending = JSON.parse(raw);
-          auto = !!(pending && (pending.autoMap || pending.autoRoute || pending.autoMap === "1"));
+          var pendingExpired = pending && pending.expiresAt && Number(pending.expiresAt) < Date.now();
+          if (pendingExpired) {
+            sessionStorage.removeItem("sima_pending_service_route");
+            localStorage.removeItem("sima_pending_service_route");
+          } else {
+            auto = !!(pending && (pending.autoMap || pending.autoRoute || pending.autoMap === "1"));
+          }
         }
       } catch (ePending) { /* noop */ }
     }
@@ -89,6 +99,7 @@ function resetToLanding() {
 <script src="../shared/services-catalog.js"></script>
 <script src="../shared/mapvx/index.js"></script>
 <script src="../shared/mapvx-bridge.js"></script>
+<script src="../assistant-embed.js"></script>
 <style>
 /* Color/type/space tokens: ../shared/cencobricks-tokens.css (--cb-* and --cm-* aliases) */
 :root {
@@ -3328,13 +3339,24 @@ function isCustomerServiceRouteFromServicios() {
 }
 
 function consumePendingServiceRoute() {
+  const key = "sima_pending_service_route";
+  let raw = "";
+  try { raw = sessionStorage.getItem(key) || ""; } catch (eSessionRead) { /* noop */ }
+  if (!raw) {
+    try { raw = localStorage.getItem(key) || ""; } catch (eLocalRead) { /* query-string launch remains available */ }
+  }
+
+  // Always consume both copies so this route cannot affect later openings.
+  try { sessionStorage.removeItem(key); } catch (eSession) { /* noop */ }
+  try { localStorage.removeItem(key); } catch (eLocal) { /* noop */ }
+
+  if (!raw) return null;
   try {
-    const raw = sessionStorage.getItem("sima_pending_service_route");
-    if (!raw) return null;
-    sessionStorage.removeItem("sima_pending_service_route");
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : null;
-  } catch (e) {
+    if (!parsed || typeof parsed !== "object") return null;
+    if (parsed.expiresAt && Number(parsed.expiresAt) < Date.now()) return null;
+    return parsed;
+  } catch (eParse) {
     return null;
   }
 }
@@ -3353,6 +3375,12 @@ function wantsAutoOpenServiceMap(extra) {
     return true;
   }
   return false;
+}
+
+function wantsAutoOpenServiceRoute(extra) {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("autoRoute") === "1") return true;
+  return !!(extra && (extra.autoRoute === true || extra.autoRoute === "1"));
 }
 
 function clearAutoMapLaunchParams() {
@@ -4512,11 +4540,23 @@ if (typeof SimaBridge === "undefined") {
 
 document.addEventListener("DOMContentLoaded", () => {
   applyMobilityLocale();
-  applyMapVxDefaultsFromMapPage();
+  const mapvxCfg = applyMapVxDefaultsFromMapPage();
   initStoreSearchLanding();
   prefetchMarketCatalog();
   prefetchServicesCatalog();
   prepareAutoMapLaunchShell();
+  try {
+    const params = new URLSearchParams(window.location.search || "");
+    const embedEnabled = params.get("mapvxEmbed") === "1" || window.MAPVX_EMBED_ENABLED === true;
+    if (embedEnabled && window.MapvxEmbedHelper && window.MapvxEmbedHelper.bootstrapMapvxIframe) {
+      window.MapvxEmbedHelper.bootstrapMapvxIframe(mapvxCfg, {
+        container: "#mapvx-embed-host",
+        src: "../mapvx-embed/index.html",
+        height: "1px",
+        sandbox: "allow-scripts allow-same-origin"
+      });
+    }
+  } catch (e) {}
   SimaBridge.ready("mobility");
   SimaBridge.log(
     "mobility DOM ready " + MOBILITY_UI_VERSION +
@@ -4542,6 +4582,7 @@ document.addEventListener("DOMContentLoaded", () => {
     || String((pendingRoute && pendingRoute.serviceId) || "").trim();
   const initialServiceQuery = getInitialServiceQuery();
   const launchAutoMap = wantsAutoOpenServiceMap(pendingRoute);
+  const launchAutoRoute = wantsAutoOpenServiceRoute(pendingRoute);
 
   if (initialServiceId) {
     SimaBridge.log(
@@ -4553,12 +4594,14 @@ document.addEventListener("DOMContentLoaded", () => {
       serviceId: initialServiceId,
       source: pendingRoute ? "pending-route" : "launch",
       autoMap: launchAutoMap,
+      autoRoute: launchAutoRoute,
     });
   } else if (initialServiceQuery) {
     SimaBridge.log("mobility initial service query: " + initialServiceQuery);
     runServicesCatalogSearch(initialServiceQuery, {
       source: "launch",
       autoMap: launchAutoMap,
+      autoRoute: launchAutoRoute,
     });
   } else if (initialQuery) {
     SimaBridge.log("mobility initial query from launch params: " + initialQuery);
@@ -4566,6 +4609,7 @@ document.addEventListener("DOMContentLoaded", () => {
       runServicesCatalogSearch(initialQuery, {
         source: "launch",
         autoMap: launchAutoMap,
+        autoRoute: launchAutoRoute,
       });
     } else {
       dispatchVoiceSearch(initialQuery, "launch");
@@ -7203,6 +7247,33 @@ function startVoiceInput() {
   SimaBridge.log("start_stt_unavailable channel=" + (SimaBridge.getLastSendChannel ? SimaBridge.getLastSendChannel() : "unknown"));
   showSearchError(t("voiceUnavailable"));
 }
+</script>
+<script>
+(function () {
+  try {
+    var params = new URLSearchParams(window.location.search || "");
+    var enabled = params.get("mapvxEmbed") === "1" || window.MAPVX_EMBED_ENABLED === true;
+    if (!enabled) return;
+    if (typeof window.MapvxEmbedHelper === "undefined" || !window.MapvxEmbedHelper.insertMapvxIframe) return;
+    window.addEventListener("DOMContentLoaded", function () {
+      try {
+        var host = document.getElementById("mapvx-embed-host");
+        if (!host) {
+          host = document.createElement("div");
+          host.id = "mapvx-embed-host";
+          host.style.display = "none";
+          document.body.appendChild(host);
+        }
+        window.MapvxEmbedHelper.insertMapvxIframe({
+          container: "#mapvx-embed-host",
+          src: "../mapvx-embed/index.html",
+          height: "1px",
+          sandbox: "allow-scripts allow-same-origin"
+        });
+      } catch (e) {}
+    });
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>

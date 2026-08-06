@@ -1,0 +1,116 @@
+.store-detail-panel {
+  flex-shrink: 0;
+  background: #fff;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--cm-line, #e7dff0);
+  box-sizing: border-box;
+}
+
+.store-detail-panel.hidden {
+  display: none;
+}
+
+.store-detail-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.store-detail-media {
+  width: 112px;
+  height: 84px;
+  flex: 0 0 112px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3edf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.store-detail-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.store-detail-media img.store-detail-logo {
+  object-fit: contain;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.store-detail-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--cm-purple-dark, #582c83);
+  background: linear-gradient(135deg, #efe5fa 0%, #dcc9f2 100%);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.store-detail-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.store-detail-name {
+  margin: 0;
+  color: var(--cm-text, #1e1630);
+  font-family: var(--cb-font-title, inherit);
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.store-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.store-detail-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 10px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: #f3edf8;
+  color: var(--cm-purple-dark, #582c83);
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.store-detail-schedule,
+.store-detail-description {
+  margin: 7px 0 0;
+  color: var(--cm-muted, #6b6475);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.store-detail-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+@media (max-width: 520px) {
+  .store-detail-media {
+    width: 86px;
+    height: 72px;
+    flex-basis: 86px;
+  }
+
+  .store-detail-name {
+    font-size: 17px;
+  }
+}
