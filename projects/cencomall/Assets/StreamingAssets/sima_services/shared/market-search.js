@@ -1103,6 +1103,39 @@ window.MarketSearch = (function () {
     return loadPromise;
   }
 
+  function findExact(criteria) {
+    if (!catalog || !catalog.length) return null;
+    criteria = criteria || {};
+    var local = String(criteria.local || criteria.clientId || "").trim().toUpperCase();
+    var id = String(criteria.id || criteria.catalogId || "").trim();
+    var name = normalizeText(criteria.name || criteria.brand || "");
+    var floor = normalizeText(criteria.floor || criteria.location || "");
+
+    if (local) {
+      var byLocal = catalog.find(function (entry) {
+        return String(entry.local || "").trim().toUpperCase() === local;
+      });
+      if (byLocal) return byLocal;
+    }
+    if (id) {
+      var byId = catalog.find(function (entry) {
+        return String(entry.id || "").trim() === id;
+      });
+      if (byId) return byId;
+    }
+    if (!name) return null;
+
+    var named = catalog.filter(function (entry) {
+      return normalizeText(entry.brand || entry.name || "") === name;
+    });
+    if (!named.length) return null;
+    if (!floor || named.length === 1) return named[0];
+    return named.find(function (entry) {
+      return normalizeText(entry.floor || "").indexOf(floor) !== -1
+        || floor.indexOf(normalizeText(entry.floor || "")) !== -1;
+    }) || named[0];
+  }
+
   function search(query, options) {
     options = options || {};
     var limit = options.limit != null ? Number(options.limit) : 30;
@@ -1541,6 +1574,7 @@ window.MarketSearch = (function () {
     searchRelated: searchRelated,
     listCategories: listCategories,
     searchByCategory: searchByCategory,
+    findExact: findExact,
     isReady: isReady,
     getCatalogSize: getCatalogSize,
     getBrandByLocal: getBrandByLocal,
