@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.08.06-2",
+  "version": "2026.08.06-3",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-08-06T17:04:06.485Z",
+  "generatedAt": "2026-08-07T03:20:07.211Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": null,
+  "rollbackTo": "2026.08.06-2",
   "entryPoints": [
     {
       "service": "agenda",
@@ -62,6 +62,10 @@
     {
       "service": "store-map",
       "entry": "store-map/index.html"
+    },
+    {
+      "service": "store-map-web",
+      "entry": "store-map-web/index.html"
     },
     {
       "service": "taxi",
@@ -171,13 +175,13 @@
     },
     {
       "path": "map/index.html",
-      "size": 34426,
-      "sha256": "51d87ccf43d4fbe7da864f116d789e513bf90e595551db1bb7131c820d1f3a0c"
+      "size": 34641,
+      "sha256": "67c65cd2c0317e5907080b3661e77e3cf25b9fe53c2712debce2f4004a6c2fac"
     },
     {
       "path": "mapvx-embed/bridge.js",
-      "size": 2750,
-      "sha256": "4ab3e7c07d8bb3c34e70b2a1f3da806ec9652c56a95c6c7bc045a1f3ff191354"
+      "size": 2800,
+      "sha256": "7e742f529eed8bef1d20c638092eecc43aaefcccb60211215573332d51190c65"
     },
     {
       "path": "mapvx-embed/index.html",
@@ -185,24 +189,29 @@
       "sha256": "1fc211e1b8666618650aa3abce62811d869b57c85a8c2044b9a41aff7bcecb95"
     },
     {
+      "path": "mapvx-embed/mvx-tiles-sw.js",
+      "size": 14808,
+      "sha256": "6f5733ed419b3fdb232dc01744bc090f4febaef97b58975e30059fc914198bd5"
+    },
+    {
       "path": "mapvx-embed/README.md",
-      "size": 349,
-      "sha256": "e902d0c2fc82e0f236dd760b2c8f900bb28c3f8cfcea230252b78c7a93de3de8"
+      "size": 3345,
+      "sha256": "15497eb53d37f8cb3a9f6af232857cae6f2118f76dbb6d3dd9513cc10066faf1"
     },
     {
       "path": "mapvx-embed/register-sw.js",
-      "size": 196,
-      "sha256": "0119c57f9d29e0f1d644a7ffba32d50bd25efc8c256b04e87b97be294cc6b9f3"
+      "size": 638,
+      "sha256": "3d0016a89f8a5447d52fc0086922b551c139480409ae0010838a733626c835db"
     },
     {
-      "path": "mapvx-embed/sw.js",
-      "size": 478,
-      "sha256": "b70a9e41ddc356c951408bbf556c26eb8ec39211acba2368e9a586a220c66ef5"
+      "path": "mapvx-embed/store-map.html",
+      "size": 35293,
+      "sha256": "3f4f532f7e5d04c2544a0e6b282c87288c4fb8c8a2eabb799dc397a3c3a7e973"
     },
     {
       "path": "mobility/index.html",
-      "size": 238160,
-      "sha256": "647e1d69b73753c66299d211fdbfe3bc373d160a5991917797bacdab032fadd9"
+      "size": 238369,
+      "sha256": "4770e7edddc50a5667c26b6d12316f266bdd5ebb5a2627a57959f95648651c81"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -441,8 +450,23 @@
     },
     {
       "path": "shared/mapvx-bridge.js",
-      "size": 196000,
-      "sha256": "76681eea1579e8ac28d12e98c0ea06f9d38c3aece3d3bb43bf7a907b51066988"
+      "size": 196507,
+      "sha256": "e7d3bbb2a358e3cd467ff6da5f337700a5f3c129a3ce28bd1333e7e8196fb502"
+    },
+    {
+      "path": "shared/mapvx-wc/map-view-with-modal.js",
+      "size": 4286820,
+      "sha256": "27791e99e9b6eab7702d4f62ba48a5070ee6bab9f2bc390703846017585b911f"
+    },
+    {
+      "path": "shared/mapvx-wc/README.md",
+      "size": 1851,
+      "sha256": "7655b816c47f7b4955e8c93ab5e7bab7a133b43e7f4e7e81d1875e8ea5f3a1e8"
+    },
+    {
+      "path": "shared/mapvx-wc/route-view-totems.js",
+      "size": 4334436,
+      "sha256": "7ac731e69422fbc6e5dee547fbe8edf0f84241172d2c42c2d34fcb03419ccf3b"
     },
     {
       "path": "shared/mapvx/index.js",
@@ -565,9 +589,14 @@
       "sha256": "107b0b844c1f2f087ec0193b80248d75bc1cec15012b918d605f60daa69e1024"
     },
     {
+      "path": "store-map-web/index.html",
+      "size": 42330,
+      "sha256": "8a40d7825c0f80bae4726b5d26e830b6f3862c42c22ae09f111121852d79e349"
+    },
+    {
       "path": "store-map/index.html",
-      "size": 31127,
-      "sha256": "eb7e76dc74558a22a3d2d46a3813881bb78e5352362a6948acce70c9816012fc"
+      "size": 31336,
+      "sha256": "33abce37073705498df5cfe5617051d1ff605415df582642a10a65f36e782a16"
     },
     {
       "path": "taxi/index.html",
