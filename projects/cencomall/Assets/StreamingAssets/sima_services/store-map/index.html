@@ -498,7 +498,10 @@ function applyMapVxDefaults() {
 
   if (!cfg.parentPlace) cfg.parentPlace = DEFAULT_PARENT_PLACE;
   if (!cfg.institutionId) cfg.institutionId = DEFAULT_INSTITUTION_ID;
-  if (!cfg.showStoreLabels) cfg.showStoreLabels = "featured";
+  // Disabled 2026-08-06: MapVX confirmed these anchor logo/round-icon
+  // overlays are ours (built in mapvx-bridge.js), not part of their
+  // rendering — off until we settle with them whether/how to keep it.
+  if (!cfg.showStoreLabels) cfg.showStoreLabels = "none";
   if (cfg.storeLabelMax == null) cfg.storeLabelMax = 0;
   if (cfg.storeLabelZoomDelta == null || !isFinite(Number(cfg.storeLabelZoomDelta))) {
     cfg.storeLabelZoomDelta = 1.2;

@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Mapa de tienda (Web Component) — Cenco Malls</title>
+<script src="../shared/locale.js"></script>
+<script src="../shared/bridge.js"></script>
+
+<!--
+  Official MapVX Web Components (@mapvx/web-components@0.3.0), self-hosted
+  IIFE builds vendored under ../shared/mapvx-wc/ — see that folder's
+  README.md for provenance and how to update the version. Each script
+  defines its custom element as a side effect on load.
+-->
+<script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
+<script src="../shared/mapvx-wc/route-view-totems.js" onerror="window.__mvxBundleFailed = true"></script>
+
+<style>
+  :root {
+    --cm-purple: #5B2D8E;
+    --cm-purple-dark: #3D1D5C;
+    --cm-surface: #F4F0F8;
+    --cm-line: #E7DFF0;
+    --cm-pink: #E6007E;
+  }
+  html, body { margin: 0; height: 100%; background: #fff; font-family: system-ui, sans-serif; color: #1E1630; }
+  .shell { display: flex; flex-direction: column; height: 100%; min-height: 100vh; box-sizing: border-box; }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, var(--cm-purple-dark), var(--cm-purple));
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .header-title { font-weight: 700; font-size: 16px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .header-actions { margin-left: auto; display: flex; gap: 8px; }
+  .pill {
+    border: none; border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 13px;
+    cursor: pointer; background: rgba(255,255,255,0.2); color: #fff;
+  }
+  .pill.primary { background: var(--cm-pink); }
+  .pill.hidden { display: none; }
+
+  .stage { position: relative; flex: 1; min-height: 240px; background: #fff; overflow: hidden; }
+  .view { position: absolute; inset: 0; }
+  .view.hidden { display: none; }
+
+  map-view-with-modal, route-view-totems { width: 100%; height: 100%; display: block; }
+
+  .status {
+    position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
+    padding: 24px; box-sizing: border-box; background: rgba(255,255,255,0.94);
+  }
+  .status.hidden { display: none; }
+  .status-card { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; max-width: 22em; }
+  .spinner {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 3px solid rgba(88,44,131,0.18); border-top-color: var(--cm-purple-dark);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status-title { margin: 0; font-size: 17px; font-weight: 800; color: var(--cm-purple-dark); }
+  .status-copy { margin: 0; font-size: 13px; line-height: 1.45; color: #6b6475; }
+
+  .config-box {
+    margin: 10px 14px; padding: 10px 12px; border-radius: 12px; background: var(--cm-surface);
+    border: 1px solid var(--cm-line); font-size: 12px; line-height: 1.45;
+  }
+  .config-box.hidden { display: none; }
+  .config-box .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .config-box input { flex: 1; min-width: 140px; border: 1px solid var(--cm-line); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+  .config-box button { border: none; border-radius: 8px; padding: 8px 12px; font-weight: 700; cursor: pointer; background: var(--cm-purple-dark); color: #fff; }
+  .test-user-btn { background: #fff; color: var(--cm-purple-dark); border: 1px solid var(--cm-purple-dark) !important; font-size: 12px; padding: 6px 10px !important; }
+  .test-user-btn:active { background: var(--cm-purple-dark); color: #fff; }
+
+  .debug { flex-shrink: 0; max-height: 22vh; overflow: auto; margin: 0; padding: 10px 14px; background: #14101c; color: #d7cfe6; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.45; white-space: pre-wrap; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="header">
+    <span class="header-title" id="page-title">Mapa de tienda (Web Component)</span>
+    <div class="header-actions">
+      <button class="pill hidden" id="route-toggle" type="button">Ver ruta</button>
+      <button class="pill" id="config-toggle" type="button">Config</button>
+    </div>
+  </header>
+
+  <div class="config-box hidden" id="config-box">
+    <strong>Credenciales MapVX (solo en este navegador)</strong>
+    <div class="row">
+      <input id="cfg-api-key" type="password" placeholder="api-key MapVX" autocomplete="off" />
+    </div>
+    <div class="row">
+      <input id="cfg-parent-place" type="text" placeholder="parentPlaceId" value="-N19VjzEVIj2RDKu7i4r" />
+      <input id="cfg-totem-place" type="text" placeholder="originId / totemPlaceId (para ruta)" />
+    </div>
+    <div class="row">
+      <input id="store-local" type="text" placeholder="placeId a mostrar (ej. CC_N3_3129)" />
+      <button type="button" id="apply-config">Aplicar y mostrar</button>
+    </div>
+    <p style="margin:10px 0 4px;font-weight:700;">
+      Simular entrega de ID desde la app (llama <code>window.openStoreMapById</code>, como haría un WebView real):
+    </p>
+    <div class="row" id="test-user-buttons">
+      <button type="button" class="test-user-btn" data-id="CC_N1_1204">Cami · Piso 1</button>
+      <button type="button" class="test-user-btn" data-id="CC_N2_1200">Lia · Piso 2</button>
+      <button type="button" class="test-user-btn" data-id="CC_N3_3104">Nuno · Piso 3</button>
+      <button type="button" class="test-user-btn" data-id="CC_N4_2136">Max · Piso 4</button>
+      <button type="button" class="test-user-btn" data-id="CC_N5_5184">Olivia · Piso 5</button>
+    </div>
+    <p style="margin:6px 0 0;opacity:.75;">
+      Cada botón simula la tienda y pide ruta en un solo paso. Necesita <code>originId/totemPlaceId</code> configurado
+      arriba — sin eso muestra la tienda igual, pero avisa que falta el origen para trazar la ruta.
+    </p>
+    <p style="margin:6px 0 0;opacity:.75;">
+      Reusa la misma config guardada por <code>map/index.html</code> (sessionStorage) si ya la configuraste ahí.
+      A diferencia del bridge legacy, <code>placeId</code>/<code>destinationId</code>/<code>originId</code> aceptan
+      directamente el identificador propio del cliente (ej. <code>CC_N3_3129</code>) — no debería hacer falta
+      resolverlo primero.
+    </p>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="view" id="map-view">
+      <map-view-with-modal id="mvx-place" compact-mode zoom-size="small" style="
+        --mvx-primary-color:#5B2D8E;
+        --mvx-surface-color:#ffffff;
+        --mvx-on-surface-color:#3D1D5C;
+        --mvx-border-color:#5B2D8E;
+        --mvx-border-width:0px;
+        --mvx-radius:12px;
+        --mvx-shadow:0 6px 16px rgba(0,0,0,0.18);
+      "></map-view-with-modal>
+    </div>
+    <div class="view hidden" id="route-view">
+      <route-view-totems id="mvx-route" style="
+        --mvx-primary-color:#5B2D8E;
+        --mvx-surface-color:#ffffff;
+        --mvx-on-surface-color:#3D1D5C;
+      "></route-view-totems>
+    </div>
+
+    <div class="status" id="status">
+      <div class="status-card">
+        <div class="spinner" id="spinner"></div>
+        <p class="status-title" id="status-title">Cargando mapa…</p>
+        <p class="status-copy" id="status-copy">Ubicando la tienda en el mapa del mall.</p>
+      </div>
+    </div>
+  </div>
+
+  <pre class="debug hidden" id="debug"></pre>
+</div>
+
+<script>
+const CONFIG_STORAGE_KEY = "cencomall_mapvx_test_config";
+const debugEnabled = /[?&]debug(=1|=true)?(&|$)/.test(location.search);
+const debugEl = document.getElementById("debug");
+const entries = [];
+
+function log(line) {
+  entries.push(line);
+  if (entries.length > 40) entries.shift();
+  if (window.SimaBridge && SimaBridge.log) { try { SimaBridge.log("[mapvx-wc] " + line); } catch (e) {} }
+  if (!debugEnabled) return;
+  debugEl.classList.remove("hidden");
+  debugEl.textContent = entries.join("\n");
+  debugEl.scrollTop = debugEl.scrollHeight;
+}
+
+function queryParams() {
+  const out = {};
+  new URLSearchParams(location.search).forEach((v, k) => { out[k] = v; });
+  return out;
+}
+
+function loadStoredConfig() {
+  try {
+    const raw = sessionStorage.getItem(CONFIG_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+// Real usage: the native app sets window.MAPVX_CONFIG (apiKey, parentPlace,
+// totemPlaceId, lang) before this script runs — same convention as
+// ../map/index.html — instead of a person typing into the Config panel.
+// injected always wins over the sessionStorage testing config below.
+function readConfig() {
+  const stored = loadStoredConfig() || {};
+  const injected = window.MAPVX_CONFIG || {};
+  return Object.assign(
+    { apiKey: "", parentPlace: "-N19VjzEVIj2RDKu7i4r", totemPlaceId: "", lang: "es" },
+    stored,
+    injected
+  );
+}
+
+function setStatus(show, title, copy, spinning) {
+  const box = document.getElementById("status");
+  box.classList.toggle("hidden", !show);
+  document.getElementById("spinner").classList.toggle("hidden", spinning === false);
+  if (title) document.getElementById("status-title").textContent = title;
+  if (copy != null) document.getElementById("status-copy").textContent = copy;
+}
+
+function currentPlaceId() {
+  const params = queryParams();
+  const el = document.getElementById("store-local");
+  return params.local || params.mapvxId || params.id || params.name || (el && el.value.trim()) || "";
+}
+
+// mapReady only fires once per component lifecycle (first successful init) —
+// changing placeId afterward (e.g. from the Config panel) still updates the
+// map underneath, but never re-fires the event, so the blocking spinner from
+// a naive re-show would get stuck forever. Only block on the very first load;
+// after that, changing place is a quiet update. A timeout is a last-resort
+// safety net in case mapReady never fires at all (bundle missing, bad key).
+let mapReadyFired = false;
+let statusTimeoutId = null;
+
+function applyPlace(cfg, placeId) {
+  const mapEl = document.getElementById("mvx-place");
+  if (!placeId) {
+    setStatus(true, "Esperando la tienda", "Prueba con ?local=CC_N3_3208 o guarda un placeId en Config.", false);
+    return;
+  }
+  if (window.__mvxBundleFailed || typeof customElements === "undefined" || !customElements.get("map-view-with-modal")) {
+    setStatus(true, "Componentes MapVX no cargaron", "Falta shared/mapvx-wc/index.es.js — ver shared/mapvx-wc/README.md.", false);
+    log("map-view-with-modal not defined — bundle missing or blocked");
+    return;
+  }
+  if (statusTimeoutId) { clearTimeout(statusTimeoutId); statusTimeoutId = null; }
+  if (!mapReadyFired) {
+    setStatus(true, "Cargando mapa…", "Ubicando " + placeId + " en el mapa del mall.", true);
+    statusTimeoutId = setTimeout(function () {
+      log("mapReady never fired within 6s — dismissing spinner anyway");
+      setStatus(false);
+    }, 6000);
+  }
+  mapEl.setAttribute("apiKey", cfg.apiKey || "");
+  mapEl.setAttribute("parentPlaceId", cfg.parentPlace || "");
+  mapEl.setAttribute("locale", cfg.lang || "es");
+  mapEl.setAttribute("placeId", placeId);
+  // Lit boolean props reflect from attribute PRESENCE, not its string value —
+  // setAttribute(..., "false") would still read as true. Set the JS
+  // property directly instead.
+  mapEl.showFloorSelector = false;
+  document.getElementById("page-title").textContent = placeId;
+  document.getElementById("route-toggle").classList.toggle("hidden", !cfg.totemPlaceId);
+  log("applyPlace " + JSON.stringify({ placeId: placeId, parentPlace: cfg.parentPlace }));
+}
+
+// Native entry point: this is what a real app would call (via
+// injectJavaScript / WebView bridge) instead of a person typing into the
+// Config panel — mirrors window.openStoreMapById in the legacy
+// store-map/index.html. Accepts either a bare id string or
+// { id|local, route } to also trigger route generation in one shot.
+window.openStoreMapById = function (payload) {
+  const source = typeof payload === "string" ? { id: payload } : (payload || {});
+  const placeId = source.id || source.local || source.placeId || "";
+  const cfg = readConfig();
+  if (!placeId) {
+    log("openStoreMapById: no id in payload " + JSON.stringify(payload));
+    return;
+  }
+  document.getElementById("store-local").value = placeId;
+  closeRouteView();
+  applyPlace(cfg, placeId);
+  if (source.route) {
+    if (!cfg.totemPlaceId) {
+      setStatus(true, "Falta origen para la ruta", "Configura originId/totemPlaceId en Config antes de pedir ruta.", false);
+      log("openStoreMapById: route requested but no totemPlaceId configured");
+      return;
+    }
+    showRouteView(cfg, placeId);
+  }
+};
+
+function showRouteView(cfg, placeId) {
+  const routeEl = document.getElementById("mvx-route");
+  if (!placeId || !cfg.totemPlaceId) return;
+  document.getElementById("map-view").classList.add("hidden");
+  document.getElementById("route-view").classList.remove("hidden");
+  setStatus(true, "Cargando ruta…", "Trazando desde el tótem hasta " + placeId + ".", true);
+  routeEl.setAttribute("apiKey", cfg.apiKey || "");
+  routeEl.setAttribute("parentPlaceId", cfg.parentPlace || "");
+  routeEl.setAttribute("locale", cfg.lang || "es");
+  routeEl.setAttribute("destinationId", placeId);
+  routeEl.setAttribute("originId", cfg.totemPlaceId);
+  log("showRouteView " + JSON.stringify({ placeId: placeId, originId: cfg.totemPlaceId }));
+}
+
+// Mirrors the exact loadMap/closeMap swap pattern from MapVX's "Migración
+// desde iframe" guide: the route view is hidden, not destroyed/recreated.
+function closeRouteView() {
+  document.getElementById("route-view").classList.add("hidden");
+  document.getElementById("map-view").classList.remove("hidden");
+  setStatus(false);
+}
+
+// UNSUPPORTED WORKAROUND — @mapvx/web-components exposes no documented prop
+// to hide the generic indoorequal POI icons (unlike the legacy SDK path,
+// where mapvx-bridge.js's hideRetailPoiIcons config flag does this through
+// a real, if undocumented, API). This reaches through the component's
+// shadow DOM (host -> <custom-map> -> its `lzMap.map` field) to grab the
+// raw MapLibre instance directly. `lzMap`/`.map` are private implementation
+// details we found by inspecting a live instance, not anything MapVX
+// documents or promises to keep stable — this can silently stop working on
+// any future @mapvx/web-components version bump with no warning. Ask
+// MapVX for a real `hideGenericPoi`/`showEssentialPoiOnly`-style prop on
+// the components so this hack can be deleted.
+function hideGenericPoiIcons(hostEl) {
+  try {
+    const customMap = hostEl.shadowRoot && hostEl.shadowRoot.querySelector("custom-map");
+    const libreMap = customMap && customMap.lzMap && customMap.lzMap.map;
+    if (!libreMap || typeof libreMap.setLayoutProperty !== "function") return;
+    const layers = (libreMap.getStyle().layers || []).filter(function (l) {
+      return l.type === "symbol" && l.source === "indoorequal" && l["source-layer"] === "poi" && l.id !== "indoor-poi-tree";
+    });
+    layers.forEach(function (l) { libreMap.setLayoutProperty(l.id, "visibility", "none"); });
+    if (layers.length) log("hideGenericPoiIcons: hid " + layers.map(function (l) { return l.id; }).join(", "));
+  } catch (e) {
+    log("hideGenericPoiIcons failed (internals likely changed): " + (e.message || e));
+  }
+}
+
+// UNSUPPORTED WORKAROUND (same caveat as hideGenericPoiIcons above) —
+// constrains the view instead of locking it dead: zoom is free to move
+// between ZOOM_MIN/ZOOM_MAX (Hugo's tuned range), pitch/bearing pinned flat
+// (top-down, no spin) to match the reference flat look.
+const ZOOM_MIN = 17.3;
+const ZOOM_MAX = 19;
+const DESIRED_PITCH = 0;
+let mallBounds = null; // captured once from the SDK's own initial auto-fit
+let buildingsFlattened = false;
+
+// UNSUPPORTED WORKAROUND — the indoorequal style renders store/room
+// footprints as fill-extrusion layers with real height (the "3D box" look).
+// There's no documented prop to turn that off, so we reach into the style
+// and pin fill-extrusion-height to 0 on each of them directly. Colors are
+// untouched — only the height goes away, giving the flat 2D look from the
+// reference screenshot regardless of camera pitch.
+const FLAT_LAYER_IDS = [
+  "indoor-polygon-room-color-light",
+  "indoor-polygon-room-back",
+  "indoor-polygon-room",
+  "indoor-polygon-room-front",
+  "indoor-polygon-area-indoor",
+  "indoor-hover",
+];
+
+function flattenBuildings(libreMap) {
+  const style = libreMap.getStyle();
+  const layerIds = new Set((style && style.layers || []).map(function (l) { return l.id; }));
+  let flattened = 0;
+  FLAT_LAYER_IDS.forEach(function (id) {
+    if (!layerIds.has(id)) return;
+    try {
+      libreMap.setPaintProperty(id, "fill-extrusion-height", 0);
+      flattened++;
+    } catch (e) { /* layer might not support this paint prop, skip */ }
+  });
+  if (flattened) log("flattenBuildings: flattened " + flattened + " layers");
+}
+
+function getLiveMap(hostEl) {
+  const customMap = hostEl.shadowRoot && hostEl.shadowRoot.querySelector("custom-map");
+  return customMap && customMap.lzMap && customMap.lzMap.map;
+}
+
+function applyCameraConstraints(hostEl) {
+  try {
+    const libreMap = getLiveMap(hostEl);
+    if (!libreMap || typeof libreMap.setMaxZoom !== "function") return;
+
+    // Capture the venue extent once, from the SDK's own initial auto-fit
+    // (that's the whole point of that fit — show the mall), then use it as
+    // a hard pan boundary via MapLibre's native maxBounds so dragging can't
+    // leave the building. Padded a bit so edge stores aren't flush against
+    // the viewport border.
+    if (!mallBounds) {
+      const b = libreMap.getBounds();
+      const pad = 0.0006; // ~60m at this latitude — enough to breathe, not enough to wander off-site
+      const sw = b.getSouthWest();
+      const ne = b.getNorthEast();
+      mallBounds = [
+        [sw.lng - pad, sw.lat - pad],
+        [ne.lng + pad, ne.lat + pad],
+      ];
+      libreMap.setMaxBounds(mallBounds);
+      log("applyCameraConstraints: mallBounds captured " + JSON.stringify(mallBounds));
+    }
+
+    if (!buildingsFlattened) {
+      flattenBuildings(libreMap);
+      buildingsFlattened = true;
+    }
+
+    // dragPan + zoom stay enabled — Hugo wants to pan and zoom within
+    // range. Rotate stays locked so the view never spins; pitch is tuned
+    // via the slider, not locked to a single value.
+    ["dragRotate", "keyboard"].forEach(function (h) {
+      try { if (libreMap[h] && libreMap[h].disable) libreMap[h].disable(); } catch (e) {}
+    });
+    try { if (libreMap.touchZoomRotate && libreMap.touchZoomRotate.disableRotation) libreMap.touchZoomRotate.disableRotation(); } catch (e) {}
+    ["dragPan", "scrollZoom", "boxZoom", "doubleClickZoom"].forEach(function (h) {
+      try { if (libreMap[h] && libreMap[h].enable) libreMap[h].enable(); } catch (e) {}
+    });
+    libreMap.setMinZoom(ZOOM_MIN);
+    libreMap.setMaxZoom(ZOOM_MAX);
+    if (libreMap.getZoom() < ZOOM_MIN || libreMap.getZoom() > ZOOM_MAX) {
+      libreMap.setZoom(Math.min(Math.max(libreMap.getZoom(), ZOOM_MIN), ZOOM_MAX));
+    }
+    libreMap.setPitch(DESIRED_PITCH);
+    libreMap.setBearing(0);
+
+    // The component runs its own trailing "fly to 3D" animation on load
+    // that overwrites a one-shot setPitch/setBearing a moment later, so we
+    // correct back to our target whenever either changes instead of
+    // guessing the animation's timing. Guard once per map instance so
+    // repeat calls (floorChange again) don't stack duplicate listeners.
+    if (!libreMap.__mvxCameraGuard) {
+      libreMap.__mvxCameraGuard = true;
+      // BUG (fixed): calling setPitch/setBearing synchronously from inside
+      // the "pitch"/"rotate" event handler re-fired that same event inside
+      // the same call stack — since floating-point pitch never lands on
+      // *exactly* DESIRED_PITCH, the "still off" check kept re-triggering
+      // itself and blew the stack (RangeError: Maximum call stack size
+      // exceeded). Fix: defer the correction to the next animation frame,
+      // outside the synchronous dispatch, and use a bigger tolerance so
+      // sub-pixel float noise doesn't ping-pong forever. A re-entrancy flag
+      // additionally guards two rAFs from ever overlapping.
+      let correctingPitch = false;
+      libreMap.on("pitch", function () {
+        if (correctingPitch || Math.abs(libreMap.getPitch() - DESIRED_PITCH) < 0.5) return;
+        correctingPitch = true;
+        requestAnimationFrame(function () {
+          libreMap.setPitch(DESIRED_PITCH);
+          correctingPitch = false;
+        });
+      });
+      let correctingBearing = false;
+      libreMap.on("rotate", function () {
+        if (correctingBearing || Math.abs(libreMap.getBearing()) < 0.5) return;
+        correctingBearing = true;
+        requestAnimationFrame(function () {
+          libreMap.setBearing(0);
+          correctingBearing = false;
+        });
+      });
+    }
+    log("applyCameraConstraints: zoom [" + ZOOM_MIN + "," + ZOOM_MAX + "] pitch " + DESIRED_PITCH);
+  } catch (e) {
+    log("applyCameraConstraints failed (internals likely changed): " + (e.message || e));
+  }
+}
+
+// UNSUPPORTED WORKAROUND — no documented prop/event exposes the resolved
+// place name or category, but the modal renders them as plain text nodes
+// in its shadow DOM (".popup-name" / ".popup-category"). That render lags
+// a beat behind mapReady (shows "Cargando..." first), so this polls a few
+// times before giving up and falling back to the raw id.
+function findDeepShadow(root, selector, depth) {
+  if (!root || depth > 8) return null;
+  const scope = root.shadowRoot || root;
+  const hit = scope.querySelector && scope.querySelector(selector);
+  if (hit) return hit;
+  const children = scope.children || [];
+  for (let i = 0; i < children.length; i++) {
+    const found = findDeepShadow(children[i], selector, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+function updateHeaderTitle(hostEl, fallbackId, attempt) {
+  attempt = attempt || 0;
+  const nameEl = findDeepShadow(hostEl, ".popup-name", 0);
+  const name = nameEl && nameEl.textContent.trim();
+  if (name && name !== "Cargando...") {
+    document.getElementById("page-title").textContent = name;
+    log("updateHeaderTitle: resolved name \"" + name + "\"");
+    return;
+  }
+  if (attempt < 8) {
+    setTimeout(function () { updateHeaderTitle(hostEl, fallbackId, attempt + 1); }, 300);
+  } else {
+    log("updateHeaderTitle: gave up, keeping raw id in header");
+  }
+}
+
+function wireEvents(cfg) {
+  const mapEl = document.getElementById("mvx-place");
+  const routeEl = document.getElementById("mvx-route");
+
+  mapEl.addEventListener("mapReady", function () {
+    mapReadyFired = true;
+    if (statusTimeoutId) { clearTimeout(statusTimeoutId); statusTimeoutId = null; }
+    setStatus(false);
+    hideGenericPoiIcons(mapEl);
+    updateHeaderTitle(mapEl, currentPlaceId());
+    log("map-view-with-modal: mapReady");
+  });
+  // cameraInitialized fires after the SDK's own auto-fit settles — apply
+  // constraints here so we don't fight its own camera reset.
+  mapEl.addEventListener("cameraInitialized", function () {
+    applyCameraConstraints(mapEl);
+    log("map-view-with-modal: cameraInitialized");
+  });
+  mapEl.addEventListener("floorChange", function (ev) {
+    hideGenericPoiIcons(mapEl);
+    applyCameraConstraints(mapEl);
+    log("map-view-with-modal: floorChange " + JSON.stringify(ev.detail || {}));
+  });
+
+  routeEl.addEventListener("mapReady", function () { setStatus(false); hideGenericPoiIcons(routeEl); log("route-view-totems: mapReady"); });
+  routeEl.addEventListener("back", closeRouteView);
+  routeEl.addEventListener("routeAnimationStart", function () { log("route-view-totems: routeAnimationStart"); });
+  routeEl.addEventListener("routeAnimationFinish", function () { log("route-view-totems: routeAnimationFinish"); });
+
+  document.getElementById("route-toggle").addEventListener("click", function () {
+    showRouteView(readConfig(), currentPlaceId());
+  });
+}
+
+function wireConfigBox() {
+  const stored = loadStoredConfig();
+  if (stored) {
+    if (stored.apiKey) document.getElementById("cfg-api-key").value = stored.apiKey;
+    if (stored.parentPlace) document.getElementById("cfg-parent-place").value = stored.parentPlace;
+    if (stored.totemPlaceId) document.getElementById("cfg-totem-place").value = stored.totemPlaceId;
+  }
+  document.getElementById("config-toggle").addEventListener("click", function () {
+    document.getElementById("config-box").classList.toggle("hidden");
+  });
+  document.getElementById("apply-config").addEventListener("click", function () {
+    const cfg = {
+      apiKey: document.getElementById("cfg-api-key").value.trim(),
+      parentPlace: document.getElementById("cfg-parent-place").value.trim() || "-N19VjzEVIj2RDKu7i4r",
+      totemPlaceId: document.getElementById("cfg-totem-place").value.trim(),
+      lang: (window.SimaLocale && SimaLocale.readLocaleFromPage()) || "es",
+    };
+    try { sessionStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(cfg)); } catch (e) {}
+    applyPlace(cfg, document.getElementById("store-local").value.trim() || currentPlaceId());
+  });
+  document.querySelectorAll(".test-user-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      window.openStoreMapById({ local: btn.dataset.id, route: true });
+    });
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  wireConfigBox();
+  wireEvents();
+
+  const cfg = readConfig();
+  const placeId = currentPlaceId();
+  if (placeId) document.getElementById("store-local").value = placeId;
+  document.getElementById("config-box").classList.toggle("hidden", !!cfg.apiKey);
+
+  applyPlace(cfg, placeId);
+  if (placeId && /^(1|true|yes)$/i.test(queryParams().route || "")) {
+    if (cfg.totemPlaceId) {
+      showRouteView(cfg, placeId);
+    } else {
+      log("?route=1 requested but no totemPlaceId configured yet");
+    }
+  }
+
+  if (window.SimaBridge && SimaBridge.ready) { try { SimaBridge.ready("mapvx-embed-store-map"); } catch (e) {} }
+});
+</script>
+</body>
+</html>

@@ -139,6 +139,25 @@ for (const slug of projectSlugs) {
 writeJson(path.join(deployDir, "_projects.json"), builtProjects);
 fs.writeFileSync(path.join(deployDir, "index.html"), buildIndex(builtProjects), "utf8");
 
+// The @mapvx/web-components bundle self-registers its tiles cache Service
+// Worker at "/mvx-tiles-sw.js" (scope "/") relative to whatever origin
+// serves the page. This deploy output is multi-tenant (one Vercel domain,
+// many project slugs), so the file has to live at the actual domain root,
+// not under a project subfolder — copy it there from its canonical source
+// in the cencomall project.
+const mvxSwSource = path.join(
+  sourceProjectsDir,
+  "cencomall",
+  "Assets",
+  "StreamingAssets",
+  "sima_services",
+  "mapvx-embed",
+  "mvx-tiles-sw.js"
+);
+if (fs.existsSync(mvxSwSource)) {
+  fs.copyFileSync(mvxSwSource, path.join(deployDir, "mvx-tiles-sw.js"));
+}
+
 console.log(`Built deploy output in ${path.relative(rootDir, deployDir)}`);
 if (!baseUrlArg) {
   console.log("Note: set DEPLOY_BASE_URL to rewrite manifest.baseUrl for runtime.");

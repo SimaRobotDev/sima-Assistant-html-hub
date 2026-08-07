@@ -11,7 +11,7 @@ function applyMapvxConfig(cfg) {
     institutionId: "",
     totemPlaceId: "",
     lang: "es",
-    showStoreLabels: "featured",
+    showStoreLabels: "none", // disabled 2026-08-06 — see map/index.html for why
     storeLabelMax: 0,
     storeLabelZoomDelta: 1.2
   }, window.MAPVX_CONFIG);

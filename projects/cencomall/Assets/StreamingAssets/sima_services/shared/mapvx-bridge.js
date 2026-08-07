@@ -1860,14 +1860,20 @@ window.MapVxBridge = (function () {
 
     var style = libreMap.getStyle();
     var layers = (style && style.layers) || [];
-    var allow = essentialPoiAllowFilter();
     var updated = [];
 
+    // Was: allowlist essential classes (toilets/wheelchair/information/...)
+    // through via setFilter, hiding only generic retail icons. Per Hugo
+    // 2026-08-06: these indoorequal default icons (round badges) read as
+    // visual noise regardless of category — hide the whole layer instead
+    // of curating a subset. Flip config.hideRetailPoiIcons's *behavior*
+    // back to an allowlist by restoring essentialPoiAllowFilter() here if
+    // the accessibility icons turn out to be worth keeping after all.
     layers.filter(isRetailPoiRankLayer).forEach(function (layer) {
       try {
-        var current = libreMap.getFilter(layer.id);
-        if (filterIsEssentialAllowlist(current)) return;
-        libreMap.setFilter(layer.id, allow);
+        var visibility = libreMap.getLayoutProperty(layer.id, "visibility");
+        if (visibility === "none") return;
+        libreMap.setLayoutProperty(layer.id, "visibility", "none");
         updated.push(layer.id);
       } catch (e) {
         log("warn", "applyRetailPoiIconFilter layer failed", {
@@ -1878,7 +1884,7 @@ window.MapVxBridge = (function () {
     });
 
     if (updated.length) {
-      log("info", "applyRetailPoiIconFilter allowlist", { layers: updated });
+      log("info", "applyRetailPoiIconFilter hidden", { layers: updated });
     }
   }
 
