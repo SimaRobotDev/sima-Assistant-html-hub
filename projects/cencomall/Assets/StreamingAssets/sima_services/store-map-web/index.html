@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Mapa de tienda (Web Component) — Cenco Malls</title>
+<title>Mapa de tienda — Cenco Malls</title>
 <script src="../shared/locale.js"></script>
 <script src="../shared/bridge.js"></script>
 <script src="../shared/market-search.js"></script>
@@ -39,6 +39,13 @@
   }
   .header-title { font-weight: 700; font-size: 16px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .header-actions { margin-left: auto; display: flex; gap: 8px; }
+  .header-back-btn {
+    border: none; background: transparent; color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 999px; flex-shrink: 0;
+  }
+  .header-back-btn:active { background: rgba(255,255,255,0.15); }
+  .header-back-btn svg { fill: #fff; }
   .pill {
     border: none; border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 13px;
     cursor: pointer; background: rgba(255,255,255,0.2); color: #fff;
@@ -96,7 +103,14 @@
 <body>
 <div class="shell">
   <header class="header">
-    <span class="header-title" id="page-title">Mapa de tienda (Web Component)</span>
+    <button class="header-back-btn" id="store-map-back" type="button" aria-label="Volver">
+      <svg width="22" height="22" viewBox="8 8 24 24" aria-hidden="true" focusable="false">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 20C12 19.4477 12.4477 19 13 19H27C27.5523 19 28 19.4477 28 20C28 20.5523 27.5523 21 27 21H13C12.4477 21 12 20.5523 12 20Z"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12.2929 19.2929C12.6834 18.9024 13.3166 18.9024 13.7071 19.2929L19.7071 25.2929C20.0976 25.6834 20.0976 26.3166 19.7071 26.7071C19.3166 27.0976 18.6834 27.0976 18.2929 26.7071L12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929Z"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7071 13.2929C20.0976 13.6834 20.0976 14.3166 19.7071 14.7071L13.7071 20.7071C13.3166 21.0976 12.6834 21.0976 12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929L18.2929 13.2929C18.6834 12.9024 19.3166 12.9024 19.7071 13.2929Z"/>
+      </svg>
+    </button>
+    <span class="header-title" id="page-title">Mapa de tienda</span>
     <div class="header-actions">
       <button class="pill hidden" id="route-toggle" type="button">Ver ruta</button>
       <button class="pill" id="config-toggle" type="button">Config</button>
@@ -245,6 +259,7 @@ function applyPlace(cfg, placeId) {
   if (window.__mvxBundleFailed || typeof customElements === "undefined" || !customElements.get("map-view-with-modal")) {
     setStatus(true, "Componentes MapVX no cargaron", "Falta shared/mapvx-wc/index.es.js — ver shared/mapvx-wc/README.md.", false);
     log("map-view-with-modal not defined — bundle missing or blocked");
+    notifyNative("store_map_error", { request: { placeId: placeId }, error: "mapvx-wc bundle missing" });
     return;
   }
   if (statusTimeoutId) { clearTimeout(statusTimeoutId); statusTimeoutId = null; }
@@ -268,30 +283,100 @@ function applyPlace(cfg, placeId) {
   log("applyPlace " + JSON.stringify({ placeId: placeId, parentPlace: cfg.parentPlace }));
 }
 
-// Native entry point: this is what a real app would call (via
-// injectJavaScript / WebView bridge) instead of a person typing into the
-// Config panel — mirrors window.openStoreMapById in the legacy
-// store-map/index.html. Accepts either a bare id string or
-// { id|local, route } to also trigger route generation in one shot.
-window.openStoreMapById = function (payload) {
-  const source = typeof payload === "string" ? { id: payload } : (payload || {});
-  const placeId = source.id || source.local || source.placeId || "";
+// Same field names ../store-map/index.html's IDENTIFIER_FIELDS/
+// GENERIC_ID_FIELDS accept, in the same priority order — so the app can
+// send this page the exact same payload shape it already sends the legacy
+// page. Deliberately NOT reproducing classifyIdentifier: the Web Component
+// takes the client's own identifier directly (confirmed via MapVX docs),
+// so there's no need to guess the id's shape the way the legacy bridge did
+// (that guessing is what caused the node:-format bug we found earlier).
+// "name"-only payloads are logged, not treated as an id — the old bridge
+// could fuzzy-resolve a bare store name, this component can't.
+const ID_FIELDS = [
+  "local", "clientId", "client_id", "storeLocal", "store_local", "localCode", "local_code",
+  "mapvxId", "mapvx_id", "mapvxPlaceId", "mapvx_place_id", "mapvxid",
+  "catalogId", "catalog_id", "storeId", "store_id", "cmsId", "cms_id",
+  "id", "placeId", "place_id", "store", "target",
+];
+const NAME_FIELDS = ["name", "storeName", "store_name", "brand", "title"];
+
+function pickIdentifierFromPayload(source) {
+  if (!source || typeof source !== "object") return "";
+  for (let i = 0; i < ID_FIELDS.length; i++) {
+    const v = source[ID_FIELDS[i]];
+    if (v == null || typeof v === "object") continue;
+    const s = String(v).trim();
+    if (s) return s;
+  }
+  return "";
+}
+
+function pickNameFromPayload(source) {
+  if (!source || typeof source !== "object") return "";
+  for (let i = 0; i < NAME_FIELDS.length; i++) {
+    const v = source[NAME_FIELDS[i]];
+    if (v == null || typeof v === "object") continue;
+    const s = String(v).trim();
+    if (s) return s;
+  }
+  return "";
+}
+
+function openStoreMapFromPayload(source, meta) {
+  const placeId = pickIdentifierFromPayload(source);
   const cfg = readConfig();
   if (!placeId) {
-    log("openStoreMapById: no id in payload " + JSON.stringify(payload));
+    const name = pickNameFromPayload(source);
+    log((meta && meta.source) + ": no usable id in payload " + JSON.stringify(source) +
+      (name ? " (only got name=\"" + name + "\" — this component needs a real id, not a name to fuzzy-match)" : ""));
+    notifyNative("store_map_error", { request: source, error: "no identifier in payload" });
     return;
   }
   document.getElementById("store-local").value = placeId;
   closeRouteView();
   applyPlace(cfg, placeId);
-  if (source.route) {
+  if (meta && meta.route) {
     if (!cfg.totemPlaceId) {
       setStatus(true, "Falta origen para la ruta", "Configura originId/totemPlaceId en Config antes de pedir ruta.", false);
-      log("openStoreMapById: route requested but no totemPlaceId configured");
+      log((meta.source) + ": route requested but no totemPlaceId configured");
       return;
     }
     showRouteView(cfg, placeId);
   }
+}
+
+// Native entry point: this is what a real app would call (via
+// injectJavaScript / WebView bridge) instead of a person typing into the
+// Config panel — mirrors window.openStoreMapById in the legacy
+// store-map/index.html. Accepts either a bare id string or a payload object
+// using any of the field names above; { route: true } also triggers a
+// route in the same call.
+window.openStoreMapById = function (payload) {
+  const source = typeof payload === "string" ? { id: payload } : (payload || {});
+  openStoreMapFromPayload(source, { source: "openStoreMapById", route: !!source.route });
+};
+
+// Mirrors ../store-map/index.html's window.handleUnityData exactly (same
+// field names, same route/autoRoute flag) — the app's existing Unity-side
+// calling code shouldn't need to change to point here instead.
+window.handleUnityData = function (data) {
+  if (!data || typeof data !== "object") return;
+  openStoreMapFromPayload(data, { source: "handleUnityData", route: !!(data.route || data.autoRoute) });
+};
+
+// React Native can hand over the full authenticated /market record without
+// exposing CMS credentials inside the WebView. NOTE: unlike
+// ../store-map/index.html, this page has no rich detail panel (photos/
+// schedule/description) to render it into yet — the payload is accepted
+// and logged so the contract doesn't break the app's integration, but
+// nothing is shown on screen. Ask if that panel needs to be ported here too.
+let nativeStoreDetail = null;
+window.applyStoreDetail = function (detail) {
+  if (!detail || typeof detail !== "object") return false;
+  nativeStoreDetail = detail;
+  log("applyStoreDetail received (not rendered — no detail panel on this page yet): " +
+    JSON.stringify({ id: detail.id || detail.local, name: detail.name }));
+  return true;
 };
 
 let routeStatusTimeoutId = null;
@@ -314,6 +399,11 @@ function wireRouteElement(routeEl) {
     hideGenericPoiIcons(routeEl);
     const libreMap = getLiveMap(routeEl);
     if (libreMap) flattenBuildings(libreMap);
+    notifyNative("store_map_opened", {
+      placeId: routeEl.getAttribute("destinationId"),
+      originId: routeEl.getAttribute("originId"),
+      route: true,
+    });
     log("route-view-totems: mapReady");
   });
   routeEl.addEventListener("back", closeRouteView);
@@ -353,6 +443,7 @@ function showRouteView(cfg, placeId) {
   routeStatusTimeoutId = setTimeout(function () {
     setStatus(true, "La ruta está tardando demasiado", "destinationId=" + placeId + " puede no ser un local MapVX válido. Volvé a buscar.", false);
     log("showRouteView: no route event within 15s for destinationId=" + placeId);
+    notifyNative("store_map_error", { request: { placeId: placeId, originId: cfg.totemPlaceId }, error: "route timeout" });
   }, 15000);
 }
 
@@ -581,6 +672,7 @@ function wireEvents(cfg) {
     setStatus(false);
     hideGenericPoiIcons(mapEl);
     updateHeaderTitle(mapEl, currentPlaceId());
+    notifyNative("store_map_opened", { placeId: currentPlaceId() });
     log("map-view-with-modal: mapReady");
   });
   // cameraInitialized fires after the SDK's own auto-fit settles — apply
@@ -726,13 +818,74 @@ function wireStoreSearch() {
 }
 
 // Real usage: the app injects window.MAPVX_CONFIG (apiKey included) before
-// this script runs, then calls window.openStoreMapById with the store/
-// service id — same convention as ../map/index.html's isUnityWebView().
-// That's the signal this is the real app, not us testing in a browser: hide
-// the credentials/origin/search panel and its toggle entirely, not just
-// collapse it, since there's nothing here for an end user to configure.
-function isNativeHost() {
+// this script runs, then calls window.openStoreMapById/handleUnityData with
+// the store/service id — same convention as ../map/index.html's
+// isUnityWebView(). That's the signal this is the real app, not us testing
+// in a browser: hide the credentials/origin/search panel and its toggle
+// entirely, not just collapse it, since there's nothing here for an end
+// user to configure.
+function hasInjectedMapVxConfig() {
   return !!(window.MAPVX_CONFIG && window.MAPVX_CONFIG.apiKey);
+}
+
+// Matches ../store-map/index.html's isNativeHost(): is a native bridge
+// actually reachable (SimaBridge / React Native WebView), independent of
+// whether MapVX credentials specifically were injected. Used for the back
+// button's close-vs-history-back choice.
+function isNativeHost() {
+  try {
+    if (window.SimaBridge && typeof SimaBridge.canReachNativeHost === "function") {
+      return !!SimaBridge.canReachNativeHost();
+    }
+  } catch (e) { /* noop */ }
+  return false;
+}
+
+function notifyNative(type, payload) {
+  try {
+    if (window.SimaBridge && typeof SimaBridge.send === "function") {
+      SimaBridge.send(type, payload);
+    }
+  } catch (e) { /* noop */ }
+}
+
+function closeWebview() {
+  try {
+    if (window.SimaBridge && typeof window.SimaBridge.requestClose === "function") {
+      window.SimaBridge.requestClose();
+      return;
+    }
+  } catch (e) { /* noop */ }
+  try {
+    if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === "function") {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: "close_webview", payload: {} }));
+      return;
+    }
+  } catch (e2) { /* noop */ }
+  try {
+    if (window.SimaBridge && typeof window.SimaBridge.send === "function") {
+      window.SimaBridge.send("close_webview", {});
+    }
+  } catch (e3) { /* noop */ }
+}
+
+// Matches ../store-map/index.html's handleBack() exactly: ?from=<service>
+// takes priority, then native close, then browser history, then close.
+function handleBack() {
+  const from = queryParams().from;
+  if (from && /^[a-z0-9_-]+$/i.test(from)) {
+    window.location.href = "../" + from + "/index.html";
+    return;
+  }
+  if (isNativeHost()) {
+    closeWebview();
+    return;
+  }
+  if (window.history.length > 1) {
+    window.history.back();
+    return;
+  }
+  closeWebview();
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -744,13 +897,15 @@ document.addEventListener("DOMContentLoaded", function () {
   const placeId = currentPlaceId();
   if (placeId) document.getElementById("store-local").value = placeId;
 
-  if (isNativeHost()) {
+  if (hasInjectedMapVxConfig() || isNativeHost()) {
     document.getElementById("config-box").classList.add("hidden");
     document.getElementById("config-toggle").classList.add("hidden");
-    log("isNativeHost: true — config UI hidden, expecting window.openStoreMapById from the app");
+    log("native app detected — config UI hidden, expecting window.openStoreMapById/handleUnityData from the app");
   } else {
     document.getElementById("config-box").classList.toggle("hidden", !!cfg.apiKey);
   }
+
+  document.getElementById("store-map-back").addEventListener("click", handleBack);
 
   applyPlace(cfg, placeId);
   if (placeId && /^(1|true|yes)$/i.test(queryParams().route || "")) {
