@@ -162,7 +162,8 @@ window.MarketSearch = (function () {
       local: String(item.local || "").trim(),
       logoUrl: String(item.brand_logo || item.logoUrl || item.logo || "").trim(),
       brand_logo: String(item.brand_logo || item.logoUrl || item.logo || "").trim(),
-      // Slim OTA omits photos/schedules/description; keep empty defaults for UI.
+      // Photos come from slim catalog when present; schedules/description may
+      // still arrive via MarketI18n overlay, GET /market/{id}, or applyStoreDetail.
       market_photos: Array.isArray(item.market_photos)
         ? item.market_photos.map(function (url) { return String(url || "").trim(); }).filter(Boolean)
         : [],

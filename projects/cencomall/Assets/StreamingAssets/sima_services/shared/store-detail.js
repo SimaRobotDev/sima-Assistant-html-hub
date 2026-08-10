@@ -42,19 +42,25 @@
     return url.charAt(0) === "/" ? siteOrigin() + url : siteOrigin() + "/" + url;
   }
 
-  function firstPhoto(store) {
+  function resolvePhotos(store) {
     var photos = store && (
-      store.market_photos || store.photos || store.images
+      store.market_photos || store.marketPhotos || store["market-photos"] ||
+      store.photos || store.images
     );
-    if (!Array.isArray(photos)) return "";
-    for (var i = 0; i < photos.length; i++) {
-      var item = photos[i];
-      var value = typeof item === "string"
-        ? item
-        : item && (item.url || item.path || item.photo || item.image);
-      if (text(value)) return mediaUrl(value);
+    if (Array.isArray(photos)) {
+      return photos.map(function (item) {
+        if (typeof item === "string") return text(item);
+        if (!item || typeof item !== "object") return "";
+        return text(item.url || item.path || item.photo || item.image);
+      }).filter(Boolean);
     }
-    return "";
+    if (typeof photos === "string" && text(photos)) return [text(photos)];
+    return [];
+  }
+
+  function firstPhoto(store) {
+    var photos = resolvePhotos(store);
+    return photos.length ? mediaUrl(photos[0]) : "";
   }
 
   function logoUrl(store) {
@@ -90,22 +96,70 @@
   }
 
   function localizedDescription(store, locale) {
+    var id = catalogId(store);
     var locales = store && store.descriptionLocales;
-    if (locales && typeof locales === "object") {
-      var localized = text(locales[locale] || locales.es || locales.en);
-      if (localized) return localized;
-    }
-    return text(
+    var base = text(
       store && (
         store.description || store.brand_description || store.market_description
       )
     );
+    if (global.MarketI18n && typeof global.MarketI18n.translateDescription === "function") {
+      var translated = text(
+        global.MarketI18n.translateDescription(id, base, locale, locales)
+      );
+      if (translated) return translated;
+    }
+    if (locales && typeof locales === "object") {
+      var localized = text(locales[locale] || locales.es || locales.en);
+      if (localized) return localized;
+    }
+    return base;
   }
 
   function displayName(store) {
     return text(store && (
       store.name || store.brand || store.brand_name || store.market_name
     )) || "Tienda";
+  }
+
+  /** Same wording as mobility: "Nivel 3" / "PB", never "Piso: …". */
+  function formatFloorLabel(floor, locale) {
+    var raw = text(floor)
+      .replace(/^(piso|level|nivel|andar)\s*[:\-–]?\s*/i, "")
+      .trim();
+    if (!raw) return "";
+    if (/^all$/i.test(raw)) {
+      return locale.indexOf("en") === 0
+        ? "All levels"
+        : locale.indexOf("pt") === 0
+          ? "Todos os níveis"
+          : "Todos los niveles";
+    }
+    if (/^pb$/i.test(raw) || /planta baja/i.test(raw)) {
+      return locale.indexOf("en") === 0
+        ? "Ground floor"
+        : locale.indexOf("pt") === 0
+          ? "Térreo"
+          : "PB";
+    }
+    if (/^(nivel|level|piso|andar)\s+/i.test(raw)) {
+      // Normalize "Piso 3" → "Nivel 3" in Spanish UI.
+      var numOnly = raw.match(/(\d+)/);
+      if (numOnly && locale.indexOf("en") !== 0 && locale.indexOf("pt") !== 0) {
+        return "Nivel " + numOnly[1];
+      }
+      return raw;
+    }
+    var match = raw.match(/(\d+)/);
+    if (match) {
+      var prefix = locale.indexOf("en") === 0
+        ? "Level"
+        : locale.indexOf("pt") === 0
+          ? "Nível"
+          : "Nivel";
+      return prefix + " " + match[1];
+    }
+    return raw;
   }
 
   function catalogId(store) {
@@ -115,18 +169,24 @@
     return /^\d+$/.test(id) ? id : "";
   }
 
+  function pickPhotos(detail, base) {
+    var fromDetail = resolvePhotos(detail);
+    if (fromDetail.length) return fromDetail;
+    return resolvePhotos(base);
+  }
+
   function merge(baseStore, detail) {
     var base = baseStore && typeof baseStore === "object" ? baseStore : {};
     if (!detail || typeof detail !== "object") return base;
     var description = text(
       detail.brand_description || detail.description || base.description
     );
-    var schedules = Array.isArray(detail.market_schedules)
+    var schedules = Array.isArray(detail.market_schedules) && detail.market_schedules.length
       ? detail.market_schedules
       : (base.market_schedules || base.schedules || base.schedule || []);
-    var photos = Array.isArray(detail.market_photos)
-      ? detail.market_photos
-      : (base.market_photos || []);
+    var photos = pickPhotos(detail, base);
+    var descriptionLocales = Object.assign({}, base.descriptionLocales || {});
+    if (description) descriptionLocales.es = description;
     return Object.assign({}, base, detail, {
       id: base.id || detail.id,
       catalogId: base.catalogId || detail.id,
@@ -136,7 +196,8 @@
       floor: base.floor || detail.floor || detail.market_levels,
       logoUrl: base.logoUrl || detail.brand_logo || detail.logoUrl || "",
       brand_logo: base.brand_logo || detail.brand_logo || "",
-      description: description,
+      description: description || base.description || "",
+      descriptionLocales: descriptionLocales,
       market_photos: photos,
       market_schedules: schedules,
       schedules: schedules,
@@ -182,8 +243,9 @@
     var photo = firstPhoto(store);
     var logo = logoUrl(store);
     if (photo) {
-      return '<img src="' + escapeHtml(photo) + '" alt="" data-fallback-logo="' +
-        escapeHtml(logo) + '" onerror="StoreDetail.handleMediaError(this)" />';
+      return '<img class="store-detail-photo" src="' + escapeHtml(photo) +
+        '" alt="" data-fallback-logo="' + escapeHtml(logo) +
+        '" onerror="StoreDetail.handleMediaError(this)" />';
     }
     if (logo) {
       return '<img class="store-detail-logo" src="' + escapeHtml(logo) +
@@ -223,14 +285,17 @@
     options = options || {};
     var locale = text(options.locale || global.MALL_LOCALE || "es").toLowerCase();
     var name = displayName(store);
-    var floor = text(store.floor || store.location || options.floor);
+    var floor = formatFloorLabel(
+      store.floor || store.location || options.floor,
+      locale
+    );
     var schedule = scheduleText(store);
     var description = localizedDescription(store, locale);
-    var labels = locale.indexOf("en") === 0
-      ? { floor: "Floor", schedule: "Hours" }
+    var scheduleLabel = locale.indexOf("en") === 0
+      ? "Hours"
       : locale.indexOf("pt") === 0
-        ? { floor: "Piso", schedule: "Horário" }
-        : { floor: "Piso", schedule: "Horario" };
+        ? "Horário"
+        : "Horario";
 
     container.setAttribute("data-store-name", name);
     container.innerHTML =
@@ -239,12 +304,12 @@
         '<div class="store-detail-body">' +
           '<h2 class="store-detail-name">' + escapeHtml(name) + "</h2>" +
           (floor
-            ? '<div class="store-detail-meta"><span class="store-detail-chip">' +
-              escapeHtml(labels.floor + ": " + floor) + "</span></div>"
+            ? '<div class="store-detail-meta"><span class="store-detail-chip store-detail-chip-floor">' +
+              escapeHtml(floor) + "</span></div>"
             : "") +
           (schedule
             ? '<p class="store-detail-schedule"><strong>' +
-              escapeHtml(labels.schedule) + ":</strong> " +
+              escapeHtml(scheduleLabel) + ":</strong> " +
               escapeHtml(schedule) + "</p>"
             : "") +
           (description
@@ -268,6 +333,7 @@
     enrich: enrich,
     escapeHtml: escapeHtml,
     fetchById: fetchById,
+    formatFloorLabel: formatFloorLabel,
     handleMediaError: handleMediaError,
     merge: merge,
     render: render,

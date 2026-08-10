@@ -41,6 +41,8 @@ const SLIM_KEYS = [
   "renovation",
   "mall",
   "brand_logo",
+  // Store photo URLs (relative); store-map / mobility detail panels consume these.
+  "market_photos",
 ];
 
 function parseArgs(argv) {
@@ -92,6 +94,14 @@ function projectSlim(item) {
     out.market_levels = out.market_levels ? [String(out.market_levels)] : [];
   }
   out.mall = String(out.mall || "costanera").trim() || "costanera";
+  if (Array.isArray(item.market_photos)) {
+    out.market_photos = item.market_photos
+      .map(function (url) { return String(url || "").trim(); })
+      .filter(Boolean);
+  } else if (typeof item.market_photos === "string" && item.market_photos.trim()) {
+    out.market_photos = [item.market_photos.trim()];
+  }
+  if (out.market_photos && !out.market_photos.length) delete out.market_photos;
   return out;
 }
 

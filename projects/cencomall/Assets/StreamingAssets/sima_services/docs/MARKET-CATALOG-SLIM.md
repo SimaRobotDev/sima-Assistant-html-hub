@@ -17,8 +17,9 @@ El listado OTA (`data/market-catalog.json` + `.jsonp.js`) es una **proyección s
 | `renovation` | Disponibilidad |
 | `mall` | Mall slug |
 | `brand_logo` | Opcional UI (URL relativa) |
+| `market_photos` | Foto(s) de tienda (URL relativa); panel store-map / mobility |
 
-Fuera del listado: `brand_description`, fotos, horarios, redes, email, website, etc.
+Fuera del listado: `brand_description` (usar `market-catalog-i18n`), horarios, redes, email, website, etc.
 
 ## Regenerar y publicar
 
