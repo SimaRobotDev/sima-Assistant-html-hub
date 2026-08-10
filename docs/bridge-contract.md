@@ -128,6 +128,12 @@ Detalle de tienda (descripción/fotos/horarios): `GET /api/market/{id}` con
 
 ## Store map: abrir una tienda directo en el mapa (`store-map/index.html`)
 
+`store-map/index.html` es el default de producción para este caso — no
+`store-map-web/`. `store-map-web/` es un candidato experimental sobre
+`@mapvx/web-components` con un bug de ruteo abierto (no completa rutas sin un
+`totemPlaceId` real verificado); no lo conectes desde la app mientras eso siga
+pendiente. Ver el commit `dd07bd7` para el detalle del bloqueo.
+
 Pantalla independiente para el caso "la IA sabe qué tienda es y quiere mostrarla
 en el mapa", sin pasar por el buscador de `mobility`. Acepta tres tipos de
 identificador y los distingue por la forma del valor, no por el nombre del campo:
