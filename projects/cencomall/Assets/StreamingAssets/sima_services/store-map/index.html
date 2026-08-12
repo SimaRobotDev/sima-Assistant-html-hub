@@ -23,7 +23,7 @@
   <script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
   <!-- Preload route WC: Unity WebViews often block dynamically injected scripts. -->
   <script src="../shared/mapvx-wc/route-view-totems.js" data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
-  <script src="../shared/mapvx-wc-runtime.js?v=20260812-5"></script>
+  <script src="../shared/mapvx-wc-runtime.js?v=20260812-6"></script>
   <style>
     html, body {
       margin: 0;
@@ -742,7 +742,7 @@ function preferredMapEngine() {
   if (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.readMapEngine) {
     return MapVxWcRuntime.readMapEngine();
   }
-  return "auto";
+  return "legacy";
 }
 
 function setMapShell(engine) {

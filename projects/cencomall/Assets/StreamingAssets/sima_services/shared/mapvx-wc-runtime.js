@@ -105,7 +105,9 @@
       raw = text(params.get("mapEngine") || params.get("map_engine")).toLowerCase();
     } catch (e) { /* noop */ }
     if (raw === "legacy" || raw === "wc" || raw === "auto") return raw;
-    return "auto";
+    // Default to legacy until WC place+route is reliable on totems.
+    // Opt into WC with ?mapEngine=wc or ?mapEngine=auto.
+    return "legacy";
   }
 
   function isAvailable() {
