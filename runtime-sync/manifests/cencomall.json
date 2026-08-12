@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.08.12-1",
+  "version": "2026.08.12-2",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-08-12T16:40:50.557Z",
+  "generatedAt": "2026-08-12T17:08:47.058Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.08.06-3",
+  "rollbackTo": "2026.08.12-1",
   "entryPoints": [
     {
       "service": "agenda",
@@ -105,13 +105,13 @@
     },
     {
       "path": "data/market-catalog.json",
-      "size": 298738,
-      "sha256": "6196dbe793e0afa3c6d4912096abf0eaf068534417f6d2cb8cee08a4bee89e5d"
+      "size": 342300,
+      "sha256": "caf038f81f1a0db7f1b0ead2e317dc488c49344d191351fe1f44dbee721e182b"
     },
     {
       "path": "data/market-catalog.jsonp.js",
-      "size": 298928,
-      "sha256": "3150a0622771d772c78c56e44fa051db2564b19c5807ef438dc9cc49e12c8b10"
+      "size": 342490,
+      "sha256": "b7a3ad212211486b6a497f7c274ee60deeb406731527a4cfeb78d7515080422d"
     },
     {
       "path": "data/services-catalog.json",
@@ -125,8 +125,8 @@
     },
     {
       "path": "docs/MARKET-CATALOG-SLIM.md",
-      "size": 2262,
-      "sha256": "d3386ba9ca44cb3ad6906598d97d91eb9f0517ede6dc2a106b1ea9a111cfb0a1"
+      "size": 2346,
+      "sha256": "13ca49a517f435ab2519ff54071a96564e3eb246646142735b585f10f04592c7"
     },
     {
       "path": "emergency/index.html",
@@ -195,8 +195,8 @@
     },
     {
       "path": "mapvx-embed/README.md",
-      "size": 2881,
-      "sha256": "126722fac4f5295c5d965dc397d5683e28e7c148d403f7ca2455fd8694f6bcaa"
+      "size": 3041,
+      "sha256": "fb50ed299e0c99b93185297786988a9edbbb6b94938457ab9ee2beb7c8e33da1"
     },
     {
       "path": "mapvx-embed/register-sw.js",
@@ -210,8 +210,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 247854,
-      "sha256": "9efe24bef38faaa1f14966ee0eabfa02574b7acec2d8fb8bb1c9662eed01c529"
+      "size": 250714,
+      "sha256": "037e2fbe7557620c0ab9c237f83c0a3c3f45963ecc257073f66424b2466f0562"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -455,8 +455,8 @@
     },
     {
       "path": "shared/mapvx-wc-runtime.js",
-      "size": 26836,
-      "sha256": "c75bbcece9bd4b8479101428ac2c81043d115d271c91d2f5c80a947769cb97da"
+      "size": 29823,
+      "sha256": "e7fb5ab83b9271770456e9811f91e93e54ed62423316822bbbea56f2f662232a"
     },
     {
       "path": "shared/mapvx-wc/map-view-with-modal.js",
@@ -495,8 +495,8 @@
     },
     {
       "path": "shared/market-search.js",
-      "size": 51500,
-      "sha256": "1d4bffd8bc1102e66b49077bb4f90d9d23b7b53238267b9e00ffdfde89363869"
+      "size": 51716,
+      "sha256": "f7a1a51bccee2798c613e1a19ab8989a97d8cc3a99e8f480db49c6bcac8efb7c"
     },
     {
       "path": "shared/native-payload.js",
@@ -530,8 +530,8 @@
     },
     {
       "path": "shared/store-detail.js",
-      "size": 11302,
-      "sha256": "3d25e423abf0666ff70e3916745fec2de9febef252f09641a8535ea785143083"
+      "size": 11400,
+      "sha256": "b3d4147fa6e46bc9fb5743937933ef7a34768b2f214dca7822aba3bc8b645c4c"
     },
     {
       "path": "shared/store-logos/casa-ideas.png",
@@ -600,8 +600,8 @@
     },
     {
       "path": "store-map/index.html",
-      "size": 42802,
-      "sha256": "7e38a0d838ff4ab07bfe273819f2a884073f60f4d42df846cc107ee0abbd8d09"
+      "size": 43146,
+      "sha256": "01140d5e9df0b4690cf891fc97c5f0edb89116aa1fe29f61b5833c77cafafc07"
     },
     {
       "path": "taxi/index.html",
