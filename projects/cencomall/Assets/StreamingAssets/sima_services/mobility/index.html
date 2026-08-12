@@ -99,6 +99,8 @@ function resetToLanding() {
 <script src="../shared/services-catalog.js"></script>
 <script src="../shared/mapvx/index.js"></script>
 <script src="../shared/mapvx-bridge.js"></script>
+<script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
+<script src="../shared/mapvx-wc-runtime.js?v=20260812-2"></script>
 <script src="../assistant-embed.js"></script>
 <style>
 /* Color/type/space tokens: ../shared/cencobricks-tokens.css (--cb-* and --cm-* aliases) */
@@ -976,7 +978,9 @@ html.search-boot-loading #resultado {
 }
 
 #map-iframe,
-#mapvx-container {
+#mapvx-container,
+#mapvx-wc-stage,
+.map-wc-view {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -988,10 +992,28 @@ html.search-boot-loading #resultado {
 }
 
 #mapvx-container.hidden,
-#map-iframe.hidden { display: none; }
+#map-iframe.hidden,
+#mapvx-wc-stage.hidden,
+.map-wc-view.hidden { display: none; }
+
+#mapvx-wc-stage.preload-mount {
+  display: block !important;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
 
 #mapvx-container {
   transition: opacity 160ms ease;
+}
+
+map-view-with-modal,
+route-view-totems,
+#mapvx-wc-route-mount,
+#mapvx-wc-place {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .map-status {
@@ -1398,8 +1420,6 @@ html.search-boot-loading #resultado {
     height: 16px;
     object-fit: contain;
   }
-
-}
 
 .service-card-top {
   display: flex;
@@ -2150,6 +2170,14 @@ article.service-card .btn-service-map {
     <div class="map-embed-wrap">
       <div id="map-current-floor" class="map-current-floor hidden"></div>
       <div id="map-zoom-meter" class="map-zoom-meter hidden" aria-hidden="true"></div>
+      <div id="mapvx-wc-stage" class="hidden">
+        <div class="map-wc-view" id="mapvx-wc-place-view">
+          <div id="mapvx-wc-place"></div>
+        </div>
+        <div class="map-wc-view hidden" id="mapvx-wc-route-view">
+          <div id="mapvx-wc-route-mount"></div>
+        </div>
+      </div>
       <div id="mapvx-container" class="hidden"></div>
       <iframe id="map-iframe" class="hidden" allowfullscreen></iframe>
       <div id="map-placeholder" class="map-placeholder hidden"></div>
@@ -4570,6 +4598,7 @@ document.addEventListener("DOMContentLoaded", () => {
   warmupMapVxInBackground().then(function () {
     if (isMapVxConfigured()) preloadMapVxBaseMap();
   });
+  warmupMapVxWcInBackground();
   renderEntrySurvey();
   document.getElementById("btnSpeak").onclick = startVoiceInput;
   document.getElementById("btnSpeakMini").onclick = startVoiceInput;
@@ -6218,7 +6247,10 @@ function renderServicesResults(payload) {
       </div>
       <div class="service-list">${cards}</div>
     </div>`;
-  if (results.length) preloadMapVxBaseMap();
+  if (results.length) {
+    preloadMapVxBaseMap();
+    warmupMapVxWcInBackground();
+  }
 }
 
 function toggleServiceCard(idx) {
@@ -6526,6 +6558,33 @@ async function preloadMapVxBaseMap() {
   return mapVxPreloadPromise;
 }
 
+let mapVxWcWarmupPromise = null;
+
+async function warmupMapVxWcInBackground() {
+  if (mapVxWcWarmupPromise) return mapVxWcWarmupPromise;
+  if (preferredMobilityMapEngine() === "legacy") return null;
+  if (typeof MapVxWcRuntime === "undefined" || !MapVxWcRuntime.isAvailable || !MapVxWcRuntime.isAvailable()) {
+    return null;
+  }
+  applyMapVxDefaultsFromMapPage();
+  const cfg = (MapVxWcRuntime.readConfig && MapVxWcRuntime.readConfig()) || window.MAPVX_CONFIG || {};
+  if (!cfg.apiKey) return null;
+
+  initMobilityWcRuntime();
+  mapVxWcWarmupPromise = MapVxWcRuntime.warmup({ timeoutMs: 12000 })
+    .then(function (warm) {
+      SimaBridge.log("mobility wc warmup " + JSON.stringify(warm || {}));
+      return !!(warm && warm.warm);
+    })
+    .catch(function (e) {
+      console.warn("MapVx WC warmup failed", e);
+      SimaBridge.log("mobility wc warmup failed");
+      mapVxWcWarmupPromise = null;
+      return false;
+    });
+  return mapVxWcWarmupPromise;
+}
+
 function setMapLoadingState(loading) {
   const wrap = document.querySelector(".map-embed-wrap");
   const container = document.getElementById("mapvx-container");
@@ -6627,9 +6686,13 @@ function resetMapControls() {
 function updateMapRouteButton(result) {
   const btn = document.getElementById("map-route-btn");
   if (!btn) return;
-  const canRoute = typeof MapVxBridge !== "undefined"
-    && MapVxBridge.hasRouteOrigin
-    && MapVxBridge.hasRouteOrigin();
+  const canRoute = (mobilityActiveMapEngine === "wc"
+      && typeof MapVxWcRuntime !== "undefined"
+      && MapVxWcRuntime.hasRouteOrigin
+      && MapVxWcRuntime.hasRouteOrigin())
+    || (typeof MapVxBridge !== "undefined"
+      && MapVxBridge.hasRouteOrigin
+      && MapVxBridge.hasRouteOrigin());
   btn.classList.remove("hidden");
   if (!canRoute) {
     btn.textContent = t("routeNeedsTotem");
@@ -6639,7 +6702,7 @@ function updateMapRouteButton(result) {
   }
   btn.disabled = false;
   btn.classList.remove("disabled");
-  const active = !!(result && (result.routeActive || result.routeStarted));
+  const active = !!(result && (result.routeActive || result.routeStarted)) || mobilityMapRouteActive;
   btn.textContent = active ? t("clearRoute") : t("viewRoute");
 }
 
@@ -6669,8 +6732,22 @@ async function onMapFloorSelect(floorKey) {
 
 async function onMapRouteToggle() {
   const btn = document.getElementById("map-route-btn");
-  if (!btn || btn.disabled || typeof MapVxBridge === "undefined" || !MapVxBridge.toggleRouteToTarget) return;
+  if (!btn || btn.disabled) return;
   try {
+    if (mobilityActiveMapEngine === "wc" && typeof MapVxWcRuntime !== "undefined") {
+      if (mobilityMapRouteActive) {
+        MapVxWcRuntime.closeRoute();
+        mobilityMapRouteActive = false;
+      } else {
+        const placeId = (MapVxWcRuntime.getLastPlaceId && MapVxWcRuntime.getLastPlaceId()) || "";
+        await MapVxWcRuntime.showRoute(placeId, { timeoutMs: 15000 });
+        mobilityMapRouteActive = true;
+      }
+      btn.textContent = mobilityMapRouteActive ? t("clearRoute") : t("viewRoute");
+      setMapStatus(placeIdLabelForRoute() + (mobilityMapRouteActive ? " · " + t("routeActive") : ""));
+      return;
+    }
+    if (typeof MapVxBridge === "undefined" || !MapVxBridge.toggleRouteToTarget) return;
     const state = await MapVxBridge.toggleRouteToTarget();
     btn.textContent = state.active ? t("clearRoute") : t("viewRoute");
     const session = MapVxBridge.getMapSession && MapVxBridge.getMapSession();
@@ -6680,6 +6757,13 @@ async function onMapRouteToggle() {
     setMapStatus(t("routeError") + ": " + (e.message || e));
     logMap("error", "onMapRouteToggle failed", { message: e.message || String(e) });
   }
+}
+
+function placeIdLabelForRoute() {
+  if (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.getLastPlaceId) {
+    return MapVxWcRuntime.getLastPlaceId() || "";
+  }
+  return "";
 }
 
 function setupMapControls(result) {
@@ -6702,6 +6786,7 @@ async function openPoiMapViaMapVx(opts) {
   } = opts || {};
   const container = document.getElementById("mapvx-container");
   const iframe = document.getElementById("map-iframe");
+  const wcStage = document.getElementById("mapvx-wc-stage");
 
   logMap("info", "openPoiMapViaMapVx start", opts);
   logMapVxConfig("openPoiMapViaMapVx");
@@ -6709,10 +6794,23 @@ async function openPoiMapViaMapVx(opts) {
 
   applyMapVxDefaultsFromMapPage();
 
+  // Soft-hide WC (keep warm). Do not destroy — next store open should reuse it.
+  if (typeof MapVxWcRuntime !== "undefined") {
+    try {
+      if (MapVxWcRuntime.hide) MapVxWcRuntime.hide();
+      else if (MapVxWcRuntime.teardown) MapVxWcRuntime.teardown();
+    } catch (e) { /* noop */ }
+  }
+  if (wcStage) {
+    wcStage.classList.add("hidden");
+    wcStage.classList.remove("preload-mount");
+  }
+
   iframe.classList.add("hidden");
   iframe.src = "";
   setMapLoadingState(true);
   container.classList.remove("hidden");
+  mobilityActiveMapEngine = "legacy";
 
   const mapAlreadyLive = typeof MapVxBridge.hasLiveMap === "function" && MapVxBridge.hasLiveMap();
   if (mapAlreadyLive && typeof MapVxBridge.notifyMapContainerShown === "function") {
@@ -6780,8 +6878,8 @@ async function openPoiMapViaMapVx(opts) {
     setMapLoadingState(false);
     startMapZoomMeter();
     attachMapZoomLabelSwitcher(result);
-    logMap("info", "openPoiMapViaMapVx success", result);
-    window.__mapVxLastLog = { ts: Date.now(), phase: "success", result: result };
+    logMap("info", "openPoiMapViaMapVx success", Object.assign({ engine: "legacy" }, result));
+    window.__mapVxLastLog = { ts: Date.now(), phase: "success", engine: "legacy", result: result };
     clearAutoMapLaunchUi();
     try { pushMobilityView('map'); } catch (e) {}
   } catch (e) {
@@ -6816,6 +6914,155 @@ async function openPoiMapViaMapVx(opts) {
     setMapStatus("");
   }
 }
+
+let mobilityActiveMapEngine = "none";
+let mobilityWcReady = false;
+
+function preferredMobilityMapEngine() {
+  if (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.readMapEngine) {
+    return MapVxWcRuntime.readMapEngine();
+  }
+  return "auto";
+}
+
+function initMobilityWcRuntime() {
+  if (mobilityWcReady || typeof MapVxWcRuntime === "undefined") return mobilityWcReady;
+  try {
+    MapVxWcRuntime.init({
+      placeMount: "#mapvx-wc-place",
+      routeMount: "#mapvx-wc-route-mount",
+      placeView: "#mapvx-wc-place-view",
+      routeView: "#mapvx-wc-route-view",
+      log: function (line) { logMap("info", String(line)); },
+      onRouteClosed: function () {
+        mobilityMapRouteActive = false;
+        updateMapRouteButton({ routeActive: false });
+      },
+    });
+    mobilityWcReady = true;
+  } catch (error) {
+    logMap("warn", "wc runtime init failed", { message: String(error && (error.message || error)) });
+    mobilityWcReady = false;
+  }
+  return mobilityWcReady;
+}
+
+async function resolveStorePlaceIdForWc(opts) {
+  const local = String((opts && opts.local) || "").trim();
+  if (local && !/^\d+$/.test(local)) return local;
+  const catalogId = String((opts && (opts.catalogId || opts.id)) || "").trim();
+  try {
+    if (typeof MarketSearch !== "undefined" && MarketSearch.loadCatalog) {
+      await MarketSearch.loadCatalog();
+      const hit = MarketSearch.findExact && MarketSearch.findExact({
+        id: catalogId,
+        local: local,
+        name: opts && opts.name,
+        floor: opts && opts.floor,
+      });
+      if (hit && hit.local) return String(hit.local).trim();
+      if (hit && Array.isArray(hit.locations)) {
+        for (let i = 0; i < hit.locations.length; i++) {
+          if (hit.locations[i] && hit.locations[i].local) {
+            return String(hit.locations[i].local).trim();
+          }
+        }
+      }
+    }
+  } catch (error) {
+    logMap("warn", "wc placeId resolve failed", { message: String(error && (error.message || error)) });
+  }
+  return local || "";
+}
+
+async function openPoiMapViaMapVxWc(opts) {
+  const enginePref = preferredMobilityMapEngine();
+  const placeId = await resolveStorePlaceIdForWc(opts);
+  const cfg = (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.readConfig)
+    ? MapVxWcRuntime.readConfig()
+    : (window.MAPVX_CONFIG || {});
+  const canTryWc = enginePref !== "legacy"
+    && typeof MapVxWcRuntime !== "undefined"
+    && MapVxWcRuntime.isAvailable
+    && MapVxWcRuntime.isAvailable()
+    && !!placeId
+    && !!cfg.apiKey;
+
+  if (!canTryWc) {
+    if (enginePref === "wc") {
+      throw new Error(placeId ? "MapVX Web Components no disponibles" : "Falta local MapVX routable");
+    }
+    return openPoiMapViaMapVx(opts);
+  }
+
+  const container = document.getElementById("mapvx-container");
+  const iframe = document.getElementById("map-iframe");
+  const wcStage = document.getElementById("mapvx-wc-stage");
+  const placeholder = document.getElementById("map-placeholder");
+
+  logMap("info", "openPoiMapViaMapVxWc start", { placeId: placeId, mode: opts && opts.mode });
+  initMobilityWcRuntime();
+  applyMapVxDefaultsFromMapPage();
+
+  iframe.classList.add("hidden");
+  iframe.src = "";
+  if (placeholder) placeholder.classList.add("hidden");
+  // Soft-hide legacy without destroying — services and WC fallback still need it warm.
+  if (container) container.classList.add("hidden");
+  if (wcStage) {
+    wcStage.classList.remove("hidden");
+    wcStage.classList.remove("preload-mount");
+  }
+  setMapLoadingState(true);
+  setMapStatus(t("mapLoading") || "Cargando mapa…");
+  resetMapControls();
+
+  try {
+    const wantsRoute = opts && opts.mode === "navigation";
+    const cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
+    if (wantsRoute && MapVxWcRuntime.hasRouteOrigin()) {
+      await MapVxWcRuntime.showRoute(placeId, { timeoutMs: 15000 });
+      mobilityMapRouteActive = true;
+    } else {
+      await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 2500 : 6000 });
+      mobilityMapRouteActive = false;
+    }
+    mobilityActiveMapEngine = "wc";
+    setMapStatus("");
+    setMapLoadingState(false);
+    updateMapRouteButton({ routeActive: mobilityMapRouteActive });
+    const floorBadge = document.getElementById("map-current-floor");
+    if (floorBadge) floorBadge.classList.add("hidden");
+    logMap("info", "openPoiMapViaMapVxWc success", { engine: "wc", placeId: placeId, cached: cached });
+    window.__mapVxLastLog = { ts: Date.now(), phase: "success", engine: "wc", placeId: placeId, cached: cached };
+    clearAutoMapLaunchUi();
+    try { pushMobilityView("map"); } catch (e) {}
+  } catch (error) {
+    const message = String(error && (error.message || error));
+    logMap("warn", "wc store map failed — fallback", { message: message, enginePref: enginePref });
+    if (enginePref === "wc") {
+      setMapLoadingState(false);
+      if (wcStage) wcStage.classList.add("hidden");
+      if (placeholder) {
+        placeholder.innerHTML =
+          `<div><strong>${escapeHtml(t("mapError") || "No se pudo cargar el mapa")}</strong><br><br>` +
+          `${escapeHtml((opts && opts.name) || "")}<br>${escapeHtml(message)}</div>`;
+        placeholder.classList.remove("hidden");
+      }
+      setMapStatus("");
+      return;
+    }
+    if (typeof MapVxWcRuntime !== "undefined") {
+      try {
+        if (MapVxWcRuntime.hide) MapVxWcRuntime.hide();
+        else if (MapVxWcRuntime.teardown) MapVxWcRuntime.teardown();
+      } catch (e) { /* noop */ }
+    }
+    await openPoiMapViaMapVx(opts);
+  }
+}
+
+let mobilityMapRouteActive = false;
 
 function openPoiMapViaIframe({ poiType, id, floor, mall, name, local }) {
   logMap("warn", "openPoiMapViaIframe fallback (MapVX not configured or unavailable)", {
@@ -6963,6 +7210,10 @@ function openPoiMap(opts) {
       };
 
   const doOpen = function() {
+    if (poiType === "store") {
+      openPoiMapViaMapVxWc(mapOptions);
+      return;
+    }
     if (useMapVxSdk()) {
       openPoiMapViaMapVx(mapOptions);
     } else {
@@ -7163,6 +7414,14 @@ function closeMapView() {
     && MapVxBridge.hasLiveMap
     && MapVxBridge.hasLiveMap();
 
+  // Park WC map warm instead of destroying it — next store open reuses mapReady.
+  if (typeof MapVxWcRuntime !== "undefined") {
+    try {
+      if (MapVxWcRuntime.hide) MapVxWcRuntime.hide();
+      else if (MapVxWcRuntime.teardown) MapVxWcRuntime.teardown();
+    } catch (e) { /* noop */ }
+  }
+
   if (typeof MapVxBridge !== "undefined") {
     if (MapVxBridge.suspendMap) {
       MapVxBridge.suspendMap();
@@ -7178,6 +7437,8 @@ function closeMapView() {
   stopMapZoomMeter();
   resetMapControls();
   hideStoreDetailPanel();
+  mobilityActiveMapEngine = "none";
+  mobilityMapRouteActive = false;
   document.getElementById("map-view").classList.add("hidden");
   document.getElementById("map-iframe").src = "";
   document.getElementById("map-iframe").classList.add("hidden");

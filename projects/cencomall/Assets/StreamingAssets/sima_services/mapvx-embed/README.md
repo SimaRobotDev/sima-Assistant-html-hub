@@ -1,9 +1,12 @@
 # MapVX Embed Scaffold
 
-This folder holds opt-in experiments for MapVX integration. Nothing here
-replaces the current MapVX bridge (`../shared/mapvx-bridge.js` on top of
-`../shared/mapvx/index.js`) — `map/index.html` and `store-map/index.html`
-remain the production flow until we deliberately cut over.
+This folder holds MapVX experiments and docs. Production store maps now prefer
+the official Web Components via `../shared/mapvx-wc-runtime.js`:
+
+- `../store-map/index.html` — WC first, automatic fallback to
+  `../shared/mapvx-bridge.js` if WC fails (`?mapEngine=auto|wc|legacy`)
+- `../mobility/index.html` — store maps use the same WC runtime + fallback;
+  **service** maps (bathrooms, elevators, …) stay on the legacy bridge
 
 ## `index.html` — postMessage config harness
 
@@ -18,32 +21,24 @@ A from-scratch rebuild of the store-map flow using MapVX's now-recommended
 `@mapvx/web-components` (`<map-view-with-modal>` for showing a place,
 `<route-view-totems>` for a totem-to-store route), per
 https://web-components.docs.mapvx.com/es and their iframe migration guide.
-It does **not** use `mapvx-bridge.js` or the legacy `MapVX` SDK bundle at
-all — no MapLibre-internals poking, no manual POI/label querying.
+Shared camera/POI helpers live in `../shared/mapvx-wc-runtime.js` (also used
+by production `store-map` / mobility).
 
 The real component bundle is vendored under `../shared/mapvx-wc/` (see that
-folder's README for provenance/version) — turns out the "private" npm
-package is actually publicly downloadable from the npm registry, no
-credentials needed. Open this page with a real `apiKey` (via the on-page
-Config panel or `?local=CC_N3_3129` once config is saved) to test against
+folder's README for provenance/version). Open `../store-map-web/index.html`
+with a real `apiKey` (Config panel or injected `MAPVX_CONFIG`) to QA against
 Costanera's real MapVX data.
 
 Known gap: the Web Component API only covers "show a place" and "show a
 route" — it has no equivalent for the POI-matching / patch-export tooling
-in `map/index.html` (bathroom & elevator anchor discovery). That page is
-expected to keep using the legacy SDK as an internal QA tool.
+in `map/index.html` (bathroom & elevator anchor discovery). Service maps
+therefore keep using the legacy SDK.
 
 Known quirk (confirmed in browser, harmless so far): loading both
 `map-view-with-modal.js` and `route-view-totems.js` on the same page logs
-a `NotSupportedError: ... "custom-map" has already been used with this
-registry` — both bundles vendor their own copy of shared internals
-(`custom-map`, floor selector, etc.) and each self-registers on load, so
-the second script's define call for anything already-registered throws.
-Verified with `customElements.get(...)` that both `map-view-with-modal`
-and `route-view-totems` still end up defined and working despite the
-error — but it's noisy and worth asking MapVX about (or switching to
-lazy-loading `route-view-totems.js` only when the user taps "Ver ruta",
-instead of both scripts up front).
+a `NotSupportedError` for duplicate `custom-map` registration. Production
+pages **lazy-load** `route-view-totems.js` only when the user asks for a
+route to avoid that noise.
 
 ## `mvx-tiles-sw.js`
 
