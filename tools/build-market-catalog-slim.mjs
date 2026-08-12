@@ -43,6 +43,8 @@ const SLIM_KEYS = [
   "brand_logo",
   // Store photo URLs (relative); store-map / mobility detail panels consume these.
   "market_photos",
+  // Opening hours; needed offline / without Bearer token for GET /market/{id}.
+  "market_schedules",
 ];
 
 function parseArgs(argv) {
@@ -102,6 +104,23 @@ function projectSlim(item) {
     out.market_photos = [item.market_photos.trim()];
   }
   if (out.market_photos && !out.market_photos.length) delete out.market_photos;
+
+  if (Array.isArray(item.market_schedules)) {
+    out.market_schedules = item.market_schedules
+      .map(function (row) {
+        if (!row || typeof row !== "object") return null;
+        const days = String(row.dias_txhorarios || row.days || row.day || "").trim();
+        const hours = String(row.horas_txhorarios || row.hours || row.time || "").trim();
+        if (!days && !hours) return null;
+        const slimRow = {};
+        if (days) slimRow.dias_txhorarios = days;
+        if (hours) slimRow.horas_txhorarios = hours;
+        return slimRow;
+      })
+      .filter(Boolean);
+  }
+  if (out.market_schedules && !out.market_schedules.length) delete out.market_schedules;
+
   return out;
 }
 

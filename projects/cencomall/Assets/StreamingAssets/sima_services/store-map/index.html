@@ -17,11 +17,13 @@
   <script src="../shared/bridge.js"></script>
   <script src="../shared/market-search.js"></script>
   <script src="../shared/market-i18n.js"></script>
-  <script src="../shared/store-detail.js?v=20260810-2"></script>
+  <script src="../shared/store-detail.js?v=20260812-3"></script>
   <script src="../shared/mapvx/index.js"></script>
   <script src="../shared/mapvx-bridge.js"></script>
   <script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
-  <script src="../shared/mapvx-wc-runtime.js?v=20260812-2"></script>
+  <!-- Preload route WC: Unity WebViews often block dynamically injected scripts. -->
+  <script src="../shared/mapvx-wc/route-view-totems.js" data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
+  <script src="../shared/mapvx-wc-runtime.js?v=20260812-3"></script>
   <style>
     html, body {
       margin: 0;
@@ -307,7 +309,7 @@ const DEFAULT_PARENT_PLACE = "-N19VjzEVIj2RDKu7i4r";
 const DEFAULT_INSTITUTION_ID = "-N19VgPNxo3jiBtu583Z";
 const CONFIG_WAIT_MS = 8000;
 const WC_PLACE_TIMEOUT_MS = 6000;
-const WC_ROUTE_TIMEOUT_MS = 15000;
+const WC_ROUTE_TIMEOUT_MS = 18000;
 
 let activeMapEngine = "none";
 let lastFallbackReason = "";
@@ -964,7 +966,9 @@ async function onRouteToggle() {
       } else {
         const placeId = (MapVxWcRuntime.getLastPlaceId && MapVxWcRuntime.getLastPlaceId())
           || (lastRequest && lastRequest.local)
+          || (lastResult && lastResult.clientId)
           || "";
+        if (!placeId) throw new Error("missing destination placeId");
         await MapVxWcRuntime.showRoute(placeId, { timeoutMs: WC_ROUTE_TIMEOUT_MS });
         routeActive = true;
       }

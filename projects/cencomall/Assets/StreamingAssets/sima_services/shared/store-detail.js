@@ -183,7 +183,9 @@
     );
     var schedules = Array.isArray(detail.market_schedules) && detail.market_schedules.length
       ? detail.market_schedules
-      : (base.market_schedules || base.schedules || base.schedule || []);
+      : (Array.isArray(detail.schedules) && detail.schedules.length
+        ? detail.schedules
+        : (base.market_schedules || base.schedules || base.schedule || []));
     var photos = pickPhotos(detail, base);
     var descriptionLocales = Object.assign({}, base.descriptionLocales || {});
     if (description) descriptionLocales.es = description;

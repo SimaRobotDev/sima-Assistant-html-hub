@@ -37,8 +37,10 @@ therefore keep using the legacy SDK.
 Known quirk (confirmed in browser, harmless so far): loading both
 `map-view-with-modal.js` and `route-view-totems.js` on the same page logs
 a `NotSupportedError` for duplicate `custom-map` registration. Production
-pages **lazy-load** `route-view-totems.js` only when the user asks for a
-route to avoid that noise.
+pages still **preload** `route-view-totems.js` (Unity WebViews often block
+dynamically injected scripts, which broke "Ver ruta"). The duplicate
+registration warning is noisy but safe — `customElements.get("custom-map")`
+already exists from the first bundle.
 
 ## `mvx-tiles-sw.js`
 

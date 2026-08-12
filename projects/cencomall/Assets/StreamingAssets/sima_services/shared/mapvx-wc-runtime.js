@@ -333,10 +333,18 @@
     for (var i = 0; i < scripts.length; i++) {
       var src = scripts[i].src || "";
       if (/mapvx-wc-runtime\.js/i.test(src)) {
-        return src.replace(/mapvx-wc-runtime\.js.*$/i, "");
+        try {
+          return new URL(src.replace(/mapvx-wc-runtime\.js.*$/i, ""), document.baseURI).href;
+        } catch (e) {
+          return src.replace(/mapvx-wc-runtime\.js.*$/i, "");
+        }
       }
     }
-    return "../shared/";
+    try {
+      return new URL("../shared/", document.baseURI).href;
+    } catch (e2) {
+      return "../shared/";
+    }
   }
 
   function ensureRouteBundle() {
@@ -346,9 +354,24 @@
     if (state.routeBundlePromise) return state.routeBundlePromise;
 
     state.routeBundlePromise = new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[data-mvx-route-bundle="1"]');
+      if (existing) {
+        existing.addEventListener("load", function () {
+          if (customElements.get("route-view-totems")) resolve(true);
+          else reject(new Error("route-view-totems not defined after load"));
+        });
+        existing.addEventListener("error", function () {
+          reject(new Error("failed to load route-view-totems.js"));
+        });
+        // Already finished loading before we attached listeners.
+        if (customElements.get("route-view-totems")) resolve(true);
+        return;
+      }
+
       var script = document.createElement("script");
       script.src = scriptBase() + "mapvx-wc/route-view-totems.js";
       script.async = true;
+      script.setAttribute("data-mvx-route-bundle", "1");
       script.onload = function () {
         if (typeof customElements !== "undefined" && customElements.get("route-view-totems")) {
           resolve(true);
@@ -383,21 +406,20 @@
     }
   }
 
-  function showWcShell() {
+  function showWcShell(mode) {
     state.visible = true;
-    if (state.placeView) state.placeView.classList.remove("hidden");
-    if (state.routeView) state.routeView.classList.add("hidden");
-    if (state.placeMount) {
-      state.placeMount.classList.remove("hidden");
-      if (state.placeMount.parentElement) {
-        state.placeMount.parentElement.classList.remove("hidden");
-        state.placeMount.parentElement.classList.remove("preload-mount");
-      }
-    }
     var stage = document.getElementById("mapvx-wc-stage");
     if (stage) {
       stage.classList.remove("hidden");
       stage.classList.remove("preload-mount");
+    }
+    if (mode === "route") {
+      setActiveView("route");
+      return;
+    }
+    setActiveView("place");
+    if (state.placeMount) {
+      state.placeMount.classList.remove("hidden");
     }
   }
 
@@ -437,7 +459,7 @@
   }
 
   function notifyShown() {
-    showWcShell();
+    showWcShell("place");
     // Double rAF: wait until layout is visible before resizing WebGL.
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
@@ -611,7 +633,7 @@
         return;
       }
 
-      showWcShell();
+      showWcShell("place");
       setActiveView("place");
       state.lastPlaceId = id;
       state.routeActive = false;
@@ -685,6 +707,36 @@
     }
   }
 
+  function applyRouteCredentials(routeEl, cfg, origin, dest) {
+    // Prefer JS property assignment so Lit setters (incl. custom destinationId)
+    // run; attributes alone can miss the controller init path on some hosts.
+    routeEl.apiKey = cfg.apiKey || "";
+    routeEl.parentPlaceId = cfg.parentPlace || cfg.parentPlaceId || "";
+    routeEl.locale = cfg.lang || "es";
+    routeEl.originId = origin;
+    routeEl.destinationId = dest;
+    routeEl.setAttribute("apiKey", cfg.apiKey || "");
+    routeEl.setAttribute("parentPlaceId", cfg.parentPlace || cfg.parentPlaceId || "");
+    routeEl.setAttribute("locale", cfg.lang || "es");
+    routeEl.setAttribute("originId", origin);
+    routeEl.setAttribute("destinationId", dest);
+  }
+
+  function kickRouteGeneration(routeEl, origin, dest) {
+    try {
+      if (routeEl && routeEl.sdkController && typeof routeEl.sdkController.setOriginAndDestination === "function") {
+        if (routeEl.sdkController.connected) {
+          routeEl.sdkController.setOriginAndDestination(origin, dest);
+          log("kickRouteGeneration via sdkController");
+          return true;
+        }
+      }
+    } catch (e) {
+      log("kickRouteGeneration failed: " + (e && e.message ? e.message : e));
+    }
+    return false;
+  }
+
   function showRoute(destinationId, options) {
     options = options || {};
     var timeoutMs = options.timeoutMs != null ? Number(options.timeoutMs) : ROUTE_TIMEOUT_MS;
@@ -710,10 +762,15 @@
           reject(new Error("missing MapVX apiKey"));
           return;
         }
+        if (typeof customElements === "undefined" || !customElements.get("route-view-totems")) {
+          reject(new Error("route-view-totems not available"));
+          return;
+        }
 
-        showWcShell();
-        setActiveView("route");
+        // Show the route shell BEFORE mounting so MapLibre gets a non-zero layout box.
+        showWcShell("route");
         state.routeMount.innerHTML = "";
+        state.lastPlaceId = dest;
 
         var routeEl = document.createElement("route-view-totems");
         routeEl.id = "mvx-route";
@@ -742,7 +799,7 @@
           reject(err);
         }
 
-        routeEl.addEventListener("mapReady", function () {
+        function onMapReady() {
           hideGenericPoiIcons(routeEl);
           var libreMap = getLiveMap(routeEl);
           if (libreMap) flattenBuildings(libreMap);
@@ -758,22 +815,40 @@
           }
           log("route-view-totems: mapReady");
           succeed({ placeId: dest, originId: origin, route: true, engine: "wc" });
-        });
+        }
+
+        routeEl.addEventListener("mapReady", onMapReady);
         routeEl.addEventListener("back", function () {
           closeRoute();
+        });
+        routeEl.addEventListener("routeAnimationStart", function () {
+          log("route-view-totems: routeAnimationStart");
+          succeed({ placeId: dest, originId: origin, route: true, engine: "wc", animated: true });
         });
 
         clearRouteTimeout();
         state.routeTimeoutId = setTimeout(function () {
-          fail(new Error("wc route timeout"));
-        }, timeoutMs);
+          // Last-chance kick in case Lit init raced ahead of credentials.
+          kickRouteGeneration(routeEl, origin, dest);
+          setTimeout(function () {
+            if (!settled) fail(new Error("wc route timeout"));
+          }, 2500);
+        }, Math.max(1000, timeoutMs - 2500));
 
-        routeEl.setAttribute("apiKey", cfg.apiKey || "");
-        routeEl.setAttribute("parentPlaceId", cfg.parentPlace || cfg.parentPlaceId || "");
-        routeEl.setAttribute("locale", cfg.lang || "es");
-        routeEl.setAttribute("destinationId", dest);
-        routeEl.setAttribute("originId", origin);
-        log("showRoute " + JSON.stringify({ destinationId: dest, originId: origin }));
+        // Defer credential application one frame so hostConnected has run.
+        requestAnimationFrame(function () {
+          applyRouteCredentials(routeEl, cfg, origin, dest);
+          log("showRoute " + JSON.stringify({ destinationId: dest, originId: origin }));
+          // After Lit firstUpdated (~microtasks), force setOriginAndDestination.
+          var kicks = 0;
+          function tryKick() {
+            kicks += 1;
+            if (settled) return;
+            if (kickRouteGeneration(routeEl, origin, dest) || kicks >= 20) return;
+            setTimeout(tryKick, 100);
+          }
+          setTimeout(tryKick, 50);
+        });
       });
     });
   }

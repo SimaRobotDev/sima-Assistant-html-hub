@@ -162,11 +162,14 @@ window.MarketSearch = (function () {
       local: String(item.local || "").trim(),
       logoUrl: String(item.brand_logo || item.logoUrl || item.logo || "").trim(),
       brand_logo: String(item.brand_logo || item.logoUrl || item.logo || "").trim(),
-      // Photos come from slim catalog when present; schedules/description may
+      // Photos + schedules come from slim catalog when present; description may
       // still arrive via MarketI18n overlay, GET /market/{id}, or applyStoreDetail.
       market_photos: Array.isArray(item.market_photos)
         ? item.market_photos.map(function (url) { return String(url || "").trim(); }).filter(Boolean)
         : [],
+      market_schedules: Array.isArray(item.market_schedules)
+        ? item.market_schedules
+        : (Array.isArray(item.schedules) ? item.schedules : []),
       description: String(item.brand_description || item.description || "").trim(),
       descriptionLocales: {
         es: String(item.brand_description || item.description || "").trim(),
@@ -176,7 +179,9 @@ window.MarketSearch = (function () {
       keywords: String(item.keywords || "").trim(),
       mall: String(item.mall || "").trim(),
       available: isAvailable(item),
-      schedules: item.market_schedules || item.schedules || [],
+      schedules: Array.isArray(item.market_schedules)
+        ? item.market_schedules
+        : (item.schedules || []),
       website: String(item.brand_website || item.website || "").trim(),
       source: "market-catalog",
     };
