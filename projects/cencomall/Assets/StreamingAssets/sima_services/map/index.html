@@ -231,10 +231,7 @@ function applyManualConfig(save) {
     institutionId: cfg.institutionId,
     lang: cfg.lang,
     totemPlaceId: cfg.totemPlaceId || "",
-    // Disabled 2026-08-06: MapVX confirmed these anchor logo/round-icon
-    // overlays are ours (built in mapvx-bridge.js), not part of their
-    // rendering — off until we settle with them whether/how to keep it.
-    showStoreLabels: "none",
+    showStoreLabels: "featured",
     storeLabelMax: 0,
     storeLabelZoomDelta: 1.2,
   };

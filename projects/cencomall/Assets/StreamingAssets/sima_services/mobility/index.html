@@ -6544,12 +6544,8 @@ function applyMapVxDefaultsFromMapPage() {
   if (!window.MAPVX_CONFIG) window.MAPVX_CONFIG = {};
   const cfg = window.MAPVX_CONFIG;
 
-  // Keep mobility map behavior aligned with map/index defaults while
-  // respecting Unity-injected values (e.g. totemPlaceId for route mode).
-  // Disabled 2026-08-06: MapVX confirmed these anchor logo/round-icon
-  // overlays are ours (built in mapvx-bridge.js), not part of their
-  // rendering — off until we settle with them whether/how to keep it.
-  if (!cfg.showStoreLabels) cfg.showStoreLabels = "none";
+  // Anchor logos (Falabella, Ripley, Paris…) via mapvx-bridge overlays + local PNGs.
+  if (!cfg.showStoreLabels) cfg.showStoreLabels = "featured";
   if (cfg.storeLabelMax == null) cfg.storeLabelMax = 0;
   if (cfg.storeLabelZoomDelta == null || !isFinite(Number(cfg.storeLabelZoomDelta))) {
     cfg.storeLabelZoomDelta = 1.2;
