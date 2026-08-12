@@ -89,6 +89,7 @@ function resetToLanding() {
 <link rel="stylesheet" href="../shared/cencobricks-tokens.css" />
 <link rel="stylesheet" href="../shared/cencobricks-shell.css" />
 <link rel="stylesheet" href="../shared/app.css" />
+<link rel="stylesheet" href="../shared/store-detail.css?v=20260812-4" />
 <link rel="stylesheet" href="../shared/mapvx/styles.css" />
 <script src="../shared/locale.js"></script>
 <script src="../shared/native-payload.js"></script>
@@ -102,8 +103,8 @@ function resetToLanding() {
 <script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
 <!-- Preload route WC: Unity WebViews often block dynamically injected scripts. -->
 <script src="../shared/mapvx-wc/route-view-totems.js" data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
-<script src="../shared/mapvx-wc-runtime.js?v=20260812-3"></script>
-<script src="../shared/store-detail.js?v=20260812-3"></script>
+<script src="../shared/mapvx-wc-runtime.js?v=20260812-4"></script>
+<script src="../shared/store-detail.js?v=20260812-4"></script>
 <script src="../assistant-embed.js"></script>
 <style>
 /* Color/type/space tokens: ../shared/cencobricks-tokens.css (--cb-* and --cm-* aliases) */
@@ -5761,7 +5762,8 @@ function resolveStore(groupIndex, locationIndex) {
     category: result.category,
     local: result.local,
     schedule: result.schedule,
-    schedules: result.schedules,
+    schedules: result.schedules || result.market_schedules,
+    market_schedules: result.market_schedules || result.schedules,
     brand: result.brand,
     mall: result.mall,
     logoUrl: result.logoUrl,
@@ -5787,7 +5789,12 @@ function resolveStore(groupIndex, locationIndex) {
       category: loc.category || base.category,
       local: loc.local || base.local,
       schedule: loc.schedule || base.schedule,
-      schedules: Array.isArray(loc.schedules) && loc.schedules.length ? loc.schedules : base.schedules,
+      schedules: Array.isArray(loc.schedules) && loc.schedules.length
+        ? loc.schedules
+        : (Array.isArray(loc.market_schedules) && loc.market_schedules.length
+          ? loc.market_schedules
+          : base.schedules),
+      market_schedules: loc.market_schedules || loc.schedules || base.market_schedules,
       market_photos: loc.market_photos || base.market_photos,
       available: loc.available !== false
     };
@@ -5805,9 +5812,17 @@ function renderStoreDetailPanel(store) {
     return;
   }
 
+  // Prefer shared StoreDetail renderer (same as store-map) when available.
+  if (typeof StoreDetail !== "undefined" && StoreDetail.render) {
+    StoreDetail.render(panel, store, { locale: mobilityLocale || "es" });
+    panel.classList.remove("hidden");
+    return;
+  }
+
   const displayName = sanitizeStoreDisplayName(store.name || store.brand || t("results"));
   const scheduleText = formatStoreScheduleText(store);
   const description = String(localizeStoreDescription(store)).trim();
+  const floorLabel = formatNivel(store.floor);
   panel.innerHTML = `
     <div class="store-detail-header">
       <div class="store-detail-media-column">
@@ -5816,6 +5831,7 @@ function renderStoreDetailPanel(store) {
       </div>
       <div class="store-detail-head-text">
         <h2 class="store-detail-name">${escapeHtml(displayName)}</h2>
+        ${floorLabel && floorLabel !== "—" ? `<div class="store-detail-meta"><span class="store-badge store-badge-floor">${escapeHtml(floorLabel)}</span></div>` : ""}
         ${description ? `<p class="store-detail-desc">${escapeHtml(description)}</p>` : ""}
       </div>
     </div>`;
@@ -6672,6 +6688,11 @@ function updateMapZoomMeter() {
   const wrap = document.querySelector(".map-embed-wrap");
   const mapView = document.getElementById("map-view");
   if (!meter || !wrap || !mapView || mapView.classList.contains("hidden")) return;
+  // WC map has no MapVxBridge view-state — hide the legacy zoom chip.
+  if (mobilityActiveMapEngine === "wc") {
+    meter.classList.add("hidden");
+    return;
+  }
   if (typeof MapVxBridge === "undefined" || !MapVxBridge.getMapViewState) {
     meter.classList.add("hidden");
     return;
@@ -6785,16 +6806,18 @@ async function onMapRouteToggle() {
   if (!btn || btn.disabled) return;
   try {
     if (mobilityActiveMapEngine === "wc" && typeof MapVxWcRuntime !== "undefined") {
-      if (mobilityMapRouteActive) {
+      if (mobilityMapRouteActive || (MapVxWcRuntime.isRouteActive && MapVxWcRuntime.isRouteActive())) {
         MapVxWcRuntime.closeRoute();
         mobilityMapRouteActive = false;
       } else {
-        const placeId = (MapVxWcRuntime.getLastPlaceId && MapVxWcRuntime.getLastPlaceId())
-          || window.__mobilityLastWcPlaceId
+        const placeId = window.__mobilityLastWcPlaceId
+          || (MapVxWcRuntime.getLastPlaceId && MapVxWcRuntime.getLastPlaceId())
           || "";
         if (!placeId) throw new Error("missing destination placeId");
+        logMap("info", "wc route request", { placeId: placeId });
         await MapVxWcRuntime.showRoute(placeId, { timeoutMs: 18000 });
-        mobilityMapRouteActive = true;
+        mobilityMapRouteActive = !!(MapVxWcRuntime.isRouteActive && MapVxWcRuntime.isRouteActive());
+        if (!mobilityMapRouteActive) throw new Error("wc route did not stay active");
       }
       btn.textContent = mobilityMapRouteActive ? t("clearRoute") : t("viewRoute");
       setMapStatus(placeIdLabelForRoute() + (mobilityMapRouteActive ? " · " + t("routeActive") : ""));
@@ -6807,6 +6830,7 @@ async function onMapRouteToggle() {
     const title = session && session.result ? session.result.title : "";
     setMapStatus(title + (state.active ? " · " + t("routeActive") : ""));
   } catch (e) {
+    mobilityMapRouteActive = false;
     logMap("error", "onMapRouteToggle failed", { message: e.message || String(e) });
     // WC route failed → reopen this store on the legacy bridge with navigation.
     if (mobilityActiveMapEngine === "wc"
@@ -6826,6 +6850,7 @@ async function onMapRouteToggle() {
       }
     }
     setMapStatus(t("routeError") + ": " + (e.message || e));
+    btn.textContent = t("viewRoute");
   }
 }
 
@@ -7187,8 +7212,65 @@ function storeMapKey(store) {
 }
 
 function storeCatalogId(store) {
-  if (!store || store.id == null) return "";
-  return String(store.id).trim();
+  if (!store) return "";
+  const raw = String(store.catalogId || store.id || "").trim();
+  return /^\d+$/.test(raw) ? raw : "";
+}
+
+function enrichStoreFromCatalogSync(store) {
+  if (!store) return store;
+  try {
+    if (typeof MarketSearch === "undefined" || !MarketSearch.findExact) return store;
+    // Prefer already-loaded catalog; loadCatalog is async and handled by enrichStoreDetailPanel.
+    const hit = MarketSearch.findExact({
+      id: storeCatalogId(store) || store.id,
+      local: store.local,
+      name: store.name || store.brand,
+      floor: store.floor,
+    });
+    if (!hit) return store;
+    if (typeof StoreDetail !== "undefined" && StoreDetail.merge) {
+      return StoreDetail.merge(store, hit);
+    }
+    return mergeStoreDetail(store, hit);
+  } catch (e) {
+    return store;
+  }
+}
+
+function openStoreMap(groupIndex, locationIndex) {
+  let store = resolveStore(groupIndex, locationIndex);
+  store = enrichStoreFromCatalogSync(store);
+  const mapLocal = store && store.local != null ? String(store.local).trim() : "";
+  const mapCatalogId = storeCatalogId(store);
+  const mapKey = mapLocal || mapCatalogId;
+  logMap("info", "openStoreMap", {
+    groupIndex, locationIndex, mapLocal, mapCatalogId, mapKey,
+    photos: store && store.market_photos ? store.market_photos.length : 0,
+    schedules: store && store.schedules ? store.schedules.length : 0,
+  });
+  if (!store || store.available === false) {
+    logMap("warn", "openStoreMap skipped", { reason: !store ? "no store" : "unavailable" });
+    return;
+  }
+  if (!mapKey) {
+    logMap("error", "openStoreMap aborted: no local/id on store", { name: store.name });
+    return;
+  }
+
+  // Map uses `local` immediately — detail fetch must not block MapVX.
+  openPoiMap({
+    poiType: "store",
+    id: mapCatalogId || mapLocal,
+    catalogId: mapCatalogId,
+    floor: store.floor,
+    mall: store.mall,
+    name: store.name || store.brand,
+    local: mapLocal,
+    mode: "place",
+    storeDetail: store
+  });
+  enrichStoreDetailPanel(store);
 }
 
 function openPoiMap(opts) {
@@ -7353,36 +7435,6 @@ function waitForMapVxReady(fn, attempt) {
     return;
   }
   setTimeout(function () { waitForMapVxReady(fn, attempt + 1); }, 100);
-}
-
-function openStoreMap(groupIndex, locationIndex) {
-  const store = resolveStore(groupIndex, locationIndex);
-  const mapLocal = store && store.local != null ? String(store.local).trim() : "";
-  const mapCatalogId = storeCatalogId(store);
-  const mapKey = mapLocal || mapCatalogId;
-  logMap("info", "openStoreMap", { groupIndex, locationIndex, store, mapLocal, mapCatalogId, mapKey });
-  if (!store || store.available === false) {
-    logMap("warn", "openStoreMap skipped", { reason: !store ? "no store" : "unavailable" });
-    return;
-  }
-  if (!mapKey) {
-    logMap("error", "openStoreMap aborted: no local/id on store", { name: store.name });
-    return;
-  }
-
-  // Map uses `local` immediately — detail fetch must not block MapVX.
-  openPoiMap({
-    poiType: "store",
-    id: mapCatalogId || mapLocal,
-    catalogId: mapCatalogId,
-    floor: store.floor,
-    mall: store.mall,
-    name: store.name || store.brand,
-    local: mapLocal,
-    mode: "place",
-    storeDetail: store
-  });
-  enrichStoreDetailPanel(store);
 }
 
 function openServiceMap(idx, options) {

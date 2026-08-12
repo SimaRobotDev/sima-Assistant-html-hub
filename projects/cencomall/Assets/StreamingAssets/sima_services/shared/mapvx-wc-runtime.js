@@ -708,31 +708,39 @@
   }
 
   function applyRouteCredentials(routeEl, cfg, origin, dest) {
-    // Prefer JS property assignment so Lit setters (incl. custom destinationId)
-    // run; attributes alone can miss the controller init path on some hosts.
-    routeEl.apiKey = cfg.apiKey || "";
-    routeEl.parentPlaceId = cfg.parentPlace || cfg.parentPlaceId || "";
-    routeEl.locale = cfg.lang || "es";
-    routeEl.originId = origin;
-    routeEl.destinationId = dest;
+    // Match store-map-web attribute order exactly (destination before origin).
+    // Also assign Lit properties so custom destinationId accessor runs.
     routeEl.setAttribute("apiKey", cfg.apiKey || "");
     routeEl.setAttribute("parentPlaceId", cfg.parentPlace || cfg.parentPlaceId || "");
     routeEl.setAttribute("locale", cfg.lang || "es");
-    routeEl.setAttribute("originId", origin);
     routeEl.setAttribute("destinationId", dest);
+    routeEl.setAttribute("originId", origin);
+    try {
+      routeEl.apiKey = cfg.apiKey || "";
+      routeEl.parentPlaceId = cfg.parentPlace || cfg.parentPlaceId || "";
+      routeEl.locale = cfg.lang || "es";
+      routeEl.originId = origin;
+      routeEl.destinationId = dest;
+    } catch (e) { /* older hosts */ }
   }
 
-  function kickRouteGeneration(routeEl, origin, dest) {
+  function forceRouteDraw(routeEl, origin, dest) {
     try {
-      if (routeEl && routeEl.sdkController && typeof routeEl.sdkController.setOriginAndDestination === "function") {
-        if (routeEl.sdkController.connected) {
-          routeEl.sdkController.setOriginAndDestination(origin, dest);
-          log("kickRouteGeneration via sdkController");
-          return true;
-        }
+      if (!routeEl || !routeEl.sdkController) return false;
+      var ctrl = routeEl.sdkController;
+      if (!ctrl.connected) return false;
+      if (typeof ctrl.setOriginAndDestination === "function") {
+        ctrl.setOriginAndDestination(origin, dest);
+        log("forceRouteDraw setOriginAndDestination");
+        return true;
+      }
+      if (typeof ctrl.generateRoute === "function") {
+        ctrl.generateRoute();
+        log("forceRouteDraw generateRoute");
+        return true;
       }
     } catch (e) {
-      log("kickRouteGeneration failed: " + (e && e.message ? e.message : e));
+      log("forceRouteDraw failed: " + (e && e.message ? e.message : e));
     }
     return false;
   }
@@ -767,10 +775,15 @@
           return;
         }
 
-        // Show the route shell BEFORE mounting so MapLibre gets a non-zero layout box.
-        showWcShell("route");
+        // Tear down any previous route instance WITHOUT flipping back to place
+        // (closeRoute would fight the view switch below).
+        clearRouteTimeout();
+        state.routeActive = false;
         state.routeMount.innerHTML = "";
         state.lastPlaceId = dest;
+
+        showWcShell("route");
+        setActiveView("route");
 
         var routeEl = document.createElement("route-view-totems");
         routeEl.id = "mvx-route";
@@ -778,20 +791,34 @@
           "style",
           "--mvx-primary-color:#5B2D8E; --mvx-surface-color:#ffffff; --mvx-on-surface-color:#3D1D5C;"
         );
-        state.routeMount.appendChild(routeEl);
 
         var settled = false;
+        var ignoringBack = true;
         function succeed(payload) {
           if (settled) return;
+          if (!routeEl.isConnected) {
+            fail(new Error("route element disconnected before ready"));
+            return;
+          }
           settled = true;
+          ignoringBack = false;
           clearRouteTimeout();
+          // Re-assert route shell — callers must not see place underneath.
+          showWcShell("route");
+          setActiveView("route");
           state.routeActive = true;
+          if (typeof state.callbacks.onRouteReady === "function") {
+            try { state.callbacks.onRouteReady(payload); } catch (e) { /* noop */ }
+          }
           resolve(payload);
         }
         function fail(reason) {
           if (settled) return;
           settled = true;
+          ignoringBack = false;
           clearRouteTimeout();
+          state.routeActive = false;
+          setActiveView("place");
           var err = reason instanceof Error ? reason : new Error(String(reason || "wc showRoute failed"));
           if (typeof state.callbacks.onError === "function") {
             try { state.callbacks.onError(err); } catch (e) { /* noop */ }
@@ -799,56 +826,54 @@
           reject(err);
         }
 
-        function onMapReady() {
+        routeEl.addEventListener("mapReady", function () {
           hideGenericPoiIcons(routeEl);
           var libreMap = getLiveMap(routeEl);
           if (libreMap) flattenBuildings(libreMap);
-          if (typeof state.callbacks.onRouteReady === "function") {
-            try {
-              state.callbacks.onRouteReady({
-                placeId: dest,
-                originId: origin,
-                route: true,
-                engine: "wc",
-              });
-            } catch (e) { /* noop */ }
-          }
-          log("route-view-totems: mapReady");
-          succeed({ placeId: dest, originId: origin, route: true, engine: "wc" });
-        }
-
-        routeEl.addEventListener("mapReady", onMapReady);
-        routeEl.addEventListener("back", function () {
-          closeRoute();
+          log("route-view-totems: mapReady — forcing route draw");
+          forceRouteDraw(routeEl, origin, dest);
+          // Allow one more kick shortly after mapReady (SDK sometimes needs it).
+          setTimeout(function () { forceRouteDraw(routeEl, origin, dest); }, 300);
+          setTimeout(function () {
+            succeed({
+              placeId: dest,
+              originId: origin,
+              route: true,
+              engine: "wc",
+            });
+          }, 600);
         });
         routeEl.addEventListener("routeAnimationStart", function () {
           log("route-view-totems: routeAnimationStart");
-          succeed({ placeId: dest, originId: origin, route: true, engine: "wc", animated: true });
+          succeed({
+            placeId: dest,
+            originId: origin,
+            route: true,
+            engine: "wc",
+            animated: true,
+          });
         });
+        routeEl.addEventListener("back", function () {
+          // Ignore spurious back during mount/init (seen on some MapVX builds).
+          if (ignoringBack || !settled) {
+            log("route-view-totems: ignoring early back");
+            return;
+          }
+          closeRoute();
+        });
+
+        state.routeMount.appendChild(routeEl);
+        // Sync credentials immediately after append — same as store-map-web.
+        applyRouteCredentials(routeEl, cfg, origin, dest);
+        log("showRoute " + JSON.stringify({ destinationId: dest, originId: origin }));
 
         clearRouteTimeout();
         state.routeTimeoutId = setTimeout(function () {
-          // Last-chance kick in case Lit init raced ahead of credentials.
-          kickRouteGeneration(routeEl, origin, dest);
+          forceRouteDraw(routeEl, origin, dest);
           setTimeout(function () {
             if (!settled) fail(new Error("wc route timeout"));
-          }, 2500);
-        }, Math.max(1000, timeoutMs - 2500));
-
-        // Defer credential application one frame so hostConnected has run.
-        requestAnimationFrame(function () {
-          applyRouteCredentials(routeEl, cfg, origin, dest);
-          log("showRoute " + JSON.stringify({ destinationId: dest, originId: origin }));
-          // After Lit firstUpdated (~microtasks), force setOriginAndDestination.
-          var kicks = 0;
-          function tryKick() {
-            kicks += 1;
-            if (settled) return;
-            if (kickRouteGeneration(routeEl, origin, dest) || kicks >= 20) return;
-            setTimeout(tryKick, 100);
-          }
-          setTimeout(tryKick, 50);
-        });
+          }, 2000);
+        }, Math.max(4000, timeoutMs - 2000));
       });
     });
   }

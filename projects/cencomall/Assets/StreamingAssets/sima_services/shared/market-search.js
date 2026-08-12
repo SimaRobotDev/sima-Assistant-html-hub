@@ -930,11 +930,12 @@ window.MarketSearch = (function () {
       logoUrl: head.logoUrl,
       brand_logo: head.brand_logo,
       market_photos: head.market_photos,
+      market_schedules: head.market_schedules || head.schedules || [],
       description: head.description,
       descriptionLocales: head.descriptionLocales,
       keywords: head.keywords,
       schedule: head.schedule,
-      schedules: head.schedules,
+      schedules: head.schedules || head.market_schedules || [],
       available: entries.some(function (e) { return e.available !== false; }),
       locationCount: entries.length,
       locations: entries.map(function (entry) {
@@ -948,8 +949,9 @@ window.MarketSearch = (function () {
           logoUrl: entry.logoUrl,
           brand_logo: entry.brand_logo,
           market_photos: entry.market_photos,
+          market_schedules: entry.market_schedules || entry.schedules || [],
           schedule: entry.schedule,
-          schedules: entry.schedules,
+          schedules: entry.schedules || entry.market_schedules || [],
         };
       }),
       _searchScore: group.score,
@@ -1110,6 +1112,13 @@ window.MarketSearch = (function () {
   }
 
   function findExact(criteria) {
+    // Hydrate from JSONP global if present (Unity WebView / prior script load).
+    if ((!catalog || !catalog.length) && typeof window !== "undefined"
+      && Array.isArray(window.__MARKET_CATALOG__) && window.__MARKET_CATALOG__.length) {
+      catalog = window.__MARKET_CATALOG__.map(mapCatalogEntry);
+      indexed = buildIndex(catalog);
+      localBrandIndex = buildLocalBrandIndex(catalog);
+    }
     if (!catalog || !catalog.length) return null;
     criteria = criteria || {};
     var local = String(criteria.local || criteria.clientId || "").trim().toUpperCase();

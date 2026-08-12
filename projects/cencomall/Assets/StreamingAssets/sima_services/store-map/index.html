@@ -17,13 +17,13 @@
   <script src="../shared/bridge.js"></script>
   <script src="../shared/market-search.js"></script>
   <script src="../shared/market-i18n.js"></script>
-  <script src="../shared/store-detail.js?v=20260812-3"></script>
+  <script src="../shared/store-detail.js?v=20260812-4"></script>
   <script src="../shared/mapvx/index.js"></script>
   <script src="../shared/mapvx-bridge.js"></script>
   <script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
   <!-- Preload route WC: Unity WebViews often block dynamically injected scripts. -->
   <script src="../shared/mapvx-wc/route-view-totems.js" data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
-  <script src="../shared/mapvx-wc-runtime.js?v=20260812-3"></script>
+  <script src="../shared/mapvx-wc-runtime.js?v=20260812-4"></script>
   <style>
     html, body {
       margin: 0;
@@ -766,6 +766,15 @@ function initWcRuntime() {
       routeView: "#mapvx-wc-route-view",
       log: function (line) { logDebug(String(line)); },
       onTitle: function (title) {
+        // Don't let a stale MapVX popup title override the store we opened.
+        if (title && lastRequest && lastRequest.name) {
+          const opened = String(lastRequest.name).trim().toLowerCase();
+          const incoming = String(title).trim().toLowerCase();
+          if (opened && incoming && opened !== incoming && incoming.indexOf(opened) === -1) {
+            logDebug("wc onTitle ignored (stale)", { title: title, opened: lastRequest.name });
+            return;
+          }
+        }
         if (title) setTitle(title);
       },
       onRouteClosed: function () {
@@ -906,7 +915,7 @@ async function openStoreMapViaWc(request, meta, placeId) {
   let result;
   if (wantsRoute && MapVxWcRuntime.hasRouteOrigin()) {
     result = await MapVxWcRuntime.showRoute(placeId, { timeoutMs: WC_ROUTE_TIMEOUT_MS });
-    routeActive = true;
+    routeActive = !!(MapVxWcRuntime.isRouteActive && MapVxWcRuntime.isRouteActive());
   } else {
     result = await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 2500 : WC_PLACE_TIMEOUT_MS });
     routeActive = false;
@@ -960,17 +969,19 @@ async function onRouteToggle() {
   btn.disabled = true;
   try {
     if (activeMapEngine === "wc" && typeof MapVxWcRuntime !== "undefined") {
-      if (routeActive) {
+      if (routeActive || (MapVxWcRuntime.isRouteActive && MapVxWcRuntime.isRouteActive())) {
         MapVxWcRuntime.closeRoute();
         routeActive = false;
       } else {
-        const placeId = (MapVxWcRuntime.getLastPlaceId && MapVxWcRuntime.getLastPlaceId())
+        const placeId = (lastResult && lastResult.clientId)
           || (lastRequest && lastRequest.local)
-          || (lastResult && lastResult.clientId)
+          || (MapVxWcRuntime.getLastPlaceId && MapVxWcRuntime.getLastPlaceId())
           || "";
         if (!placeId) throw new Error("missing destination placeId");
+        logDebug("wc route request", { placeId: placeId });
         await MapVxWcRuntime.showRoute(placeId, { timeoutMs: WC_ROUTE_TIMEOUT_MS });
-        routeActive = true;
+        routeActive = !!(MapVxWcRuntime.isRouteActive && MapVxWcRuntime.isRouteActive());
+        if (!routeActive) throw new Error("wc route did not stay active");
       }
       logDebug("wc route toggled", { active: routeActive });
     } else if (typeof MapVxBridge !== "undefined" && MapVxBridge.toggleRouteToTarget) {
@@ -979,6 +990,7 @@ async function onRouteToggle() {
       logDebug("legacy route toggled", { active: routeActive });
     }
   } catch (error) {
+    routeActive = false;
     logDebug("route toggle failed", { error: String(error.message || error) });
     if (activeMapEngine === "wc" && preferredMapEngine() !== "wc" && lastRequest) {
       try {
