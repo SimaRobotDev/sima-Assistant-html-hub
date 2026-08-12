@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.08.12-6",
+  "version": "2026.08.12-7",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-08-12T18:15:50.715Z",
+  "generatedAt": "2026-08-12T18:18:27.470Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.08.12-5",
+  "rollbackTo": "2026.08.12-6",
   "entryPoints": [
     {
       "service": "agenda",
@@ -600,8 +600,8 @@
     },
     {
       "path": "store-map/index.html",
-      "size": 44509,
-      "sha256": "8f16b5bba480d4168bd3f7d6af393bfff2d9f2fa010a567f36ba821ee7958b2a"
+      "size": 44597,
+      "sha256": "6a2dee6f1fc994d59a9e59a137d40bac345bcefb235471e7bf8cc2a18c820584"
     },
     {
       "path": "taxi/index.html",
