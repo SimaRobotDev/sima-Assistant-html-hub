@@ -17,13 +17,13 @@
   <script src="../shared/bridge.js"></script>
   <script src="../shared/market-search.js"></script>
   <script src="../shared/market-i18n.js"></script>
-  <script src="../shared/store-detail.js?v=20260812-4"></script>
+  <script src="../shared/store-detail.js?v=20260812-5"></script>
   <script src="../shared/mapvx/index.js"></script>
   <script src="../shared/mapvx-bridge.js"></script>
   <script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
   <!-- Preload route WC: Unity WebViews often block dynamically injected scripts. -->
   <script src="../shared/mapvx-wc/route-view-totems.js" data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
-  <script src="../shared/mapvx-wc-runtime.js?v=20260812-4"></script>
+  <script src="../shared/mapvx-wc-runtime.js?v=20260812-5"></script>
   <style>
     html, body {
       margin: 0;
@@ -827,10 +827,10 @@ async function resolveRoutablePlaceId(request) {
 function renderRouteButton() {
   const btn = document.getElementById("store-map-route");
   if (!btn) return;
-  const canRoute = (activeMapEngine === "wc" && typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.hasRouteOrigin && MapVxWcRuntime.hasRouteOrigin())
-    || (activeMapEngine === "legacy" && typeof MapVxBridge !== "undefined" && MapVxBridge.hasRouteOrigin && MapVxBridge.hasRouteOrigin())
-    || (preferredMapEngine() !== "legacy" && typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.hasRouteOrigin && MapVxWcRuntime.hasRouteOrigin())
-    || (typeof MapVxBridge !== "undefined" && MapVxBridge.hasRouteOrigin && MapVxBridge.hasRouteOrigin());
+  // Hybrid routes use MapVxBridge.drawRouteToTarget — enable whenever the totem origin exists.
+  const canRoute = typeof MapVxBridge !== "undefined"
+    && MapVxBridge.hasRouteOrigin
+    && MapVxBridge.hasRouteOrigin();
   if (!canRoute) {
     btn.classList.add("hidden");
     return;
@@ -839,6 +839,60 @@ function renderRouteButton() {
   btn.disabled = false;
   btn.classList.remove("disabled");
   btn.textContent = routeActive ? t("clearRoute") : t("viewRoute");
+}
+
+/** Soft-warm MapVX SDK while WC place is visible (no second WebGL until Ver ruta). */
+function silentWarmLegacyMap() {
+  try {
+    if (typeof MapVxBridge === "undefined" || !MapVxBridge.ensureReady) return;
+    applyMapVxDefaults();
+    const cfg = window.MAPVX_CONFIG || {};
+    if (!cfg.apiKey || !cfg.parentPlace || !cfg.institutionId) return;
+    MapVxBridge.ensureReady(cfg).then(function () {
+      logDebug("legacy hybrid sdk ready");
+    }).catch(function (error) {
+      logDebug("legacy hybrid sdk warm failed", { error: String(error && (error.message || error)) });
+    });
+  } catch (error) {
+    logDebug("legacy hybrid warm error", { error: String(error && (error.message || error)) });
+  }
+}
+
+async function showHybridRoute() {
+  if (!lastRequest) throw new Error("missing store request");
+  logDebug("hybrid route show", {
+    engine: activeMapEngine,
+    local: lastRequest.local || "",
+    name: lastRequest.name || "",
+  });
+  // Production path: WC place stays for browsing; Ver ruta always draws on legacy.
+  await openStoreMapLegacy(lastRequest, { source: "hybrid-route", route: true }, "hybrid_route");
+  routeActive = true;
+}
+
+async function hideHybridRoute() {
+  logDebug("hybrid route hide", { engine: activeMapEngine });
+  if (typeof MapVxBridge !== "undefined" && MapVxBridge.clearActiveRoute) {
+    try { MapVxBridge.clearActiveRoute(); } catch (e) { /* noop */ }
+  }
+  if (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.closeRoute) {
+    try { MapVxWcRuntime.closeRoute(); } catch (e) { /* noop */ }
+  }
+  routeActive = false;
+
+  // Prefer restoring WC place (same look as before Ver ruta).
+  if (preferredMapEngine() !== "legacy" && lastRequest
+    && typeof MapVxWcRuntime !== "undefined"
+    && MapVxWcRuntime.isAvailable && MapVxWcRuntime.isAvailable()) {
+    const placeId = await resolveRoutablePlaceId(lastRequest);
+    if (placeId) {
+      await openStoreMapViaWc(lastRequest, { source: "hybrid-back" }, placeId);
+      return;
+    }
+  }
+  if (lastRequest && activeMapEngine === "legacy") {
+    await openStoreMapLegacy(lastRequest, { source: "clear-route", route: false }, "");
+  }
 }
 
 async function openStoreMapLegacy(request, meta, fallbackReason) {
@@ -889,6 +943,7 @@ async function openStoreMapLegacy(request, meta, fallbackReason) {
     title: result.title,
     resolvedBy: result.resolvedBy,
     floorId: result.floorId,
+    routeActive: routeActive,
   });
   notifyNative("store_map_opened", {
     request: request,
@@ -907,23 +962,16 @@ async function openStoreMapViaWc(request, meta, placeId) {
   initWcRuntime();
   setMapShell("wc");
   const legacy = document.getElementById("mapvx-container");
-  // Hide legacy without destroying — keep MapVxBridge warm for fallback/retry.
+  // Soft-hide legacy without destroying — keep MapVxBridge warm for hybrid Ver ruta.
   if (legacy) legacy.classList.add("hidden");
 
   const cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
   const wantsRoute = readFlag("route") || !!(meta && meta.route);
-  let result;
-  if (wantsRoute && MapVxWcRuntime.hasRouteOrigin()) {
-    result = await MapVxWcRuntime.showRoute(placeId, { timeoutMs: WC_ROUTE_TIMEOUT_MS });
-    routeActive = !!(MapVxWcRuntime.isRouteActive && MapVxWcRuntime.isRouteActive());
-  } else {
-    result = await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 2500 : WC_PLACE_TIMEOUT_MS });
-    routeActive = false;
-    if (wantsRoute) {
-      logDebug("wc route requested but no totemPlaceId — showing place only");
-    }
-  }
-
+  // Place always on WC. Deep-link ?route=1 and Ver ruta use legacy hybrid draw.
+  const result = await MapVxWcRuntime.showPlace(placeId, {
+    timeoutMs: cached ? 2500 : WC_PLACE_TIMEOUT_MS,
+  });
+  routeActive = false;
   activeMapEngine = "wc";
   lastFallbackReason = "";
   lastResult = {
@@ -931,7 +979,7 @@ async function openStoreMapViaWc(request, meta, placeId) {
     clientId: placeId,
     mapvxId: request.mapvxId || "",
     floorId: "",
-    routeActive: routeActive,
+    routeActive: false,
     resolvedBy: "mapvx-wc",
   };
   setTitle(request.name || placeId);
@@ -945,22 +993,36 @@ async function openStoreMapViaWc(request, meta, placeId) {
   }
   renderRouteButton();
   setStatus("ready");
+  silentWarmLegacyMap();
+
+  if (wantsRoute) {
+    logDebug("wc opened with route flag — switching to legacy hybrid draw");
+    try {
+      await showHybridRoute();
+    } catch (error) {
+      logDebug("hybrid deep-link route failed", { error: String(error && (error.message || error)) });
+    }
+  }
+
   logDebug("open success", {
-    engine: "wc",
+    engine: routeActive ? "legacy" : "wc",
     placeId: placeId,
     route: routeActive,
     cached: !!(result && result.cached),
   });
   notifyNative("store_map_opened", {
     request: request,
-    engine: "wc",
+    engine: routeActive ? "legacy" : "wc",
     placeId: placeId,
     clientId: placeId,
     title: request.name || placeId,
     route: routeActive,
     cached: !!(result && result.cached),
   });
-  return Object.assign({}, lastResult, { engine: "wc", cached: !!(result && result.cached) });
+  return Object.assign({}, lastResult, {
+    engine: routeActive ? "legacy" : "wc",
+    cached: !!(result && result.cached),
+  });
 }
 
 async function onRouteToggle() {
@@ -968,37 +1030,15 @@ async function onRouteToggle() {
   if (!btn || btn.disabled) return;
   btn.disabled = true;
   try {
-    if (activeMapEngine === "wc" && typeof MapVxWcRuntime !== "undefined") {
-      if (routeActive || (MapVxWcRuntime.isRouteActive && MapVxWcRuntime.isRouteActive())) {
-        MapVxWcRuntime.closeRoute();
-        routeActive = false;
-      } else {
-        const placeId = (lastResult && lastResult.clientId)
-          || (lastRequest && lastRequest.local)
-          || (MapVxWcRuntime.getLastPlaceId && MapVxWcRuntime.getLastPlaceId())
-          || "";
-        if (!placeId) throw new Error("missing destination placeId");
-        logDebug("wc route request", { placeId: placeId });
-        await MapVxWcRuntime.showRoute(placeId, { timeoutMs: WC_ROUTE_TIMEOUT_MS });
-        routeActive = !!(MapVxWcRuntime.isRouteActive && MapVxWcRuntime.isRouteActive());
-        if (!routeActive) throw new Error("wc route did not stay active");
-      }
-      logDebug("wc route toggled", { active: routeActive });
-    } else if (typeof MapVxBridge !== "undefined" && MapVxBridge.toggleRouteToTarget) {
-      const state = await MapVxBridge.toggleRouteToTarget();
-      routeActive = !!(state && state.active);
-      logDebug("legacy route toggled", { active: routeActive });
+    if (routeActive) {
+      await hideHybridRoute();
+    } else {
+      await showHybridRoute();
     }
+    logDebug("route toggled", { active: routeActive, engine: activeMapEngine });
   } catch (error) {
     routeActive = false;
     logDebug("route toggle failed", { error: String(error.message || error) });
-    if (activeMapEngine === "wc" && preferredMapEngine() !== "wc" && lastRequest) {
-      try {
-        await openStoreMapLegacy(lastRequest, { source: "route-fallback", route: true }, "wc_route_error");
-      } catch (e2) {
-        logDebug("route legacy fallback failed", { error: String(e2.message || e2) });
-      }
-    }
   }
   btn.disabled = false;
   renderRouteButton();
