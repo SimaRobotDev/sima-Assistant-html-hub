@@ -47,9 +47,11 @@ if (JSON.stringify(manifestFromJsonp) !== JSON.stringify(manifest)) {
 }
 console.log("jsonp sync: OK (catalog=" + catalog.length + " entries)");
 
-// Slim shape: no heavy fields in listing
+// Slim shape: keep photos + schedules for offline detail; strip other heavy CMS fields.
+const allowedHeavy = new Set(["market_photos", "market_schedules"]);
 const heavyKeys = ["brand_description", "market_photos", "market_schedules", "market_instagram", "market_phone"];
 const heavyHits = catalog.filter((item) => heavyKeys.some((k) => {
+  if (allowedHeavy.has(k)) return false;
   const v = item[k];
   if (Array.isArray(v)) return v.length > 0;
   return v != null && String(v).trim() !== "";
@@ -57,11 +59,12 @@ const heavyHits = catalog.filter((item) => heavyKeys.some((k) => {
 if (heavyHits > 0) {
   throw new Error("slim catalog still has heavy fields on " + heavyHits + " items");
 }
+const withSchedules = catalog.filter((item) => Array.isArray(item.market_schedules) && item.market_schedules.length).length;
 const missingLocal = catalog.filter((item) => !String(item.local || "").trim() || item.id == null);
 if (missingLocal.length) {
   throw new Error("slim catalog missing id/local on " + missingLocal.length + " items");
 }
-console.log("slim catalog: OK (no heavy listing fields; all have id+local)");
+console.log("slim catalog: OK (photos/schedules allowed; schedules on " + withSchedules + " items; all have id+local)");
 
 const logosDir = resolve(root, "projects/cencomall/Assets/StreamingAssets/sima_services/shared/store-logos");
 const missingPng = [];

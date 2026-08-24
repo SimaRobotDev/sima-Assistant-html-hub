@@ -162,10 +162,14 @@ window.MarketSearch = (function () {
       local: String(item.local || "").trim(),
       logoUrl: String(item.brand_logo || item.logoUrl || item.logo || "").trim(),
       brand_logo: String(item.brand_logo || item.logoUrl || item.logo || "").trim(),
-      // Slim OTA omits photos/schedules/description; keep empty defaults for UI.
+      // Photos + schedules come from slim catalog when present; description may
+      // still arrive via MarketI18n overlay, GET /market/{id}, or applyStoreDetail.
       market_photos: Array.isArray(item.market_photos)
         ? item.market_photos.map(function (url) { return String(url || "").trim(); }).filter(Boolean)
         : [],
+      market_schedules: Array.isArray(item.market_schedules)
+        ? item.market_schedules
+        : (Array.isArray(item.schedules) ? item.schedules : []),
       description: String(item.brand_description || item.description || "").trim(),
       descriptionLocales: {
         es: String(item.brand_description || item.description || "").trim(),
@@ -175,7 +179,9 @@ window.MarketSearch = (function () {
       keywords: String(item.keywords || "").trim(),
       mall: String(item.mall || "").trim(),
       available: isAvailable(item),
-      schedules: item.market_schedules || item.schedules || [],
+      schedules: Array.isArray(item.market_schedules)
+        ? item.market_schedules
+        : (item.schedules || []),
       website: String(item.brand_website || item.website || "").trim(),
       source: "market-catalog",
     };
@@ -924,11 +930,12 @@ window.MarketSearch = (function () {
       logoUrl: head.logoUrl,
       brand_logo: head.brand_logo,
       market_photos: head.market_photos,
+      market_schedules: head.market_schedules || head.schedules || [],
       description: head.description,
       descriptionLocales: head.descriptionLocales,
       keywords: head.keywords,
       schedule: head.schedule,
-      schedules: head.schedules,
+      schedules: head.schedules || head.market_schedules || [],
       available: entries.some(function (e) { return e.available !== false; }),
       locationCount: entries.length,
       locations: entries.map(function (entry) {
@@ -942,8 +949,9 @@ window.MarketSearch = (function () {
           logoUrl: entry.logoUrl,
           brand_logo: entry.brand_logo,
           market_photos: entry.market_photos,
+          market_schedules: entry.market_schedules || entry.schedules || [],
           schedule: entry.schedule,
-          schedules: entry.schedules,
+          schedules: entry.schedules || entry.market_schedules || [],
         };
       }),
       _searchScore: group.score,
@@ -1104,6 +1112,13 @@ window.MarketSearch = (function () {
   }
 
   function findExact(criteria) {
+    // Hydrate from JSONP global if present (Unity WebView / prior script load).
+    if ((!catalog || !catalog.length) && typeof window !== "undefined"
+      && Array.isArray(window.__MARKET_CATALOG__) && window.__MARKET_CATALOG__.length) {
+      catalog = window.__MARKET_CATALOG__.map(mapCatalogEntry);
+      indexed = buildIndex(catalog);
+      localBrandIndex = buildLocalBrandIndex(catalog);
+    }
     if (!catalog || !catalog.length) return null;
     criteria = criteria || {};
     var local = String(criteria.local || criteria.clientId || "").trim().toUpperCase();

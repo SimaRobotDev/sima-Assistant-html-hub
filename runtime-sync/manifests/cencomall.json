@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.08.06-3",
+  "version": "2026.08.12-7",
   "baseUrl": "https://cdn.example.com/sima/cencomall",
-  "generatedAt": "2026-08-07T03:20:07.211Z",
+  "generatedAt": "2026-08-12T18:18:27.470Z",
   "hashAlgorithm": "sha256",
-  "rollbackTo": "2026.08.06-2",
+  "rollbackTo": "2026.08.12-6",
   "entryPoints": [
     {
       "service": "agenda",
@@ -105,13 +105,13 @@
     },
     {
       "path": "data/market-catalog.json",
-      "size": 234105,
-      "sha256": "9c2f456a898012fb2266e2b4fd262487c74c2ed156fc2a6e8867166b2c919248"
+      "size": 342300,
+      "sha256": "caf038f81f1a0db7f1b0ead2e317dc488c49344d191351fe1f44dbee721e182b"
     },
     {
       "path": "data/market-catalog.jsonp.js",
-      "size": 234295,
-      "sha256": "b6c9523bb5a8ee8e46dd30ad4f6dc286bdb90f08bc4c003fedd0208835f18a19"
+      "size": 342490,
+      "sha256": "b7a3ad212211486b6a497f7c274ee60deeb406731527a4cfeb78d7515080422d"
     },
     {
       "path": "data/services-catalog.json",
@@ -125,8 +125,8 @@
     },
     {
       "path": "docs/MARKET-CATALOG-SLIM.md",
-      "size": 2157,
-      "sha256": "b614f629fe6d7024faa76da78565d2c4ebc28cc1fb264baa579679b277e5eb18"
+      "size": 2346,
+      "sha256": "13ca49a517f435ab2519ff54071a96564e3eb246646142735b585f10f04592c7"
     },
     {
       "path": "emergency/index.html",
@@ -175,13 +175,13 @@
     },
     {
       "path": "map/index.html",
-      "size": 34641,
-      "sha256": "67c65cd2c0317e5907080b3661e77e3cf25b9fe53c2712debce2f4004a6c2fac"
+      "size": 34426,
+      "sha256": "51d87ccf43d4fbe7da864f116d789e513bf90e595551db1bb7131c820d1f3a0c"
     },
     {
       "path": "mapvx-embed/bridge.js",
-      "size": 2800,
-      "sha256": "7e742f529eed8bef1d20c638092eecc43aaefcccb60211215573332d51190c65"
+      "size": 2750,
+      "sha256": "4ab3e7c07d8bb3c34e70b2a1f3da806ec9652c56a95c6c7bc045a1f3ff191354"
     },
     {
       "path": "mapvx-embed/index.html",
@@ -195,8 +195,8 @@
     },
     {
       "path": "mapvx-embed/README.md",
-      "size": 3345,
-      "sha256": "15497eb53d37f8cb3a9f6af232857cae6f2118f76dbb6d3dd9513cc10066faf1"
+      "size": 3041,
+      "sha256": "fb50ed299e0c99b93185297786988a9edbbb6b94938457ab9ee2beb7c8e33da1"
     },
     {
       "path": "mapvx-embed/register-sw.js",
@@ -210,8 +210,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 238369,
-      "sha256": "4770e7edddc50a5667c26b6d12316f266bdd5ebb5a2627a57959f95648651c81"
+      "size": 254582,
+      "sha256": "0a174de34566f0fc46505ef918dee558b82672acc2843ea109190f05e793fb21"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -454,6 +454,11 @@
       "sha256": "e7d3bbb2a358e3cd467ff6da5f337700a5f3c129a3ce28bd1333e7e8196fb502"
     },
     {
+      "path": "shared/mapvx-wc-runtime.js",
+      "size": 30721,
+      "sha256": "448a8f6e43fb95b25a470470e44fc36cdd9fbcdee0fb8273f44750d10706ad48"
+    },
+    {
       "path": "shared/mapvx-wc/map-view-with-modal.js",
       "size": 4286820,
       "sha256": "27791e99e9b6eab7702d4f62ba48a5070ee6bab9f2bc390703846017585b911f"
@@ -490,8 +495,8 @@
     },
     {
       "path": "shared/market-search.js",
-      "size": 51418,
-      "sha256": "986ac8160cbfe4b26009e82895052eafc9306c436fb816c388193cc5ca167a12"
+      "size": 52330,
+      "sha256": "49bee07f708dacc780e98e6e4e8973113308aafc45abbdf5c87baaac63bac881"
     },
     {
       "path": "shared/native-payload.js",
@@ -520,13 +525,13 @@
     },
     {
       "path": "shared/store-detail.css",
-      "size": 2034,
-      "sha256": "7faddcd167863db5fa6f4f3a51e69fc12d60b9493d6fa62f1c39f73a52bfc07c"
+      "size": 2536,
+      "sha256": "a1d73b7ccf7c678e5bf8c7ca8d92b604a2bae7095683f103381f4b3925700c9d"
     },
     {
       "path": "shared/store-detail.js",
-      "size": 9164,
-      "sha256": "ee0db8206f3a6be93d7060f85a6b6abe723e5a4e4b8f7957645858710a677886"
+      "size": 11400,
+      "sha256": "b3d4147fa6e46bc9fb5743937933ef7a34768b2f214dca7822aba3bc8b645c4c"
     },
     {
       "path": "shared/store-logos/casa-ideas.png",
@@ -595,8 +600,8 @@
     },
     {
       "path": "store-map/index.html",
-      "size": 31336,
-      "sha256": "33abce37073705498df5cfe5617051d1ff605415df582642a10a65f36e782a16"
+      "size": 44597,
+      "sha256": "6a2dee6f1fc994d59a9e59a137d40bac345bcefb235471e7bf8cc2a18c820584"
     },
     {
       "path": "taxi/index.html",
