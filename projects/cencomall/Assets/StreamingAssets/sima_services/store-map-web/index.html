@@ -278,6 +278,12 @@ function currentPlaceId() {
 // safety net in case mapReady never fires at all (bundle missing, bad key).
 let mapReadyFired = false;
 let statusTimeoutId = null;
+/** Last placeId actually applied to #mvx-place — lets openStoreMapFromPayload
+ * tell a real store change apart from a repeat/no-op call. */
+let lastAppliedPlaceId = null;
+/** map-view-with-modal never re-fires mapReady for a place change, so there's
+ * no event to hang a spinner-dismiss off of — this is a fixed cover instead. */
+const PLACE_CHANGE_COVER_MS = 1600;
 
 function applyPlace(cfg, placeId) {
   const mapEl = document.getElementById("mvx-place");
@@ -309,6 +315,7 @@ function applyPlace(cfg, placeId) {
   mapEl.showFloorSelector = false;
   document.getElementById("page-title").textContent = placeId;
   document.getElementById("route-toggle").classList.toggle("hidden", !cfg.totemPlaceId);
+  lastAppliedPlaceId = placeId;
   log("applyPlace " + JSON.stringify({ placeId: placeId, parentPlace: cfg.parentPlace }));
 }
 
@@ -367,6 +374,18 @@ function openStoreMapFromPayload(source, meta) {
   }
   document.getElementById("store-local").value = placeId;
   closeRouteView();
+  // closeRouteView() just cleared status + revealed map-view underneath —
+  // if this is a real change of store (not the first one shown), applyPlace
+  // below won't re-show a spinner (see its own comment: after the first
+  // load, changing place is a "quiet" update with no event to hang a
+  // dismiss off of). Without covering it here, the PREVIOUS store's pin
+  // stays visible on #mvx-place for as long as it takes the component to
+  // re-center internally — confirmed live 2026-08-25 (searched a second
+  // store while the first one's map was open, ~1-2s of the old store before
+  // the new one appeared). The route path below already covers itself with
+  // its own spinner (dismissed on the new route element's mapReady), so
+  // this only needs to run for the non-route case.
+  const isStoreChange = mapReadyFired && placeId !== lastAppliedPlaceId;
   applyPlace(cfg, placeId);
   if (meta && meta.route) {
     if (!cfg.totemPlaceId) {
@@ -375,6 +394,15 @@ function openStoreMapFromPayload(source, meta) {
       return;
     }
     showRouteView(cfg, placeId);
+    return;
+  }
+  if (isStoreChange) {
+    setStatus(true, "Cambiando de tienda…", "Ubicando " + placeId + " en el mapa del mall.", true);
+    if (statusTimeoutId) { clearTimeout(statusTimeoutId); }
+    statusTimeoutId = setTimeout(function () {
+      statusTimeoutId = null;
+      setStatus(false);
+    }, PLACE_CHANGE_COVER_MS);
   }
 }
 
