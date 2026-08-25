@@ -489,6 +489,43 @@ function requestGenerateRoute(routeEl) {
   generateRouteRetryTimers.set(routeEl, timerId);
 }
 
+// The step-by-step instruction ("Sube por las escaleras hasta el nivel 3")
+// is plain vendor-internal UI, not an event/attribute we can subscribe to:
+// route-view-totems' own render() (verified in the published 0.5.0 source)
+// keeps a <div data-testid="floor-change-modal"><p class="modal-text">
+// directly in its shadow root, toggled via inline style display:flex/none
+// on each floor change during route animation. We watch that node and
+// forward its text to native so the app can read it out via TTS — this is
+// the only way to get at it, there's no public API for it.
+function watchRouteInstructions(routeEl) {
+  const modal = routeEl.shadowRoot &&
+    routeEl.shadowRoot.querySelector('[data-testid="floor-change-modal"]');
+  if (!modal) {
+    log("watchRouteInstructions: floor-change-modal node not found (vendor markup may have changed)");
+    return;
+  }
+  let lastAnnounced = "";
+  const announce = function () {
+    const visible = modal.style.display !== "none";
+    const textEl = modal.querySelector(".modal-text");
+    const text = (textEl && textEl.textContent || "").trim();
+    if (visible && text && text !== lastAnnounced) {
+      lastAnnounced = text;
+      notifyNative("route_instruction", {text: text});
+      log("route instruction: " + text);
+    }
+  };
+  const observer = new MutationObserver(announce);
+  observer.observe(modal, {
+    attributes: true,
+    attributeFilter: ["style"],
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+  announce();
+}
+
 function wireRouteElement(routeEl) {
   routeEl.addEventListener("mapReady", function () {
     if (routeStatusTimeoutId) { clearTimeout(routeStatusTimeoutId); routeStatusTimeoutId = null; }
@@ -502,14 +539,23 @@ function wireRouteElement(routeEl) {
       route: true,
     });
     log("route-view-totems: mapReady");
+    watchRouteInstructions(routeEl);
     requestGenerateRoute(routeEl);
   });
   routeEl.addEventListener("back", closeRouteView);
   routeEl.addEventListener("routeAnimationStart", function () {
     stopGenerateRouteRetries(routeEl);
     log("route-view-totems: routeAnimationStart");
+    // Route animation can run long — don't let the subtle auto-close timer
+    // fire out from under a visitor mid-route. Native resumes it once
+    // routeAnimationFinish comes back (or falls back to its own timeout if
+    // that event never arrives for some reason).
+    notifyNative("route_animation_status", {animating: true});
   });
-  routeEl.addEventListener("routeAnimationFinish", function () { log("route-view-totems: routeAnimationFinish"); });
+  routeEl.addEventListener("routeAnimationFinish", function () {
+    log("route-view-totems: routeAnimationFinish");
+    notifyNative("route_animation_status", {animating: false});
+  });
 }
 
 function createRouteElement() {
