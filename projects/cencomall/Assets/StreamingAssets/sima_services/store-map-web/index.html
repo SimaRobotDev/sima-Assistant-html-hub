@@ -460,6 +460,20 @@ function wireRouteElement(routeEl) {
       route: true,
     });
     log("route-view-totems: mapReady");
+    // route-view-totems never computes a route on its own just because
+    // originId/destinationId are set — it only calls sdkController.generateRoute()
+    // in response to its own "generateRoute" CustomEvent, which the totem UI's
+    // internal "Generar ruta" button dispatches on tap (verified by reading the
+    // published @mapvx/web-components 0.5.0 source: handleGenerateRoute() in
+    // components-*.js dispatches it, route-view-totems just listens for it).
+    // We drive this element headlessly with no one to tap that button, so we
+    // dispatch the same event ourselves right after mapReady (context/sdk is
+    // guaranteed initialized by then).
+    routeEl.dispatchEvent(new CustomEvent("generateRoute", {
+      detail: {accessible: false},
+      bubbles: true,
+      composed: true,
+    }));
   });
   routeEl.addEventListener("back", closeRouteView);
   routeEl.addEventListener("routeAnimationStart", function () { log("route-view-totems: routeAnimationStart"); });
