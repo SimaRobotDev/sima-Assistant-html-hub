@@ -447,6 +447,48 @@ let routeStatusTimeoutId = null;
 // matter which destination. So instead of mutating the persistent element,
 // tear it down and mount a brand-new one on every route request — this
 // mirrors what "first load always works" already proves is reliable.
+// route-view-totems never computes a route on its own just because
+// originId/destinationId are set — it only calls sdkController.generateRoute()
+// in response to its own "generateRoute" CustomEvent, which the totem UI's
+// internal "Generar ruta" button dispatches on tap (verified by reading the
+// published @mapvx/web-components 0.5.0 source: handleGenerateRoute() in
+// components-*.js dispatches it, route-view-totems just listens for it).
+// We drive this element headlessly with no one to tap that button, so we
+// dispatch the same event ourselves. mapReady (map/tiles ready) is NOT the
+// same as origin/destination being resolved — that resolution is an async
+// place-detail fetch (setOriginAndDestination) with no event of its own, so
+// dispatching once on mapReady can race it: generateRoute() silently no-ops
+// if contextProvider.value.originId/destinationId aren't populated yet.
+// Retry a few times instead of guessing a fixed delay.
+const generateRouteRetryTimers = new WeakMap();
+
+function stopGenerateRouteRetries(routeEl) {
+  const timerId = generateRouteRetryTimers.get(routeEl);
+  if (timerId) {
+    clearInterval(timerId);
+    generateRouteRetryTimers.delete(routeEl);
+  }
+}
+
+function requestGenerateRoute(routeEl) {
+  let attempts = 0;
+  const maxAttempts = 6; // ~3s of retries, well inside the 15s timeout net
+  const fire = function () {
+    attempts += 1;
+    routeEl.dispatchEvent(new CustomEvent("generateRoute", {
+      detail: {accessible: false},
+      bubbles: true,
+      composed: true,
+    }));
+    if (attempts >= maxAttempts) {
+      stopGenerateRouteRetries(routeEl);
+    }
+  };
+  fire();
+  const timerId = setInterval(fire, 500);
+  generateRouteRetryTimers.set(routeEl, timerId);
+}
+
 function wireRouteElement(routeEl) {
   routeEl.addEventListener("mapReady", function () {
     if (routeStatusTimeoutId) { clearTimeout(routeStatusTimeoutId); routeStatusTimeoutId = null; }
@@ -460,23 +502,13 @@ function wireRouteElement(routeEl) {
       route: true,
     });
     log("route-view-totems: mapReady");
-    // route-view-totems never computes a route on its own just because
-    // originId/destinationId are set — it only calls sdkController.generateRoute()
-    // in response to its own "generateRoute" CustomEvent, which the totem UI's
-    // internal "Generar ruta" button dispatches on tap (verified by reading the
-    // published @mapvx/web-components 0.5.0 source: handleGenerateRoute() in
-    // components-*.js dispatches it, route-view-totems just listens for it).
-    // We drive this element headlessly with no one to tap that button, so we
-    // dispatch the same event ourselves right after mapReady (context/sdk is
-    // guaranteed initialized by then).
-    routeEl.dispatchEvent(new CustomEvent("generateRoute", {
-      detail: {accessible: false},
-      bubbles: true,
-      composed: true,
-    }));
+    requestGenerateRoute(routeEl);
   });
   routeEl.addEventListener("back", closeRouteView);
-  routeEl.addEventListener("routeAnimationStart", function () { log("route-view-totems: routeAnimationStart"); });
+  routeEl.addEventListener("routeAnimationStart", function () {
+    stopGenerateRouteRetries(routeEl);
+    log("route-view-totems: routeAnimationStart");
+  });
   routeEl.addEventListener("routeAnimationFinish", function () { log("route-view-totems: routeAnimationFinish"); });
 }
 
