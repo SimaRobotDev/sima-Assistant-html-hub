@@ -489,6 +489,19 @@ function showRouteView(cfg, placeId) {
   routeEl.setAttribute("locale", cfg.lang || "es");
   routeEl.setAttribute("destinationId", placeId);
   routeEl.setAttribute("originId", cfg.totemPlaceId);
+  // Also assign as JS properties, not just attributes — mirrors the fix
+  // already applied to shared/mapvx-wc-runtime.js (commit 9264775):
+  // attributes alone can miss the Lit controller's init path on some
+  // hosts, so the route silently never computes even though the DOM
+  // shows both ids set. Wrapped in try/catch like that fix — older
+  // custom-element hosts may not expose these as writable properties.
+  try {
+    routeEl.apiKey = cfg.apiKey || "";
+    routeEl.parentPlaceId = cfg.parentPlace || "";
+    routeEl.locale = cfg.lang || "es";
+    routeEl.destinationId = placeId;
+    routeEl.originId = cfg.totemPlaceId;
+  } catch (e) { /* older hosts */ }
   log("showRouteView (fresh element) " + JSON.stringify({ placeId: placeId, originId: cfg.totemPlaceId }));
 
   // Safety net: an invalid/unroutable id (e.g. a raw catalog number instead
