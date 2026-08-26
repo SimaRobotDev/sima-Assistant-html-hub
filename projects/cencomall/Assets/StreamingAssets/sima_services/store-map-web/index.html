@@ -7,6 +7,8 @@
 <script src="../shared/locale.js"></script>
 <script src="../shared/bridge.js"></script>
 <script src="../shared/market-search.js"></script>
+<link rel="stylesheet" href="../shared/store-detail.css?v=20260810-2" />
+<script src="../shared/store-detail.js?v=20260812-5"></script>
 
 <!--
   Official MapVX Web Components (@mapvx/web-components@0.3.0), self-hosted
@@ -52,27 +54,6 @@
   }
   .pill.primary { background: var(--cm-pink); }
   .pill.hidden { display: none; }
-
-  .store-detail {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 14px; background: var(--cm-surface);
-    border-bottom: 1px solid var(--cm-line); flex-shrink: 0;
-  }
-  .store-detail.hidden { display: none; }
-  .store-detail-logo {
-    width: 40px; height: 40px; border-radius: 8px; object-fit: contain;
-    background: #fff; border: 1px solid var(--cm-line); flex-shrink: 0;
-  }
-  .store-detail-logo.hidden { display: none; }
-  .store-detail-text { min-width: 0; }
-  .store-detail-name {
-    font-weight: 700; font-size: 14px; color: var(--cm-purple-dark);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .store-detail-category {
-    font-size: 12px; color: #6b6475;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
 
   .stage { position: relative; flex: 1; min-height: 240px; background: #fff; overflow: hidden; }
   .view { position: absolute; inset: 0; }
@@ -138,13 +119,7 @@
     </div>
   </header>
 
-  <div class="store-detail hidden" id="store-detail">
-    <img class="store-detail-logo hidden" id="store-detail-logo" alt="" />
-    <div class="store-detail-text">
-      <div class="store-detail-name" id="store-detail-name"></div>
-      <div class="store-detail-category" id="store-detail-category"></div>
-    </div>
-  </div>
+  <div class="store-detail-panel hidden" id="store-detail"></div>
 
   <div class="config-box hidden" id="config-box">
     <strong>Credenciales MapVX (solo en este navegador)</strong>
@@ -426,39 +401,28 @@ window.handleUnityData = function (data) {
 };
 
 // React Native can hand over the full authenticated /market record without
-// exposing CMS credentials inside the WebView. NOTE: unlike
-// ../store-map/index.html, this page has no rich detail panel (photos/
-// schedule/description) to render it into yet — the payload is accepted
-// and logged so the contract doesn't break the app's integration, but
-// nothing is shown on screen. Ask if that panel needs to be ported here too.
+// exposing CMS credentials inside the WebView. The shared renderer keeps this
+// page's detail card consistent with store-map (photo, hours and description).
 let nativeStoreDetail = null;
 
 function hideStoreDetail() {
-  document.getElementById("store-detail").classList.add("hidden");
+  if (typeof StoreDetail !== "undefined") {
+    StoreDetail.render(document.getElementById("store-detail"), null);
+  } else {
+    document.getElementById("store-detail").classList.add("hidden");
+  }
 }
 
 window.applyStoreDetail = function (detail) {
-  if (!detail || typeof detail !== "object") return false;
+  if (!detail || typeof detail !== "object" || typeof StoreDetail === "undefined") return false;
   nativeStoreDetail = detail;
-  const logo = detail.logo || detail.brand_logo || "";
-  const name = pickNameFromPayload(detail);
-  const category = detail.category || detail.brand_categories || "";
-  if (!logo && !name && !category) {
-    hideStoreDetail();
-    return true;
-  }
-  const logoEl = document.getElementById("store-detail-logo");
-  if (logo) {
-    logoEl.src = logo;
-    logoEl.classList.remove("hidden");
-  } else {
-    logoEl.removeAttribute("src");
-    logoEl.classList.add("hidden");
-  }
-  document.getElementById("store-detail-name").textContent = name;
-  document.getElementById("store-detail-category").textContent = category;
-  document.getElementById("store-detail").classList.remove("hidden");
-  log("applyStoreDetail rendered: " + JSON.stringify({ id: detail.id || detail.local, name }));
+  const merged = StoreDetail.merge({}, detail);
+  StoreDetail.render(document.getElementById("store-detail"), merged, {
+    locale: window.MALL_LOCALE || "es",
+  });
+  log("applyStoreDetail rendered: " + JSON.stringify({
+    id: detail.id || detail.local,
+  }));
   return true;
 };
 
