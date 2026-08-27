@@ -71,6 +71,18 @@ window.MarketI18n = (function (global) {
     supermercados: { en: "Supermarket", pt: "Supermercado" },
     supermercado: { en: "Supermarket", pt: "Supermercado" },
     "gimnasio y centros deportivos": { en: "Gym & sports centers", pt: "Academia e centros esportivos" },
+    automotora: { en: "Car dealership", pt: "Concessionária" },
+    "autocity": { en: "Autocity", pt: "Autocity" },
+    // Promotion filter categories (promotion_search payloads) — not store
+    // rubros, but they flow through the same translateCategory() path.
+    beneficios: { en: "Benefits", pt: "Benefícios" },
+    beneficio: { en: "Benefit", pt: "Benefício" },
+    turistas: { en: "Tourists", pt: "Turistas" },
+    turista: { en: "Tourist", pt: "Turista" },
+    promociones: { en: "Promotions", pt: "Promoções" },
+    descuentos: { en: "Discounts", pt: "Descontos" },
+    "todas": { en: "All", pt: "Todas" },
+    "todos": { en: "All", pt: "Todos" },
   };
 
   function resolveLocale(raw) {

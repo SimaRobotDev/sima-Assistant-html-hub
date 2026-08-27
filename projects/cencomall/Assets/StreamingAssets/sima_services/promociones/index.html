@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="../shared/cencobricks-shell.css" />
   <link rel="stylesheet" href="../shared/app.css" />
   <script src="../shared/locale.js"></script>
+  <script src="../shared/market-i18n.js"></script>
   <script src="../shared/native-payload.js"></script>
   <script src="../shared/bridge.js"></script>
   <script src="../shared/qrcode.min.js"></script>
@@ -377,7 +378,7 @@
   <div id="promo-info-overlay" class="promo-info-overlay" aria-hidden="true" onclick="if(event.target===this){ closePromoInfoPopup(); }">
     <div class="promo-info-popup" role="dialog" aria-modal="true" aria-labelledby="promo-info-title" tabindex="-1">
       <h2 id="promo-info-title">Escanea el QR para descargar la App Cenco Mall</h2>
-      <p>Obtén más información, beneficios exclusivos y descuentos directamente en tu dispositivo Android o iOS.</p>
+      <p id="promo-info-body">Obtén más información, beneficios exclusivos y descuentos directamente en tu dispositivo Android o iOS.</p>
       <div class="promo-info-qr-grid">
         <div class="promo-info-qr">
           <div id="promo-qr-google" class="promo-info-qr-image" role="img" aria-label="QR Google Play"></div>
@@ -388,7 +389,7 @@
           <div class="promo-info-qr-label">App Store</div>
         </div>
       </div>
-      <button class="btn-close-popup" type="button" onclick="closePromoInfoPopup()">Cerrar</button>
+      <button class="btn-close-popup" id="promo-info-close" type="button" onclick="closePromoInfoPopup()">Cerrar</button>
     </div>
   </div>
 
@@ -415,7 +416,10 @@
         appOnly: "Solo app",
         validUntil: "Válido hasta",
         redeemInApp: "Canjear en la app",
-        promotions: "Promociones"
+        promotions: "Promociones",
+        moreInfo: "Presiona para más información",
+        qrPopupTitle: "Escanea el QR para descargar la App Cenco Mall",
+        qrPopupBody: "Obtén más información, beneficios exclusivos y descuentos directamente en tu dispositivo Android o iOS."
       },
       en: {
         pageTitle: "Promotions",
@@ -431,7 +435,10 @@
         appOnly: "App only",
         validUntil: "Valid until",
         redeemInApp: "Redeem in app",
-        promotions: "Promotions"
+        promotions: "Promotions",
+        moreInfo: "Tap for more information",
+        qrPopupTitle: "Scan the QR code to download the Cenco Mall app",
+        qrPopupBody: "Get more information, exclusive benefits and discounts directly on your Android or iOS device."
       },
       pt: {
         pageTitle: "Promoções",
@@ -447,12 +454,28 @@
         appOnly: "Somente app",
         validUntil: "Válido até",
         redeemInApp: "Resgatar no app",
-        promotions: "Promoções"
+        promotions: "Promoções",
+        moreInfo: "Toque para mais informações",
+        qrPopupTitle: "Escaneie o QR para baixar o app Cenco Mall",
+        qrPopupBody: "Obtenha mais informações, benefícios exclusivos e descontos diretamente no seu dispositivo Android ou iOS."
       }
     };
 
     function t(key) {
       return SimaLocale.t(I18N, key, currentLocale);
+    }
+
+    // Promo filter categories arrive in Spanish from the promotion_search
+    // payload; translate them for display via the shared catalog dictionary
+    // (keeps data-cat as the original so the native filter still matches).
+    function translateCat(name) {
+      var raw = String(name == null ? "" : name).trim();
+      if (!raw || currentLocale === "es") return raw;
+      if (window.MarketI18n && MarketI18n.translateCategory) {
+        var out = MarketI18n.translateCategory(raw, currentLocale);
+        if (out) return out;
+      }
+      return raw;
     }
 
     function escapeHtml(str) {
@@ -515,6 +538,12 @@
       var loadingCopy = document.getElementById("loading-copy");
       if (loadingTitle) loadingTitle.textContent = t("loadingTitle");
       if (loadingCopy) loadingCopy.textContent = t("loadingCopy");
+      var qrTitle = document.getElementById("promo-info-title");
+      if (qrTitle) qrTitle.textContent = t("qrPopupTitle");
+      var qrBody = document.getElementById("promo-info-body");
+      if (qrBody) qrBody.textContent = t("qrPopupBody");
+      var qrClose = document.getElementById("promo-info-close");
+      if (qrClose) qrClose.textContent = t("close");
       if (lastPromotionPayload) renderPromotionResults(lastPromotionPayload);
     }
 
@@ -537,7 +566,7 @@
       if (!categories || !categories.length) return "";
       return '<div class="cm-chip-row" id="promo-chip-row">' + categories.map(function (cat) {
         var active = activeQuery && String(activeQuery).toLowerCase() === String(cat).toLowerCase();
-        return '<button class="cm-chip' + (active ? " is-activated" : "") + '" type="button" data-cat="' + escapeHtml(cat) + '">' + escapeHtml(cat) + "</button>";
+        return '<button class="cm-chip' + (active ? " is-activated" : "") + '" type="button" data-cat="' + escapeHtml(cat) + '">' + escapeHtml(translateCat(cat)) + "</button>";
       }).join("") + "</div>";
     }
 
@@ -652,7 +681,7 @@
         ? escapeHtml(t("validUntil")) + " " + escapeHtml(promo.validityEnd)
         : "";
       var cta = promo.requiresApp
-        ? '<button class="btn-promo-app" type="button" data-promo-info="true" onclick="openPromoInfoPopup(event)">Presiona para más información</button>'
+        ? '<button class="btn-promo-app" type="button" data-promo-info="true" onclick="openPromoInfoPopup(event)">' + escapeHtml(t("moreInfo")) + '</button>'
         : "";
 
       return '<article class="promo-card fade-in">' +
@@ -718,7 +747,7 @@
       var cardsHtml = results.length
         ? results.map(function (p) { return renderPromoCard(normalizePromoResult(p), appUrl); }).join("")
         : '<div class="cm-empty"><div class="cm-empty-title">' + escapeHtml(t("noResults")) + "</div>" +
-          '<div class="cm-empty-copy">' + escapeHtml(t("promosNotFound")) + ' "' + escapeHtml(query || "") + '". ' +
+          '<div class="cm-empty-copy">' + escapeHtml(t("promosNotFound")) + ' "' + escapeHtml(translateCat(query || "")) + '". ' +
           escapeHtml(t("tryCategoryOrBrand")) + "</div></div>";
 
       box.innerHTML =
@@ -729,7 +758,7 @@
           "</div>" +
           '<p class="cm-results-query">' +
             (query
-              ? escapeHtml(t("filter")) + ": <strong>" + escapeHtml(query) + "</strong>"
+              ? escapeHtml(t("filter")) + ": <strong>" + escapeHtml(translateCat(query)) + "</strong>"
               : escapeHtml(t("allDiscountsToday"))) +
           "</p>" +
           chips +

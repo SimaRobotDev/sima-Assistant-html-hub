@@ -180,7 +180,7 @@
     <div class="status" id="status">
       <div class="status-card">
         <div class="spinner" id="spinner"></div>
-        <p class="status-title" id="status-title">Cargando mapa…</p>
+        <p class="status-title" id="status-title" data-i18n-key="loadingMap" data-i18n-copy-key="locatingStore">Cargando mapa…</p>
         <p class="status-copy" id="status-copy">Ubicando la tienda en el mapa del mall.</p>
       </div>
     </div>
@@ -194,6 +194,134 @@ const CONFIG_STORAGE_KEY = "cencomall_mapvx_test_config";
 const debugEnabled = /[?&]debug(=1|=true)?(&|$)/.test(location.search);
 const debugEl = document.getElementById("debug");
 const entries = [];
+
+const I18N = {
+  es: {
+    headerTitle: "Mapa de tienda",
+    viewRoute: "Ver ruta",
+    back: "Volver",
+    loadingMap: "Cargando mapa…",
+    locatingStore: "Ubicando la tienda en el mapa del mall.",
+    locatingX: "Ubicando {id} en el mapa del mall.",
+    waitingStore: "Esperando la tienda",
+    waitingStoreCopy: "La tienda se mostrará apenas llegue la información.",
+    changingStore: "Cambiando de tienda…",
+    loadingRoute: "Cargando ruta…",
+    tracingRouteToX: "Trazando la ruta hasta {id}.",
+    routeTooLong: "La ruta está tardando demasiado",
+    routeTooLongCopy: "Vuelve a buscar la tienda e inténtalo otra vez.",
+    routeMissingOrigin: "Falta el punto de partida para la ruta",
+    routeMissingOriginCopy: "No se pudo determinar desde dónde trazar la ruta.",
+    mapError: "No se pudo cargar el mapa",
+    mapErrorCopy: "Vuelve a intentarlo en unos segundos.",
+    noValidLocal: "Sin local válido para ese resultado.",
+    catalogUnavailable: "Catálogo no disponible."
+  },
+  en: {
+    headerTitle: "Store map",
+    viewRoute: "Show route",
+    back: "Back",
+    loadingMap: "Loading map…",
+    locatingStore: "Locating the store on the mall map.",
+    locatingX: "Locating {id} on the mall map.",
+    waitingStore: "Waiting for the store",
+    waitingStoreCopy: "The store will appear as soon as the information arrives.",
+    changingStore: "Switching store…",
+    loadingRoute: "Loading route…",
+    tracingRouteToX: "Tracing the route to {id}.",
+    routeTooLong: "The route is taking too long",
+    routeTooLongCopy: "Search for the store again and retry.",
+    routeMissingOrigin: "Route starting point missing",
+    routeMissingOriginCopy: "Couldn't determine where to trace the route from.",
+    mapError: "The map could not be loaded",
+    mapErrorCopy: "Please try again in a few seconds.",
+    noValidLocal: "No valid location for that result.",
+    catalogUnavailable: "Catalog unavailable."
+  },
+  pt: {
+    headerTitle: "Mapa da loja",
+    viewRoute: "Ver rota",
+    back: "Voltar",
+    loadingMap: "Carregando mapa…",
+    locatingStore: "Localizando a loja no mapa do shopping.",
+    locatingX: "Localizando {id} no mapa do shopping.",
+    waitingStore: "Aguardando a loja",
+    waitingStoreCopy: "A loja aparecerá assim que a informação chegar.",
+    changingStore: "Trocando de loja…",
+    loadingRoute: "Carregando rota…",
+    tracingRouteToX: "Traçando a rota até {id}.",
+    routeTooLong: "A rota está demorando muito",
+    routeTooLongCopy: "Busque a loja novamente e tente outra vez.",
+    routeMissingOrigin: "Falta o ponto de partida da rota",
+    routeMissingOriginCopy: "Não foi possível determinar de onde traçar a rota.",
+    mapError: "Não foi possível carregar o mapa",
+    mapErrorCopy: "Tente novamente em alguns segundos.",
+    noValidLocal: "Sem localização válida para esse resultado.",
+    catalogUnavailable: "Catálogo indisponível."
+  }
+};
+
+let currentLocale = (window.SimaLocale && SimaLocale.readLocaleFromPage)
+  ? SimaLocale.readLocaleFromPage()
+  : "es";
+
+function t(key, vars) {
+  let str = (window.SimaLocale && SimaLocale.t)
+    ? SimaLocale.t(I18N, key, currentLocale)
+    : ((I18N[currentLocale] && I18N[currentLocale][key]) || (I18N.es[key]) || key);
+  if (vars) {
+    Object.keys(vars).forEach(function (k) {
+      str = str.replace(new RegExp("\\{" + k + "\\}", "g"), vars[k]);
+    });
+  }
+  return str;
+}
+
+// Header title is replaced by the resolved store name / placeId once the map
+// loads; only re-localize it while it still shows the generic default.
+function isDefaultHeaderTitle(el) {
+  if (!el) return false;
+  var txt = (el.textContent || "").trim();
+  return !txt || txt === I18N.es.headerTitle || txt === I18N.en.headerTitle || txt === I18N.pt.headerTitle;
+}
+
+function applyLocale() {
+  currentLocale = (window.SimaLocale && SimaLocale.readLocaleFromPage)
+    ? SimaLocale.readLocaleFromPage()
+    : "es";
+  document.documentElement.lang = currentLocale;
+
+  var titleEl = document.getElementById("page-title");
+  if (isDefaultHeaderTitle(titleEl)) titleEl.textContent = t("headerTitle");
+
+  var routeBtn = document.getElementById("route-toggle");
+  if (routeBtn) routeBtn.textContent = t("viewRoute");
+
+  var backBtn = document.getElementById("store-map-back");
+  if (backBtn) backBtn.setAttribute("aria-label", t("back"));
+
+  // Best-effort: push the new locale to any live MapVX component.
+  ["mvx-place", "mvx-route"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    try { el.setAttribute("locale", currentLocale); el.locale = currentLocale; } catch (e) { /* older hosts */ }
+  });
+
+  // Re-localize the idle status card only when it is still showing its
+  // load-time default (never stomp a live "route too long" / error message).
+  var statusBox = document.getElementById("status");
+  var statusTitle = document.getElementById("status-title");
+  if (statusBox && statusTitle && !statusBox.classList.contains("hidden")
+      && statusTitle.dataset.i18nKey) {
+    setStatusFromKeys(
+      true,
+      statusTitle.dataset.i18nKey,
+      statusTitle.dataset.i18nCopyKey || null,
+      document.getElementById("spinner").classList.contains("hidden") ? false : true,
+      statusTitle.dataset.i18nVars ? JSON.parse(statusTitle.dataset.i18nVars) : null
+    );
+  }
+}
 
 function log(line) {
   entries.push(line);
@@ -225,8 +353,11 @@ function loadStoredConfig() {
 function readConfig() {
   const stored = loadStoredConfig() || {};
   const injected = window.MAPVX_CONFIG || {};
+  const pageLang = (window.SimaLocale && SimaLocale.readLocaleFromPage)
+    ? SimaLocale.readLocaleFromPage()
+    : "es";
   return Object.assign(
-    { apiKey: "", parentPlace: "-N19VjzEVIj2RDKu7i4r", totemPlaceId: "", lang: "es" },
+    { apiKey: "", parentPlace: "-N19VjzEVIj2RDKu7i4r", totemPlaceId: "", lang: pageLang },
     stored,
     injected
   );
@@ -236,8 +367,33 @@ function setStatus(show, title, copy, spinning) {
   const box = document.getElementById("status");
   box.classList.toggle("hidden", !show);
   document.getElementById("spinner").classList.toggle("hidden", spinning === false);
-  if (title) document.getElementById("status-title").textContent = title;
+  const titleEl = document.getElementById("status-title");
+  if (title) titleEl.textContent = title;
   if (copy != null) document.getElementById("status-copy").textContent = copy;
+  // Any literal-text status clears the i18n bookkeeping so a later
+  // locale change doesn't try to re-render a message it doesn't own.
+  delete titleEl.dataset.i18nKey;
+  delete titleEl.dataset.i18nCopyKey;
+  delete titleEl.dataset.i18nVars;
+}
+
+// Same as setStatus but takes I18N keys, so applyLocale() can re-render the
+// visible status card when the totem language changes mid-screen.
+function setStatusFromKeys(show, titleKey, copyKey, spinning, vars) {
+  setStatus(
+    show,
+    titleKey ? t(titleKey, vars) : null,
+    copyKey ? t(copyKey, vars) : (copyKey === null ? null : ""),
+    spinning
+  );
+  const titleEl = document.getElementById("status-title");
+  if (show && titleKey) {
+    titleEl.dataset.i18nKey = titleKey;
+    if (copyKey) titleEl.dataset.i18nCopyKey = copyKey;
+    else delete titleEl.dataset.i18nCopyKey;
+    if (vars) titleEl.dataset.i18nVars = JSON.stringify(vars);
+    else delete titleEl.dataset.i18nVars;
+  }
 }
 
 function currentPlaceId() {
@@ -264,18 +420,18 @@ const PLACE_CHANGE_COVER_MS = 1600;
 function applyPlace(cfg, placeId) {
   const mapEl = document.getElementById("mvx-place");
   if (!placeId) {
-    setStatus(true, "Esperando la tienda", "Prueba con ?local=CC_N3_3208 o guarda un placeId en Config.", false);
+    setStatusFromKeys(true, "waitingStore", "waitingStoreCopy", false);
     return;
   }
   if (window.__mvxBundleFailed || typeof customElements === "undefined" || !customElements.get("map-view-with-modal")) {
-    setStatus(true, "Componentes MapVX no cargaron", "Falta shared/mapvx-wc/index.es.js — ver shared/mapvx-wc/README.md.", false);
+    setStatusFromKeys(true, "mapError", "mapErrorCopy", false);
     log("map-view-with-modal not defined — bundle missing or blocked");
     notifyNative("store_map_error", { request: { placeId: placeId }, error: "mapvx-wc bundle missing" });
     return;
   }
   if (statusTimeoutId) { clearTimeout(statusTimeoutId); statusTimeoutId = null; }
   if (!mapReadyFired) {
-    setStatus(true, "Cargando mapa…", "Ubicando " + placeId + " en el mapa del mall.", true);
+    setStatusFromKeys(true, "loadingMap", "locatingX", true, { id: placeId });
     statusTimeoutId = setTimeout(function () {
       log("mapReady never fired within 6s — dismissing spinner anyway");
       setStatus(false);
@@ -365,7 +521,7 @@ function openStoreMapFromPayload(source, meta) {
   applyPlace(cfg, placeId);
   if (meta && meta.route) {
     if (!cfg.totemPlaceId) {
-      setStatus(true, "Falta origen para la ruta", "Configura originId/totemPlaceId en Config antes de pedir ruta.", false);
+      setStatusFromKeys(true, "routeMissingOrigin", "routeMissingOriginCopy", false);
       log((meta.source) + ": route requested but no totemPlaceId configured");
       return;
     }
@@ -373,7 +529,7 @@ function openStoreMapFromPayload(source, meta) {
     return;
   }
   if (isStoreChange) {
-    setStatus(true, "Cambiando de tienda…", "Ubicando " + placeId + " en el mapa del mall.", true);
+    setStatusFromKeys(true, "changingStore", "locatingX", true, { id: placeId });
     if (statusTimeoutId) { clearTimeout(statusTimeoutId); }
     statusTimeoutId = setTimeout(function () {
       statusTimeoutId = null;
@@ -634,7 +790,7 @@ function showRouteView(cfg, placeId) {
 
   document.getElementById("map-view").classList.add("hidden");
   document.getElementById("route-view").classList.remove("hidden");
-  setStatus(true, "Cargando ruta…", "Trazando desde el tótem hasta " + placeId + ".", true);
+  setStatusFromKeys(true, "loadingRoute", "tracingRouteToX", true, { id: placeId });
   routeEl.setAttribute("apiKey", cfg.apiKey || "");
   routeEl.setAttribute("parentPlaceId", cfg.parentPlace || "");
   routeEl.setAttribute("locale", cfg.lang || "es");
@@ -660,7 +816,7 @@ function showRouteView(cfg, placeId) {
   // error event to catch — don't let the spinner hang forever.
   if (routeStatusTimeoutId) clearTimeout(routeStatusTimeoutId);
   routeStatusTimeoutId = setTimeout(function () {
-    setStatus(true, "La ruta está tardando demasiado", "destinationId=" + placeId + " puede no ser un local MapVX válido. Volvé a buscar.", false);
+    setStatusFromKeys(true, "routeTooLong", "routeTooLongCopy", false);
     log("showRouteView: no route event within 15s for destinationId=" + placeId);
     notifyNative("store_map_error", { request: { placeId: placeId, originId: cfg.totemPlaceId }, error: "route timeout" });
   }, 15000);
@@ -986,7 +1142,7 @@ function renderSearchResults(results) {
   results.forEach(function (entry) { rows = rows.concat(flattenSearchResult(entry)); });
   const valid = rows.filter(function (r) { return !!r.local; });
   if (!valid.length) {
-    box.innerHTML = '<div class="search-result-empty">Sin local MapVX válido para ese resultado.</div>';
+    box.innerHTML = '<div class="search-result-empty">' + t("noValidLocal") + '</div>';
     log("search: " + results.length + " catalog matches, 0 with a usable .local — not routable");
     return;
   }
@@ -1001,7 +1157,7 @@ function renderSearchResults(results) {
       document.getElementById("store-search-results").innerHTML = "";
       document.getElementById("store-search").value = row.label;
       if (!cfg.totemPlaceId) {
-        setStatus(true, "Falta origen para la ruta", "Elegí un botón de origen (Cami/Lia/Nuno/Max/Olivia) arriba antes de buscar destino.", false);
+        setStatusFromKeys(true, "routeMissingOrigin", "routeMissingOriginCopy", false);
         log("search select: no totemPlaceId set, can't route to " + destId);
         return;
       }
@@ -1026,7 +1182,7 @@ function wireStoreSearch() {
     storeSearchDebounce = setTimeout(function () {
       ensureMarketSearchLoaded().then(function (ok) {
         if (!ok) {
-          document.getElementById("store-search-results").innerHTML = '<div class="search-result-empty">Catálogo no disponible.</div>';
+          document.getElementById("store-search-results").innerHTML = '<div class="search-result-empty">' + t("catalogUnavailable") + '</div>';
           return;
         }
         const res = MarketSearch.search(query, { limit: 8 });
@@ -1108,6 +1264,11 @@ function handleBack() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+  if (window.SimaLocale && SimaLocale.bindPageLocale) {
+    SimaLocale.bindPageLocale(applyLocale);
+  }
+  applyLocale();
+
   wireConfigBox();
   wireStoreSearch();
   wireEvents();

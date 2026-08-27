@@ -2199,7 +2199,7 @@ article.service-card .btn-service-map {
       <div id="map-loading-circle" class="map-loading-circle hidden" aria-hidden="true">
         <div class="map-loading-circle-inner">
           <div class="map-loading-spinner"></div>
-          <div>Cargando mapa…</div>
+          <div id="map-loading-circle-text">Cargando mapa…</div>
         </div>
       </div>
     </div>
@@ -2320,7 +2320,13 @@ const MOBILITY_I18N = {
     starLabels: ["Muy mala", "Mala", "Regular", "Buena", "Excelente"],
     starUnit: "estrella",
     starUnitPlural: "estrellas",
-    zoomMeterLabel: "Zoom {zoom} · aprox. {distance} visibles"
+    zoomMeterLabel: "Zoom {zoom} · aprox. {distance} visibles",
+    selectSubcategory: "Selecciona una subcategoría",
+    searchDataError: "Error al leer los datos de la búsqueda.",
+    moreInfo: "Presiona para más información",
+    quickAccess: "Accesos rápidos",
+    categoryTabs: "Pestañas de categorías",
+    alphaIndex: "Índice alfabético"
   },
   en: {
     results: "Results",
@@ -2420,7 +2426,13 @@ const MOBILITY_I18N = {
     starLabels: ["Very poor", "Poor", "Fair", "Good", "Excellent"],
     starUnit: "star",
     starUnitPlural: "stars",
-    zoomMeterLabel: "Zoom {zoom} · approx. {distance} visible"
+    zoomMeterLabel: "Zoom {zoom} · approx. {distance} visible",
+    selectSubcategory: "Select a subcategory",
+    searchDataError: "Couldn't read the search data.",
+    moreInfo: "Tap for more information",
+    quickAccess: "Quick access",
+    categoryTabs: "Category tabs",
+    alphaIndex: "Alphabetical index"
   },
   pt: {
     results: "Resultados",
@@ -2520,7 +2532,13 @@ const MOBILITY_I18N = {
     starLabels: ["Muito ruim", "Ruim", "Regular", "Bom", "Excelente"],
     starUnit: "estrela",
     starUnitPlural: "estrelas",
-    zoomMeterLabel: "Zoom {zoom} · aprox. {distance} visíveis"
+    zoomMeterLabel: "Zoom {zoom} · aprox. {distance} visíveis",
+    selectSubcategory: "Selecione uma subcategoria",
+    searchDataError: "Erro ao ler os dados da busca.",
+    moreInfo: "Toque para mais informações",
+    quickAccess: "Acessos rápidos",
+    categoryTabs: "Abas de categorias",
+    alphaIndex: "Índice alfabético"
   }
 };
 
@@ -2800,6 +2818,9 @@ function applyStoreSearchLandingLocale() {
   const categoriesBtn = document.getElementById("storeCategoriesBtn");
   if (categoriesBtn) categoriesBtn.textContent = t("viewAllCategories") || t("categories");
 
+  const featuredGrid = document.getElementById("catalogFeaturedGrid");
+  if (featuredGrid) featuredGrid.setAttribute("aria-label", t("quickAccess"));
+
   const popularTitle = document.getElementById("popularCategoriesTitle");
   if (popularTitle) popularTitle.textContent = t("popularCategoriesTitle");
 
@@ -2985,7 +3006,7 @@ function buildStoreSearchLandingHtml() {
             placeholder="${escapeHtml(t("storeSearchPlaceholder"))}"
           />
         </div>
-        <div class="cm-catalog-grid" id="catalogFeaturedGrid" aria-label="Accesos rápidos"></div>
+        <div class="cm-catalog-grid" id="catalogFeaturedGrid" aria-label="${escapeHtml(t("quickAccess"))}"></div>
         <button class="cm-catalog-all-btn" id="storeCategoriesBtn" type="button">${escapeHtml(t("viewAllCategories") || t("categories"))}</button>
       </div>`;
 }
@@ -3589,9 +3610,15 @@ function applyMobilityLocale() {
   if (mapTitle) mapTitle.textContent = t("map");
 
   const mapRouteBtn = document.getElementById("map-route-btn");
-  if (mapRouteBtn && !mapRouteBtn.classList.contains("hidden")) {
-    mapRouteBtn.textContent = t("viewRoute");
+  if (mapRouteBtn && !mapRouteBtn.classList.contains("hidden") && !mapRouteBtn.disabled) {
+    // Keep the state-dependent label in sync (Ver ruta / Quitar ruta).
+    mapRouteBtn.textContent = (typeof mobilityMapRouteActive !== "undefined" && mobilityMapRouteActive)
+      ? t("clearRoute")
+      : t("viewRoute");
   }
+
+  const mapLoadingText = document.getElementById("map-loading-circle-text");
+  if (mapLoadingText) mapLoadingText.textContent = t("mapLoading");
 
   if (lastMarketPayload) renderMarketResults(lastMarketPayload);
   if (lastPromotionPayload) renderPromotionResults(lastPromotionPayload);
@@ -3611,7 +3638,8 @@ function applyMobilityLocale() {
   ) {
     try {
       const data = MarketSearch.listCategories();
-      if (data.categories && data.categories.length) renderStoreCategories(data.categories);
+      const localized = resolveCenco20Categories(data.categories || []);
+      if (localized.length) renderStoreCategories(localized);
     } catch (e) { /* noop */ }
   }
 
@@ -3893,10 +3921,10 @@ function resolveCenco20Categories(categories) {
         console.warn("Missing cenco category in local catalog:", label, "key=", key);
         return;
       }
-      list.push({ key, label, storeCount: relaxed.storeCount || 0 });
+      list.push({ key, label: localizeCategoryName(label), storeCount: relaxed.storeCount || 0 });
       return;
     }
-    list.push({ key, label, storeCount: match.storeCount || 0 });
+    list.push({ key, label: localizeCategoryName(label), storeCount: match.storeCount || 0 });
   });
   return list;
 }
@@ -3938,7 +3966,7 @@ function buildGastronomyCategoryList() {
   return (window.GASTRONOMY_SUBCATEGORIES || []).map(function (item) {
     return {
       key: item.key,
-      label: item.label,
+      label: localizeCategoryName(item.label),
       storeCount: item.storeCount || 0,
       iconSrc: item.iconSrc || "",
     };
@@ -3961,7 +3989,7 @@ async function openGastronomySubcategories(pushView) {
     <div class="cm-panel fade-in">
       <div class="cm-empty">
         <div class="cm-empty-title">${escapeHtml(t("gastronomy"))}</div>
-        <div class="cm-empty-copy">${escapeHtml("Selecciona una subcategoría")}</div>
+        <div class="cm-empty-copy">${escapeHtml(t("selectSubcategory"))}</div>
       </div>
     </div>`;
 
@@ -3977,7 +4005,7 @@ async function openGastronomySubcategories(pushView) {
     const categories = items.map(function (item) {
       return {
         key: item.key,
-        label: item.label,
+        label: localizeCategoryName(item.label),
         storeCount: counts[item.key] || 0,
         iconSrc: item.iconSrc || "",
         onclick: "selectGastronomySubcategory('" + encodeURIComponent(item.key) + "')",
@@ -4376,7 +4404,7 @@ function renderStoreCategories(categories) {
           <h2 class="cm-results-title" id="cm-categories-title">${escapeHtml(t("categories"))}</h2>
           <span class="cm-results-count" id="cm-categories-count">${categories.length}</span>
         </div>
-        <div class="cm-category-tabs" id="cm-category-tabs-wrap" role="tablist" aria-label="Tabs Categorías">
+        <div class="cm-category-tabs" id="cm-category-tabs-wrap" role="tablist" aria-label="${escapeHtml(t("categoryTabs"))}">
           <button class="cm-category-tab-btn is-active" type="button" role="tab" aria-selected="true" data-tab="categories"
             onclick="setStoreCategoriesTab('categories')">${escapeHtml(t("categories"))}</button>
           <button class="cm-category-tab-btn" type="button" role="tab" aria-selected="false" data-tab="az"
@@ -4386,7 +4414,7 @@ function renderStoreCategories(categories) {
       </div>
       <div class="cm-category-browse">
         <div id="cm-category-list-wrap" class="cm-category-list">${buildCategoryRows(baseCategories)}</div>
-        <nav id="cm-letter-index" class="cm-letter-index" aria-label="Índice alfabético">${buildLetterIndexHtml(collectAvailableLetters("categories"))}</nav>
+        <nav id="cm-letter-index" class="cm-letter-index" aria-label="${escapeHtml(t("alphaIndex"))}">${buildLetterIndexHtml(collectAvailableLetters("categories"))}</nav>
       </div>
     </div>`;
 
@@ -5071,7 +5099,7 @@ function buscarDesdeVoz(raw) {
   if (input.startsWith("base64:")) {
     try { input = decodeBase64Utf8(input.substring(7)); }
     catch (e) {
-      showSearchError("Error al leer los datos de la búsqueda.");
+      showSearchError(t("searchDataError"));
       return;
     }
   }
@@ -5080,7 +5108,7 @@ function buscarDesdeVoz(raw) {
     try {
       const parsed = JSON.parse(input);
       buscarDesdeVoz(parsed);
-    } catch (e) { showSearchError("Error al mostrar los resultados."); }
+    } catch (e) { showSearchError(t("loadError")); }
     return;
   }
 
@@ -6060,7 +6088,7 @@ function renderCategoryChips(categories, activeQuery) {
   if (!categories || !categories.length) return "";
   const chips = categories.map((cat) => {
     const active = activeQuery && String(activeQuery).toLowerCase() === String(cat).toLowerCase();
-    return `<button class="cm-chip${active ? " active" : ""}" type="button" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`;
+    return `<button class="cm-chip${active ? " active" : ""}" type="button" data-cat="${escapeHtml(cat)}">${escapeHtml(localizeCategoryName(cat))}</button>`;
   }).join("");
   return `<div class="cm-chip-row" id="promo-chip-row">${chips}</div>`;
 }
@@ -6088,7 +6116,7 @@ function renderPromoCard(promo, appUrl) {
     ? `${escapeHtml(t("validUntil"))} ${escapeHtml(promo.validityEnd)}`
     : "";
   const cta = promo.requiresApp
-    ? `<button class="btn-promo-app" type="button" onclick="openPromoInfoPopup()">Presiona para más información</button>`
+    ? `<button class="btn-promo-app" type="button" onclick="openPromoInfoPopup()">${escapeHtml(t("moreInfo"))}</button>`
     : "";
 
   return `
@@ -6096,7 +6124,7 @@ function renderPromoCard(promo, appUrl) {
       ${img}
       <div class="promo-card-body">
         <div class="promo-brand">${escapeHtml(promo.brandName || "")}</div>
-        <div class="promo-title">${escapeHtml(promo.title || "Promoción")}</div>
+        <div class="promo-title">${escapeHtml(promo.title || t("promotions"))}</div>
         <div class="store-meta">${appBadge}</div>
         ${validity ? `<div class="promo-validity">${validity}</div>` : ""}
         ${cta}
@@ -6154,7 +6182,7 @@ function renderPromotionResults(payload) {
           <h2 class="cm-results-title">${escapeHtml(t("promotions"))}</h2>
           <span class="cm-results-count">${results.length}</span>
         </div>
-        <p class="cm-results-query">${query ? `${escapeHtml(t("filter"))}: <strong>${escapeHtml(query)}</strong>` : escapeHtml(t("allDiscountsToday"))}</p>
+        <p class="cm-results-query">${query ? `${escapeHtml(t("filter"))}: <strong>${escapeHtml(localizeCategoryName(query))}</strong>` : escapeHtml(t("allDiscountsToday"))}</p>
         ${chips}
       </div>
       <div class="promo-grid">${cardsHtml}</div>
@@ -6184,7 +6212,7 @@ function normalizeServiceResult(svc) {
   return {
     id: svc.id || svc.catalogId || svc.Id || "",
     catalogId: svc.catalogId || svc.id || "",
-    name: svc.name || svc.Name || "Servicio",
+    name: svc.name || svc.Name || t("services"),
     description: svc.description || svc.Description || "",
     location: svc.location || svc.Location || "",
     floors: Array.isArray(floors) ? floors : [],

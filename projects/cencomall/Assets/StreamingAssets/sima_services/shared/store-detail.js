@@ -116,10 +116,13 @@
     return base;
   }
 
-  function displayName(store) {
-    return text(store && (
+  function displayName(store, locale) {
+    var name = text(store && (
       store.name || store.brand || store.brand_name || store.market_name
-    )) || "Tienda";
+    ));
+    if (name) return name;
+    var l = text(locale || global.MALL_LOCALE || "es").toLowerCase();
+    return l.indexOf("en") === 0 ? "Store" : l.indexOf("pt") === 0 ? "Loja" : "Tienda";
   }
 
   /** Same wording as mobility: "Nivel 3" / "PB", never "Piso: …". */
@@ -286,7 +289,7 @@
     }
     options = options || {};
     var locale = text(options.locale || global.MALL_LOCALE || "es").toLowerCase();
-    var name = displayName(store);
+    var name = displayName(store, locale);
     var floor = formatFloorLabel(
       store.floor || store.location || options.floor,
       locale
