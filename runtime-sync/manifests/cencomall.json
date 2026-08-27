@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.08.26-1",
+  "version": "2026.08.27-1",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-08-26T04:10:40.731Z",
+  "generatedAt": "2026-08-27T19:02:33.905Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -210,8 +210,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 254582,
-      "sha256": "0a174de34566f0fc46505ef918dee558b82672acc2843ea109190f05e793fb21"
+      "size": 256106,
+      "sha256": "51ab8791332e57ddf912add59770a3ab7946a0f220e35494cdc2cb5aed4bc452"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -230,8 +230,8 @@
     },
     {
       "path": "promociones/index.html",
-      "size": 28060,
-      "sha256": "e36edaaeb669215a7be5c59b96f96900ca721d2b18644544d48f79766d6f27b9"
+      "size": 29874,
+      "sha256": "a9d29f8842877190e66ef59e8b64471325bf5154ae6af4c2b6948a21cb18cb30"
     },
     {
       "path": "promociones/QR_App_Store_Cenco_Malls.png",
@@ -485,8 +485,8 @@
     },
     {
       "path": "shared/market-i18n.js",
-      "size": 8888,
-      "sha256": "f026d217bb0d4a95b390a826310ad3126f32999a361ac4e4724ba4bd24b983cd"
+      "size": 9552,
+      "sha256": "e0b148104b6865770f174515a445dace1ba9fe75f3f485d58a0301a184beb690"
     },
     {
       "path": "shared/market-query-i18n.js",
@@ -530,8 +530,8 @@
     },
     {
       "path": "shared/store-detail.js",
-      "size": 11400,
-      "sha256": "b3d4147fa6e46bc9fb5743937933ef7a34768b2f214dca7822aba3bc8b645c4c"
+      "size": 11593,
+      "sha256": "80bf7dfd5cabf3a35776ab7e655d2a6ff6122964ea23e14fb3700bddd3d8d842"
     },
     {
       "path": "shared/store-logos/casa-ideas.png",
@@ -595,8 +595,8 @@
     },
     {
       "path": "store-map-web/index.html",
-      "size": 51400,
-      "sha256": "28adbd99698be73bb783b1ba3a5675fb34a97a9d86fec20924b7606582d2293e"
+      "size": 57661,
+      "sha256": "95b04863267fe019b0d155f15a6e98119a2feda08c46a9ec9d5618521eae31f3"
     },
     {
       "path": "store-map/index.html",
