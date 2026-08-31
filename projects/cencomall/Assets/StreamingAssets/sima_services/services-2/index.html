@@ -187,16 +187,21 @@
       cursor: pointer;
     }
 
+    /* Continue the purple header seamlessly — same box model as .cm-body-panel
+       (#mainUI) so the white sheet lines up with the top bar instead of
+       sticking out past it with its own rounded border. */
     .success {
       display: none;
-      text-align: center;
-      background: #fff;
-      border-radius: 16px;
-      padding: 24px;
-      border: 1px solid var(--cm-line);
-      box-shadow: var(--cm-shadow);
       flex-direction: column;
       gap: 14px;
+      text-align: center;
+      margin: 0 14px 14px;
+      padding: 24px;
+      background: var(--cb-white, #fff);
+      border: 1px solid var(--cm-line);
+      border-top: 0;
+      border-radius: 0 0 var(--cb-topbar-decoration-radius) var(--cb-topbar-decoration-radius);
+      box-sizing: border-box;
     }
 
     .success.active { display: flex; }

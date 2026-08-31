@@ -111,10 +111,7 @@ function resetToLanding() {
 :root {
   --cm-speak-bar: 132px;
   --cm-header-height: 72px;
-  --cm-survey-strip-height: 0px;
 }
-
-.app-shell.has-survey { --cm-survey-strip-height: 76px; }
 
 html, body {
   background: transparent;
@@ -147,115 +144,6 @@ body.cencomall-theme {
   padding: 14px;
   box-shadow: var(--cm-shadow);
   border: 1px solid var(--cm-line);
-}
-
-.cm-survey-strip {
-  position: sticky;
-  top: var(--cm-header-height);
-  z-index: 35;
-  background: #fff;
-  border-bottom: 1px solid var(--cm-line);
-  border-left: 1px solid var(--cm-line);
-  border-right: 1px solid var(--cm-line);
-  box-shadow: 0 4px 14px rgba(61, 29, 92, 0.07);
-  margin: 0 14px;
-  padding: 8px 10px 8px 12px;
-  animation: fadeIn 0.25s ease;
-}
-
-.cm-survey-strip.hidden { display: none; }
-
-.cm-survey-strip-inner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.cm-survey-strip-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.cm-survey-title {
-  margin: 0 0 2px;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.cm-star-rating {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.cm-star-btn {
-  width: 36px;
-  height: 36px;
-  border: 2px solid var(--cm-line);
-  border-radius: 9px;
-  background: #fff;
-  color: #C4B8D4;
-  font-size: 18px;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s;
-}
-
-.cm-star-btn:hover,
-.cm-star-btn:focus-visible {
-  border-color: #D4B85A;
-  background: #FFF9E8;
-}
-
-.cm-star-btn.active,
-.cm-star-btn.selected {
-  border-color: #E6A800;
-  background: #FFF6D6;
-  color: #E6A800;
-}
-
-.cm-star-btn:active { transform: scale(0.94); }
-
-.cm-star-hint {
-  font-size: 10px;
-  color: var(--cm-muted);
-  margin: 0;
-  line-height: 1.2;
-}
-
-.cm-survey-dismiss {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 8px;
-  background: #F0E9F8;
-  color: var(--cm-muted);
-  font-size: 18px;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.cm-survey-dismiss:active { transform: scale(0.94); }
-
-.cm-survey-strip.is-thanks .cm-survey-strip-inner {
-  justify-content: center;
-  padding: 2px 0;
-}
-
-.cm-survey-thanks-msg {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--cm-purple-dark);
-  margin: 0;
-  text-align: center;
 }
 
 .cm-welcome {
@@ -695,8 +583,7 @@ body.cencomall-theme {
 /* Deep-link Ver ruta: skip search landing flash; show map shell + spinner first. */
 html.auto-map-launch .cm-body,
 html.auto-map-launch .cm-speak-fab,
-html.auto-map-launch .cm-header,
-html.auto-map-launch .cm-survey-strip {
+html.auto-map-launch .cm-header {
   visibility: hidden !important;
   pointer-events: none !important;
 }
@@ -716,8 +603,7 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 /* Voice/RN launch: never flash the empty store searcher while catalog resolves. */
 html.search-boot-loading .cm-search-landing,
-html.search-boot-loading .cm-speak-fab,
-html.search-boot-loading .cm-survey-strip {
+html.search-boot-loading .cm-speak-fab {
   display: none !important;
 }
 
@@ -2114,17 +2000,6 @@ article.service-card .btn-service-map {
     </h1>
   </header>
 
-  <section id="survey-strip" class="cm-survey-strip hidden" aria-label="Evaluación de atención">
-    <div class="cm-survey-strip-inner" id="survey-strip-inner">
-      <div class="cm-survey-strip-text">
-        <h2 class="cm-survey-title" id="survey-title">¿Cómo va mi atención?</h2>
-        <p class="cm-star-hint" id="survey-hint">1 = muy mala · 5 = excelente</p>
-      </div>
-      <div class="cm-star-rating" id="survey-stars"></div>
-      <button class="cm-survey-dismiss" id="survey-dismiss-btn" type="button" aria-label="Omitir encuesta" onclick="dismissSurvey()">×</button>
-    </div>
-  </section>
-
   <div class="cm-body">
     <section id="resultado" class="result-block">
       <div class="cm-panel cm-search-landing" id="store-search-landing">
@@ -2262,9 +2137,6 @@ const MOBILITY_I18N = {
     welcomeHint: "Aquí verás tiendas, promociones y servicios que encuentre Cami.",
     parkingUnavailable: "No hay información de estacionamiento disponible.",
     noAdditionalDetail: "Sin detalle adicional.",
-    surveyTitle: "¿Cómo va mi atención?",
-    surveyHint: "1 = muy mala · 5 = excelente",
-    surveyThanks: "¡Gracias por tu evaluación!",
     bathrooms: "Baños",
     bathroomsKids: "Niños y mudadores",
     elevators: "Ascensores",
@@ -2315,11 +2187,6 @@ const MOBILITY_I18N = {
     relatedResultsFor: "Resultados relacionados para",
     retrySearch: "Intentar otra búsqueda",
     searchTryAgain: "Revisa cómo escribiste el nombre e inténtalo nuevamente.",
-    surveyAriaLabel: "Evaluación de atención",
-    surveyDismiss: "Omitir encuesta",
-    starLabels: ["Muy mala", "Mala", "Regular", "Buena", "Excelente"],
-    starUnit: "estrella",
-    starUnitPlural: "estrellas",
     zoomMeterLabel: "Zoom {zoom} · aprox. {distance} visibles",
     selectSubcategory: "Selecciona una subcategoría",
     searchDataError: "Error al leer los datos de la búsqueda.",
@@ -2368,9 +2235,6 @@ const MOBILITY_I18N = {
     welcomeHint: "Stores, promotions and services Cami finds will appear here.",
     parkingUnavailable: "Parking information is not available.",
     noAdditionalDetail: "No additional details.",
-    surveyTitle: "How is my assistance?",
-    surveyHint: "1 = very poor · 5 = excellent",
-    surveyThanks: "Thanks for your feedback!",
     bathrooms: "Restrooms",
     bathroomsKids: "Kids & changing",
     elevators: "Elevators",
@@ -2421,11 +2285,6 @@ const MOBILITY_I18N = {
     relatedResultsFor: "Related results for",
     retrySearch: "Try another search",
     searchTryAgain: "Check the spelling and try another search.",
-    surveyAriaLabel: "Service rating",
-    surveyDismiss: "Skip survey",
-    starLabels: ["Very poor", "Poor", "Fair", "Good", "Excellent"],
-    starUnit: "star",
-    starUnitPlural: "stars",
     zoomMeterLabel: "Zoom {zoom} · approx. {distance} visible",
     selectSubcategory: "Select a subcategory",
     searchDataError: "Couldn't read the search data.",
@@ -2474,9 +2333,6 @@ const MOBILITY_I18N = {
     welcomeHint: "Aqui você verá lojas, promoções e serviços que a Cami encontrar.",
     parkingUnavailable: "Informações de estacionamento indisponíveis.",
     noAdditionalDetail: "Sem detalhes adicionais.",
-    surveyTitle: "Como está meu atendimento?",
-    surveyHint: "1 = muito ruim · 5 = excelente",
-    surveyThanks: "Obrigado pela avaliação!",
     bathrooms: "Banheiros",
     bathroomsKids: "Crianças e fraldário",
     elevators: "Elevadores",
@@ -2527,11 +2383,6 @@ const MOBILITY_I18N = {
     relatedResultsFor: "Resultados relacionados para",
     retrySearch: "Tentar outra busca",
     searchTryAgain: "Revise como escreveu o nome e tente novamente.",
-    surveyAriaLabel: "Avaliação do atendimento",
-    surveyDismiss: "Pular pesquisa",
-    starLabels: ["Muito ruim", "Ruim", "Regular", "Bom", "Excelente"],
-    starUnit: "estrela",
-    starUnitPlural: "estrelas",
     zoomMeterLabel: "Zoom {zoom} · aprox. {distance} visíveis",
     selectSubcategory: "Selecione uma subcategoria",
     searchDataError: "Erro ao ler os dados da busca.",
@@ -3128,9 +2979,12 @@ function buildMarketSearchAttempts(query) {
 }
 
 function ensureStoreSearchReady() {
+  // A deep-linked Servicios route owns the screen — don't let a background
+  // native search echo tear it down or bounce back to Servicios.
+  if (isDeepLinkServiceRouteActive()) return;
   const mapView = document.getElementById("map-view");
-  if (mapView && !mapView.classList.contains("hidden") && typeof closeMapView === "function") {
-    closeMapView();
+  if (mapView && !mapView.classList.contains("hidden") && typeof teardownMapView === "function") {
+    teardownMapView();
   }
   const landing = document.getElementById("store-search-landing");
   if (landing) landing.classList.remove("visible");
@@ -3292,6 +3146,13 @@ function runServicesCatalogSearch(query, options) {
   const q = String(query || "").trim();
   const serviceId = options.serviceId ? String(options.serviceId).trim() : "";
   if ((!q && !serviceId) || typeof ServicesCatalog === "undefined" || !ServicesCatalog.search) {
+    return false;
+  }
+
+  // Keep the deep-linked Servicios route on screen — ignore background re-searches
+  // (native echoes) that aren't an explicit auto-map/route launch.
+  if (isDeepLinkServiceRouteActive() && !(options.autoMap || options.autoRoute)) {
+    SimaBridge.log("services_catalog_search ignored — deep-link route on screen q=" + (q || serviceId));
     return false;
   }
 
@@ -3585,18 +3446,6 @@ function applyMobilityLocale() {
   const speakSearch = document.getElementById("btnSpeakSearch");
   if (speakSearch) speakSearch.setAttribute("aria-label", speakButtonLabel());
 
-  const surveyTitle = document.getElementById("survey-title");
-  if (surveyTitle) surveyTitle.textContent = t("surveyTitle");
-
-  const surveyHint = document.getElementById("survey-hint");
-  if (surveyHint) surveyHint.textContent = t("surveyHint");
-
-  const surveyStrip = document.getElementById("survey-strip");
-  if (surveyStrip) surveyStrip.setAttribute("aria-label", t("surveyAriaLabel"));
-
-  const surveyDismissBtn = document.getElementById("survey-dismiss-btn");
-  if (surveyDismissBtn) surveyDismissBtn.setAttribute("aria-label", t("surveyDismiss"));
-
   const mapBack = document.getElementById("map-back-btn");
   if (mapBack) mapBack.setAttribute("aria-label", t("back").replace(/^←\s*/, ""));
 
@@ -3641,11 +3490,6 @@ function applyMobilityLocale() {
       const localized = resolveCenco20Categories(data.categories || []);
       if (localized.length) renderStoreCategories(localized);
     } catch (e) { /* noop */ }
-  }
-
-  const surveyStripEl = document.getElementById("survey-strip");
-  if (surveyStripEl && !surveyStripEl.classList.contains("hidden") && !surveyStripEl.classList.contains("is-thanks")) {
-    renderEntrySurvey();
   }
 
   updateMapZoomMeter();
@@ -4528,6 +4372,10 @@ function showSearchInProgress(query) {
 }
 
 function ingestMarketSearchPayload(data) {
+  if (isDeepLinkServiceRouteActive()) {
+    SimaBridge.log("market_search ignored — deep-link service route on screen");
+    return false;
+  }
   const query = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.extractSearchQuery)
     ? SimaNativePayload.extractSearchQuery(data)
     : String(data.query || data.text || data.q || "").trim();
@@ -4642,7 +4490,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isMapVxConfigured()) preloadMapVxBaseMap();
   });
   warmupMapVxWcInBackground();
-  renderEntrySurvey();
   document.getElementById("btnSpeak").onclick = startVoiceInput;
   document.getElementById("btnSpeakMini").onclick = startVoiceInput;
   document.getElementById("btnSpeakSearch").onclick = submitSearchFromFab;
@@ -4900,77 +4747,6 @@ function handleVoiceNativeMessage(raw) {
   return false;
 }
 
-function getStarLabels() {
-  const labels = t("starLabels");
-  return Array.isArray(labels) ? labels : ["Muy mala", "Mala", "Regular", "Buena", "Excelente"];
-}
-
-function setSurveyVisible(visible) {
-  const strip = document.getElementById("survey-strip");
-  const shell = document.getElementById("app-shell");
-  if (strip) strip.classList.toggle("hidden", !visible);
-  if (shell) shell.classList.toggle("has-survey", visible);
-}
-
-function dismissSurvey() {
-  setSurveyVisible(false);
-}
-
-function renderEntrySurvey() {
-  const starsWrap = document.getElementById("survey-stars");
-  if (!starsWrap) return;
-
-  const starLabels = getStarLabels();
-  const starUnit = t("starUnit");
-  const starUnitPlural = t("starUnitPlural");
-
-  starsWrap.innerHTML = [1, 2, 3, 4, 5].map((score) => `
-    <button
-      class="cm-star-btn"
-      type="button"
-      data-score="${score}"
-      aria-label="${score} ${score > 1 ? starUnitPlural : starUnit} — ${escapeHtml(starLabels[score - 1] || "")}"
-    >★</button>`).join("");
-
-  starsWrap.querySelectorAll(".cm-star-btn").forEach((btn) => {
-    btn.onclick = () => submitEntrySurvey(btn.getAttribute("data-score"), btn);
-  });
-
-  setSurveyVisible(true);
-}
-
-function highlightStars(upToScore) {
-  document.querySelectorAll(".cm-star-btn").forEach((btn) => {
-    const score = Number(btn.getAttribute("data-score"));
-    btn.classList.toggle("selected", score <= upToScore);
-    btn.classList.toggle("active", score === upToScore);
-  });
-
-  const hint = document.getElementById("survey-hint");
-  if (hint && upToScore >= 1 && upToScore <= 5)
-    hint.textContent = getStarLabels()[upToScore - 1];
-}
-
-function submitEntrySurvey(score, buttonEl) {
-  const numericScore = Number(score);
-  highlightStars(numericScore);
-  if (buttonEl) buttonEl.classList.add("active");
-
-  SimaBridge.send("service_feedback", { score: String(score), phase: "entry" });
-
-  const strip = document.getElementById("survey-strip");
-  const inner = document.getElementById("survey-strip-inner");
-  if (strip && inner) {
-    strip.classList.add("is-thanks");
-    inner.innerHTML = `<p class="cm-survey-thanks-msg">${escapeHtml(t("surveyThanks"))}</p>`;
-  }
-
-  window.setTimeout(() => {
-    if (strip) strip.classList.remove("is-thanks");
-    setSurveyVisible(false);
-  }, 1200);
-}
-
 function decodeBase64Utf8(b64) {
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
@@ -4992,6 +4768,14 @@ function showSearchError(message) {
 function dispatchVoiceSearch(query, source) {
   const q = String(query || "").trim();
   if (!q) return false;
+
+  // Ver ruta (Servicios → atención al cliente) deep-links straight into this
+  // route. A native echo of that same request must not hijack the screen and
+  // close it a few seconds later.
+  if (isDeepLinkServiceRouteActive()) {
+    SimaBridge.log("voice_search ignored — deep-link service route on screen q=" + q);
+    return false;
+  }
 
   setVoiceListeningState(false);
   stopBrowserSpeechRecognition();
@@ -5117,6 +4901,13 @@ function buscarDesdeVoz(raw) {
 
 function renderIncomingPayload(dataJson) {
   if (!dataJson) return;
+
+  // Don't let a background native payload replace the deep-linked Servicios
+  // route (Ver ruta → atención al cliente) that the user is looking at.
+  if (isDeepLinkServiceRouteActive()) {
+    SimaBridge.log("incoming payload ignored — deep-link service route on screen");
+    return;
+  }
 
   const data = (typeof SimaNativePayload !== "undefined" && SimaNativePayload.normalize)
     ? SimaNativePayload.normalize(dataJson)
@@ -7610,12 +7401,29 @@ function openServiceMap(idx, options) {
   });
 }
 
+// Whether mobility is currently showing a service route that was deep-linked
+// from the Servicios screen (Ver ruta → atención al cliente). While this is on
+// screen, a stray native search echo must NOT tear the map down or bounce out.
+function isDeepLinkServiceRouteActive() {
+  const mapView = document.getElementById("map-view");
+  const mapOpen = !!(mapView && !mapView.classList.contains("hidden"));
+  return mapOpen && backToServiciosIfNeeded();
+}
+
+// User-initiated close of the map view. From a Servicios deep-link this returns
+// the user to Servicios; otherwise it just tears the map overlay down locally.
 function closeMapView() {
   if (backToServiciosIfNeeded()) {
     window.location.href = "../servicios/index.html";
     return;
   }
+  teardownMapView();
+}
 
+// Hide + dispose the map overlay WITHOUT leaving mobility. Safe to call from
+// internal flows (ensureStoreSearchReady, a new search, etc.) — closeMapView()
+// is the only path that may navigate away.
+function teardownMapView() {
   clearAutoMapLaunchUi();
   const container = document.getElementById("mapvx-container");
   const mapKept = typeof MapVxBridge !== "undefined"

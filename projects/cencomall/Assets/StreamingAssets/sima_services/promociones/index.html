@@ -582,7 +582,10 @@
 
     function filterPromotionsByCategory(category) {
       if (window.SimaBridge && typeof SimaBridge.send === "function") {
-        SimaBridge.send("promotion_search", { text: category || "" });
+        // Promo-scoped event only. Never emit "promotion_search" (a Mobility
+        // search intent) — the native host routes that through Mobility, which
+        // is why closing Promociones was landing on the Mobility screen.
+        SimaBridge.send("open_promotions", { text: category || "", filter: category || "" });
       }
       // Local filter fallback while waiting for native response
       if (lastPromotionPayload && Array.isArray(lastPromotionPayload.results) && isLocalPreview()) {
@@ -799,8 +802,10 @@
 
     function requestPromotions(text) {
       if (window.SimaBridge && typeof SimaBridge.send === "function") {
-        SimaBridge.send("promotion_search", { text: text || "" });
-        SimaBridge.send("open_promotions", {});
+        // Only ask for promotions — do NOT emit "promotion_search" (Mobility's
+        // search intent). Emitting it made the native host bring up Mobility,
+        // so closing Promociones dropped the user onto the Mobility screen.
+        SimaBridge.send("open_promotions", { text: text || "" });
       }
     }
 

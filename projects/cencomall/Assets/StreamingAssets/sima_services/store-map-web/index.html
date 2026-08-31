@@ -4,11 +4,17 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Mapa de tienda — Cenco Malls</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/cencobricks-tokens.css" />
+<link rel="stylesheet" href="../shared/cencobricks-shell.css" />
+<link rel="stylesheet" href="../shared/app.css" />
+<link rel="stylesheet" href="../shared/store-detail.css?v=20260810-2" />
 <script src="../shared/locale.js"></script>
 <script src="../shared/bridge.js"></script>
 <script src="../shared/market-search.js"></script>
 <script src="../shared/market-i18n.js"></script>
-<link rel="stylesheet" href="../shared/store-detail.css?v=20260810-2" />
 <script src="../shared/store-detail.js?v=20260812-5"></script>
 
 <!--
@@ -21,102 +27,298 @@
 <script src="../shared/mapvx-wc/route-view-totems.js" onerror="window.__mvxBundleFailed = true"></script>
 
 <style>
-  :root {
-    --cm-purple: #5B2D8E;
-    --cm-purple-dark: #3D1D5C;
-    --cm-surface: #F4F0F8;
-    --cm-line: #E7DFF0;
-    --cm-pink: #E6007E;
+  /* Chrome ported 1:1 from ../store-map/index.html so both store-map screens
+     share the exact Cencomall look (Poppins, cencobricks tokens, floating
+     rounded card, flat dark-purple top bar, pink route pill). */
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: transparent;
+    color: var(--cm-text, #1e1630);
+    font-family: var(--cb-font-body, system-ui, sans-serif);
   }
-  html, body { margin: 0; height: 100%; background: #fff; font-family: system-ui, sans-serif; color: #1E1630; }
-  .shell { display: flex; flex-direction: column; height: 100%; min-height: 100vh; box-sizing: border-box; }
+  body::before { display: none; }
 
-  .header {
+  .store-map-shell {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 28px);
+    min-height: calc(100vh - 28px);
+    margin: 14px;
+    box-sizing: border-box;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: var(--cm-shadow, 0 2px 10px rgba(0, 0, 0, 0.18));
+  }
+
+  .store-map-header {
+    display: flex;
+    align-items: center;
+    gap: var(--cb-topbar-gap, 8px);
+    padding: var(--cb-topbar-pad-y, 10px) var(--cb-topbar-pad-x, 14px);
+    background: var(--cb-topbar-fill, #3d1d5c);
+    color: var(--cb-topbar-title, #ffffff);
+    min-height: var(--cb-topbar-icon-btn-s, 44px);
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+
+  .store-map-title {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    margin: 0;
+    font-family: var(--cb-font-title, inherit);
+    font-weight: var(--cb-topbar-title-weight, 700);
+    font-size: var(--cb-topbar-title-size-s, 16px);
+    line-height: var(--cb-topbar-title-lh-s, 1.3);
+    letter-spacing: var(--cb-topbar-title-tracking, 0);
+    color: inherit;
+  }
+
+  .store-map-title-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .store-map-actions {
+    margin-left: auto;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 14px;
-    background: linear-gradient(135deg, var(--cm-purple-dark), var(--cm-purple));
+  }
+
+  .store-map-pill {
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+    background: var(--cm-pink, #e6007e);
     color: #fff;
+  }
+
+  .store-map-pill.ghost {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+  }
+
+  .store-map-pill:disabled,
+  .store-map-pill.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  .store-map-stage {
+    position: relative;
+    flex: 1;
+    min-height: 240px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .store-map-view {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .store-map-view.hidden { display: none !important; }
+
+  /* Keep the component initialising (layout stays), just don't paint its own
+     loader while our Cencomall status card is covering the stage. */
+  .store-map-stage.status-covering .store-map-view { visibility: hidden; }
+
+  map-view-with-modal,
+  route-view-totems,
+  #route-view-mount {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .store-map-floor {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--cm-purple-dark, #3d1d5c);
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 13px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(61, 29, 92, 0.1);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .store-map-stage .maplibregl-ctrl-top-right { top: 58px; right: 10px; }
+
+  .store-map-status {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+    /* Opaque (vs store-map's 0.94): the MapVX Web Component renders its own
+       "Cargando…" loader underneath, so a translucent cover would show two. */
+    background: #fff;
+  }
+
+  .store-map-status-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+    max-width: 22em;
+  }
+
+  .store-map-spinner {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 3px solid rgba(88, 44, 131, 0.18);
+    border-top-color: var(--cm-purple-dark, #582c83);
+    animation: storeMapSpin 0.8s linear infinite;
+  }
+
+  @keyframes storeMapSpin { to { transform: rotate(360deg); } }
+
+  .store-map-status-title {
+    margin: 0;
+    font-family: var(--cb-font-title, inherit);
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--cm-purple-dark, #582c83);
+  }
+
+  .store-map-status-copy {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--cm-muted, #6b6475);
+  }
+
+  .store-map-status-retry {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 20px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--cm-purple-dark, #582c83);
+    color: #fff;
+  }
+
+  .store-map-debug {
     flex-shrink: 0;
+    max-height: 28vh;
+    overflow: auto;
+    margin: 0;
+    padding: 10px 14px;
+    background: #14101c;
+    color: #d7cfe6;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: pre-wrap;
   }
-  .header-title { font-weight: 700; font-size: 16px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .header-actions { margin-left: auto; display: flex; gap: 8px; }
-  .header-back-btn {
-    border: none; background: transparent; color: #fff; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    width: 32px; height: 32px; border-radius: 999px; flex-shrink: 0;
-  }
-  .header-back-btn:active { background: rgba(255,255,255,0.15); }
-  .header-back-btn svg { fill: #fff; }
-  .pill {
-    border: none; border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 13px;
-    cursor: pointer; background: rgba(255,255,255,0.2); color: #fff;
-  }
-  .pill.primary { background: var(--cm-pink); }
-  .pill.hidden { display: none; }
 
-  .stage { position: relative; flex: 1; min-height: 240px; background: #fff; overflow: hidden; }
-  .view { position: absolute; inset: 0; }
-  .view.hidden { display: none; }
-
-  map-view-with-modal, route-view-totems { width: 100%; height: 100%; display: block; }
-  #route-view-mount { width: 100%; height: 100%; }
-
-  .status {
-    position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
-    padding: 24px; box-sizing: border-box; background: rgba(255,255,255,0.94);
-  }
-  .status.hidden { display: none; }
-  .status-card { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; max-width: 22em; }
-  .spinner {
-    width: 42px; height: 42px; border-radius: 50%;
-    border: 3px solid rgba(88,44,131,0.18); border-top-color: var(--cm-purple-dark);
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .status-title { margin: 0; font-size: 17px; font-weight: 800; color: var(--cm-purple-dark); }
-  .status-copy { margin: 0; font-size: 13px; line-height: 1.45; color: #6b6475; }
-
+  /* Dev-only config panel — hidden entirely when the native app is the host. */
   .config-box {
-    margin: 10px 14px; padding: 10px 12px; border-radius: 12px; background: var(--cm-surface);
-    border: 1px solid var(--cm-line); font-size: 12px; line-height: 1.45;
+    flex-shrink: 0;
+    margin: 12px 14px 0;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--cm-surface, #f4f0f8);
+    border: 1px solid var(--cm-line, #e7dff0);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--cm-text, #1e1630);
   }
-  .config-box.hidden { display: none; }
   .config-box .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-  .config-box input { flex: 1; min-width: 140px; border: 1px solid var(--cm-line); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
-  .config-box button { border: none; border-radius: 8px; padding: 8px 12px; font-weight: 700; cursor: pointer; background: var(--cm-purple-dark); color: #fff; }
-  .test-user-btn { background: #fff; color: var(--cm-purple-dark); border: 1px solid var(--cm-purple-dark) !important; font-size: 12px; padding: 6px 10px !important; }
-  .test-user-btn:active { background: var(--cm-purple-dark); color: #fff; }
-  .test-user-btn.active-origin { background: var(--cm-purple-dark); color: #fff; }
+  .config-box input {
+    flex: 1;
+    min-width: 140px;
+    border: 1px solid var(--cm-line, #e7dff0);
+    border-radius: 10px;
+    padding: 9px 11px;
+    font: inherit;
+    font-size: 13px;
+    background: #fff;
+    color: inherit;
+  }
+  .config-box button {
+    border: none;
+    border-radius: 999px;
+    padding: 9px 16px;
+    font-family: var(--cb-font-title, inherit);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--cm-purple-dark, #582c83);
+    color: #fff;
+  }
+  .config-box .test-user-btn {
+    background: #fff;
+    color: var(--cm-purple-dark, #582c83);
+    border: 1px solid var(--cm-purple-dark, #582c83);
+    font-size: 12px;
+    padding: 7px 12px;
+  }
+  .config-box .test-user-btn.active-origin { background: var(--cm-purple-dark, #582c83); color: #fff; }
+  .config-box code { background: rgba(88, 44, 131, 0.08); border-radius: 4px; padding: 1px 5px; }
 
   #store-search-results { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
   .search-result-btn {
-    text-align: left; border: 1px solid var(--cm-line); background: #fff; border-radius: 8px;
-    padding: 8px 10px; cursor: pointer; font-size: 13px; color: #1E1630;
+    text-align: left;
+    border: 1px solid var(--cm-line, #e7dff0);
+    background: #fff;
+    border-radius: 10px;
+    padding: 9px 11px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    color: var(--cm-text, #1e1630);
   }
-  .search-result-btn:hover { background: var(--cm-surface); }
-  .search-result-btn .sr-floor { color: #6b6475; font-size: 11px; margin-left: 6px; }
+  .search-result-btn:hover { background: var(--cm-surface, #f4f0f8); }
+  .search-result-btn .sr-floor { color: var(--cm-muted, #6b6475); font-size: 11px; margin-left: 6px; }
   .search-result-empty { font-size: 12px; opacity: .7; padding: 4px 2px; }
 
-  .debug { flex-shrink: 0; max-height: 22vh; overflow: auto; margin: 0; padding: 10px 14px; background: #14101c; color: #d7cfe6; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.45; white-space: pre-wrap; }
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
-<div class="shell">
-  <header class="header">
-    <button class="header-back-btn" id="store-map-back" type="button" aria-label="Volver">
-      <svg width="22" height="22" viewBox="8 8 24 24" aria-hidden="true" focusable="false">
+<div class="store-map-shell">
+  <header class="store-map-header">
+    <button class="cm-header-icon-btn" id="store-map-back" type="button" aria-label="Volver">
+      <svg class="cm-header-back-icon" width="24" height="24" viewBox="8 8 24 24" aria-hidden="true" focusable="false">
         <path fill-rule="evenodd" clip-rule="evenodd" d="M12 20C12 19.4477 12.4477 19 13 19H27C27.5523 19 28 19.4477 28 20C28 20.5523 27.5523 21 27 21H13C12.4477 21 12 20.5523 12 20Z"/>
         <path fill-rule="evenodd" clip-rule="evenodd" d="M12.2929 19.2929C12.6834 18.9024 13.3166 18.9024 13.7071 19.2929L19.7071 25.2929C20.0976 25.6834 20.0976 26.3166 19.7071 26.7071C19.3166 27.0976 18.6834 27.0976 18.2929 26.7071L12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929Z"/>
         <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7071 13.2929C20.0976 13.6834 20.0976 14.3166 19.7071 14.7071L13.7071 20.7071C13.3166 21.0976 12.6834 21.0976 12.2929 20.7071C11.9024 20.3166 11.9024 19.6834 12.2929 19.2929L18.2929 13.2929C18.6834 12.9024 19.3166 12.9024 19.7071 13.2929Z"/>
       </svg>
     </button>
-    <span class="header-title" id="page-title">Mapa de tienda</span>
-    <div class="header-actions">
-      <button class="pill hidden" id="route-toggle" type="button">Ver ruta</button>
-      <button class="pill" id="config-toggle" type="button">Config</button>
+    <h1 class="store-map-title">
+      <span class="store-map-title-text" id="page-title">Mapa de tienda</span>
+    </h1>
+    <div class="store-map-actions">
+      <button class="store-map-pill hidden" id="route-toggle" type="button">Ver ruta</button>
+      <button class="store-map-pill ghost" id="config-toggle" type="button">Config</button>
     </div>
   </header>
 
@@ -161,8 +363,9 @@
     </p>
   </div>
 
-  <div class="stage" id="stage">
-    <div class="view" id="map-view">
+  <div class="store-map-stage status-covering" id="stage">
+    <div class="store-map-floor hidden" id="store-map-floor"></div>
+    <div class="store-map-view" id="map-view">
       <map-view-with-modal id="mvx-place" compact-mode zoom-size="small" style="
         --mvx-primary-color:#5B2D8E;
         --mvx-surface-color:#ffffff;
@@ -173,20 +376,20 @@
         --mvx-shadow:0 6px 16px rgba(0,0,0,0.18);
       "></map-view-with-modal>
     </div>
-    <div class="view hidden" id="route-view">
+    <div class="store-map-view hidden" id="route-view">
       <div id="route-view-mount"></div>
     </div>
 
-    <div class="status" id="status">
-      <div class="status-card">
-        <div class="spinner" id="spinner"></div>
-        <p class="status-title" id="status-title" data-i18n-key="loadingMap" data-i18n-copy-key="locatingStore">Cargando mapa…</p>
-        <p class="status-copy" id="status-copy">Ubicando la tienda en el mapa del mall.</p>
+    <div class="store-map-status" id="status" role="status" aria-live="polite">
+      <div class="store-map-status-card">
+        <div class="store-map-spinner" id="spinner"></div>
+        <p class="store-map-status-title" id="status-title" data-i18n-key="loadingMap" data-i18n-copy-key="locatingStore">Cargando mapa…</p>
+        <p class="store-map-status-copy" id="status-copy">Ubicando la tienda en el mapa del mall.</p>
       </div>
     </div>
   </div>
 
-  <pre class="debug hidden" id="debug"></pre>
+  <pre class="store-map-debug hidden" id="debug"></pre>
 </div>
 
 <script>
@@ -202,7 +405,6 @@ const I18N = {
     back: "Volver",
     loadingMap: "Cargando mapa…",
     locatingStore: "Ubicando la tienda en el mapa del mall.",
-    locatingX: "Ubicando {id} en el mapa del mall.",
     waitingStore: "Esperando la tienda",
     waitingStoreCopy: "La tienda se mostrará apenas llegue la información.",
     changingStore: "Cambiando de tienda…",
@@ -223,7 +425,6 @@ const I18N = {
     back: "Back",
     loadingMap: "Loading map…",
     locatingStore: "Locating the store on the mall map.",
-    locatingX: "Locating {id} on the mall map.",
     waitingStore: "Waiting for the store",
     waitingStoreCopy: "The store will appear as soon as the information arrives.",
     changingStore: "Switching store…",
@@ -244,7 +445,6 @@ const I18N = {
     back: "Voltar",
     loadingMap: "Carregando mapa…",
     locatingStore: "Localizando a loja no mapa do shopping.",
-    locatingX: "Localizando {id} no mapa do shopping.",
     waitingStore: "Aguardando a loja",
     waitingStoreCopy: "A loja aparecerá assim que a informação chegar.",
     changingStore: "Trocando de loja…",
@@ -367,6 +567,10 @@ function setStatus(show, title, copy, spinning) {
   const box = document.getElementById("status");
   box.classList.toggle("hidden", !show);
   document.getElementById("spinner").classList.toggle("hidden", spinning === false);
+  // Hide the MapVX component while our own status card is up — the component
+  // renders its own bare "Cargando…" loader that would otherwise show through.
+  const stage = document.getElementById("stage");
+  if (stage) stage.classList.toggle("status-covering", !!show);
   const titleEl = document.getElementById("status-title");
   if (title) titleEl.textContent = title;
   if (copy != null) document.getElementById("status-copy").textContent = copy;
@@ -431,7 +635,7 @@ function applyPlace(cfg, placeId) {
   }
   if (statusTimeoutId) { clearTimeout(statusTimeoutId); statusTimeoutId = null; }
   if (!mapReadyFired) {
-    setStatusFromKeys(true, "loadingMap", "locatingX", true, { id: placeId });
+    setStatusFromKeys(true, "loadingMap", "locatingStore", true);
     statusTimeoutId = setTimeout(function () {
       log("mapReady never fired within 6s — dismissing spinner anyway");
       setStatus(false);
@@ -445,7 +649,13 @@ function applyPlace(cfg, placeId) {
   // setAttribute(..., "false") would still read as true. Set the JS
   // property directly instead.
   mapEl.showFloorSelector = false;
-  document.getElementById("page-title").textContent = placeId;
+  // Keep the generic header title (matches ../store-map) — updateHeaderTitle()
+  // swaps in the resolved store name once the map's popup renders it. Never
+  // show the raw placeId / node id in the bar.
+  {
+    const _titleEl = document.getElementById("page-title");
+    if (isDefaultHeaderTitle(_titleEl)) _titleEl.textContent = t("headerTitle");
+  }
   document.getElementById("route-toggle").classList.toggle("hidden", !cfg.totemPlaceId);
   lastAppliedPlaceId = placeId;
   log("applyPlace " + JSON.stringify({ placeId: placeId, parentPlace: cfg.parentPlace }));
@@ -519,6 +729,7 @@ function openStoreMapFromPayload(source, meta) {
   // this only needs to run for the non-route case.
   const isStoreChange = mapReadyFired && placeId !== lastAppliedPlaceId;
   applyPlace(cfg, placeId);
+  renderStoreDetailFromPayload(source);
   if (meta && meta.route) {
     if (!cfg.totemPlaceId) {
       setStatusFromKeys(true, "routeMissingOrigin", "routeMissingOriginCopy", false);
@@ -529,7 +740,7 @@ function openStoreMapFromPayload(source, meta) {
     return;
   }
   if (isStoreChange) {
-    setStatusFromKeys(true, "changingStore", "locatingX", true, { id: placeId });
+    setStatusFromKeys(true, "changingStore", "locatingStore", true);
     if (statusTimeoutId) { clearTimeout(statusTimeoutId); }
     statusTimeoutId = setTimeout(function () {
       statusTimeoutId = null;
@@ -571,11 +782,32 @@ function detailLocale() {
 
 function hideStoreDetail() {
   detailRequestSeq += 1;
+  nativeStoreDetail = null;
   if (typeof StoreDetail !== "undefined") {
     StoreDetail.render(document.getElementById("store-detail"), null);
   } else {
     document.getElementById("store-detail").classList.add("hidden");
   }
+}
+
+// Same behaviour as ../store-map: render the store card (logo/photo, floor
+// chip, hours, description) from the local OTA catalog on every open — not
+// only when the native app pushes a full /market record via applyStoreDetail.
+function renderStoreDetailFromPayload(source) {
+  if (typeof StoreDetail === "undefined" || !source || typeof source !== "object") return;
+  if (nativeStoreDetail) return;
+  const idRaw = String(source.catalogId || source.catalog_id || source.id || "").trim();
+  const base = {
+    name: pickNameFromPayload(source),
+    local: pickIdentifierFromPayload(source),
+    floor: String(source.floor || source.level || source.piso || source.nivel || "").trim(),
+    catalogId: /^\d+$/.test(idRaw) ? idRaw : "",
+  };
+  if (!base.name && !base.local && !base.catalogId) return;
+  const seq = ++detailRequestSeq;
+  const merged = StoreDetail.merge({}, base);
+  StoreDetail.render(document.getElementById("store-detail"), merged, { locale: detailLocale() });
+  enrichStoreDetail(merged, seq);
 }
 
 async function enrichStoreDetail(detail, seq) {
@@ -1288,6 +1520,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("store-map-back").addEventListener("click", handleBack);
 
   applyPlace(cfg, placeId);
+  if (placeId) renderStoreDetailFromPayload(queryParams());
   if (placeId && /^(1|true|yes)$/i.test(queryParams().route || "")) {
     if (cfg.totemPlaceId) {
       showRouteView(cfg, placeId);
