@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, minimum-scale=1, user-scalable=no" />
   <title>Promociones — Cenco Malls</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,7 +14,7 @@
   <script src="../shared/market-i18n.js"></script>
   <script src="../shared/native-payload.js"></script>
   <script src="../shared/bridge.js"></script>
-  <script src="../shared/qrcode.min.js"></script>
+  <script src="../shared/lock-viewport.js"></script>
   <style>
     html, body {
       margin: 0;
@@ -182,129 +182,6 @@
       color: var(--cb-tag-success-text);
     }
 
-    .btn-promo-app {
-      width: 100%;
-      box-sizing: border-box;
-      border: none;
-      font-family: var(--cb-btn-font);
-      font-size: var(--cb-btn-font-xs);
-      font-weight: var(--cb-btn-weight);
-      line-height: 1.2;
-      padding: var(--cb-btn-pad-y-xs) var(--cb-btn-pad-x-xs);
-      cursor: pointer;
-      background: var(--cb-btn-primary-fill);
-      color: var(--cb-btn-primary-text);
-      border-radius: var(--cb-btn-radius);
-      margin-top: auto;
-      text-align: center;
-    }
-
-    .promo-info-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(16, 24, 40, 0.72);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 400;
-    }
-
-    .promo-info-overlay.show {
-      display: flex;
-    }
-
-    .promo-info-popup {
-      width: min(520px, 100%);
-      background: #fff;
-      border-radius: 24px;
-      padding: 24px;
-      box-shadow: 0 32px 80px rgba(8, 15, 32, 0.18);
-      max-height: calc(100vh - 40px);
-      overflow: auto;
-    }
-
-    .promo-info-popup h2 {
-      margin: 0 0 10px;
-      font-size: 22px;
-      line-height: 1.2;
-    }
-
-    .promo-info-popup p {
-      margin: 0 0 18px;
-      color: #4B5268;
-    }
-
-    .promo-info-qr-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .promo-info-qr {
-      background: #F7F5FF;
-      border-radius: 16px;
-      border: 1px solid #E9E6F4;
-      padding: 18px 14px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .promo-info-qr-placeholder {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      background: linear-gradient(180deg, #ECECF7 0%, #F8F7FC 100%);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #8A84B7;
-      font-size: 13px;
-      text-align: center;
-      padding: 8px;
-    }
-
-    .promo-info-qr-image {
-      width: 100%;
-      height: auto;
-      aspect-ratio: 1 / 1;
-      border-radius: 14px;
-      background: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    .promo-info-qr-image canvas,
-    .promo-info-qr-image img,
-    .promo-info-qr-image svg {
-      width: 100% !important;
-      height: 100% !important;
-      display: block;
-    }
-
-    .promo-info-qr-label {
-      font-size: 12px;
-      font-weight: 700;
-      color: #332F68;
-    }
-
-    .promo-info-popup .btn-close-popup {
-      margin-top: 18px;
-      width: 100%;
-      border: none;
-      background: #F2EFFD;
-      color: #3D2F8F;
-      border-radius: 14px;
-      padding: 12px 14px;
-      font-family: var(--cb-btn-font);
-      font-size: var(--cb-btn-font-xs);
-      cursor: pointer;
-    }
-
     .cm-empty {
       text-align: center;
       padding: 28px 12px;
@@ -375,31 +252,11 @@
     </div>
   </div>
 
-  <div id="promo-info-overlay" class="promo-info-overlay" aria-hidden="true" onclick="if(event.target===this){ closePromoInfoPopup(); }">
-    <div class="promo-info-popup" role="dialog" aria-modal="true" aria-labelledby="promo-info-title" tabindex="-1">
-      <h2 id="promo-info-title">Escanea el QR para descargar la App Cenco Mall</h2>
-      <p id="promo-info-body">Obtén más información, beneficios exclusivos y descuentos directamente en tu dispositivo Android o iOS.</p>
-      <div class="promo-info-qr-grid">
-        <div class="promo-info-qr">
-          <div id="promo-qr-google" class="promo-info-qr-image" role="img" aria-label="QR Google Play"></div>
-          <div class="promo-info-qr-label">Google Play</div>
-        </div>
-        <div class="promo-info-qr">
-          <div id="promo-qr-apple" class="promo-info-qr-image" role="img" aria-label="QR App Store"></div>
-          <div class="promo-info-qr-label">App Store</div>
-        </div>
-      </div>
-      <button class="btn-close-popup" id="promo-info-close" type="button" onclick="closePromoInfoPopup()">Cerrar</button>
-    </div>
-  </div>
-
   <script>
     var currentLocale = "es";
     var lastPromotionPayload = null;
     var receivedFromNative = false;
     var demoTimer = null;
-    var promoQrRendered = false;
-    var promoInfoReturnFocus = null;
 
     var I18N = {
       es: {
@@ -416,10 +273,7 @@
         appOnly: "Solo app",
         validUntil: "Válido hasta",
         redeemInApp: "Canjear en la app",
-        promotions: "Promociones",
-        moreInfo: "Presiona para más información",
-        qrPopupTitle: "Escanea el QR para descargar la App Cenco Mall",
-        qrPopupBody: "Obtén más información, beneficios exclusivos y descuentos directamente en tu dispositivo Android o iOS."
+        promotions: "Promociones"
       },
       en: {
         pageTitle: "Promotions",
@@ -435,10 +289,7 @@
         appOnly: "App only",
         validUntil: "Valid until",
         redeemInApp: "Redeem in app",
-        promotions: "Promotions",
-        moreInfo: "Tap for more information",
-        qrPopupTitle: "Scan the QR code to download the Cenco Mall app",
-        qrPopupBody: "Get more information, exclusive benefits and discounts directly on your Android or iOS device."
+        promotions: "Promotions"
       },
       pt: {
         pageTitle: "Promoções",
@@ -454,10 +305,7 @@
         appOnly: "Somente app",
         validUntil: "Válido até",
         redeemInApp: "Resgatar no app",
-        promotions: "Promoções",
-        moreInfo: "Toque para mais informações",
-        qrPopupTitle: "Escaneie o QR para baixar o app Cenco Mall",
-        qrPopupBody: "Obtenha mais informações, benefícios exclusivos e descontos diretamente no seu dispositivo Android ou iOS."
+        promotions: "Promoções"
       }
     };
 
@@ -527,6 +375,30 @@
       } catch (e3) {}
     }
 
+    // Back-trap: the totem reuses ONE WebView and reaches Promociones by
+    // navigating it from Mobility, so a host "close" that does webView.goBack()
+    // lands on Mobility. Pin this screen — seed an extra same-document history
+    // state and convert every back/pop gesture into a real close_webview, so the
+    // WebView URL never leaves Promociones and Mobility is never shown.
+    (function installPromoBackTrap() {
+      try {
+        if (!window.history || typeof window.history.pushState !== "function") return;
+        var lastCloseAt = 0;
+        function armTrap() {
+          try { window.history.pushState({ sima: "promociones-trap" }, ""); } catch (e) {}
+        }
+        try { window.history.replaceState({ sima: "promociones" }, ""); } catch (eR) {}
+        armTrap();
+        window.addEventListener("popstate", function () {
+          armTrap(); // re-arm before anything can fall through to the previous page
+          var now = Date.now();
+          if (now - lastCloseAt < 400) return; // debounce goBack→goBack hosts
+          lastCloseAt = now;
+          closeWebview();
+        });
+      } catch (eTrap) { /* history unavailable — header ← still calls closeWebview() */ }
+    })();
+
     function applyLocale() {
       currentLocale = SimaLocale.readLocaleFromPage();
       document.documentElement.lang = currentLocale;
@@ -538,12 +410,6 @@
       var loadingCopy = document.getElementById("loading-copy");
       if (loadingTitle) loadingTitle.textContent = t("loadingTitle");
       if (loadingCopy) loadingCopy.textContent = t("loadingCopy");
-      var qrTitle = document.getElementById("promo-info-title");
-      if (qrTitle) qrTitle.textContent = t("qrPopupTitle");
-      var qrBody = document.getElementById("promo-info-body");
-      if (qrBody) qrBody.textContent = t("qrPopupBody");
-      var qrClose = document.getElementById("promo-info-close");
-      if (qrClose) qrClose.textContent = t("close");
       if (lastPromotionPayload) renderPromotionResults(lastPromotionPayload);
     }
 
@@ -603,75 +469,6 @@
       }
     }
 
-    function openPromoInApp(promoId, url) {
-      if (window.SimaBridge && typeof SimaBridge.send === "function") {
-        SimaBridge.send("generate_qr", { url: url, id: promoId || "promo" });
-      }
-    }
-
-    function renderPromoDownloadQrs() {
-      if (promoQrRendered || typeof window.QRCode !== "function") return;
-      var googleQr = document.getElementById("promo-qr-google");
-      var appleQr = document.getElementById("promo-qr-apple");
-      if (!googleQr || !appleQr) return;
-
-      try {
-        new QRCode(googleQr, {
-          text: "https://play.google.com/store/apps/details?id=cencosudx.shopping.app",
-          width: 220,
-          height: 220,
-          correctLevel: QRCode.CorrectLevel.M
-        });
-        new QRCode(appleQr, {
-          text: "https://apps.apple.com/cl/app/cenco-malls/id1591048778",
-          width: 220,
-          height: 220,
-          correctLevel: QRCode.CorrectLevel.M
-        });
-        promoQrRendered = true;
-      } catch (error) {
-        if (window.SimaBridge && typeof SimaBridge.log === "function") {
-          SimaBridge.log("promotion_info_qr_error");
-        }
-      }
-    }
-
-    function openPromoInfoPopup(event) {
-      if (event) {
-        if (typeof event.preventDefault === "function") event.preventDefault();
-        if (typeof event.stopPropagation === "function") event.stopPropagation();
-      }
-      var overlay = document.getElementById("promo-info-overlay");
-      if (!overlay) return;
-      promoInfoReturnFocus = document.activeElement;
-      renderPromoDownloadQrs();
-      overlay.classList.add("show");
-      overlay.setAttribute("aria-hidden", "false");
-      window.setTimeout(function () {
-        var popup = overlay.querySelector(".promo-info-popup");
-        if (popup && typeof popup.focus === "function") popup.focus();
-      }, 0);
-      if (window.SimaBridge && typeof SimaBridge.log === "function") {
-        SimaBridge.log("promotion_info_popup_opened");
-      }
-    }
-
-    function closePromoInfoPopup() {
-      var overlay = document.getElementById("promo-info-overlay");
-      if (!overlay) return;
-      overlay.classList.remove("show");
-      overlay.setAttribute("aria-hidden", "true");
-      if (promoInfoReturnFocus && typeof promoInfoReturnFocus.focus === "function") {
-        promoInfoReturnFocus.focus();
-      }
-      promoInfoReturnFocus = null;
-    }
-
-    function openPromoFromBtn(btn) {
-      if (!btn) return;
-      openPromoInApp(btn.getAttribute("data-promo-id") || "promo", btn.getAttribute("data-promo-url") || "https://www.cencomalls.cl/");
-    }
-
     function renderPromoCard(promo, appUrl) {
       var imgSrc = resolveMediaUrl(promo.imageUrl);
       var img = imgSrc
@@ -683,9 +480,6 @@
       var validity = promo.validityEnd
         ? escapeHtml(t("validUntil")) + " " + escapeHtml(promo.validityEnd)
         : "";
-      var cta = promo.requiresApp
-        ? '<button class="btn-promo-app" type="button" data-promo-info="true" onclick="openPromoInfoPopup(event)">' + escapeHtml(t("moreInfo")) + '</button>'
-        : "";
 
       return '<article class="promo-card fade-in">' +
         img +
@@ -694,32 +488,8 @@
           '<div class="promo-title">' + escapeHtml(promo.title || t("promotions")) + "</div>" +
           '<div class="store-meta">' + appBadge + "</div>" +
           (validity ? '<div class="promo-validity">' + validity + "</div>" : "") +
-          cta +
         "</div></article>";
     }
-
-    function bindPromotionButtons() {
-      var box = document.getElementById("resultado");
-      if (!box || box.getAttribute("data-promo-buttons-bound") === "true") return;
-      box.setAttribute("data-promo-buttons-bound", "true");
-      box.addEventListener("click", function (event) {
-        var target = event.target;
-        while (target && target !== box) {
-          if (target.getAttribute && target.getAttribute("data-promo-info") === "true") {
-            openPromoInfoPopup(event);
-            return;
-          }
-          target = target.parentNode;
-        }
-      });
-    }
-
-    document.addEventListener("keydown", function (event) {
-      var overlay = document.getElementById("promo-info-overlay");
-      if (event.key === "Escape" && overlay && overlay.classList.contains("show")) {
-        closePromoInfoPopup();
-      }
-    });
 
     function renderPromotionResults(payload) {
       lastPromotionPayload = payload || {};
@@ -768,7 +538,6 @@
           '<div class="promo-grid">' + cardsHtml + "</div>" +
         "</div>";
       bindPromotionChips();
-      bindPromotionButtons();
     }
 
     function demoPayload() {
@@ -848,9 +617,6 @@
         message: data.message || ""
       });
     };
-
-    window.openPromoInApp = openPromoInApp;
-    window.openPromoFromBtn = openPromoFromBtn;
 
     SimaLocale.bindPageLocale(applyLocale);
     applyLocale();
