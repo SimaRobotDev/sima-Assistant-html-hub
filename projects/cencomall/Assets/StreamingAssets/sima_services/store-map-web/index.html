@@ -650,12 +650,17 @@ function applyPlace(cfg, placeId) {
     // reveal the web component's own bare "Cargando…" loader sitting on an empty
     // stage: that unstyled leftover area behind the detail card is the bug, not
     // the white colour itself.
+    //
+    // 60s, and NO store_map_error notify: the WC does not always fire mapReady
+    // even when the map is actually drawn and usable, and the native host closes
+    // this webview on store_map_error — a slow/quirky load must never yank the
+    // screen out from under someone who is looking at the map. Genuine dead
+    // loads just leave the retry card up; the user closes it with the back arrow.
     statusTimeoutId = setTimeout(function () {
       if (mapReadyFired) return;
-      log("mapReady never fired within 20s — showing error card, keeping cover");
+      log("mapReady never fired within 60s — showing retry card, keeping cover");
       setStatusFromKeys(true, "mapError", "mapErrorCopy", false);
-      notifyNative("store_map_error", { request: { placeId: placeId }, error: "mapReady timeout" });
-    }, 20000);
+    }, 60000);
   }
   mapEl.setAttribute("apiKey", cfg.apiKey || "");
   mapEl.setAttribute("parentPlaceId", cfg.parentPlace || "");
@@ -1061,13 +1066,15 @@ function showRouteView(cfg, placeId) {
 
   // Safety net: an invalid/unroutable id (e.g. a raw catalog number instead
   // of a real MapVX .local) can leave the component stuck loading with no
-  // error event to catch — don't let the spinner hang forever.
+  // error event to catch — don't let the spinner hang forever. 60s (not 15s):
+  // the native host closes this webview on store_map_error, so the safety net
+  // must never trip while someone is still watching the route compute/animate.
   if (routeStatusTimeoutId) clearTimeout(routeStatusTimeoutId);
   routeStatusTimeoutId = setTimeout(function () {
     setStatusFromKeys(true, "routeTooLong", "routeTooLongCopy", false);
-    log("showRouteView: no route event within 15s for destinationId=" + placeId);
+    log("showRouteView: no route event within 60s for destinationId=" + placeId);
     notifyNative("store_map_error", { request: { placeId: placeId, originId: cfg.totemPlaceId }, error: "route timeout" });
-  }, 15000);
+  }, 60000);
 }
 
 // closeRouteView still just hides (matches MapVX's guide) — recreation only
