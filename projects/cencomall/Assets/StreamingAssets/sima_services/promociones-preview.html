@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="refresh" content="0; url=promociones/" />
   <title>Promociones</title>
   <script>
     // Legacy entry used by the totem / OTA. Redirect immediately — no Mobility iframe.
+    // location.replace() is synchronous and leaves NO history entry, so a later
+    // host goBack() from Promociones skips this stub entirely (meta-refresh, which
+    // some WebViews turn into a real history entry, is now noscript-only).
     (function () {
       var target = "promociones/";
       try {
@@ -18,6 +20,7 @@
       }
     })();
   </script>
+  <noscript><meta http-equiv="refresh" content="0; url=promociones/" /></noscript>
 </head>
 <body>
   <p><a href="promociones/">Abrir promociones</a></p>

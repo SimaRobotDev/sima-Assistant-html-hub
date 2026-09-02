@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, minimum-scale=1, user-scalable=no" />
 <title>Mapa de tienda — Cenco Malls</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="../shared/store-detail.css?v=20260810-2" />
 <script src="../shared/locale.js"></script>
 <script src="../shared/bridge.js"></script>
+<script src="../shared/lock-viewport.js"></script>
 <script src="../shared/market-search.js"></script>
 <script src="../shared/market-i18n.js"></script>
 <script src="../shared/store-detail.js?v=20260812-5"></script>
@@ -636,10 +637,17 @@ function applyPlace(cfg, placeId) {
   if (statusTimeoutId) { clearTimeout(statusTimeoutId); statusTimeoutId = null; }
   if (!mapReadyFired) {
     setStatusFromKeys(true, "loadingMap", "locatingStore", true);
+    // If mapReady never fires (bad key, blocked bundle, dead network) fall back
+    // to a styled error card — but KEEP it covering the stage. Never dismiss to
+    // reveal the web component's own bare "Cargando…" loader sitting on an empty
+    // stage: that unstyled leftover area behind the detail card is the bug, not
+    // the white colour itself.
     statusTimeoutId = setTimeout(function () {
-      log("mapReady never fired within 6s — dismissing spinner anyway");
-      setStatus(false);
-    }, 6000);
+      if (mapReadyFired) return;
+      log("mapReady never fired within 20s — showing error card, keeping cover");
+      setStatusFromKeys(true, "mapError", "mapErrorCopy", false);
+      notifyNative("store_map_error", { request: { placeId: placeId }, error: "mapReady timeout" });
+    }, 20000);
   }
   mapEl.setAttribute("apiKey", cfg.apiKey || "");
   mapEl.setAttribute("parentPlaceId", cfg.parentPlace || "");
