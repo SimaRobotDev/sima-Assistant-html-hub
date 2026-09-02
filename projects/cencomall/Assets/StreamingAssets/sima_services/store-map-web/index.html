@@ -40,12 +40,20 @@
   }
   body::before { display: none; }
 
+  /* Fixed inset overlay (same pattern as mobility's .map-view) — NOT a static
+     block with margin + min-height:100vh. A static full-height shell makes the
+     body grow to viewport size and, in the totem WebView, paints an opaque
+     white sheet edge to edge so the assistant background never shows around the
+     rounded card. As a fixed overlay only this rectangle is opaque; everything
+     outside the 14px inset stays transparent and shows the assistant. */
   .store-map-shell {
+    position: fixed;
+    top: max(14px, env(safe-area-inset-top, 0px));
+    left: max(14px, env(safe-area-inset-left, 0px));
+    right: max(14px, env(safe-area-inset-right, 0px));
+    bottom: max(14px, env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
-    height: calc(100% - 28px);
-    min-height: calc(100vh - 28px);
-    margin: 14px;
     box-sizing: border-box;
     border-radius: 18px;
     overflow: hidden;

@@ -1077,109 +1077,6 @@ route-view-totems,
 
 .promo-validity { font-size: var(--cb-text-detail-xs); color: var(--cm-muted); }
 
-.btn-promo-app {
-  width: 100%;
-  box-sizing: border-box;
-  border: none;
-  font-family: var(--cb-btn-font);
-  font-size: var(--cb-btn-font-xs);
-  font-weight: var(--cb-btn-weight);
-  line-height: 1.2;
-  padding: var(--cb-btn-pad-y-xs) var(--cb-btn-pad-x-xs);
-  cursor: pointer;
-  background: var(--cb-btn-primary-fill);
-  color: var(--cb-btn-primary-text);
-  border-radius: var(--cb-btn-radius);
-  margin-top: auto;
-  text-align: center;
-}
-
-.promo-info-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(16, 24, 40, 0.72);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  z-index: 200;
-}
-
-.promo-info-overlay.show {
-  display: flex;
-}
-
-.promo-info-popup {
-  width: min(520px, 100%);
-  background: #fff;
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: 0 32px 80px rgba(8, 15, 32, 0.18);
-  max-height: calc(100vh - 40px);
-  overflow: auto;
-}
-
-.promo-info-popup h2 {
-  margin: 0 0 10px;
-  font-size: 22px;
-  line-height: 1.2;
-}
-
-.promo-info-popup p {
-  margin: 0 0 18px;
-  color: #4B5268;
-}
-
-.promo-info-popup .promo-info-qr-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.promo-info-qr {
-  background: #F7F5FF;
-  border-radius: 16px;
-  border: 1px solid #E9E6F4;
-  padding: 18px 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.promo-info-qr-placeholder {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background: linear-gradient(180deg, #ECECF7 0%, #F8F7FC 100%);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #8A84B7;
-  font-size: 13px;
-  text-align: center;
-  padding: 8px;
-}
-
-.promo-info-qr-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #332F68;
-}
-
-.promo-info-popup .btn-close-popup {
-  margin-top: 18px;
-  width: 100%;
-  border: none;
-  background: #F2EFFD;
-  color: #3D2F8F;
-  border-radius: 14px;
-  padding: 12px 14px;
-  font-family: var(--cb-btn-font);
-  font-size: var(--cb-btn-font-xs);
-  cursor: pointer;
-}
-
 .service-list { display: flex; flex-direction: column; gap: 12px !important; padding-bottom: 24px; }
 
 /* Add padding inside the list so cards don't touch the panel edges */
@@ -2191,7 +2088,6 @@ const MOBILITY_I18N = {
     zoomMeterLabel: "Zoom {zoom} · aprox. {distance} visibles",
     selectSubcategory: "Selecciona una subcategoría",
     searchDataError: "Error al leer los datos de la búsqueda.",
-    moreInfo: "Presiona para más información",
     quickAccess: "Accesos rápidos",
     categoryTabs: "Pestañas de categorías",
     alphaIndex: "Índice alfabético"
@@ -2289,7 +2185,6 @@ const MOBILITY_I18N = {
     zoomMeterLabel: "Zoom {zoom} · approx. {distance} visible",
     selectSubcategory: "Select a subcategory",
     searchDataError: "Couldn't read the search data.",
-    moreInfo: "Tap for more information",
     quickAccess: "Quick access",
     categoryTabs: "Category tabs",
     alphaIndex: "Alphabetical index"
@@ -2387,7 +2282,6 @@ const MOBILITY_I18N = {
     zoomMeterLabel: "Zoom {zoom} · aprox. {distance} visíveis",
     selectSubcategory: "Selecione uma subcategoria",
     searchDataError: "Erro ao ler os dados da busca.",
-    moreInfo: "Toque para mais informações",
     quickAccess: "Acessos rápidos",
     categoryTabs: "Abas de categorias",
     alphaIndex: "Índice alfabético"
@@ -5907,9 +5801,6 @@ function renderPromoCard(promo, appUrl) {
   const validity = promo.validityEnd
     ? `${escapeHtml(t("validUntil"))} ${escapeHtml(promo.validityEnd)}`
     : "";
-  const cta = promo.requiresApp
-    ? `<button class="btn-promo-app" type="button" onclick="openPromoInfoPopup()">${escapeHtml(t("moreInfo"))}</button>`
-    : "";
 
   return `
     <article class="promo-card fade-in">
@@ -5919,25 +5810,8 @@ function renderPromoCard(promo, appUrl) {
         <div class="promo-title">${escapeHtml(promo.title || t("promotions"))}</div>
         <div class="store-meta">${appBadge}</div>
         ${validity ? `<div class="promo-validity">${validity}</div>` : ""}
-        ${cta}
       </div>
     </article>`;
-}
-
-function openPromoInApp(promoId, url) {
-  SimaBridge.send("generate_qr", { url: url, id: promoId || "promo" });
-}
-
-function openPromoInfoPopup() {
-  const overlay = document.getElementById("promo-info-overlay");
-  if (!overlay) return;
-  overlay.classList.add("show");
-}
-
-function closePromoInfoPopup() {
-  const overlay = document.getElementById("promo-info-overlay");
-  if (!overlay) return;
-  overlay.classList.remove("show");
 }
 
 function renderPromotionResults(payload) {
