@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-7",
+  "version": "2026.09.02-8",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-09-03T16:38:53.824Z",
+  "generatedAt": "2026-09-03T16:43:04.659Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -460,8 +460,8 @@
     },
     {
       "path": "shared/mapvx-wc-runtime.js",
-      "size": 37247,
-      "sha256": "4a8993faf5825b243c72fbc092aad77aea647b5cacdd20444bf945f5fe6b0141"
+      "size": 37697,
+      "sha256": "1403d3447c7d3f3e8f7a45ccf825f7f6484e4c3980500b931ed88b940e8d03c0"
     },
     {
       "path": "shared/mapvx-wc/map-view-with-modal.js",
