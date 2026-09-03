@@ -6543,10 +6543,14 @@ function resetMapControls() {
 function updateMapRouteButton(result) {
   const btn = document.getElementById("map-route-btn");
   if (!btn) return;
-  // Hybrid Ver ruta draws on MapVxBridge — enable whenever the totem origin exists.
-  const canRoute = typeof MapVxBridge !== "undefined"
-    && MapVxBridge.hasRouteOrigin
-    && MapVxBridge.hasRouteOrigin();
+  // Enable whenever a totem origin exists on EITHER engine — a WC service has
+  // no legacy bridge warmed, so checking only MapVxBridge left the button
+  // stuck on "configura totemPlaceId".
+  const legacyOrigin = typeof MapVxBridge !== "undefined"
+    && MapVxBridge.hasRouteOrigin && MapVxBridge.hasRouteOrigin();
+  const wcOrigin = typeof MapVxWcRuntime !== "undefined"
+    && MapVxWcRuntime.hasRouteOrigin && MapVxWcRuntime.hasRouteOrigin();
+  const canRoute = legacyOrigin || wcOrigin;
   btn.classList.remove("hidden");
   if (!canRoute) {
     btn.textContent = t("routeNeedsTotem");
@@ -6621,18 +6625,31 @@ async function showMobilityHybridRoute() {
   setMapStatus(t("mapLoading") || "Cargando ruta…");
 
   // WC service currently on screen → route natively through the Web Component
-  // (route-view-totems) instead of the legacy hybrid draw.
+  // (route-view-totems). On any problem — no origin, showRoute throws — drop
+  // to the legacy hybrid draw below.
   if (lastServiceWcEntry && mobilityActiveMapEngine === "wc"
     && typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.showRoute) {
     const cfg = MapVxWcRuntime.readConfig ? MapVxWcRuntime.readConfig() : (window.MAPVX_CONFIG || {});
     const dest = (lastServiceWcEntry.mapvx && lastServiceWcEntry.mapvx.placeId) || placeId;
     if (dest && cfg.totemPlaceId) {
-      hideServiceArrivalCard();
-      await MapVxWcRuntime.showRoute(dest, { originId: cfg.totemPlaceId });
-      mobilityMapRouteActive = true;
-      mobilityActiveMapEngine = "wc";
-      return;
+      try {
+        hideServiceArrivalCard();
+        await MapVxWcRuntime.showRoute(dest, { originId: cfg.totemPlaceId });
+        mobilityMapRouteActive = true;
+        mobilityActiveMapEngine = "wc";
+        return;
+      } catch (wcRouteErr) {
+        logMap("warn", "wc route button failed — legacy hybrid fallback",
+          { message: String(wcRouteErr && (wcRouteErr.message || wcRouteErr)) });
+      }
+    } else {
+      logMap("warn", "wc route button: no totemPlaceId — legacy hybrid fallback");
     }
+    // Legacy takes over — clear the WC state so it doesn't fight the redraw.
+    lastServiceWcEntry = null;
+    hideServiceArrivalCard();
+    try { if (MapVxWcRuntime.setGenericLabel) MapVxWcRuntime.setGenericLabel(null); } catch (e) { /* noop */ }
+    try { if (MapVxWcRuntime.hide) MapVxWcRuntime.hide(); } catch (e) { /* noop */ }
   }
 
   await openPoiMapViaMapVx(Object.assign({}, opts, {
@@ -6963,11 +6980,19 @@ async function openPoiMapViaMapVxWc(opts) {
 
   try {
     const wantsRoute = opts && opts.mode === "navigation";
-    const cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
     window.__mobilityLastWcPlaceId = placeId;
     window.__mobilityLastMapOpts = Object.assign({}, opts, { local: placeId });
+
+    let cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
+    if (!cached) {
+      const wp = warmupMapVxWcInBackground();
+      if (wp && typeof wp.then === "function") {
+        try { await Promise.race([wp, new Promise(function (r) { setTimeout(r, 10000); })]); } catch (e) {}
+      }
+      cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
+    }
     // Place on WC only. Navigation / Ver ruta always uses legacy hybrid draw.
-    await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 2500 : 6000 });
+    await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 3000 : 12000 });
     mobilityMapRouteActive = false;
     mobilityActiveMapEngine = "wc";
     setMapStatus("");
@@ -7153,22 +7178,57 @@ async function openServiceMapViaWc(opts) {
   resetMapControls();
 
   try {
-    const cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
     window.__mobilityLastWcPlaceId = placeId;
     window.__mobilityLastMapOpts = Object.assign({}, opts, { local: placeId });
 
-    await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 2500 : 6000 });
+    // First open on a totem: the WC map is cold and takes longer than a few
+    // seconds to fire mapReady. Wait for the background warmup (capped) so we
+    // don't time out into legacy and only get the WC on reopen.
+    let cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
+    if (!cached) {
+      const wp = warmupMapVxWcInBackground();
+      if (wp && typeof wp.then === "function") {
+        try {
+          await Promise.race([wp, new Promise(function (r) { setTimeout(r, 10000); })]);
+        } catch (e) { /* warmup soft-fails; showPlace still tries */ }
+      }
+      cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
+    }
+
+    await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 3000 : 12000 });
     mobilityActiveMapEngine = "wc";
     setMapLoadingState(false);
     clearAutoMapLaunchUi();
     try { pushMobilityView("map"); } catch (e) {}
 
-    if (wantsRoute && cfg.totemPlaceId) {
-      setMapStatus(t("mapLoading") || "Cargando ruta…");
-      await MapVxWcRuntime.showRoute(placeId, { originId: cfg.totemPlaceId });
-      mobilityMapRouteActive = true;
-      updateMapRouteButton({ routeActive: true });
-      // Arrival popup fires from the runtime's onArrival (routeAnimationFinish).
+    if (wantsRoute) {
+      let routed = false;
+      if (cfg.totemPlaceId) {
+        try {
+          setMapStatus(t("mapLoading") || "Cargando ruta…");
+          await MapVxWcRuntime.showRoute(placeId, { originId: cfg.totemPlaceId });
+          routed = true;
+          mobilityMapRouteActive = true;
+          updateMapRouteButton({ routeActive: true });
+          // Arrival popup fires from the runtime's onArrival (routeAnimationFinish).
+        } catch (routeErr) {
+          logMap("warn", "wc service route failed — legacy route fallback",
+            { message: String(routeErr && (routeErr.message || routeErr)) });
+        }
+      } else {
+        logMap("warn", "wc service: no totemPlaceId — legacy route fallback");
+      }
+      if (!routed) {
+        // WC couldn't draw the route → hand the whole thing (place + route) to
+        // legacy rather than leaving the visitor on a place with no route.
+        lastServiceWcEntry = null;
+        hideServiceArrivalCard();
+        try { if (MapVxWcRuntime.setGenericLabel) MapVxWcRuntime.setGenericLabel(null); } catch (e) { /* noop */ }
+        try { if (MapVxWcRuntime.hide) MapVxWcRuntime.hide(); } catch (e) { /* noop */ }
+        if (wcStage) wcStage.classList.add("hidden");
+        mobilityActiveMapEngine = "legacy";
+        return openPoiMapViaMapVx(opts);
+      }
     } else {
       mobilityMapRouteActive = false;
       updateMapRouteButton({ routeActive: false });
