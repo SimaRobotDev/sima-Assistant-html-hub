@@ -419,6 +419,7 @@ const I18N = {
     changingStore: "Cambiando de tienda…",
     loadingRoute: "Cargando ruta…",
     tracingRouteToX: "Trazando la ruta hasta {id}.",
+    tracingRoute: "Trazando la ruta.",
     routeTooLong: "La ruta está tardando demasiado",
     routeTooLongCopy: "Vuelve a buscar la tienda e inténtalo otra vez.",
     routeMissingOrigin: "Falta el punto de partida para la ruta",
@@ -439,6 +440,7 @@ const I18N = {
     changingStore: "Switching store…",
     loadingRoute: "Loading route…",
     tracingRouteToX: "Tracing the route to {id}.",
+    tracingRoute: "Tracing the route.",
     routeTooLong: "The route is taking too long",
     routeTooLongCopy: "Search for the store again and retry.",
     routeMissingOrigin: "Route starting point missing",
@@ -459,6 +461,7 @@ const I18N = {
     changingStore: "Trocando de loja…",
     loadingRoute: "Carregando rota…",
     tracingRouteToX: "Traçando a rota até {id}.",
+    tracingRoute: "Traçando a rota.",
     routeTooLong: "A rota está demorando muito",
     routeTooLongCopy: "Busque a loja novamente e tente outra vez.",
     routeMissingOrigin: "Falta o ponto de partida da rota",
@@ -497,12 +500,17 @@ function t(key, vars) {
 // (headerTitleGen). This mirrors what ../store-map/index.html's setTitle() does.
 var headerTitleGen = 0;
 var headerTitleFromPayload = false;
+// Resolved name of the store currently shown — kept in step with the header by
+// setHeaderTitle/resetHeaderTitle. showRouteView() reads it so the "tracing
+// route" status card names the store instead of dumping its raw local code.
+var currentStoreName = "";
 
 function setHeaderTitle(name) {
-  var el = document.getElementById("page-title");
-  if (!el) return;
   var clean = String(name == null ? "" : name).trim();
   if (!clean) return;
+  currentStoreName = clean;
+  var el = document.getElementById("page-title");
+  if (!el) return;
   el.textContent = clean;
   el.dataset.resolved = "1";
 }
@@ -512,6 +520,7 @@ function setHeaderTitle(name) {
 function resetHeaderTitle() {
   headerTitleGen++;
   headerTitleFromPayload = false;
+  currentStoreName = "";
   var el = document.getElementById("page-title");
   if (!el) return;
   el.textContent = t("headerTitle");
@@ -1082,7 +1091,7 @@ function createRouteElement() {
   return el;
 }
 
-function showRouteView(cfg, placeId) {
+function showRouteView(cfg, placeId, destLabel) {
   if (!placeId || !cfg.totemPlaceId) return;
   const mount = document.getElementById("route-view-mount");
   mount.innerHTML = ""; // drop the previous instance entirely, don't reuse it
@@ -1091,7 +1100,14 @@ function showRouteView(cfg, placeId) {
 
   document.getElementById("map-view").classList.add("hidden");
   document.getElementById("route-view").classList.remove("hidden");
-  setStatusFromKeys(true, "loadingRoute", "tracingRouteToX", true, { id: placeId });
+  // Name the destination in the status card — never the raw local code. Falls
+  // back to a generic phrasing when the store name isn't known yet.
+  const routeDestLabel = String(destLabel || currentStoreName || "").trim();
+  if (routeDestLabel) {
+    setStatusFromKeys(true, "loadingRoute", "tracingRouteToX", true, { id: routeDestLabel });
+  } else {
+    setStatusFromKeys(true, "loadingRoute", "tracingRoute", true);
+  }
   routeEl.setAttribute("apiKey", cfg.apiKey || "");
   routeEl.setAttribute("parentPlaceId", cfg.parentPlace || "");
   routeEl.setAttribute("locale", cfg.lang || "es");
@@ -1472,7 +1488,7 @@ function renderSearchResults(results) {
         return;
       }
       log("search select: routing to " + destId + " from " + cfg.totemPlaceId);
-      showRouteView(cfg, destId);
+      showRouteView(cfg, destId, row.label);
     });
     box.appendChild(btn);
   });
@@ -1601,7 +1617,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (placeId) renderStoreDetailFromPayload(queryParams());
   if (placeId && /^(1|true|yes)$/i.test(queryParams().route || "")) {
     if (cfg.totemPlaceId) {
-      showRouteView(cfg, placeId);
+      showRouteView(cfg, placeId, pickNameFromPayload(queryParams()));
     } else {
       log("?route=1 requested but no totemPlaceId configured yet");
     }
