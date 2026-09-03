@@ -926,6 +926,84 @@ route-view-totems,
   border-bottom: 1px solid var(--cm-line);
 }
 
+/* Generic arrival popup for services shown via the MapVX Web Component. One
+   card, positioned over the map — describes the service (name + where + what's
+   inside) so bathrooms don't need a route per derivation. */
+.service-arrival-card {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  width: min(360px, calc(100% - 28px));
+  box-sizing: border-box;
+  z-index: 6;
+  background: var(--cm-surface, #fff);
+  border: 1px solid var(--cm-line, #e7dff0);
+  border-radius: 16px;
+  box-shadow: 0 10px 32px rgba(16, 12, 40, 0.20);
+  padding: 14px 16px 16px;
+  font-family: var(--cb-font-body, system-ui, sans-serif);
+}
+
+.service-arrival-card.hidden { display: none; }
+
+.service-arrival-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.service-arrival-title {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--cb-font-title, inherit);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--cm-text, #1e1630);
+}
+
+.service-arrival-close {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 999px;
+  background: var(--cb-tag-info-fill, #efe5fa);
+  color: var(--cm-purple-dark, #582c83);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.service-arrival-where {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--cm-muted, #6b6475);
+}
+
+.service-arrival-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.service-arrival-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--cb-tag-info-fill, #efe5fa);
+  color: var(--cb-tag-info-text, #582c83);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .map-placeholder {
   position: absolute;
   inset: 0;
@@ -1968,6 +2046,7 @@ article.service-card .btn-service-map {
       </div>
       <div id="mapvx-container" class="hidden"></div>
       <iframe id="map-iframe" class="hidden" allowfullscreen></iframe>
+      <div id="service-arrival-card" class="service-arrival-card hidden" role="status" aria-live="polite" hidden></div>
       <div id="map-placeholder" class="map-placeholder hidden"></div>
       <div id="map-loading-circle" class="map-loading-circle hidden" aria-hidden="true">
         <div class="map-loading-circle-inner">
@@ -2006,6 +2085,8 @@ const MOBILITY_I18N = {
     viewMap: "Ver perfil",
     viewMapService: "Ver mapa",
     accessible: "Accesible",
+    svcArrivalWomenMen: "Hombres y mujeres",
+    svcArrivalNear: "Junto a",
     near: "Cerca de",
     back: "← Volver",
     close: "Cerrar",
@@ -2103,6 +2184,8 @@ const MOBILITY_I18N = {
     viewMap: "View profile",
     viewMapService: "View map",
     accessible: "Accessible",
+    svcArrivalWomenMen: "Women and men",
+    svcArrivalNear: "Next to",
     near: "Near",
     back: "← Back",
     close: "Close",
@@ -2200,6 +2283,8 @@ const MOBILITY_I18N = {
     viewMap: "Ver perfil",
     viewMapService: "Ver mapa",
     accessible: "Acessível",
+    svcArrivalWomenMen: "Feminino e masculino",
+    svcArrivalNear: "Ao lado de",
     near: "Perto de",
     back: "← Voltar",
     close: "Fechar",
@@ -6534,6 +6619,22 @@ async function showMobilityHybridRoute() {
   if (!placeId && !opts.name) throw new Error("missing destination");
   logMap("info", "hybrid route show", { placeId: placeId, fromEngine: mobilityActiveMapEngine });
   setMapStatus(t("mapLoading") || "Cargando ruta…");
+
+  // WC service currently on screen → route natively through the Web Component
+  // (route-view-totems) instead of the legacy hybrid draw.
+  if (lastServiceWcEntry && mobilityActiveMapEngine === "wc"
+    && typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.showRoute) {
+    const cfg = MapVxWcRuntime.readConfig ? MapVxWcRuntime.readConfig() : (window.MAPVX_CONFIG || {});
+    const dest = (lastServiceWcEntry.mapvx && lastServiceWcEntry.mapvx.placeId) || placeId;
+    if (dest && cfg.totemPlaceId) {
+      hideServiceArrivalCard();
+      await MapVxWcRuntime.showRoute(dest, { originId: cfg.totemPlaceId });
+      mobilityMapRouteActive = true;
+      mobilityActiveMapEngine = "wc";
+      return;
+    }
+  }
+
   await openPoiMapViaMapVx(Object.assign({}, opts, {
     mode: "navigation",
     local: placeId || opts.local,
@@ -6551,6 +6652,13 @@ async function hideMobilityHybridRoute() {
     try { MapVxWcRuntime.closeRoute(); } catch (e) { /* noop */ }
   }
   mobilityMapRouteActive = false;
+
+  // WC service: closeRoute() already flipped back to the place view and fired
+  // onRouteClosed (which re-shows the arrival card). Don't re-run the store
+  // re-show path below — it would wipe lastServiceWcEntry.
+  if (lastServiceWcEntry && mobilityActiveMapEngine === "wc") {
+    return;
+  }
 
   const opts = window.__mobilityLastMapOpts || {};
   const placeId = window.__mobilityLastWcPlaceId || opts.local || "";
@@ -6602,6 +6710,12 @@ async function openPoiMapViaMapVx(opts) {
   logMap("info", "openPoiMapViaMapVx start", opts);
   logMapVxConfig("openPoiMapViaMapVx");
   warmupMapVxInBackground();
+  // Legacy path owns its own destination popup (showServiceDestinationMarker).
+  lastServiceWcEntry = null;
+  hideServiceArrivalCard();
+  if (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.setGenericLabel) {
+    try { MapVxWcRuntime.setGenericLabel(null); } catch (e) { /* noop */ }
+  }
 
   applyMapVxDefaultsFromMapPage();
 
@@ -6756,6 +6870,12 @@ function initMobilityWcRuntime() {
       onRouteClosed: function () {
         mobilityMapRouteActive = false;
         updateMapRouteButton({ routeActive: false });
+        // Coming back from a service route → show the arrival card for the
+        // place underneath. Store routes leave lastServiceWcEntry null.
+        if (lastServiceWcEntry) showServiceArrivalCard(lastServiceWcEntry);
+      },
+      onArrival: function () {
+        if (lastServiceWcEntry) showServiceArrivalCard(lastServiceWcEntry);
       },
     });
     mobilityWcReady = true;
@@ -6822,6 +6942,11 @@ async function openPoiMapViaMapVxWc(opts) {
   logMap("info", "openPoiMapViaMapVxWc start", { placeId: placeId, mode: opts && opts.mode });
   initMobilityWcRuntime();
   applyMapVxDefaultsFromMapPage();
+  lastServiceWcEntry = null;
+  hideServiceArrivalCard();
+  if (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.setGenericLabel) {
+    try { MapVxWcRuntime.setGenericLabel(null); } catch (e) { /* noop */ }
+  }
 
   iframe.classList.add("hidden");
   iframe.src = "";
@@ -6886,6 +7011,195 @@ async function openPoiMapViaMapVxWc(opts) {
 }
 
 let mobilityMapRouteActive = false;
+
+// Catalog entry of the service currently shown through the MapVX Web Component.
+// Set by openServiceMapViaWc, read by the arrival popup + the route button.
+// Null whenever the current map is a store, a legacy service, or nothing.
+let lastServiceWcEntry = null;
+
+// The generic label the WC popup should show for a service, instead of the
+// vendor's own POI name (a bathroom placeId resolves to one derivation, e.g.
+// "Baño Niños - Mudadores"). Kind label + a plain icon; the detail lives in
+// the arrival card below.
+function genericServiceLabelForWc(entry) {
+  if (!entry) return null;
+  const kind = getServiceKind(entry);
+  let name;
+  if (kind === "elevator") name = t("elevators") || "Ascensores";
+  else if (kind === "customer_service") name = t("customerService") || "Atención al cliente";
+  else if (kind === "cowork") name = t("cowork") || "Cowork";
+  else if (kind === "bathroom" || kind === "kids") name = t("bathrooms") || "Baños";
+  else name = sanitizeStoreDisplayName(entry.name || t("services"));
+
+  const iconRaw = serviceKindIcon(kind === "kids" ? "bathroom" : kind);
+  const iconHtml =
+    `<div style="display:flex;align-items:center;justify-content:center;height:100%;width:100%">` +
+    (iconRaw.indexOf("<img") === 0
+      ? iconRaw.replace(/class="[^"]*"/, 'style="width:46px;height:46px;object-fit:contain"')
+      : `<span style="font-size:38px;line-height:1">${iconRaw}</span>`) +
+    `</div>`;
+  return { name, category: "", iconHtml };
+}
+
+// Generic arrival popup — one card describing the service reached, so a
+// bathroom's derivations (men / women / accessible / changing) are listed as
+// text instead of needing a separate route each. Engine-independent: fed by the
+// services catalog entry, not by MapVX.
+function hideServiceArrivalCard() {
+  const el = document.getElementById("service-arrival-card");
+  if (!el) return;
+  el.classList.add("hidden");
+  el.hidden = true;
+  el.innerHTML = "";
+}
+
+function showServiceArrivalCard(entry) {
+  const el = document.getElementById("service-arrival-card");
+  if (!el || !entry) return;
+  const name = sanitizeStoreDisplayName(entry.name || t("services"));
+  const short = String((entry.descriptions && entry.descriptions.short) || "").trim();
+  const anchors = Array.isArray(entry.anchorStores) ? entry.anchorStores : [];
+  const primary = anchors.find((a) => a && a.role === "primary" && a.brand)
+    || anchors.find((a) => a && a.brand);
+  const near = primary ? `${t("svcArrivalNear")} ${primary.brand}` : "";
+  const where = [short, near].filter(Boolean).join(" · ");
+
+  const f = entry.features || {};
+  const chips = [];
+  if (f.hombresMujeres) chips.push(t("svcArrivalWomenMen"));
+  if (f.accesible) chips.push(t("accessible"));
+  if (f.mudador) chips.push(t("bathroomsKids"));
+
+  el.innerHTML = `
+    <div class="service-arrival-head">
+      <h3 class="service-arrival-title">${escapeHtml(name)}</h3>
+      <button type="button" class="service-arrival-close" aria-label="Cerrar">&times;</button>
+    </div>
+    ${where ? `<p class="service-arrival-where">${escapeHtml(where)}</p>` : ""}
+    ${chips.length
+      ? `<div class="service-arrival-chips">${chips
+          .map((c) => `<span class="service-arrival-chip">${escapeHtml(c)}</span>`)
+          .join("")}</div>`
+      : ""}`;
+  const closeBtn = el.querySelector(".service-arrival-close");
+  if (closeBtn) closeBtn.onclick = hideServiceArrivalCard;
+  el.classList.remove("hidden");
+  el.hidden = false;
+}
+
+// Services via the MapVX Web Component — the sibling of openPoiMapViaMapVxWc for
+// poiType "service". Gated behind ?mapEngine=wc AND a catalog entry that has a
+// verified mapvx.placeId (no placeIdNote). Anything else — flag off, no placeId,
+// entry under review, WC unavailable, or a runtime error — falls straight
+// through to the exact legacy dispatch doOpen would have run. So with the flag
+// off this is a no-op wrapper around the legacy path.
+async function openServiceMapViaWc(opts) {
+  const enginePref = preferredMobilityMapEngine();
+  const serviceKey = String((opts && (opts.serviceId || opts.id)) || "").trim();
+
+  let entry = null;
+  try {
+    if (typeof ServicesCatalog !== "undefined" && ServicesCatalog.loadCatalog) {
+      await ServicesCatalog.loadCatalog();
+      entry = ServicesCatalog.getById && ServicesCatalog.getById(serviceKey);
+    }
+  } catch (e) { /* fall through to legacy */ }
+
+  const placeId = entry && entry.mapvx && String(entry.mapvx.placeId || "").trim();
+  const underReview = !!(entry && entry.mapvx && entry.mapvx.placeIdNote);
+  const cfg = (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.readConfig)
+    ? MapVxWcRuntime.readConfig()
+    : (window.MAPVX_CONFIG || {});
+
+  const canTryWc = enginePref !== "legacy"
+    && !!placeId
+    && !underReview
+    && !!cfg.apiKey
+    && typeof MapVxWcRuntime !== "undefined"
+    && MapVxWcRuntime.isAvailable && MapVxWcRuntime.isAvailable();
+
+  if (!canTryWc) {
+    logMap("info", "openServiceMapViaWc → legacy", {
+      serviceKey, enginePref, hasPlaceId: !!placeId, underReview,
+    });
+    if (useMapVxSdk()) return openPoiMapViaMapVx(opts);
+    return openPoiMapViaIframe(opts);
+  }
+
+  const wantsRoute = opts && opts.mode === "navigation";
+  const container = document.getElementById("mapvx-container");
+  const iframe = document.getElementById("map-iframe");
+  const wcStage = document.getElementById("mapvx-wc-stage");
+  const placeholder = document.getElementById("map-placeholder");
+
+  logMap("info", "openServiceMapViaWc start", { serviceKey, placeId, mode: opts && opts.mode });
+  initMobilityWcRuntime();
+  applyMapVxDefaultsFromMapPage();
+  lastServiceWcEntry = entry;
+  hideServiceArrivalCard();
+  // Rewrite the vendor place/destination popup: "Baños" + plain icon, not the
+  // resolved derivation ("Baño Niños - Mudadores").
+  if (MapVxWcRuntime.setGenericLabel) {
+    try { MapVxWcRuntime.setGenericLabel(genericServiceLabelForWc(entry)); } catch (e) { /* noop */ }
+  }
+
+  iframe.classList.add("hidden");
+  iframe.src = "";
+  if (placeholder) placeholder.classList.add("hidden");
+  if (container) container.classList.add("hidden");
+  if (wcStage) { wcStage.classList.remove("hidden"); wcStage.classList.remove("preload-mount"); }
+  setMapLoadingState(true);
+  setMapStatus(t("mapLoading") || "Cargando mapa…");
+  resetMapControls();
+
+  try {
+    const cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
+    window.__mobilityLastWcPlaceId = placeId;
+    window.__mobilityLastMapOpts = Object.assign({}, opts, { local: placeId });
+
+    await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 2500 : 6000 });
+    mobilityActiveMapEngine = "wc";
+    setMapLoadingState(false);
+    clearAutoMapLaunchUi();
+    try { pushMobilityView("map"); } catch (e) {}
+
+    if (wantsRoute && cfg.totemPlaceId) {
+      setMapStatus(t("mapLoading") || "Cargando ruta…");
+      await MapVxWcRuntime.showRoute(placeId, { originId: cfg.totemPlaceId });
+      mobilityMapRouteActive = true;
+      updateMapRouteButton({ routeActive: true });
+      // Arrival popup fires from the runtime's onArrival (routeAnimationFinish).
+    } else {
+      mobilityMapRouteActive = false;
+      updateMapRouteButton({ routeActive: false });
+      showServiceArrivalCard(entry);
+    }
+    setMapStatus("");
+    logMap("info", "openServiceMapViaWc success", { engine: "wc", placeId, route: !!wantsRoute });
+  } catch (error) {
+    const message = String(error && (error.message || error));
+    logMap("warn", "openServiceMapViaWc failed — fallback", { message, enginePref });
+    lastServiceWcEntry = null;
+    hideServiceArrivalCard();
+    try {
+      if (MapVxWcRuntime.hide) MapVxWcRuntime.hide();
+      else if (MapVxWcRuntime.teardown) MapVxWcRuntime.teardown();
+    } catch (e) { /* noop */ }
+    if (wcStage) wcStage.classList.add("hidden");
+    if (enginePref === "wc") {
+      setMapLoadingState(false);
+      if (placeholder) {
+        placeholder.innerHTML =
+          `<div><strong>${escapeHtml(t("mapError") || "No se pudo cargar el mapa")}</strong><br><br>` +
+          `${escapeHtml((opts && opts.name) || "")}<br>${escapeHtml(message)}</div>`;
+        placeholder.classList.remove("hidden");
+      }
+      setMapStatus("");
+      return;
+    }
+    await openPoiMapViaMapVx(opts);
+  }
+}
 
 function openPoiMapViaIframe({ poiType, id, floor, mall, name, local }) {
   logMap("warn", "openPoiMapViaIframe fallback (MapVX not configured or unavailable)", {
@@ -7119,6 +7433,12 @@ function openPoiMap(opts) {
       openPoiMapViaMapVxWc(mapOptions);
       return;
     }
+    if (isService) {
+      // Owns the WC-vs-legacy decision for services and falls back to the
+      // exact legacy dispatch below when the WC path isn't applicable.
+      openServiceMapViaWc(mapOptions);
+      return;
+    }
     if (useMapVxSdk()) {
       openPoiMapViaMapVx(mapOptions);
     } else {
@@ -7300,6 +7620,8 @@ function closeMapView() {
 // is the only path that may navigate away.
 function teardownMapView() {
   clearAutoMapLaunchUi();
+  hideServiceArrivalCard();
+  lastServiceWcEntry = null;
   const container = document.getElementById("mapvx-container");
   const mapKept = typeof MapVxBridge !== "undefined"
     && MapVxBridge.suspendMap
