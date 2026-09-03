@@ -51,6 +51,8 @@ window.__SERVICES_CATALOG__ = {
         "accesible"
       ],
       "mapvx": {
+        "placeId": "-N1jltFjKg6-2V7-RWxv",
+        "placeIdType": "mudador",
         "poiRef": "-N1jltFjKg6-2V7-RWxv",
         "mapvxId": "-N1jltFjKg6-2V7-RWxv",
         "lat": -33.417478310948745,
@@ -104,6 +106,8 @@ window.__SERVICES_CATALOG__ = {
         "volka"
       ],
       "mapvx": {
+        "placeId": "-NDngnRTiuduXYbgJyCy",
+        "placeIdType": "hombres",
         "poiRef": "-NDngnRTiuduXYbgJyCy",
         "mapvxId": "-NDngnRTiuduXYbgJyCy",
         "lat": -33.41733754716824,
@@ -145,6 +149,8 @@ window.__SERVICES_CATALOG__ = {
         "central"
       ],
       "mapvx": {
+        "placeId": "-ND5cG4BCEGNUPbShiUA",
+        "placeIdType": "accesible",
         "poiRef": "-ND5cG4BCEGNUPbShiUA",
         "mapvxId": "-ND5cG4BCEGNUPbShiUA",
         "lat": -33.417938660088865,
@@ -186,6 +192,8 @@ window.__SERVICES_CATALOG__ = {
         "mudador"
       ],
       "mapvx": {
+        "placeId": "-NDeEvwA9XSQQTMmX-AR",
+        "placeIdType": "mudador",
         "poiRef": "-NDeEvwA9XSQQTMmX-AR",
         "mapvxId": "-NDeEvwA9XSQQTMmX-AR",
         "lat": -33.417621872978934,
@@ -227,6 +235,8 @@ window.__SERVICES_CATALOG__ = {
         "central"
       ],
       "mapvx": {
+        "placeId": "-NE7dF-IV3USqpdIsVJW",
+        "placeIdNote": "sin corroborar contra el volcado MapVX; candidato -NE7dEXVfDMhDGlTpvka (bano_general_mujeres N3) — verificar en el mapa antes de rutear.",
         "poiRef": "-NE7dF-IV3USqpdIsVJW",
         "mapvxId": "-NE7dF-IV3USqpdIsVJW",
         "lat": -33.417958249359835,
@@ -272,6 +282,8 @@ window.__SERVICES_CATALOG__ = {
         "ripley"
       ],
       "mapvx": {
+        "placeId": "-NE7bc9sfcOYbhv_bC8w",
+        "placeIdType": "mujeres",
         "poiRef": "-NE7bc9sfcOYbhv_bC8w",
         "mapvxId": "-NE7bc9sfcOYbhv_bC8w",
         "lat": -33.41766329044061,
@@ -318,6 +330,8 @@ window.__SERVICES_CATALOG__ = {
         "central"
       ],
       "mapvx": {
+        "placeId": "-ND_0dRJ45M2oQrUvCMX",
+        "placeIdType": "accesible",
         "poiRef": "-ND_0dRJ45M2oQrUvCMX",
         "mapvxId": "-ND_0dRJ45M2oQrUvCMX",
         "lat": -33.418022334229725,
@@ -364,6 +378,8 @@ window.__SERVICES_CATALOG__ = {
         "mudador"
       ],
       "mapvx": {
+        "placeId": "-NE7iAG6k8loLvwgURDf",
+        "placeIdType": "hombres",
         "poiRef": "-NE7iAG6k8loLvwgURDf",
         "mapvxId": "-NE7iAG6k8loLvwgURDf",
         "lat": -33.417691275200816,
@@ -416,6 +432,8 @@ window.__SERVICES_CATALOG__ = {
         "comida"
       ],
       "mapvx": {
+        "placeId": "-NE8I7MsWiQx0XEJGlDX",
+        "placeIdType": "mujeres",
         "poiRef": "-NE8I7MsWiQx0XEJGlDX",
         "mapvxId": "-NE8I7MsWiQx0XEJGlDX",
         "lat": -33.41793390269381,
@@ -555,6 +573,8 @@ window.__SERVICES_CATALOG__ = {
         "ancla"
       ],
       "mapvx": {
+        "placeId": "-N1e2dagzGnuGIFpinw0",
+        "placeIdNote": "el volcado MapVX lo lista como 'Ascensores Torre Andrés Bello' (acceso de estacionamiento, N-1). Confirmar que sea el banco de pasajeros del eje Ripley y un destino de ruta válido en route-view-totems.",
         "poiRef": "-N1e2dagzGnuGIFpinw0",
         "mapvxId": "-N1e2dagzGnuGIFpinw0",
         "lat": -33.41780349399868,
@@ -697,6 +717,8 @@ window.__SERVICES_CATALOG__ = {
         "barra chalaca"
       ],
       "mapvx": {
+        "placeId": "node:993809113",
+        "placeIdNote": "identificador propio — el volcado MapVX no expone los ascensores de pasajeros. Formato node: — validar como destino de ruta en route-view-totems o reemplazar por el -Nxxx equivalente.",
         "poiRef": "node:993809113",
         "mapvxId": "node:993809113",
         "lat": -33.41820479394959,
@@ -791,6 +813,8 @@ window.__SERVICES_CATALOG__ = {
         "lateral"
       ],
       "mapvx": {
+        "placeId": "-N2SSgpaCHzZe80nRkOx",
+        "placeIdNote": "el volcado MapVX lo lista como 'Ascensores Torre Tobalaba' (acceso de estacionamiento, N-1). Confirmar que sea el banco de pasajeros del lado H&M y un destino de ruta válido.",
         "poiRef": "-N2SSgpaCHzZe80nRkOx",
         "mapvxId": "-N2SSgpaCHzZe80nRkOx",
         "lat": -33.41743185612792,
@@ -844,6 +868,8 @@ window.__SERVICES_CATALOG__ = {
         "piso 3"
       ],
       "mapvx": {
+        "placeId": "node:19041",
+        "placeIdNote": "identificador propio (node:19041 / 19042). Formato node: — validar como destino de ruta en route-view-totems o reemplazar por el -Nxxx equivalente.",
         "poiRef": "node:19041",
         "mapvxId": "node:19041",
         "lat": -33.41725506172419,
@@ -909,6 +935,8 @@ window.__SERVICES_CATALOG__ = {
         "maconline"
       ],
       "mapvx": {
+        "placeId": "-NjtsXycJ45NbmQu_hbx",
+        "placeIdSource": "mapvx-context",
         "searchQueries": [
           "Servicio al cliente",
           "Atención al cliente",
@@ -968,6 +996,8 @@ window.__SERVICES_CATALOG__ = {
         "madden"
       ],
       "mapvx": {
+        "placeId": "-NjrEJiRPmJXjhupLASS",
+        "placeIdSource": "mapvx-context",
         "searchQueries": [
           "Cowork",
           "Co work",

@@ -368,6 +368,14 @@ window.ServicesCatalog = (function () {
       mapvxId: entry.mapvx && entry.mapvx.mapvxId ? entry.mapvx.mapvxId : "",
       mapvxLat: entry.mapvx && entry.mapvx.lat != null ? entry.mapvx.lat : null,
       mapvxLng: entry.mapvx && entry.mapvx.lng != null ? entry.mapvx.lng : null,
+      // MapVX Web Component identifier (showPlace / route-view-totems
+      // destinationId). Legacy MapVxBridge ignores it; the WC service path
+      // (mobility openServiceMapViaWc) uses it instead of poi discovery + coords.
+      placeId: entry.mapvx && entry.mapvx.placeId ? String(entry.mapvx.placeId) : "",
+      placeIdType: entry.mapvx && entry.mapvx.placeIdType ? String(entry.mapvx.placeIdType) : "",
+      // Present => the placeId is not yet map-verified; the WC path must skip
+      // this entry and stay on legacy until the note is cleared.
+      placeIdNote: entry.mapvx && entry.mapvx.placeIdNote ? String(entry.mapvx.placeIdNote) : "",
       mapvxSearchQueries:
         entry.mapvx && Array.isArray(entry.mapvx.searchQueries)
           ? entry.mapvx.searchQueries.slice()
