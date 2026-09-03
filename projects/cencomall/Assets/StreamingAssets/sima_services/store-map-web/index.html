@@ -486,12 +486,36 @@ function t(key, vars) {
   return str;
 }
 
-// Header title is replaced by the resolved store name / placeId once the map
-// loads; only re-localize it while it still shows the generic default.
-function isDefaultHeaderTitle(el) {
-  if (!el) return false;
-  var txt = (el.textContent || "").trim();
-  return !txt || txt === I18N.es.headerTitle || txt === I18N.en.headerTitle || txt === I18N.pt.headerTitle;
+// ── Header title ────────────────────────────────────────────────────────────
+// The header shows the store the caller asked for. The payload name is
+// authoritative — it is the same source the detail card renders from — so it
+// is applied on EVERY open (openStoreMapFromPayload), not only while the header
+// still shows the generic default. The MapVX popup-name scrape
+// (updateHeaderTitle) is a fallback for id-only payloads with no name; it must
+// never overwrite a name we already have (headerTitleFromPayload), and a late
+// retry belonging to a previous store must not land on the current one
+// (headerTitleGen). This mirrors what ../store-map/index.html's setTitle() does.
+var headerTitleGen = 0;
+var headerTitleFromPayload = false;
+
+function setHeaderTitle(name) {
+  var el = document.getElementById("page-title");
+  if (!el) return;
+  var clean = String(name == null ? "" : name).trim();
+  if (!clean) return;
+  el.textContent = clean;
+  el.dataset.resolved = "1";
+}
+
+// Clears any store name, drops back to the generic label, and invalidates
+// pending updateHeaderTitle retries from the store that was showing before.
+function resetHeaderTitle() {
+  headerTitleGen++;
+  headerTitleFromPayload = false;
+  var el = document.getElementById("page-title");
+  if (!el) return;
+  el.textContent = t("headerTitle");
+  delete el.dataset.resolved;
 }
 
 function applyLocale() {
@@ -500,8 +524,10 @@ function applyLocale() {
     : "es";
   document.documentElement.lang = currentLocale;
 
+  // Re-localize the header only while it still shows the generic label — a
+  // resolved store name (dataset.resolved) is locale-neutral, leave it.
   var titleEl = document.getElementById("page-title");
-  if (isDefaultHeaderTitle(titleEl)) titleEl.textContent = t("headerTitle");
+  if (titleEl && !titleEl.dataset.resolved) titleEl.textContent = t("headerTitle");
 
   var routeBtn = document.getElementById("route-toggle");
   if (routeBtn) routeBtn.textContent = t("viewRoute");
@@ -670,13 +696,8 @@ function applyPlace(cfg, placeId) {
   // setAttribute(..., "false") would still read as true. Set the JS
   // property directly instead.
   mapEl.showFloorSelector = false;
-  // Keep the generic header title (matches ../store-map) — updateHeaderTitle()
-  // swaps in the resolved store name once the map's popup renders it. Never
-  // show the raw placeId / node id in the bar.
-  {
-    const _titleEl = document.getElementById("page-title");
-    if (isDefaultHeaderTitle(_titleEl)) _titleEl.textContent = t("headerTitle");
-  }
+  // Header title is owned by openStoreMapFromPayload (payload name) +
+  // updateHeaderTitle (popup-name fallback) — applyPlace does not touch it.
   document.getElementById("route-toggle").classList.toggle("hidden", !cfg.totemPlaceId);
   lastAppliedPlaceId = placeId;
   log("applyPlace " + JSON.stringify({ placeId: placeId, parentPlace: cfg.parentPlace }));
@@ -736,6 +757,19 @@ function openStoreMapFromPayload(source, meta) {
     return;
   }
   document.getElementById("store-local").value = placeId;
+
+  // Header follows THIS store, always. resetHeaderTitle() also invalidates any
+  // updateHeaderTitle retry still pending from the previous store (that stale
+  // retry was the "header stuck on the last store" bug). The payload name is
+  // authoritative — set it synchronously so there's no flicker; only fall back
+  // to the MapVX popup scrape when the caller sent an id with no name.
+  const payloadName = pickNameFromPayload(source);
+  resetHeaderTitle();
+  if (payloadName) {
+    setHeaderTitle(payloadName);
+    headerTitleFromPayload = true;
+  }
+
   closeRouteView();
   // closeRouteView() just cleared status + revealed map-view underneath —
   // if this is a real change of store (not the first one shown), applyPlace
@@ -750,6 +784,12 @@ function openStoreMapFromPayload(source, meta) {
   // this only needs to run for the non-route case.
   const isStoreChange = mapReadyFired && placeId !== lastAppliedPlaceId;
   applyPlace(cfg, placeId);
+  // id-only payload on a store CHANGE: mapReady won't re-fire, so the mapReady
+  // scrape won't run — kick it here. (First load is covered by the mapReady
+  // handler.)
+  if (!payloadName && isStoreChange) {
+    updateHeaderTitle(document.getElementById("mvx-place"), placeId, 0, headerTitleGen);
+  }
   renderStoreDetailFromPayload(source);
   if (meta && meta.route) {
     if (!cfg.totemPlaceId) {
@@ -892,6 +932,14 @@ window.applyStoreDetail = function (detail) {
   nativeStoreDetail = detail;
   const seq = ++detailRequestSeq;
   const merged = StoreDetail.merge({}, detail);
+  // The full native record names the store authoritatively too — keep the
+  // header in step with the card (covers an openStoreMapById payload that had
+  // an id but no name, followed by applyStoreDetail with the name).
+  const detailName = pickNameFromPayload(detail);
+  if (detailName) {
+    setHeaderTitle(detailName);
+    headerTitleFromPayload = true;
+  }
   StoreDetail.render(document.getElementById("store-detail"), merged, {
     locale: detailLocale(),
   });
@@ -1275,19 +1323,26 @@ function findDeepShadow(root, selector, depth) {
   return null;
 }
 
-function updateHeaderTitle(hostEl, fallbackId, attempt) {
+// Fallback for id-only payloads: scrape the resolved name out of the MapVX
+// popup once it renders. `gen` pins this retry chain to the open that started
+// it — if a newer store opened meanwhile (headerTitleGen moved) or that open
+// already had a payload name, this bails without touching the header.
+function updateHeaderTitle(hostEl, fallbackId, attempt, gen) {
   attempt = attempt || 0;
+  if (gen == null) gen = headerTitleGen;
+  if (gen !== headerTitleGen || headerTitleFromPayload) return;
   const nameEl = findDeepShadow(hostEl, ".popup-name", 0);
   const name = nameEl && nameEl.textContent.trim();
   if (name && name !== "Cargando...") {
-    document.getElementById("page-title").textContent = name;
+    setHeaderTitle(name);
     log("updateHeaderTitle: resolved name \"" + name + "\"");
     return;
   }
   if (attempt < 8) {
-    setTimeout(function () { updateHeaderTitle(hostEl, fallbackId, attempt + 1); }, 300);
+    setTimeout(function () { updateHeaderTitle(hostEl, fallbackId, attempt + 1, gen); }, 300);
   } else {
-    log("updateHeaderTitle: gave up, keeping raw id in header");
+    log("updateHeaderTitle: gave up; header keeps \"" +
+      (document.getElementById("page-title").textContent || "") + "\"");
   }
 }
 
