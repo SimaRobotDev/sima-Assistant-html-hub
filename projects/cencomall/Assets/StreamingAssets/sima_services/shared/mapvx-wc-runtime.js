@@ -55,8 +55,19 @@
       onTitle: null,
       onRouteReady: null,
       onRouteClosed: null,
+      // Fires once the route's walking animation reaches the destination
+      // (route-view-totems "routeAnimationFinish"). Used by the services flow
+      // to show the generic arrival popup. No-op for callers that don't set it.
+      onArrival: null,
       log: null,
     },
+    // When set ({ name, category, iconHtml }), the vendor's place/destination
+    // popup is rewritten to this generic label — so a bathroom placeId that
+    // resolves to one derivation ("Baño Niños - Mudadores") still reads
+    // "Baños". null = leave the vendor popup untouched.
+    genericLabel: null,
+    labelObservers: [],
+    labelRetryId: null,
   };
 
   function log(line) {
@@ -252,6 +263,76 @@
     return null;
   }
 
+  function clearGenericLabel() {
+    if (state.labelRetryId) { clearInterval(state.labelRetryId); state.labelRetryId = null; }
+    state.labelObservers.forEach(function (o) { try { o.disconnect(); } catch (e) {} });
+    state.labelObservers = [];
+  }
+
+  // UNSUPPORTED WORKAROUND — @mapvx/web-components renders the place /
+  // destination popup (.popup-name / .popup-category / .popup-logo) from the
+  // resolved POI, deep in <custom-map>'s shadow DOM, with no prop to override
+  // it. Services point their placeId at one derivation of a shared structure
+  // (a bathroom's changing-table POI, say), so the vendor popup would read
+  // "Baño Niños - Mudadores". Rewrite it in place to a generic label. A
+  // MutationObserver on the popup's own root keeps it applied across the
+  // re-renders the vendor does on floor change / marker update.
+  function applyGenericLabel(hostEl) {
+    // Always start clean — a previous call's observer/retry closes over the
+    // OLD label and would fight this one (seen with showPlace "quiet update":
+    // no mapReady, so only setGenericLabel re-applies, and the stale observer
+    // kept re-asserting the previous service's name).
+    clearGenericLabel();
+    var label = state.genericLabel;
+    if (!label || !hostEl) return;
+
+    function rewrite() {
+      var nameEl = findDeepShadow(hostEl, ".popup-name", 0);
+      if (!nameEl) return false;
+      if (label.name && text(nameEl.textContent) !== label.name && text(nameEl.textContent) !== "Cargando...") {
+        nameEl.textContent = label.name;
+      }
+      var catEl = findDeepShadow(hostEl, ".popup-category", 0);
+      if (catEl) {
+        if (label.category) { catEl.textContent = label.category; catEl.style.display = ""; }
+        else { catEl.style.display = "none"; }
+      }
+      if (label.iconHtml) {
+        var logoEl = findDeepShadow(hostEl, ".popup-logo", 0);
+        // Replace the vendor logo, OR our own replacement if the label changed.
+        if (logoEl && logoEl.dataset.mvxGeneric !== label.name) {
+          var repl = document.createElement("div");
+          repl.className = logoEl.className;
+          repl.dataset.mvxGeneric = label.name;
+          repl.innerHTML = label.iconHtml;
+          try { logoEl.replaceWith(repl); } catch (e) { /* older DOM */ }
+        }
+      }
+      // Observe the popup's own shadow root so vendor re-renders get re-fixed.
+      var root = nameEl.getRootNode && nameEl.getRootNode();
+      if (root && !state.labelObservers.length) {
+        try {
+          var obs = new MutationObserver(function () { rewrite(); });
+          obs.observe(root, { childList: true, subtree: true, characterData: true });
+          state.labelObservers.push(obs);
+        } catch (e2) { /* noop */ }
+      }
+      return true;
+    }
+
+    // The popup lands a beat after mapReady / routeAnimationStart — retry until
+    // it exists, then stop (the observer takes over).
+    rewrite();
+    var tries = 0;
+    state.labelRetryId = setInterval(function () {
+      tries += 1;
+      if (rewrite() || tries >= 20) {
+        clearInterval(state.labelRetryId);
+        state.labelRetryId = null;
+      }
+    }, 300);
+  }
+
   function resolveTitle(hostEl, fallbackId, attempt) {
     attempt = attempt || 0;
     var nameEl = findDeepShadow(hostEl, ".popup-name", 0);
@@ -307,6 +388,7 @@
       }
       hideGenericPoiIcons(mapEl);
       resolveTitle(mapEl, state.lastPlaceId);
+      applyGenericLabel(mapEl);
       if (typeof state.callbacks.onReady === "function") {
         try {
           state.callbacks.onReady({
@@ -327,6 +409,7 @@
     mapEl.addEventListener("floorChange", function () {
       hideGenericPoiIcons(mapEl);
       applyCameraConstraints(mapEl);
+      applyGenericLabel(mapEl);
     });
   }
 
@@ -598,6 +681,7 @@
     state.callbacks.onTitle = options.onTitle || null;
     state.callbacks.onRouteReady = options.onRouteReady || null;
     state.callbacks.onRouteClosed = options.onRouteClosed || null;
+    state.callbacks.onArrival = options.onArrival || null;
     state.callbacks.log = options.log || null;
 
     if (!state.placeMount) {
@@ -701,9 +785,13 @@
 
   function closeRoute() {
     clearRouteTimeout();
+    // Drop the route popup's observer, but keep state.genericLabel and re-apply
+    // it to the place popup we're flipping back to (still the same service).
+    clearGenericLabel();
     state.routeActive = false;
     if (state.routeMount) state.routeMount.innerHTML = "";
     setActiveView("place");
+    if (state.genericLabel && state.placeEl) applyGenericLabel(state.placeEl);
     if (typeof state.callbacks.onRouteClosed === "function") {
       try { state.callbacks.onRouteClosed(); } catch (e) { /* noop */ }
     }
@@ -804,6 +892,7 @@
           }
           settled = true;
           ignoringBack = false;
+          stopGenerate();
           clearRouteTimeout();
           // Re-assert route shell — callers must not see place underneath.
           showWcShell("route");
@@ -818,6 +907,7 @@
           if (settled) return;
           settled = true;
           ignoringBack = false;
+          stopGenerate();
           clearRouteTimeout();
           state.routeActive = false;
           setActiveView("place");
@@ -828,14 +918,39 @@
           reject(err);
         }
 
+        // route-view-totems only computes a route in response to its own
+        // "generateRoute" CustomEvent (the totem UI's "Generar ruta" button
+        // dispatches it on tap). We drive it headlessly, so dispatch it
+        // ourselves — and retry, because origin/destination resolution is an
+        // async place fetch that can still be pending right after mapReady.
+        // Same approach store-map-web/index.html proved reliable for
+        // multi-floor routes (verified live 2026-09-03).
+        var genKicks = 0;
+        var genTimer = null;
+        function kickGenerate() {
+          genKicks += 1;
+          try {
+            routeEl.dispatchEvent(new CustomEvent("generateRoute", {
+              detail: { accessible: false },
+              bubbles: true,
+              composed: true,
+            }));
+          } catch (e) { /* noop */ }
+          forceRouteDraw(routeEl, origin, dest);
+          if (genKicks >= 6 && genTimer) { clearInterval(genTimer); genTimer = null; }
+        }
+        function stopGenerate() {
+          if (genTimer) { clearInterval(genTimer); genTimer = null; }
+        }
+
         routeEl.addEventListener("mapReady", function () {
           hideGenericPoiIcons(routeEl);
           var libreMap = getLiveMap(routeEl);
           if (libreMap) flattenBuildings(libreMap);
+          applyGenericLabel(routeEl);
           log("route-view-totems: mapReady — forcing route draw");
-          forceRouteDraw(routeEl, origin, dest);
-          // Allow one more kick shortly after mapReady (SDK sometimes needs it).
-          setTimeout(function () { forceRouteDraw(routeEl, origin, dest); }, 300);
+          kickGenerate();
+          genTimer = setInterval(kickGenerate, 500);
           setTimeout(function () {
             succeed({
               placeId: dest,
@@ -846,6 +961,8 @@
           }, 600);
         });
         routeEl.addEventListener("routeAnimationStart", function () {
+          stopGenerate();
+          applyGenericLabel(routeEl);
           log("route-view-totems: routeAnimationStart");
           succeed({
             placeId: dest,
@@ -854,6 +971,14 @@
             engine: "wc",
             animated: true,
           });
+        });
+        routeEl.addEventListener("routeAnimationFinish", function () {
+          log("route-view-totems: routeAnimationFinish");
+          if (typeof state.callbacks.onArrival === "function") {
+            try {
+              state.callbacks.onArrival({ placeId: dest, originId: origin, engine: "wc" });
+            } catch (e) { /* noop */ }
+          }
         });
         routeEl.addEventListener("back", function () {
           // Ignore spurious back during mount/init (seen on some MapVX builds).
@@ -911,6 +1036,8 @@
     state.lastPlaceId = "";
     state.routeActive = false;
     state.visible = false;
+    state.genericLabel = null;
+    clearGenericLabel();
   }
 
   function isRouteActive() {
@@ -919,6 +1046,28 @@
 
   function getLastPlaceId() {
     return state.lastPlaceId;
+  }
+
+  // Rewrite the vendor place/destination popup to a generic label for the
+  // current place + route. Pass null to restore the vendor's own popup.
+  // { name, category?, iconHtml? }
+  function setGenericLabel(label) {
+    if (!label || !label.name) {
+      state.genericLabel = null;
+      clearGenericLabel();
+      return;
+    }
+    state.genericLabel = {
+      name: text(label.name),
+      category: label.category ? text(label.category) : "",
+      iconHtml: label.iconHtml || "",
+    };
+    if (state.routeActive && state.routeMount) {
+      var routeEl = state.routeMount.querySelector("route-view-totems");
+      if (routeEl) applyGenericLabel(routeEl);
+    } else if (state.placeEl) {
+      applyGenericLabel(state.placeEl);
+    }
   }
 
   global.MapVxWcRuntime = {
@@ -936,6 +1085,7 @@
     notifyShown: notifyShown,
     readConfig: readConfig,
     readMapEngine: readMapEngine,
+    setGenericLabel: setGenericLabel,
     showPlace: showPlace,
     showRoute: showRoute,
     teardown: teardown,
