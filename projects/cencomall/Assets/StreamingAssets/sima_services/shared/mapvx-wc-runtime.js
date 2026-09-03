@@ -128,8 +128,13 @@
       var fromCfg = normalizeMapEngine(global.MAPVX_CONFIG && global.MAPVX_CONFIG.mapEngine);
       if (fromCfg) return fromCfg;
     } catch (e2) { /* noop */ }
-    // Default to legacy until WC place+route is reliable on totems.
-    return "legacy";
+    // Default: "auto" — try the Web Component, fall back to legacy on any
+    // failure (bad tiles, unresolved id, missing origin, bundle down). The
+    // bathroom / SAC / cowork WC path is validated; elevators + unverified ids
+    // carry a placeIdNote and stay on legacy regardless. Pin a totem back to
+    // the old renderer with ?mapEngine=legacy or MAPVX_CONFIG.mapEngine="legacy"
+    // — no OTA needed.
+    return "auto";
   }
 
   function isAvailable() {
