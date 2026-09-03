@@ -109,15 +109,26 @@
     );
   }
 
+  function normalizeMapEngine(raw) {
+    raw = text(raw).toLowerCase();
+    return (raw === "legacy" || raw === "wc" || raw === "auto") ? raw : "";
+  }
+
   function readMapEngine(search) {
-    var raw = "";
+    // 1. URL param (local testing / a per-open query the host appends).
+    var fromUrl = "";
     try {
       var params = new URLSearchParams(search || global.location.search || "");
-      raw = text(params.get("mapEngine") || params.get("map_engine")).toLowerCase();
+      fromUrl = normalizeMapEngine(params.get("mapEngine") || params.get("map_engine"));
     } catch (e) { /* noop */ }
-    if (raw === "legacy" || raw === "wc" || raw === "auto") return raw;
+    if (fromUrl) return fromUrl;
+    // 2. Injected config — the native host can set window.MAPVX_CONFIG.mapEngine
+    //    from a remote flag, no URL manipulation needed.
+    try {
+      var fromCfg = normalizeMapEngine(global.MAPVX_CONFIG && global.MAPVX_CONFIG.mapEngine);
+      if (fromCfg) return fromCfg;
+    } catch (e2) { /* noop */ }
     // Default to legacy until WC place+route is reliable on totems.
-    // Opt into WC with ?mapEngine=wc or ?mapEngine=auto.
     return "legacy";
   }
 
