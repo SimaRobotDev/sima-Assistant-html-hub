@@ -11,7 +11,14 @@
   var CONFIG_STORAGE_KEY = "cencomall_mapvx_test_config";
   var DEFAULT_PARENT_PLACE = "-N19VjzEVIj2RDKu7i4r";
   var PLACE_TIMEOUT_MS = 6000;
-  var ROUTE_TIMEOUT_MS = 15000;
+  // <route-view-totems> boots a SECOND maplibre instance (its own map + style +
+  // place resolution) on top of the place map that is already live. On totem
+  // hardware (Rockchip RK3566 / Mali-G52 / 4GB) that cold boot regularly runs
+  // past 15s — store-map-web hit exactly this and only became reliable at 60s.
+  // A short timeout here doesn't "fail fast", it silently demotes every route
+  // to the legacy renderer, which is what happened on the totems after the
+  // mapEngine="auto" rollout. Keep this generous; callers show a loading state.
+  var ROUTE_TIMEOUT_MS = 60000;
   var ZOOM_MIN = 17.3;
   var ZOOM_MAX = 19;
   var DESIRED_PITCH = 0;
@@ -46,6 +53,7 @@
     routeTimeoutId: null,
     routeBundlePromise: null,
     warmupPromise: null,
+    diag: [],
     lastPlaceId: "",
     routeActive: false,
     visible: false,
@@ -79,6 +87,24 @@
         global.SimaBridge.log("[mapvx-wc] " + line);
       }
     } catch (e2) { /* noop */ }
+  }
+
+  // Small ring buffer of route outcomes. The totems have no reachable console,
+  // so when a route silently demotes to legacy this is the only record of why
+  // and how long it took. Readable as MapVxWcRuntime.getDiag() / window.__mvxDiag.
+  function diag(kind, data) {
+    try {
+      var entry = { at: new Date().toISOString(), kind: kind };
+      if (data) {
+        for (var k in data) {
+          if (Object.prototype.hasOwnProperty.call(data, k)) entry[k] = data[k];
+        }
+      }
+      state.diag.push(entry);
+      if (state.diag.length > 20) state.diag.shift();
+      global.__mvxDiag = state.diag;
+      log("diag " + JSON.stringify(entry));
+    } catch (e) { /* noop */ }
   }
 
   function text(value) {
@@ -455,8 +481,20 @@
     if (state.routeBundlePromise) return state.routeBundlePromise;
 
     state.routeBundlePromise = new Promise(function (resolve, reject) {
+      // A page-level preload tag (data-mvx-route-bundle="1") is the common case
+      // in mobility / store-map. If it is still in flight, wait on it. If it
+      // already finished WITHOUT defining the element (a throw mid-bundle can
+      // abort it), fall through and inject a fresh copy — returning here left
+      // the promise unsettled forever, hanging every caller.
+      // A page-level preload tag (data-mvx-route-bundle="1") is the common case
+      // in mobility / store-map. While the document is still loading, that tag
+      // may be in flight — wait on it. Once the document is complete the tag has
+      // finished for good, so if the element still isn't defined (a throw
+      // mid-bundle can abort it) fall through and inject a fresh copy. The old
+      // code returned in that state, leaving the promise unsettled forever and
+      // hanging every caller of showRoute().
       var existing = document.querySelector('script[data-mvx-route-bundle="1"]');
-      if (existing) {
+      if (existing && document.readyState !== "complete") {
         existing.addEventListener("load", function () {
           if (customElements.get("route-view-totems")) resolve(true);
           else reject(new Error("route-view-totems not defined after load"));
@@ -857,6 +895,7 @@
     var cfg = readConfig();
     var dest = text(destinationId || state.lastPlaceId);
     var origin = text(options.originId || cfg.totemPlaceId);
+    var startedAt = Date.now();
 
     return ensureRouteBundle().then(function () {
       return new Promise(function (resolve, reject) {
@@ -914,6 +953,12 @@
           showWcShell("route");
           setActiveView("route");
           state.routeActive = true;
+          diag("route-ok", {
+            dest: dest,
+            origin: origin,
+            ms: Date.now() - startedAt,
+            animated: !!(payload && payload.animated),
+          });
           if (typeof state.callbacks.onRouteReady === "function") {
             try { state.callbacks.onRouteReady(payload); } catch (e) { /* noop */ }
           }
@@ -928,6 +973,13 @@
           state.routeActive = false;
           setActiveView("place");
           var err = reason instanceof Error ? reason : new Error(String(reason || "wc showRoute failed"));
+          diag("route-fail", {
+            dest: dest,
+            origin: origin,
+            ms: Date.now() - startedAt,
+            budgetMs: timeoutMs,
+            reason: err.message,
+          });
           if (typeof state.callbacks.onError === "function") {
             try { state.callbacks.onError(err); } catch (e) { /* noop */ }
           }
@@ -1018,6 +1070,18 @@
           }, 2000);
         }, Math.max(4000, timeoutMs - 2000));
       });
+    }).catch(function (bundleErr) {
+      // ensureRouteBundle() rejected — fail() never ran, so record it here too.
+      if (!state.diag.length || state.diag[state.diag.length - 1].kind !== "route-fail") {
+        diag("route-fail", {
+          dest: dest,
+          origin: origin,
+          ms: Date.now() - startedAt,
+          budgetMs: timeoutMs,
+          reason: String(bundleErr && (bundleErr.message || bundleErr)),
+        });
+      }
+      throw bundleErr;
     });
   }
 
@@ -1094,6 +1158,7 @@
     getLastPlaceId: getLastPlaceId,
     hasLiveMap: hasLiveMap,
     hasRouteOrigin: hasRouteOrigin,
+    getDiag: function () { return state.diag.slice(); },
     hide: hide,
     init: init,
     isAvailable: isAvailable,

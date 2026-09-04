@@ -6634,7 +6634,11 @@ async function showMobilityHybridRoute() {
     if (dest && cfg.totemPlaceId) {
       try {
         hideServiceArrivalCard();
-        await MapVxWcRuntime.showRoute(dest, { originId: cfg.totemPlaceId });
+        // Generous budget on purpose: route-view-totems cold-boots its own map
+        // on totem hardware. A tight timeout here doesn't fail fast, it demotes
+        // every route to the legacy renderer (the totem symptom after the
+        // mapEngine="auto" rollout).
+        await MapVxWcRuntime.showRoute(dest, { originId: cfg.totemPlaceId, timeoutMs: 60000 });
         mobilityMapRouteActive = true;
         mobilityActiveMapEngine = "wc";
         return;
@@ -7206,7 +7210,7 @@ async function openServiceMapViaWc(opts) {
       if (cfg.totemPlaceId) {
         try {
           setMapStatus(t("mapLoading") || "Cargando ruta…");
-          await MapVxWcRuntime.showRoute(placeId, { originId: cfg.totemPlaceId });
+          await MapVxWcRuntime.showRoute(placeId, { originId: cfg.totemPlaceId, timeoutMs: 60000 });
           routed = true;
           mobilityMapRouteActive = true;
           updateMapRouteButton({ routeActive: true });
