@@ -19,6 +19,11 @@
   // to the legacy renderer, which is what happened on the totems after the
   // mapEngine="auto" rollout. Keep this generous; callers show a loading state.
   var ROUTE_TIMEOUT_MS = 60000;
+  // How long after the route map is up we wait for the route to actually start
+  // drawing before declaring it stalled and telling the caller to fall back.
+  // Generous enough for a slow totem to resolve both places and compute a
+  // multi-floor path, short enough that nobody stands there watching a loader.
+  var ROUTE_STALL_MS = 25000;
   var ZOOM_MIN = 17.3;
   var ZOOM_MAX = 19;
   var DESIRED_PITCH = 0;
@@ -51,6 +56,7 @@
     mallBounds: null,
     placeTimeoutId: null,
     routeTimeoutId: null,
+    routeStallId: null,
     routeBundlePromise: null,
     warmupPromise: null,
     diag: [],
@@ -67,6 +73,7 @@
       // (route-view-totems "routeAnimationFinish"). Used by the services flow
       // to show the generic arrival popup. No-op for callers that don't set it.
       onArrival: null,
+      onRouteStalled: null,
       log: null,
     },
     // When set ({ name, category, iconHtml }), the vendor's place/destination
@@ -715,6 +722,17 @@
     }
   }
 
+  // Deliberately separate from clearRouteTimeout(): succeed() clears the route
+  // timeout as soon as the map is up, but the stall watchdog has to keep
+  // running past that point — it exists precisely to catch a route that never
+  // draws after a successful mapReady.
+  function clearStallWatchdog() {
+    if (state.routeStallId) {
+      clearTimeout(state.routeStallId);
+      state.routeStallId = null;
+    }
+  }
+
   function init(options) {
     options = options || {};
     state.placeMount = typeof options.placeMount === "string"
@@ -736,6 +754,7 @@
     state.callbacks.onRouteReady = options.onRouteReady || null;
     state.callbacks.onRouteClosed = options.onRouteClosed || null;
     state.callbacks.onArrival = options.onArrival || null;
+    state.callbacks.onRouteStalled = options.onRouteStalled || null;
     state.callbacks.log = options.log || null;
 
     if (!state.placeMount) {
@@ -839,6 +858,7 @@
 
   function closeRoute() {
     clearRouteTimeout();
+    clearStallWatchdog();
     // Drop the route popup's observer, but keep state.genericLabel and re-apply
     // it to the place popup we're flipping back to (still the same service).
     clearGenericLabel();
@@ -868,26 +888,14 @@
     } catch (e) { /* older hosts */ }
   }
 
-  function forceRouteDraw(routeEl, origin, dest) {
-    try {
-      if (!routeEl || !routeEl.sdkController) return false;
-      var ctrl = routeEl.sdkController;
-      if (!ctrl.connected) return false;
-      if (typeof ctrl.setOriginAndDestination === "function") {
-        ctrl.setOriginAndDestination(origin, dest);
-        log("forceRouteDraw setOriginAndDestination");
-        return true;
-      }
-      if (typeof ctrl.generateRoute === "function") {
-        ctrl.generateRoute();
-        log("forceRouteDraw generateRoute");
-        return true;
-      }
-    } catch (e) {
-      log("forceRouteDraw failed: " + (e && e.message ? e.message : e));
-    }
-    return false;
-  }
+  // REMOVED: forceRouteDraw() / sdkController.setOriginAndDestination().
+  // Reaching into the controller to re-set origin+destination on a live
+  // route-view-totems instance wedges it permanently — the component keeps
+  // showing its loader with no error event and no route, forever. store-map-web
+  // documented this and never calls it; the only supported nudge is dispatching
+  // the component's own "generateRoute" event, which its handler turns into
+  // loadRoute(originId, destinationId) using the context it already resolved.
+  // Do not reintroduce this.
 
   function showRoute(destinationId, options) {
     options = options || {};
@@ -923,6 +931,7 @@
         // Tear down any previous route instance WITHOUT flipping back to place
         // (closeRoute would fight the view switch below).
         clearRouteTimeout();
+        clearStallWatchdog();
         state.routeActive = false;
         state.routeMount.innerHTML = "";
         state.lastPlaceId = dest;
@@ -970,6 +979,7 @@
           ignoringBack = false;
           stopGenerate();
           clearRouteTimeout();
+          clearStallWatchdog();
           state.routeActive = false;
           setActiveView("place");
           var err = reason instanceof Error ? reason : new Error(String(reason || "wc showRoute failed"));
@@ -1004,11 +1014,46 @@
               composed: true,
             }));
           } catch (e) { /* noop */ }
-          forceRouteDraw(routeEl, origin, dest);
+          // Deliberately NOT calling forceRouteDraw/setOriginAndDestination
+          // here. store-map-web established (and this runtime regressed) that
+          // re-setting origin/destination on a LIVE route-view-totems instance
+          // after its first resolution hangs the component forever with no
+          // error event. Kicking it 6x every 500ms did exactly that: the first
+          // kick resolved, the rest poisoned the instance — which is why totem
+          // service routes sat loading for minutes while store-map-web (which
+          // only ever dispatches the event) routes in ~20s.
           if (genKicks >= 6 && genTimer) { clearInterval(genTimer); genTimer = null; }
         }
         function stopGenerate() {
           if (genTimer) { clearInterval(genTimer); genTimer = null; }
+        }
+
+        // Stall watchdog. showRoute() resolves shortly after mapReady (the map
+        // is up and the route is computing), so the promise's own timeout can
+        // no longer protect anyone. If the component then never starts drawing
+        // — an id it can't route, a wedged instance — nothing used to notice
+        // and the visitor just watched a loader indefinitely. Report it so the
+        // caller can hand the route to the legacy renderer.
+        var animStarted = false;
+        function armStallWatchdog() {
+          clearStallWatchdog();
+          state.routeStallId = setTimeout(function () {
+            state.routeStallId = null;
+            if (animStarted || !routeEl.isConnected) return;
+            stopGenerate();
+            diag("route-stalled", {
+              dest: dest,
+              origin: origin,
+              ms: Date.now() - startedAt,
+              afterMs: ROUTE_STALL_MS,
+            });
+            log("route-view-totems: no route drawn after " + ROUTE_STALL_MS + "ms");
+            if (typeof state.callbacks.onRouteStalled === "function") {
+              try {
+                state.callbacks.onRouteStalled({ placeId: dest, originId: origin, engine: "wc" });
+              } catch (e) { /* noop */ }
+            }
+          }, ROUTE_STALL_MS);
         }
 
         routeEl.addEventListener("mapReady", function () {
@@ -1016,9 +1061,10 @@
           var libreMap = getLiveMap(routeEl);
           if (libreMap) flattenBuildings(libreMap);
           applyGenericLabel(routeEl);
-          log("route-view-totems: mapReady — forcing route draw");
+          log("route-view-totems: mapReady — requesting route");
           kickGenerate();
           genTimer = setInterval(kickGenerate, 500);
+          armStallWatchdog();
           setTimeout(function () {
             succeed({
               placeId: dest,
@@ -1028,10 +1074,19 @@
             });
           }, 600);
         });
-        routeEl.addEventListener("routeAnimationStart", function () {
+        // The bundle actually dispatches "startRouteAnimation" and
+        // "routeAnimationFinished" (verified by scanning the vendored IIFE for
+        // its CustomEvent names). We were listening for "routeAnimationStart" /
+        // "routeAnimationFinish", which never fire — so the generateRoute
+        // retries were never stopped early and the arrival card never showed.
+        // Both spellings are wired so a vendor rename in either direction works.
+        function onAnimationStart() {
+          animStarted = true;
+          clearStallWatchdog();
           stopGenerate();
           applyGenericLabel(routeEl);
-          log("route-view-totems: routeAnimationStart");
+          log("route-view-totems: route animation start");
+          diag("route-animating", { dest: dest, ms: Date.now() - startedAt });
           succeed({
             placeId: dest,
             originId: origin,
@@ -1039,15 +1094,19 @@
             engine: "wc",
             animated: true,
           });
-        });
-        routeEl.addEventListener("routeAnimationFinish", function () {
-          log("route-view-totems: routeAnimationFinish");
+        }
+        function onAnimationFinish() {
+          log("route-view-totems: route animation finish");
           if (typeof state.callbacks.onArrival === "function") {
             try {
               state.callbacks.onArrival({ placeId: dest, originId: origin, engine: "wc" });
             } catch (e) { /* noop */ }
           }
-        });
+        }
+        routeEl.addEventListener("startRouteAnimation", onAnimationStart);
+        routeEl.addEventListener("routeAnimationStart", onAnimationStart);
+        routeEl.addEventListener("routeAnimationFinished", onAnimationFinish);
+        routeEl.addEventListener("routeAnimationFinish", onAnimationFinish);
         routeEl.addEventListener("back", function () {
           // Ignore spurious back during mount/init (seen on some MapVX builds).
           if (ignoringBack || !settled) {
@@ -1064,11 +1123,11 @@
 
         clearRouteTimeout();
         state.routeTimeoutId = setTimeout(function () {
-          forceRouteDraw(routeEl, origin, dest);
-          setTimeout(function () {
-            if (!settled) fail(new Error("wc route timeout"));
-          }, 2000);
-        }, Math.max(4000, timeoutMs - 2000));
+          // No forceRouteDraw retry here either — see kickGenerate(). If the
+          // component hasn't reached mapReady by now it isn't coming, and
+          // poking origin/destination would only wedge it further.
+          if (!settled) fail(new Error("wc route timeout"));
+        }, Math.max(4000, timeoutMs));
       });
     }).catch(function (bundleErr) {
       // ensureRouteBundle() rejected — fail() never ran, so record it here too.
