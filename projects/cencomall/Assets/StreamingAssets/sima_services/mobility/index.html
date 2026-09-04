@@ -6540,9 +6540,23 @@ function resetMapControls() {
   }
 }
 
+// Bind the "Ver ruta" tap handler. This lives here, not in setupMapControls(),
+// because setupMapControls() only runs on the LEGACY open path — so in a
+// session where every map came up through the Web Component the button was
+// rendered, enabled and correctly labelled while being completely inert:
+// tapping it produced no route and no log at all (confirmed on a device, four
+// taps, zero map log lines). updateMapRouteButton() is called by every engine
+// path, and the _bound guard keeps it idempotent.
+function bindMapRouteButton(btn) {
+  if (!btn || btn._bound) return;
+  btn._bound = true;
+  btn.onclick = onMapRouteToggle;
+}
+
 function updateMapRouteButton(result) {
   const btn = document.getElementById("map-route-btn");
   if (!btn) return;
+  bindMapRouteButton(btn);
   // Enable whenever a totem origin exists on EITHER engine — a WC service has
   // no legacy bridge warmed, so checking only MapVxBridge left the button
   // stuck on "configura totemPlaceId".
@@ -6748,11 +6762,7 @@ function setupMapControls(result) {
   updateMapRouteButton(result);
   const activeFloor = result && result.floorId ? result.floorId : null;
   renderMapFloorBar(activeFloor);
-  const routeBtn = document.getElementById("map-route-btn");
-  if (routeBtn && !routeBtn._bound) {
-    routeBtn._bound = true;
-    routeBtn.onclick = onMapRouteToggle;
-  }
+  bindMapRouteButton(document.getElementById("map-route-btn"));
 }
 
 async function openPoiMapViaMapVx(opts) {
