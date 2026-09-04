@@ -451,8 +451,7 @@ window.__SERVICES_CATALOG__ = {
         "1",
         "2",
         "3",
-        "4",
-        "5"
+        "4"
       ],
       "features": {
         "accesible": true
@@ -540,20 +539,12 @@ window.__SERVICES_CATALOG__ = {
           "floors": [
             "4"
           ]
-        },
-        {
-          "brand": "Burger King",
-          "local": "CC_N5_5524",
-          "role": "secondary",
-          "floors": [
-            "5"
-          ]
         }
       ],
       "descriptions": {
-        "short": "Eje Ripley / ancla, todos los pisos.",
-        "medium": "Zona Ripley: Easy (PB), Jumbo (N1), Nike/Ripley (N2), Bold (N3), Sparta (N4), Burger King (N5).",
-        "long": "Torre del sector Ripley. En cada piso la referencia es la tienda ancla de ese nivel (Easy, Jumbo, Ripley, Bold, Sparta o Burger King)."
+        "short": "Eje Ripley / ancla, de PB a N4.",
+        "medium": "Zona Ripley: Easy (PB), Jumbo (N1), Nike/Ripley (N2), Bold (N3), Sparta (N4).",
+        "long": "Torre del sector Ripley (Torre Andrés Bello). En cada piso la referencia es la tienda ancla de ese nivel (Easy, Jumbo, Ripley, Bold o Sparta)."
       },
       "keywords": [
         "ascensor",
@@ -568,18 +559,16 @@ window.__SERVICES_CATALOG__ = {
         "nike rise",
         "bold",
         "sparta",
-        "burger king",
-        "bk",
         "ancla"
       ],
       "mapvx": {
         "placeId": "-N1e2dagzGnuGIFpinw0",
-        "placeIdNote": "el volcado MapVX lo lista como 'Ascensores Torre Andrés Bello' (acceso de estacionamiento, N-1). Confirmar que sea el banco de pasajeros del eje Ripley y un destino de ruta válido en route-view-totems.",
         "poiRef": "-N1e2dagzGnuGIFpinw0",
         "mapvxId": "-N1e2dagzGnuGIFpinw0",
         "lat": -33.41780349399868,
         "lng": -70.6073646247387,
-        "validatedAt": "2026-07-21"
+        "validatedAt": "2026-07-21",
+        "placeIdSource": "mapvx-directory"
       }
     },
     {
@@ -717,13 +706,13 @@ window.__SERVICES_CATALOG__ = {
         "barra chalaca"
       ],
       "mapvx": {
-        "placeId": "node:993809113",
-        "placeIdNote": "identificador propio — el volcado MapVX no expone los ascensores de pasajeros. Formato node: — validar como destino de ruta en route-view-totems o reemplazar por el -Nxxx equivalente.",
+        "placeId": "-Oz8T1-e1Du7kdXHKGPp",
         "poiRef": "node:993809113",
         "mapvxId": "node:993809113",
         "lat": -33.41820479394959,
         "lng": -70.60576099902391,
-        "validatedAt": "2026-07-21"
+        "validatedAt": "2026-07-21",
+        "placeIdSource": "mapvx-directory"
       }
     },
     {
@@ -796,7 +785,7 @@ window.__SERVICES_CATALOG__ = {
       "descriptions": {
         "short": "Pasillo lateral, zona H&M.",
         "medium": "Pasillo H&M: Afex (PB), Blush Bar (N1), H&M (N2–N3), Fabrics (N4), Texas Ribs (N5).",
-        "long": "Ascensores del pasillo lateral (lado H&M), opuesto a Vitacura."
+        "long": "Ascensores del pasillo lateral (lado H&M, Torre Tobalaba), opuesto a Vitacura."
       },
       "keywords": [
         "ascensor",
@@ -814,12 +803,12 @@ window.__SERVICES_CATALOG__ = {
       ],
       "mapvx": {
         "placeId": "-N2SSgpaCHzZe80nRkOx",
-        "placeIdNote": "el volcado MapVX lo lista como 'Ascensores Torre Tobalaba' (acceso de estacionamiento, N-1). Confirmar que sea el banco de pasajeros del lado H&M y un destino de ruta válido.",
         "poiRef": "-N2SSgpaCHzZe80nRkOx",
         "mapvxId": "-N2SSgpaCHzZe80nRkOx",
         "lat": -33.41743185612792,
         "lng": -70.60591321438551,
-        "validatedAt": "2026-07-21"
+        "validatedAt": "2026-07-21",
+        "placeIdSource": "mapvx-directory"
       }
     },
     {
@@ -869,12 +858,61 @@ window.__SERVICES_CATALOG__ = {
       ],
       "mapvx": {
         "placeId": "node:19041",
-        "placeIdNote": "identificador propio (node:19041 / 19042). Formato node: — validar como destino de ruta en route-view-totems o reemplazar por el -Nxxx equivalente.",
+        "placeIdNote": "MapVX no publica este banco (su directorio 2026-09-03 solo lista 5 ascensores y ninguno cae en el N3 junto a Hugo). Sigue en el motor legacy hasta que MapVX entregue el placeId.",
         "poiRef": "node:19041",
         "mapvxId": "node:19041",
         "lat": -33.41725506172419,
         "lng": -70.60655797133222,
         "validatedAt": "2026-07-22"
+      }
+    },
+    {
+      "id": "ascensor-cine",
+      "type": "elevator",
+      "sector": "patio-comidas",
+      "name": "Ascensor Cine",
+      "floors": [
+        "5"
+      ],
+      "features": {
+        "accesible": true
+      },
+      "layout": "banco_vertical",
+      "anchorStores": [
+        {
+          "brand": "Burger King",
+          "local": "CC_N5_5524",
+          "role": "primary",
+          "floors": [
+            "5"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Junto a Burger King, sube al cine.",
+        "medium": "Ascensor del cine: en el Nivel 5 está junto a Burger King, en el patio de comidas, y sube al Nivel 6.",
+        "long": "Ascensor Cine. Se toma en el Nivel 5 junto a Burger King (patio de comidas) y llega al Nivel 6, donde están los cines."
+      },
+      "keywords": [
+        "ascensor",
+        "ascensores",
+        "elevador",
+        "elevator",
+        "cine",
+        "cines",
+        "peliculas",
+        "burger king",
+        "bk",
+        "patio de comidas",
+        "nivel 6",
+        "piso 6"
+      ],
+      "mapvx": {
+        "placeId": "-NFuopc7p3j0Ig4flPSC",
+        "placeIdSource": "mapvx-directory",
+        "poiRef": "-NFuopc7p3j0Ig4flPSC",
+        "mapvxId": "-NFuopc7p3j0Ig4flPSC",
+        "validatedAt": "2026-09-04"
       }
     },
     {

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-13",
+  "version": "2026.09.02-14",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-09-04T14:35:50.519Z",
+  "generatedAt": "2026-09-04T15:56:48.710Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -115,13 +115,13 @@
     },
     {
       "path": "data/services-catalog.json",
-      "size": 25966,
-      "sha256": "ef94e323e2fb0232aa8e4665f2f06996314403b21049c8502c04d7067fcd8a41"
+      "size": 26577,
+      "sha256": "5a528134b8ffb97cce1b7ec87af120d7f0093f87b3ec041af4ea394775b559f3"
     },
     {
       "path": "data/services-catalog.jsonp.js",
-      "size": 26160,
-      "sha256": "dccfa09231c0cd211a7ead45ad2d97badde3348c1bd7f598687a8e2d53a2936b"
+      "size": 26771,
+      "sha256": "f5fe3958f929406c32cf6fdfa5bd4549275bc67d07e26c98ec3eb5d1d3e6053b"
     },
     {
       "path": "docs/MARKET-CATALOG-SLIM.md",
