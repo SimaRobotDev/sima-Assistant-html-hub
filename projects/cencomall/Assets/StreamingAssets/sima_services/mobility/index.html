@@ -6664,6 +6664,44 @@ async function showMobilityHybridRoute() {
   mobilityActiveMapEngine = "legacy";
 }
 
+// Drop every trace of the WC service view so the legacy renderer can take the
+// screen without the two fighting over it.
+function teardownWcServiceState() {
+  lastServiceWcEntry = null;
+  hideServiceArrivalCard();
+  if (typeof MapVxWcRuntime !== "undefined") {
+    try { if (MapVxWcRuntime.setGenericLabel) MapVxWcRuntime.setGenericLabel(null); } catch (e) { /* noop */ }
+    try { if (MapVxWcRuntime.hide) MapVxWcRuntime.hide(); } catch (e) { /* noop */ }
+  }
+  const stage = document.getElementById("mapvx-wc-stage");
+  if (stage) stage.classList.add("hidden");
+  mobilityActiveMapEngine = "legacy";
+}
+
+// Called when the WC reported its map ready but never drew the route. Redraws
+// the same destination with the legacy engine, route included.
+async function fallBackToLegacyRoute() {
+  const opts = window.__mobilityLastMapOpts || {};
+  const placeId = window.__mobilityLastWcPlaceId || opts.local || "";
+  teardownWcServiceState();
+  try {
+    setMapStatus(t("mapLoading") || "Cargando ruta…");
+    await openPoiMapViaMapVx(Object.assign({}, opts, {
+      mode: "navigation",
+      local: placeId || opts.local,
+    }));
+    mobilityMapRouteActive = true;
+    updateMapRouteButton({ routeActive: true });
+    setMapStatus("");
+  } catch (error) {
+    mobilityMapRouteActive = false;
+    updateMapRouteButton({ routeActive: false });
+    logMap("error", "legacy route fallback failed",
+      { message: String(error && (error.message || error)) });
+    setMapStatus(t("routeError") || "");
+  }
+}
+
 async function hideMobilityHybridRoute() {
   logMap("info", "hybrid route hide", { engine: mobilityActiveMapEngine });
   if (typeof MapVxBridge !== "undefined" && MapVxBridge.clearActiveRoute) {
@@ -6897,6 +6935,14 @@ function initMobilityWcRuntime() {
       },
       onArrival: function () {
         if (lastServiceWcEntry) showServiceArrivalCard(lastServiceWcEntry);
+      },
+      // The WC map came up but the route never started drawing. showRoute()
+      // already resolved by then, so nothing else would rescue this — without
+      // it the visitor just watches a loader (4+ minutes, observed on a totem).
+      // Hand the whole thing to the legacy renderer.
+      onRouteStalled: function (info) {
+        logMap("warn", "wc route stalled — legacy route fallback", info || {});
+        fallBackToLegacyRoute();
       },
     });
     mobilityWcReady = true;
