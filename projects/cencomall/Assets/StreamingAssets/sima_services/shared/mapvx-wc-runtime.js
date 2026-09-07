@@ -312,6 +312,44 @@
     return null;
   }
 
+  // UNSUPPORTED WORKAROUND — both components render their own loading overlay
+  // (.loading-overlay, data-testid="map-loading") inside a nested shadow root,
+  // with no prop to turn it off. The totem shows the Cenco Bricks spinner
+  // instead, so the vendor's would be a second spinner stacked on the same
+  // load. Inject a stylesheet into whichever shadow root owns it. Retried
+  // because that nested root is built asynchronously, well after the host
+  // element exists.
+  function hideVendorLoadingOverlay(hostEl) {
+    if (!hostEl) return;
+    var tries = 0;
+    var css = ".loading-overlay{display:none !important;}";
+    function attempt() {
+      tries += 1;
+      var el = findDeepShadow(hostEl, ".loading-overlay", 0);
+      var root = el && el.getRootNode && el.getRootNode();
+      if (!root || !root.host) return tries >= 25;
+      if (root.__mvxLoaderHidden) return true;
+      try {
+        if (root.adoptedStyleSheets && typeof CSSStyleSheet === "function") {
+          var sheet = new CSSStyleSheet();
+          sheet.replaceSync(css);
+          root.adoptedStyleSheets = root.adoptedStyleSheets.concat(sheet);
+        } else {
+          var st = document.createElement("style");
+          st.textContent = css;
+          root.appendChild(st);
+        }
+        root.__mvxLoaderHidden = true;
+        log("vendor loading overlay hidden — Cenco Bricks spinner is the only one");
+        return true;
+      } catch (e) {
+        return tries >= 25;
+      }
+    }
+    if (attempt()) return;
+    var id = setInterval(function () { if (attempt()) clearInterval(id); }, 120);
+  }
+
   function clearGenericLabel() {
     if (state.labelRetryId) { clearInterval(state.labelRetryId); state.labelRetryId = null; }
     state.labelObservers.forEach(function (o) { try { o.disconnect(); } catch (e) {} });
@@ -428,6 +466,7 @@
   function wirePlaceElement(mapEl) {
     if (mapEl.__mvxWired) return;
     mapEl.__mvxWired = true;
+    hideVendorLoadingOverlay(mapEl);
 
     mapEl.addEventListener("mapReady", function () {
       state.mapReadyFired = true;
@@ -1117,6 +1156,7 @@
         });
 
         state.routeMount.appendChild(routeEl);
+        hideVendorLoadingOverlay(routeEl);
         // Sync credentials immediately after append — same as store-map-web.
         applyRouteCredentials(routeEl, cfg, origin, dest);
         log("showRoute " + JSON.stringify({ destinationId: dest, originId: origin }));

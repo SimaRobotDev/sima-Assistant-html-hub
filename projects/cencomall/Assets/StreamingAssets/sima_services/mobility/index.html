@@ -928,14 +928,6 @@ route-view-totems,
   height: 100%;
 }
 
-.map-status {
-  padding: 8px 14px;
-  font-size: 12px;
-  color: var(--cm-muted);
-  background: #fff;
-  border-bottom: 1px solid var(--cm-line);
-}
-
 /* Generic arrival popup for services shown via the MapVX Web Component. One
    card, positioned over the map — describes the service (name + where + what's
    inside) so bathrooms don't need a route per derivation. */
@@ -1049,15 +1041,7 @@ route-view-totems,
   font-weight: 700;
 }
 
-.map-loading-spinner {
-  box-sizing: border-box;
-  width: var(--cb-spinner-size-l);
-  height: var(--cb-spinner-size-l);
-  border-radius: 50%;
-  border: var(--cb-spinner-stroke) solid var(--cb-spinner-track);
-  border-top-color: var(--cb-spinner-indicator);
-  animation: spin 0.9s linear infinite;
-}
+/* El spinner es .cb-spinner de cencobricks-tokens.css — no se duplica aca. */
 
 .map-zoom-meter {
   position: absolute;
@@ -1081,10 +1065,6 @@ route-view-totems,
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 .hidden { display: none !important; }
@@ -2041,7 +2021,6 @@ article.service-card .btn-service-map {
     </div>
   </div>
   <div class="map-view-body">
-    <div id="map-status" class="map-status hidden"></div>
     <div id="store-detail-panel" class="store-detail-panel hidden"></div>
     <div class="map-embed-wrap">
       <div id="map-current-floor" class="map-current-floor hidden"></div>
@@ -2060,7 +2039,7 @@ article.service-card .btn-service-map {
       <div id="map-placeholder" class="map-placeholder hidden"></div>
       <div id="map-loading-circle" class="map-loading-circle hidden" aria-hidden="true">
         <div class="map-loading-circle-inner">
-          <div class="map-loading-spinner"></div>
+          <div class="cb-spinner"></div>
           <div id="map-loading-circle-text">Cargando mapa…</div>
         </div>
       </div>
@@ -6308,17 +6287,13 @@ function renderMarketResults(payload) {
   }
 }
 
+// The status strip above the map is gone by design: it duplicated whatever the
+// spinner already said, and appearing/vanishing pushed the service card down.
+// Call sites are kept and what they report goes to the log (which reaches
+// logcat) rather than being dropped silently.
 function setMapStatus(text, isError) {
-  const status = document.getElementById("map-status");
-  if (!status) return;
-  if (!text) {
-    status.classList.add("hidden");
-    status.textContent = "";
-    return;
-  }
-  status.textContent = text;
-  status.classList.remove("hidden");
-  status.style.color = isError ? "#B42318" : "var(--cm-muted)";
+  if (!text) return;
+  logMap(isError ? "warn" : "info", "map status: " + text);
 }
 
 function logMap(level, message, data) {
@@ -6479,21 +6454,14 @@ function setMapLoadingState(loading) {
   const spinner = document.getElementById("map-loading-circle");
   if (!wrap || !container || !placeholder || !spinner) return;
 
-  // The MapVX Web Component paints its own "Cargando…" spinner inside its
-  // shadow DOM. Ours then sat right behind it, half transparent — two
-  // spinners for one load (reported from a totem). Show ours only when the
-  // WC stage is not the thing on screen. "preload-mount" is the parked,
-  // invisible warm-up state, which does not count as on screen.
-  const wcStage = document.getElementById("mapvx-wc-stage");
-  const wcOnScreen = !!wcStage
-    && !wcStage.classList.contains("hidden")
-    && !wcStage.classList.contains("preload-mount");
-
+  // One spinner, always ours: MapVxWcRuntime hides the Web Component's own
+  // loading overlay so the Cenco Bricks spinner is what a visitor sees on
+  // every engine.
   wrap.classList.toggle("is-loading", !!loading);
   wrap.classList.toggle("is-ready", !loading);
   if (loading) {
     placeholder.classList.add("hidden");
-    spinner.classList.toggle("hidden", wcOnScreen);
+    spinner.classList.remove("hidden");
     container.style.opacity = "0";
   } else {
     container.style.opacity = "1";
