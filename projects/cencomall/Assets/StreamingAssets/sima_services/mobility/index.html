@@ -2088,6 +2088,7 @@ const MOBILITY_I18N = {
     mapServiceLocation: "Ubicación del servicio",
     mapComingSoon: "Mapa próximamente",
     mapLoading: "Cargando mapa…",
+    tracingRoute: "Trazando la ruta…",
     mapError: "No se pudo cargar el mapa",
     speakWithCami: "Hablar con {name}",
     speakMicShort: "Mic",
@@ -2187,6 +2188,7 @@ const MOBILITY_I18N = {
     mapServiceLocation: "Service location",
     mapComingSoon: "Map coming soon",
     mapLoading: "Loading map…",
+    tracingRoute: "Tracing the route…",
     mapError: "Could not load map",
     speakWithCami: "Talk with {name}",
     speakMicShort: "Mic",
@@ -2286,6 +2288,7 @@ const MOBILITY_I18N = {
     mapServiceLocation: "Localização do serviço",
     mapComingSoon: "Mapa em breve",
     mapLoading: "Carregando mapa…",
+    tracingRoute: "Traçando a rota…",
     mapError: "Não foi possível carregar o mapa",
     speakWithCami: "Falar com {name}",
     speakMicShort: "Mic",
@@ -6481,6 +6484,26 @@ async function warmupMapVxWcInBackground() {
   return mapVxWcWarmupPromise;
 }
 
+/**
+ * Text under the spinner. Defaults back to "Cargando mapa…" when cleared, so a
+ * route-specific message never leaks into the next plain map load.
+ */
+function setMapLoadingText(text) {
+  const el = document.getElementById("map-loading-circle-text");
+  if (el) el.textContent = text || t("mapLoading") || "Cargando mapa…";
+}
+
+/**
+ * Cover the map with the Cenco Bricks spinner while a route is computed. Since
+ * MapVxWcRuntime hides the components' own loading overlay, without this the
+ * visitor watches an empty grey panel for the whole cold boot of
+ * route-view-totems — which on a totem is many seconds.
+ */
+function setRouteTracingState(tracing) {
+  setMapLoadingText(tracing ? t("tracingRoute") : "");
+  setMapLoadingState(!!tracing);
+}
+
 function setMapLoadingState(loading) {
   const wrap = document.querySelector(".map-embed-wrap");
   const container = document.getElementById("mapvx-container");
@@ -6694,15 +6717,18 @@ async function showMobilityHybridRoute() {
     if (dest && cfg.totemPlaceId) {
       try {
         hideServiceArrivalCard();
+        setRouteTracingState(true);
         // Generous budget on purpose: route-view-totems cold-boots its own map
         // on totem hardware. A tight timeout here doesn't fail fast, it demotes
         // every route to the legacy renderer (the totem symptom after the
         // mapEngine="auto" rollout).
         await MapVxWcRuntime.showRoute(dest, { originId: cfg.totemPlaceId, timeoutMs: 60000 });
+        setRouteTracingState(false);
         mobilityMapRouteActive = true;
         mobilityActiveMapEngine = "wc";
         return;
       } catch (wcRouteErr) {
+        setRouteTracingState(false);
         logMap("warn", "wc route button failed — legacy hybrid fallback",
           { message: String(wcRouteErr && (wcRouteErr.message || wcRouteErr)) });
       }
@@ -6743,6 +6769,7 @@ function teardownWcServiceState() {
 async function fallBackToLegacyRoute() {
   const opts = window.__mobilityLastMapOpts || {};
   const placeId = window.__mobilityLastWcPlaceId || opts.local || "";
+  setRouteTracingState(false);
   teardownWcServiceState();
   try {
     await openPoiMapViaMapVx(Object.assign({}, opts, {
@@ -7307,12 +7334,15 @@ async function openServiceMapViaWc(opts) {
       let routed = false;
       if (cfg.totemPlaceId) {
         try {
+          setRouteTracingState(true);
           await MapVxWcRuntime.showRoute(placeId, { originId: cfg.totemPlaceId, timeoutMs: 60000 });
+          setRouteTracingState(false);
           routed = true;
           mobilityMapRouteActive = true;
           updateMapRouteButton({ routeActive: true });
           // Arrival popup fires from the runtime's onArrival (routeAnimationFinish).
         } catch (routeErr) {
+          setRouteTracingState(false);
           logMap("warn", "wc service route failed — legacy route fallback",
             { message: String(routeErr && (routeErr.message || routeErr)) });
         }
