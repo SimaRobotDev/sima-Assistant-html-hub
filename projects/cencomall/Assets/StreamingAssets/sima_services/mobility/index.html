@@ -48,8 +48,17 @@
       || params.get("service")
       || ""
     ).trim();
-    if (bootQuery || bootService) {
+    var bootMode = String(params.get("mode") || "").trim();
+    // openPromotions() in the native app does NOT load promociones/index.html —
+    // MallWebService has no such route. It loads THIS page with
+    // mode=promotion_search and injects the promo payload. Without this the
+    // mobility home paints first and the visitor watches it flash before the
+    // promotions land on top of it.
+    if (bootQuery || bootService || bootMode === "promotion_search") {
       document.documentElement.classList.add("search-boot-loading");
+    }
+    if (bootMode === "promotion_search") {
+      document.documentElement.classList.add("promo-only-session");
     }
   } catch (e) { /* noop */ }
 })();
@@ -604,6 +613,7 @@ html.auto-map-launch #map-loading-circle.hidden {
 
 /* Voice/RN launch: never flash the empty store searcher while catalog resolves. */
 html.search-boot-loading .cm-search-landing,
+html.search-boot-loading #welcome-hint,
 html.search-boot-loading .cm-speak-fab {
   display: none !important;
 }
@@ -2452,6 +2462,18 @@ function getMobilityMode() {
   return params.get("mode") || "";
 }
 
+/**
+ * True when this mobility instance was opened purely to BE the promotions
+ * screen (native openPromotions -> openService('mobility', {mode:
+ * 'promotion_search'})). There is no mobility home behind it to go back to.
+ */
+function isPromoOnlySession() {
+  try {
+    if (document.documentElement.classList.contains("promo-only-session")) return true;
+  } catch (e) { /* noop */ }
+  return getMobilityMode() === "promotion_search";
+}
+
 function isLocalHtmlMode() {
   // file:// (totem / offline) OR browser preview on localhost.
   // Without this, http://127.0.0.1 hides the search landing unless ?mode=store_search.
@@ -3618,6 +3640,19 @@ function handleMobilityBack() {
       }
     }
   } catch (e) { /* noop */ }
+
+  // Opened as the promotions screen: the visitor asked for promotions, not for
+  // mobility, so there is nothing behind this to go "back" to. Falling through
+  // would drop them on the mobility landing — the long-standing "closing
+  // promociones leaves me in mobility" bug.
+  if (isPromoOnlySession()) {
+    if (backToServiciosIfNeeded()) {
+      window.location.href = "../servicios/index.html";
+      return;
+    }
+    closeWebview();
+    return;
+  }
 
   // If stack is at root or above failed, close the webview when on landing.
   if (isShowingStoreSearchLanding()) {
@@ -5906,6 +5941,7 @@ function renderPromotionResults(payload) {
   const categories = payload.categories || [];
   const appUrl = payload.appUrl || "https://www.cencomalls.cl/";
   hideWelcome();
+  clearSearchBootLoading();
 
   SimaBridge.log("promotion_search results=" + results.length + " query=" + query);
 
