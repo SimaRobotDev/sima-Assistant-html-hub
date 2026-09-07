@@ -3384,7 +3384,6 @@ function prepareAutoMapLaunchShell() {
   if (speak) speak.style.display = "none";
   if (mapView) mapView.classList.remove("hidden");
   setMapLoadingState(true);
-  setMapStatus(t("mapLoading") || "Cargando mapa…");
   updateHeaderBackVisibility();
 }
 
@@ -6480,11 +6479,21 @@ function setMapLoadingState(loading) {
   const spinner = document.getElementById("map-loading-circle");
   if (!wrap || !container || !placeholder || !spinner) return;
 
+  // The MapVX Web Component paints its own "Cargando…" spinner inside its
+  // shadow DOM. Ours then sat right behind it, half transparent — two
+  // spinners for one load (reported from a totem). Show ours only when the
+  // WC stage is not the thing on screen. "preload-mount" is the parked,
+  // invisible warm-up state, which does not count as on screen.
+  const wcStage = document.getElementById("mapvx-wc-stage");
+  const wcOnScreen = !!wcStage
+    && !wcStage.classList.contains("hidden")
+    && !wcStage.classList.contains("preload-mount");
+
   wrap.classList.toggle("is-loading", !!loading);
   wrap.classList.toggle("is-ready", !loading);
   if (loading) {
     placeholder.classList.add("hidden");
-    spinner.classList.remove("hidden");
+    spinner.classList.toggle("hidden", wcOnScreen);
     container.style.opacity = "0";
   } else {
     container.style.opacity = "1";
@@ -6672,7 +6681,6 @@ async function showMobilityHybridRoute() {
     || "";
   if (!placeId && !opts.name) throw new Error("missing destination");
   logMap("info", "hybrid route show", { placeId: placeId, fromEngine: mobilityActiveMapEngine });
-  setMapStatus(t("mapLoading") || "Cargando ruta…");
 
   // WC service currently on screen → route natively through the Web Component
   // (route-view-totems). On any problem — no origin, showRoute throws — drop
@@ -6735,7 +6743,6 @@ async function fallBackToLegacyRoute() {
   const placeId = window.__mobilityLastWcPlaceId || opts.local || "";
   teardownWcServiceState();
   try {
-    setMapStatus(t("mapLoading") || "Cargando ruta…");
     await openPoiMapViaMapVx(Object.assign({}, opts, {
       mode: "navigation",
       local: placeId || opts.local,
@@ -6854,7 +6861,6 @@ async function openPoiMapViaMapVx(opts) {
     container.innerHTML = "";
   }
   resetMapControls();
-  setMapStatus(t("mapLoading") || "Cargando mapa…");
 
   try {
     const isService = poiType === "service";
@@ -7071,7 +7077,6 @@ async function openPoiMapViaMapVxWc(opts) {
     wcStage.classList.remove("preload-mount");
   }
   setMapLoadingState(true);
-  setMapStatus(t("mapLoading") || "Cargando mapa…");
   resetMapControls();
 
   try {
@@ -7270,7 +7275,6 @@ async function openServiceMapViaWc(opts) {
   if (container) container.classList.add("hidden");
   if (wcStage) { wcStage.classList.remove("hidden"); wcStage.classList.remove("preload-mount"); }
   setMapLoadingState(true);
-  setMapStatus(t("mapLoading") || "Cargando mapa…");
   resetMapControls();
 
   try {
@@ -7301,7 +7305,6 @@ async function openServiceMapViaWc(opts) {
       let routed = false;
       if (cfg.totemPlaceId) {
         try {
-          setMapStatus(t("mapLoading") || "Cargando ruta…");
           await MapVxWcRuntime.showRoute(placeId, { originId: cfg.totemPlaceId, timeoutMs: 60000 });
           routed = true;
           mobilityMapRouteActive = true;
