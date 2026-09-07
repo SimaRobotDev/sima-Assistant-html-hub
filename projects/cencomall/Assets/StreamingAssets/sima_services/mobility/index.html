@@ -583,8 +583,12 @@ body.cencomall-theme {
 
 .map-view.hidden { display: none; }
 
+/* shared/app.css declares .hidden { display: none !important }, so this rule
+   needs !important of its own or it never wins — which is why both warmups
+   (legacy and Web Component) had been running inside a display:none box, with
+   no viewport, unable to fetch a single tile. */
 .map-view.hidden.preload-mount {
-  display: flex;
+  display: flex !important;
   opacity: 0;
   pointer-events: none;
   z-index: -1;
@@ -6396,7 +6400,7 @@ async function preloadMapVxBaseMap() {
   const container = document.getElementById("mapvx-container");
   if (!mapView || !container || !mapView.classList.contains("hidden")) return null;
 
-  mapView.classList.add("preload-mount");
+  const releaseLayout = holdMapViewLayout();
   container.classList.remove("hidden");
 
   mapVxPreloadPromise = MapVxBridge.ensureMap(container, cfg)
@@ -6411,8 +6415,8 @@ async function preloadMapVxBaseMap() {
       return false;
     })
     .finally(() => {
+      releaseLayout();
       if (mapView.classList.contains("hidden")) {
-        mapView.classList.remove("preload-mount");
         container.classList.add("hidden");
       }
     });
@@ -6421,6 +6425,34 @@ async function preloadMapVxBaseMap() {
 }
 
 let mapVxWcWarmupPromise = null;
+
+/**
+  * Keep #map-view laid out (full size, invisible) while something warms a map
+  * inside it. Without this the WC warmup ran under display:none, where
+  * maplibre has no viewport: it cannot fetch tiles, so the warmup bought
+  * nothing, and the canvas kept its zero size until it was shown — which is
+  * what painted the map into a small rectangle for a few seconds.
+  *
+  * Refcounted because the legacy preload and the WC warmup can overlap and
+  * would otherwise release each other's hold.
+  */
+function holdMapViewLayout() {
+  const mapView = document.getElementById("map-view");
+  if (!mapView) return function () {};
+  const held = Number(mapView.dataset.preloadHolders || 0) + 1;
+  mapView.dataset.preloadHolders = String(held);
+  if (mapView.classList.contains("hidden")) mapView.classList.add("preload-mount");
+  let released = false;
+  return function release() {
+    if (released) return;
+    released = true;
+    const left = Math.max(0, Number(mapView.dataset.preloadHolders || 1) - 1);
+    mapView.dataset.preloadHolders = String(left);
+    if (!left && mapView.classList.contains("hidden")) {
+      mapView.classList.remove("preload-mount");
+    }
+  };
+}
 
 async function warmupMapVxWcInBackground() {
   if (mapVxWcWarmupPromise) return mapVxWcWarmupPromise;
@@ -6433,6 +6465,7 @@ async function warmupMapVxWcInBackground() {
   if (!cfg.apiKey) return null;
 
   initMobilityWcRuntime();
+  const releaseLayout = holdMapViewLayout();
   mapVxWcWarmupPromise = MapVxWcRuntime.warmup({ timeoutMs: 12000 })
     .then(function (warm) {
       SimaBridge.log("mobility wc warmup " + JSON.stringify(warm || {}));
@@ -6443,7 +6476,8 @@ async function warmupMapVxWcInBackground() {
       SimaBridge.log("mobility wc warmup failed");
       mapVxWcWarmupPromise = null;
       return false;
-    });
+    })
+    .finally(releaseLayout);
   return mapVxWcWarmupPromise;
 }
 

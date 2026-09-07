@@ -59,6 +59,7 @@
     routeStallId: null,
     routeBundlePromise: null,
     warmupPromise: null,
+    resizeObserver: null,
     diag: [],
     lastPlaceId: "",
     routeActive: false,
@@ -630,17 +631,43 @@
   }
 
   function resizeLiveMap() {
+    var hosts = [state.placeEl];
     try {
-      var host = state.placeEl;
-      if (!host) return;
-      var libreMap = getLiveMap(host);
-      if (libreMap && typeof libreMap.resize === "function") {
-        libreMap.resize();
-      }
-      // Some MapVX builds expose resize on the custom-map host.
-      var customMap = host.shadowRoot && host.shadowRoot.querySelector("custom-map");
-      if (customMap && typeof customMap.resize === "function") customMap.resize();
+      if (state.routeMount) hosts.push(state.routeMount.querySelector("route-view-totems"));
     } catch (e) { /* noop */ }
+    hosts.forEach(function (host) {
+      if (!host) return;
+      try {
+        var libreMap = getLiveMap(host);
+        if (libreMap && typeof libreMap.resize === "function") libreMap.resize();
+        // Some MapVX builds expose resize on the custom-map host.
+        var customMap = host.shadowRoot && host.shadowRoot.querySelector("custom-map");
+        if (customMap && typeof customMap.resize === "function") customMap.resize();
+      } catch (e) { /* noop */ }
+    });
+  }
+
+  // A maplibre canvas keeps whatever size it was built at. Ours is built while
+  // the shell is parked and then shown inside a box of a different size, so
+  // without this it paints into a small rectangle until something happens to
+  // resize it. Watching the mounts covers every ordering — parked -> shown,
+  // the service card appearing above the map, an orientation change.
+  function observeMountResize() {
+    if (state.resizeObserver || typeof ResizeObserver === "undefined") return;
+    var pending = 0;
+    try {
+      state.resizeObserver = new ResizeObserver(function () {
+        if (pending) return;
+        pending = requestAnimationFrame(function () {
+          pending = 0;
+          resizeLiveMap();
+        });
+      });
+      if (state.placeMount) state.resizeObserver.observe(state.placeMount);
+      if (state.routeMount) state.resizeObserver.observe(state.routeMount);
+    } catch (e) {
+      state.resizeObserver = null;
+    }
   }
 
   function notifyShown() {
@@ -794,6 +821,7 @@
     state.callbacks.onRouteClosed = options.onRouteClosed || null;
     state.callbacks.onArrival = options.onArrival || null;
     state.callbacks.onRouteStalled = options.onRouteStalled || null;
+    observeMountResize();
     state.callbacks.log = options.log || null;
 
     if (!state.placeMount) {
@@ -880,6 +908,10 @@
         succeed(payload || { placeId: id, engine: "wc", route: false });
       };
       var onReadyListener = function () {
+        // Cold path. The quiet-update branch above already calls notifyShown();
+        // this one never did, so a map created while parked stayed at the
+        // parked size after being revealed.
+        notifyShown();
         onReadyOnce({ placeId: id, engine: "wc", route: false });
       };
       mapEl.addEventListener("mapReady", onReadyListener);
