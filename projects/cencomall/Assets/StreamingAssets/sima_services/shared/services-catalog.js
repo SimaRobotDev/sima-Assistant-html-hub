@@ -220,19 +220,39 @@ window.ServicesCatalog = (function () {
     return null;
   }
 
-  function wantsMudador(query) {
+  var NURSING_INTENT_RE =
+    /\b(lactancia|lactario|amamant\w*|nursing(\s+room)?|breast\s*feed\w*|lactation|dar\s+(de\s+)?(pecho|mamar|teta|mama)|pecho\s+materno|leche\s+materna)\b/;
+  var CHANGING_INTENT_RE =
+    /\b(mudador|mudadores|cambiador|cambiadores|changing(\s+table)?|change\s*table|panal|panales|panial|paniales|nappy|diaper|bebe|bebes)\b/;
+
+  function wantsNursing(query) {
+    return NURSING_INTENT_RE.test(canonicalizeServiceQuery(query));
+  }
+
+  function wantsChangingTable(query) {
     var n = canonicalizeServiceQuery(query);
-    return /\b(mudador|mudadores|cambiador|cambiadores|changing|change\s*table|panal|panales|bebe|bebes|lactancia|nappy|diaper)\b/.test(
-      n
-    );
+    return CHANGING_INTENT_RE.test(n) && !NURSING_INTENT_RE.test(n);
+  }
+
+  // Back-compat alias: the mudadorOnly search option was built on this name.
+  // "mudador" now means the changing_table service type, not a bathroom flag.
+  function wantsMudador(query) {
+    return wantsChangingTable(query);
   }
 
   function looksLikeBathroomQuery(query) {
     var n = canonicalizeServiceQuery(query);
     if (!n) return false;
-    if (wantsMudador(n)) return true;
     if (BATHROOM_INTENT_RE.test(n)) return true;
     return tokensMatchAnyLemma(n.split(" "), BATHROOM_FUZZY_LEMMAS);
+  }
+
+  function looksLikeNursingQuery(query) {
+    return wantsNursing(query);
+  }
+
+  function looksLikeChangingTableQuery(query) {
+    return wantsChangingTable(query);
   }
 
   function looksLikeElevatorQuery(query) {
@@ -266,7 +286,9 @@ window.ServicesCatalog = (function () {
       looksLikeBathroomQuery(query) ||
       looksLikeElevatorQuery(query) ||
       looksLikeCustomerServiceQuery(query) ||
-      looksLikeCoworkQuery(query)
+      looksLikeCoworkQuery(query) ||
+      wantsNursing(query) ||
+      wantsChangingTable(query)
     );
   }
 
@@ -416,10 +438,7 @@ window.ServicesCatalog = (function () {
     if (!entry) return -1;
     var type = entryType(entry);
     if (typeFilter && type !== typeFilter) return -1;
-    if (mudadorOnly) {
-      if (type !== "bathroom") return -1;
-      if (!(entry.features && entry.features.mudador)) return -1;
-    }
+    if (mudadorOnly && type !== "changing_table") return -1;
     if (floorFilter && entry.floors && entry.floors.length) {
       var floorOk = entry.floors.some(function (f) {
         return floorsMatch(f, floorFilter);
@@ -513,6 +532,8 @@ window.ServicesCatalog = (function () {
     if (type === "elevator" && looksLikeElevatorQuery(queryNorm)) score += 1;
     if (type === "customer_service" && looksLikeCustomerServiceQuery(queryNorm)) score += 8;
     if (type === "cowork" && looksLikeCoworkQuery(queryNorm)) score += 8;
+    if (type === "nursing" && wantsNursing(queryNorm)) score += 8;
+    if (type === "changing_table" && wantsChangingTable(queryNorm)) score += 8;
 
     if (preferFloor && entryOnFloor(entry, preferFloor)) {
       score += floorFilter ? 2 : 8;
@@ -529,7 +550,11 @@ window.ServicesCatalog = (function () {
   }
 
   function inferTypeFilter(queryNorm, mudadorOnly) {
-    if (mudadorOnly) return "bathroom";
+    var nursing = wantsNursing(queryNorm);
+    var changing = wantsChangingTable(queryNorm);
+    if (nursing && !changing) return "nursing";
+    if (changing && !nursing) return "changing_table";
+    if (mudadorOnly) return "changing_table";
     var cowork = looksLikeCoworkQuery(queryNorm);
     var cust = looksLikeCustomerServiceQuery(queryNorm);
     var bath = looksLikeBathroomQuery(queryNorm);
@@ -602,6 +627,8 @@ window.ServicesCatalog = (function () {
     looksLikeElevatorQuery: looksLikeElevatorQuery,
     looksLikeCustomerServiceQuery: looksLikeCustomerServiceQuery,
     looksLikeCoworkQuery: looksLikeCoworkQuery,
+    looksLikeNursingQuery: looksLikeNursingQuery,
+    looksLikeChangingTableQuery: looksLikeChangingTableQuery,
     looksLikeServicesQuery: looksLikeServicesQuery,
     toResultCard: toResultCard,
     search: function (query, options) {
@@ -642,13 +669,15 @@ window.ServicesCatalog = (function () {
           looksLikeBathroomQuery(q) ||
           looksLikeElevatorQuery(q) ||
           looksLikeCustomerServiceQuery(q) ||
-          looksLikeCoworkQuery(q)
+          looksLikeCoworkQuery(q) ||
+          wantsNursing(q) ||
+          wantsChangingTable(q)
         )
       ) {
         return catalog.services
           .filter(function (entry) {
             if (typeFilter && entryType(entry) !== typeFilter) return false;
-            if (mudadorOnly && !(entry.features && entry.features.mudador)) return false;
+            if (mudadorOnly && entryType(entry) !== "changing_table") return false;
             if (preferFloor && entryType(entry) === "elevator" && entry.floors && entry.floors.length) {
               if (!entryOnFloor(entry, preferFloor)) return false;
             }
