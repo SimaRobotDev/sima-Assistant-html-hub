@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-22",
+  "version": "2026.09.02-23",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-09-10T14:28:15.592Z",
+  "generatedAt": "2026-09-10T14:35:26.371Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -310,8 +310,8 @@
     },
     {
       "path": "shared/category-icons/changing-table.svg",
-      "size": 427,
-      "sha256": "cdb684f045ca6766952033bae62e99bab15264bfcfbc00eb57d6ddf2d4e563fb"
+      "size": 1410,
+      "sha256": "5d204f04d03dc2069d09444cd02468e4b36354278178a47bed839a39a6881405"
     },
     {
       "path": "shared/category-icons/chocolateria-confites.svg",
