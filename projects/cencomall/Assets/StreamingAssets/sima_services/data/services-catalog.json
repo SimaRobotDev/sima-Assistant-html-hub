@@ -441,6 +441,270 @@
       }
     },
     {
+      "id": "sala-lactancia-n2",
+      "type": "nursing",
+      "sector": "ripley",
+      "name": "Sala de lactancia (Nivel 2)",
+      "floors": [
+        "2"
+      ],
+      "features": {
+        "accesible": true
+      },
+      "anchorStores": [
+        {
+          "brand": "Ripley",
+          "local": "CC_N2_1300",
+          "role": "primary",
+          "floors": [
+            "2"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Nivel 2, en el pasillo lateral del sector Ripley.",
+        "medium": "Sala de lactancia del Nivel 2, en el pasillo lateral que separa Ripley de Natura, junto a los baños del sector.",
+        "long": "Sala de lactancia del Nivel 2. Está en el pasillo lateral entre Ripley y Natura, en el mismo tramo que los baños del sector Ripley."
+      },
+      "keywords": [
+        "sala de lactancia",
+        "lactancia",
+        "lactario",
+        "amamantar",
+        "dar de mamar",
+        "dar pecho",
+        "nursing",
+        "nursing room",
+        "breastfeeding",
+        "nivel 2",
+        "piso 2",
+        "ripley"
+      ],
+      "mapvx": {
+        "placeId": "-NDeXfqsAvnjX7VToDag",
+        "placeIdSource": "mapvx-directory",
+        "validatedAt": "2026-09-10"
+      }
+    },
+    {
+      "id": "mudador-pb-afex",
+      "type": "changing_table",
+      "sector": "afex",
+      "name": "Mudadores — Planta Baja",
+      "floors": [
+        "PB"
+      ],
+      "features": {
+        "accesible": true
+      },
+      "anchorStores": [
+        {
+          "brand": "AFEX",
+          "local": "CC_PB_150",
+          "role": "primary",
+          "floors": [
+            "PB"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Planta Baja, en el pasillo interior detrás de Afex.",
+        "medium": "Planta Baja, en el pasillo interior detrás de Afex, junto a los baños del sector.",
+        "long": "Planta Baja, en el pasillo interior detrás de Afex, junto a los baños del sector."
+      },
+      "keywords": [
+        "mudador",
+        "mudadores",
+        "cambiador",
+        "cambiadores",
+        "cambiar al bebe",
+        "changing table",
+        "panal",
+        "panales",
+        "bebe",
+        "planta baja",
+        "afex"
+      ],
+      "mapvx": {
+        "placeId": "-N1jltFjKg6-2V7-RWxv",
+        "placeIdSource": "mapvx-directory",
+        "validatedAt": "2026-09-10"
+      }
+    },
+    {
+      "id": "mudador-pb-2",
+      "type": "changing_table",
+      "sector": "central",
+      "name": "Mudadores — Planta Baja",
+      "floors": [
+        "PB"
+      ],
+      "features": {
+        "accesible": true
+      },
+      "anchorStores": [],
+      "descriptions": {
+        "short": "Planta Baja.",
+        "medium": "Planta Baja.",
+        "long": "Planta Baja."
+      },
+      "keywords": [
+        "mudador",
+        "mudadores",
+        "cambiador",
+        "cambiadores",
+        "cambiar al bebe",
+        "changing table",
+        "panal",
+        "panales",
+        "bebe",
+        "planta baja"
+      ],
+      "mapvx": {
+        "placeId": "-NGTN_kdH0MTrCtpaDGB",
+        "placeIdSource": "mapvx-directory",
+        "validatedAt": "2026-09-10"
+      }
+    },
+    {
+      "id": "mudador-n2-ripley",
+      "type": "changing_table",
+      "sector": "ripley",
+      "name": "Mudadores — Nivel 2",
+      "floors": [
+        "2"
+      ],
+      "features": {
+        "accesible": true
+      },
+      "anchorStores": [
+        {
+          "brand": "Ripley",
+          "local": "CC_N2_1300",
+          "role": "primary",
+          "floors": [
+            "2"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Nivel 2, al fondo del pasillo lateral entre Ripley y Natura.",
+        "medium": "Nivel 2, al fondo del pasillo lateral que separa Ripley de Natura, junto a los baños del sector.",
+        "long": "Nivel 2, al fondo del pasillo lateral que separa Ripley de Natura, junto a los baños del sector."
+      },
+      "keywords": [
+        "mudador",
+        "mudadores",
+        "cambiador",
+        "cambiadores",
+        "cambiar al bebe",
+        "changing table",
+        "panal",
+        "panales",
+        "bebe",
+        "nivel 2",
+        "piso 2",
+        "ripley"
+      ],
+      "mapvx": {
+        "placeId": "-NDeEvwA9XSQQTMmX-AR",
+        "placeIdSource": "mapvx-directory",
+        "validatedAt": "2026-09-10"
+      }
+    },
+    {
+      "id": "mudador-n3",
+      "type": "changing_table",
+      "sector": "ripley",
+      "name": "Mudadores — Nivel 3",
+      "floors": [
+        "3"
+      ],
+      "features": {
+        "accesible": true
+      },
+      "anchorStores": [
+        {
+          "brand": "Ripley",
+          "local": "CC_N3_1300",
+          "role": "primary",
+          "floors": [
+            "3"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Nivel 3, en el sector Ripley.",
+        "medium": "Nivel 3, en el sector Ripley.",
+        "long": "Nivel 3, en el sector Ripley."
+      },
+      "keywords": [
+        "mudador",
+        "mudadores",
+        "cambiador",
+        "cambiadores",
+        "cambiar al bebe",
+        "changing table",
+        "panal",
+        "panales",
+        "bebe",
+        "nivel 3",
+        "piso 3",
+        "ripley"
+      ],
+      "mapvx": {
+        "placeId": "-NDe_Xg61b8E4IombD1q",
+        "placeIdSource": "mapvx-directory",
+        "validatedAt": "2026-09-10"
+      }
+    },
+    {
+      "id": "mudador-n4",
+      "type": "changing_table",
+      "sector": "ripley",
+      "name": "Mudadores — Nivel 4",
+      "floors": [
+        "4"
+      ],
+      "features": {
+        "accesible": true
+      },
+      "anchorStores": [
+        {
+          "brand": "Ripley",
+          "local": "CC_N4_1300",
+          "role": "primary",
+          "floors": [
+            "4"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Nivel 4, en el sector Ripley.",
+        "medium": "Nivel 4, en el sector Ripley.",
+        "long": "Nivel 4, en el sector Ripley."
+      },
+      "keywords": [
+        "mudador",
+        "mudadores",
+        "cambiador",
+        "cambiadores",
+        "cambiar al bebe",
+        "changing table",
+        "panal",
+        "panales",
+        "bebe",
+        "nivel 4",
+        "piso 4",
+        "ripley"
+      ],
+      "mapvx": {
+        "placeId": "-ND_0Yi_bYgm2EM7jctQ",
+        "placeIdSource": "mapvx-directory",
+        "validatedAt": "2026-09-10"
+      }
+    },
+    {
       "id": "ascensor-ripley",
       "type": "elevator",
       "sector": "ripley",
