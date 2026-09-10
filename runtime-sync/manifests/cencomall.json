@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-21",
+  "version": "2026.09.02-22",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-09-10T14:17:16.576Z",
+  "generatedAt": "2026-09-10T14:28:15.592Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -115,13 +115,13 @@
     },
     {
       "path": "data/services-catalog.json",
-      "size": 32402,
-      "sha256": "5b23e6b8f84ba190a78ad20d345930c169170fede4b0b0cbf4c16df311d338bc"
+      "size": 32525,
+      "sha256": "0005da519221ce96e93171c8aca140882db89622830484974f51889673ddf06b"
     },
     {
       "path": "data/services-catalog.jsonp.js",
-      "size": 32596,
-      "sha256": "ba8a5e24ef4a4770ae865c959653152d44da2c435fbaf77880300cf5c0fae396"
+      "size": 32719,
+      "sha256": "cfd58bad442a4de4c8c079445f8790331d87931cb01e52b1ac0ee2970e19251a"
     },
     {
       "path": "docs/MARKET-CATALOG-SLIM.md",
@@ -310,8 +310,8 @@
     },
     {
       "path": "shared/category-icons/changing-table.svg",
-      "size": 1138,
-      "sha256": "bdc9e2a3e9c647e1855eb00da46fd6e8c93d97f9599bd41bdad2a613e2c355b7"
+      "size": 427,
+      "sha256": "cdb684f045ca6766952033bae62e99bab15264bfcfbc00eb57d6ddf2d4e563fb"
     },
     {
       "path": "shared/category-icons/chocolateria-confites.svg",
