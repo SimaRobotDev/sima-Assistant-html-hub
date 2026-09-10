@@ -444,7 +444,7 @@ window.__SERVICES_CATALOG__ = {
     {
       "id": "sala-lactancia-n2",
       "type": "nursing",
-      "sector": "ripley",
+      "sector": "hm",
       "name": "Sala de lactancia (Nivel 2)",
       "floors": [
         "2"
@@ -454,18 +454,26 @@ window.__SERVICES_CATALOG__ = {
       },
       "anchorStores": [
         {
-          "brand": "Ripley",
-          "local": "CC_N2_1300",
+          "brand": "GAP",
+          "local": "CC_N2_2148",
           "role": "primary",
+          "floors": [
+            "2"
+          ]
+        },
+        {
+          "brand": "H&M",
+          "local": "CC_N2_2136",
+          "role": "secondary",
           "floors": [
             "2"
           ]
         }
       ],
       "descriptions": {
-        "short": "Nivel 2, en el pasillo lateral del sector Ripley.",
-        "medium": "Sala de lactancia del Nivel 2, en el pasillo lateral que separa Ripley de Natura, junto a los baños del sector.",
-        "long": "Sala de lactancia del Nivel 2. Está en el pasillo lateral entre Ripley y Natura, en el mismo tramo que los baños del sector Ripley."
+        "short": "Nivel 2, en el pasillo entre GAP y H&M.",
+        "medium": "Sala de lactancia del Nivel 2, en el pasillo que conecta GAP con H&M.",
+        "long": "Sala de lactancia del Nivel 2. Está en el pasillo que une GAP con H&M."
       },
       "keywords": [
         "sala de lactancia",
@@ -479,7 +487,9 @@ window.__SERVICES_CATALOG__ = {
         "breastfeeding",
         "nivel 2",
         "piso 2",
-        "ripley"
+        "gap",
+        "h&m",
+        "hm"
       ],
       "mapvx": {
         "placeId": "-NDeXfqsAvnjX7VToDag",
@@ -535,7 +545,7 @@ window.__SERVICES_CATALOG__ = {
     {
       "id": "mudador-pb-2",
       "type": "changing_table",
-      "sector": "central",
+      "sector": "ripley",
       "name": "Mudadores — Planta Baja",
       "floors": [
         "PB"
@@ -543,11 +553,20 @@ window.__SERVICES_CATALOG__ = {
       "features": {
         "accesible": true
       },
-      "anchorStores": [],
+      "anchorStores": [
+        {
+          "brand": "Ripley",
+          "local": "CC_N1_1300",
+          "role": "primary",
+          "floors": [
+            "PB"
+          ]
+        }
+      ],
       "descriptions": {
-        "short": "Planta Baja.",
-        "medium": "Planta Baja.",
-        "long": "Planta Baja."
+        "short": "Planta Baja, al lado de Ripley.",
+        "medium": "Planta Baja, al lado de Ripley.",
+        "long": "Planta Baja, al lado de Ripley."
       },
       "keywords": [
         "mudador",
@@ -559,7 +578,8 @@ window.__SERVICES_CATALOG__ = {
         "panal",
         "panales",
         "bebe",
-        "planta baja"
+        "planta baja",
+        "ripley"
       ],
       "mapvx": {
         "placeId": "-NGTN_kdH0MTrCtpaDGB",
@@ -589,9 +609,9 @@ window.__SERVICES_CATALOG__ = {
         }
       ],
       "descriptions": {
-        "short": "Nivel 2, al fondo del pasillo lateral entre Ripley y Natura.",
-        "medium": "Nivel 2, al fondo del pasillo lateral que separa Ripley de Natura, junto a los baños del sector.",
-        "long": "Nivel 2, al fondo del pasillo lateral que separa Ripley de Natura, junto a los baños del sector."
+        "short": "Nivel 2, al lado de Ripley.",
+        "medium": "Nivel 2, al lado de Ripley.",
+        "long": "Nivel 2, al lado de Ripley."
       },
       "keywords": [
         "mudador",
@@ -635,9 +655,9 @@ window.__SERVICES_CATALOG__ = {
         }
       ],
       "descriptions": {
-        "short": "Nivel 3, en el sector Ripley.",
-        "medium": "Nivel 3, en el sector Ripley.",
-        "long": "Nivel 3, en el sector Ripley."
+        "short": "Nivel 3, al lado de Ripley.",
+        "medium": "Nivel 3, al lado de Ripley.",
+        "long": "Nivel 3, al lado de Ripley."
       },
       "keywords": [
         "mudador",
@@ -681,9 +701,9 @@ window.__SERVICES_CATALOG__ = {
         }
       ],
       "descriptions": {
-        "short": "Nivel 4, en el sector Ripley.",
-        "medium": "Nivel 4, en el sector Ripley.",
-        "long": "Nivel 4, en el sector Ripley."
+        "short": "Nivel 4, al lado de Ripley.",
+        "medium": "Nivel 4, al lado de Ripley.",
+        "long": "Nivel 4, al lado de Ripley."
       },
       "keywords": [
         "mudador",
