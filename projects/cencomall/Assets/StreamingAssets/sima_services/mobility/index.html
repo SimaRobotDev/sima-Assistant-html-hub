@@ -1149,6 +1149,7 @@ route-view-totems,
 
 .promo-validity { font-size: var(--cb-text-detail-xs); color: var(--cm-muted); }
 .store-badge-ontour { background: var(--cm-purple); color: #fff; }
+.promo-grid-sentinel { height: 1px; }
 
 .service-list { display: flex; flex-direction: column; gap: 12px !important; padding-bottom: 24px; }
 
@@ -5967,7 +5968,7 @@ function renderPromotionResults(payload) {
 
   const chips = renderCategoryChips(categories, query);
   const cardsHtml = results.length
-    ? results.map((p) => renderPromoCard(normalizePromoResult(p), appUrl)).join("")
+    ? ""
     : `<div class="cm-empty"><div class="cm-empty-title">${escapeHtml(t("noResults"))}</div><div class="cm-empty-copy">${escapeHtml(t("promosNotFound"))} "${escapeHtml(query || "")}". ${escapeHtml(t("tryCategoryOrBrand"))}</div></div>`;
 
   document.getElementById("resultado").innerHTML = `
@@ -5980,9 +5981,66 @@ function renderPromotionResults(payload) {
         <p class="cm-results-query">${query ? `${escapeHtml(t("filter"))}: <strong>${escapeHtml(localizeCategoryName(query))}</strong>` : escapeHtml(t("allDiscountsToday"))}</p>
         ${chips}
       </div>
-      <div class="promo-grid">${cardsHtml}</div>
+      <div class="promo-grid" id="promo-grid">${cardsHtml}</div>
+      <div class="promo-grid-sentinel" id="promo-grid-sentinel" aria-hidden="true"></div>
     </div>`;
   bindPromotionChips();
+  startPromoPaging(results, appUrl);
+}
+
+// Promotions render in pages of PROMO_PAGE_SIZE: the first page right away,
+// the next one each time the visitor scrolls near the end of the grid
+// (OnTour sends ~80 discounts at once; the counter still shows the total).
+const PROMO_PAGE_SIZE = 24;
+const PROMO_PAGE_PRELOAD_PX = 400;
+let promoPagingObserver = null;
+let promoPagingCheck = null;
+
+function stopPromoPaging() {
+  if (promoPagingObserver) promoPagingObserver.disconnect();
+  if (promoPagingCheck) window.removeEventListener("scroll", promoPagingCheck, true);
+  promoPagingObserver = null;
+  promoPagingCheck = null;
+}
+
+function startPromoPaging(results, appUrl) {
+  stopPromoPaging();
+  const grid = document.getElementById("promo-grid");
+  const sentinel = document.getElementById("promo-grid-sentinel");
+  if (!grid || !results.length) return;
+  let shown = 0;
+  const appendPage = () => {
+    const page = results.slice(shown, shown + PROMO_PAGE_SIZE);
+    grid.insertAdjacentHTML(
+      "beforeend",
+      page.map((p) => renderPromoCard(normalizePromoResult(p), appUrl)).join("")
+    );
+    shown += page.length;
+    if (shown >= results.length) stopPromoPaging();
+  };
+  // Append pages while the end of the grid is within PROMO_PAGE_PRELOAD_PX
+  // of the bottom of the screen. Runs from an IntersectionObserver and, as a
+  // fallback, from scroll events (capture: the scroller may be any element).
+  const loadIfNearEnd = () => {
+    if (!sentinel || !sentinel.isConnected) return stopPromoPaging();
+    while (
+      shown < results.length &&
+      sentinel.getBoundingClientRect().top < window.innerHeight + PROMO_PAGE_PRELOAD_PX
+    ) {
+      appendPage();
+    }
+  };
+  appendPage();
+  if (shown >= results.length || !sentinel) return;
+  promoPagingCheck = loadIfNearEnd;
+  window.addEventListener("scroll", promoPagingCheck, { passive: true, capture: true });
+  if (typeof IntersectionObserver !== "undefined") {
+    promoPagingObserver = new IntersectionObserver(
+      (entries) => { if (entries.some((e) => e.isIntersecting)) loadIfNearEnd(); },
+      { rootMargin: `0px 0px ${PROMO_PAGE_PRELOAD_PX}px 0px` }
+    );
+    promoPagingObserver.observe(sentinel);
+  }
 }
 
 function normalizePromoResult(promo) {
