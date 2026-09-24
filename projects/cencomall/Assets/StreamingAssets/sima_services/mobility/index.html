@@ -1148,6 +1148,7 @@ route-view-totems,
 }
 
 .promo-validity { font-size: var(--cb-text-detail-xs); color: var(--cm-muted); }
+.store-badge-ontour { background: var(--cm-purple); color: #fff; }
 
 .service-list { display: flex; flex-direction: column; gap: 12px !important; padding-bottom: 24px; }
 
@@ -5905,7 +5906,10 @@ function bindPromotionChips() {
 }
 
 function filterPromotionsByCategory(category) {
-  SimaBridge.send("promotion_search", { text: category || "" });
+  // Tapping the active chip clears the filter (back to all promotions).
+  const active = lastPromotionPayload && String(lastPromotionPayload.query || "").toLowerCase();
+  const next = active && active === String(category || "").toLowerCase() ? "" : category;
+  SimaBridge.send("promotion_search", { text: next || "" });
 }
 
 function renderPromoCard(promo, appUrl) {
@@ -5918,6 +5922,13 @@ function renderPromoCard(promo, appUrl) {
   const validity = promo.validityEnd
     ? `${escapeHtml(t("validUntil"))} ${escapeHtml(promo.validityEnd)}`
     : "";
+  // OnTour discounts (tourists) come from /discounts via the native host.
+  const onTourBadge = promo.isOnTour
+    ? `<span class="store-badge store-badge-ontour">OnTour</span>`
+    : "";
+  const location = promo.location
+    ? `<span class="store-badge">${escapeHtml(promo.location)}</span>`
+    : "";
 
   return `
     <article class="promo-card fade-in">
@@ -5925,7 +5936,7 @@ function renderPromoCard(promo, appUrl) {
       <div class="promo-card-body">
         <div class="promo-brand">${escapeHtml(promo.brandName || "")}</div>
         <div class="promo-title">${escapeHtml(promo.title || t("promotions"))}</div>
-        <div class="store-meta">${appBadge}</div>
+        <div class="store-meta">${onTourBadge}${appBadge}${location}</div>
         ${validity ? `<div class="promo-validity">${validity}</div>` : ""}
       </div>
     </article>`;
@@ -5985,7 +5996,9 @@ function normalizePromoResult(promo) {
     imageUrl: promo.imageUrl || promo.ImageUrl || promo.image || promo.Image || "",
     validityEnd: promo.validityEnd || promo.ValidityEnd || "",
     requiresApp: promo.requiresApp === true || promo.RequiresApp === true
-      || String(promo.control || promo.Control || "").toLowerCase().includes("app")
+      || String(promo.control || promo.Control || "").toLowerCase().includes("app"),
+    isOnTour: promo.isOnTour === true,
+    location: promo.location || ""
   };
 }
 
