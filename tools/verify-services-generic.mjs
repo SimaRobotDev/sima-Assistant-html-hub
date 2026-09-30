@@ -111,5 +111,71 @@ check(
   SC.search("servicio al cliente")[0]?.type === "customer_service"
 );
 
+// ---- 3. ATMs (type "atm") ----
+const atmEntries = servicesData.services.filter((s) => s.type === "atm");
+check("catalog has 15 ATM entries", atmEntries.length === 15, `got ${atmEntries.length}`);
+check(
+  "every ATM has its own placeId, no placeIdNote (WC-eligible)",
+  atmEntries.every((s) => s.mapvx?.placeId && !s.mapvx.placeIdNote) &&
+    new Set(atmEntries.map((s) => s.mapvx.placeId)).size === atmEntries.length
+);
+check("ATM ids are unique", new Set(atmEntries.map((s) => s.id)).size === atmEntries.length);
+
+const ATM_QUERIES = [
+  "cajero", "cajeros", "cajero automático", "cajeros automaticos", "un cajero", "dónde hay un cajero",
+  "quiero sacar plata", "necesito retirar dinero", "cajro",
+  "atm", "ATM", "atms", "where is the atm", "cash machine", "cash point", "withdraw cash",
+  "caixa eletrônico", "caixa automatico", "onde tem um caixa eletrônico", "preciso sacar dinheiro",
+];
+ATM_QUERIES.forEach((q) => {
+  const r = SC.search(q);
+  check(
+    `atm      "${q}" -> all ATMs only`,
+    SC.looksLikeAtmQuery(q) && SC.looksLikeServicesQuery(q) && r.length === atmEntries.length && r.every((x) => x.type === "atm"),
+    `got ${r.length} [${[...new Set(r.map((x) => x.type))].join(",")}]`
+  );
+});
+const atmN2 = SC.search("cajero nivel 2");
+check(
+  '"cajero nivel 2" -> only the 3 ATMs on floor 2',
+  atmN2.length === 3 && atmN2.every((r) => r.type === "atm" && r.floors.includes("2")),
+  `got ${atmN2.length}`
+);
+const atmPb = SC.search("atm planta baja");
+check(
+  '"atm planta baja" -> only PB ATMs',
+  atmPb.length === 3 && atmPb.every((r) => r.floors.includes("PB")),
+  `got ${atmPb.length}`
+);
+const atmOnN3 = SC.search("cajero", { preferFloor: "3" });
+check(
+  "totem on N3: all 15 ATMs listed, N3 ones first",
+  atmOnN3.length === 15 && atmOnN3[0].floors.includes("3") && atmOnN3[1].floors.includes("3"),
+  atmOnN3.slice(0, 3).map((r) => r.floors.join()).join(" | ")
+);
+check(
+  "ATM card carries placeId for the WC map",
+  atmOnN3.every((r) => r.placeId && !r.placeIdNote)
+);
+["cajera", "cajeras", "caja", "la cajera", "cajón"].forEach((q) =>
+  check(`not atm   "${q}"`, !SC.looksLikeAtmQuery(q))
+);
+// No store / brand name in the market catalog may read as an ATM ask.
+const marketData = JSON.parse(readFileSync(resolve(sima, "data/market-catalog.json"), "utf8"));
+const brandHits = [...new Set(marketData.map((i) => i.brand_name))].filter((b) => b && SC.looksLikeAtmQuery(b));
+check("no store brand name is mistaken for an ATM query", brandHits.length === 0, brandHits.join("|"));
+
+// Generic listing now includes the ATMs too (still EVERY catalog service).
+const allNow = SC.search("servicios del mall");
+check(
+  `"servicios del mall" -> all ${servicesData.services.length} services incl. 15 ATMs`,
+  allNow.length === servicesData.services.length && allNow.filter((r) => r.type === "atm").length === 15,
+  `got ${allNow.length}`
+);
+// Other intents must not pull ATMs in.
+["baños", "ascensor", "servicio al cliente", "cowork", "mudador"].forEach((q) =>
+  check(`"${q}" -> no ATMs`, !SC.search(q).some((r) => r.type === "atm"))
+);
+
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");
 process.exit(failed ? 1 : 0);

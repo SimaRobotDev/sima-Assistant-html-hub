@@ -126,7 +126,8 @@ for (const testCase of cases) {
 
 for (const entry of all) {
   const card = ServicesCatalog.toResultCard(entry);
-  if (!card.id || !card.name || !card.anchorLocal) {
+  // WC-only entries (ATMs) route by MapVX placeId and carry no anchor store.
+  if (!card.id || !card.name || (!card.anchorLocal && !card.placeId)) {
     console.log("FAIL card missing fields:", entry.id, card);
     fails++;
   }
