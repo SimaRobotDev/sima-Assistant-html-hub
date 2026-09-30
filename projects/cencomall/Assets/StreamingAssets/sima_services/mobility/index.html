@@ -2115,6 +2115,7 @@ const MOBILITY_I18N = {
     bathroomsKids: "Niños y mudadores",
     nursingRoom: "Sala de lactancia",
     changingTables: "Mudadores",
+    atm: "Cajero automático",
     elevators: "Ascensores",
     customerService: "Atención al cliente",
     cowork: "Cowork",
@@ -2217,6 +2218,7 @@ const MOBILITY_I18N = {
     bathroomsKids: "Kids & changing",
     nursingRoom: "Nursing room",
     changingTables: "Changing tables",
+    atm: "ATM",
     elevators: "Elevators",
     customerService: "Customer service",
     cowork: "Cowork",
@@ -2319,6 +2321,7 @@ const MOBILITY_I18N = {
     bathroomsKids: "Crianças e fraldário",
     nursingRoom: "Sala de amamentação",
     changingTables: "Fraldários",
+    atm: "Caixa eletrônico",
     elevators: "Elevadores",
     customerService: "Atendimento ao cliente",
     cowork: "Cowork",
@@ -5329,6 +5332,7 @@ function getServiceKind(svc) {
   if (type === "cowork") return "cowork";
   if (type === "nursing") return "nursing";
   if (type === "changing_table" || type === "changing-table") return "changing_table";
+  if (type === "atm") return "atm";
   if (type === "bathroom") {
     const n = String((svc && svc.name) || "").toLowerCase();
     if (n.includes("niños") || n.includes("ninos") || n.includes("mudador")) return "kids";
@@ -5342,6 +5346,7 @@ function getServiceKind(svc) {
   if (n.includes("cowork") || n.includes("co work") || n.includes("co-work")) return "cowork";
   if (n.includes("lactancia") || n.includes("lactario") || n.includes("amamant")) return "nursing";
   if (n.includes("mudador") || n.includes("cambiador")) return "changing_table";
+  if (n.includes("cajero") || /\batm\b/.test(n)) return "atm";
   if (n.includes("niños") || n.includes("ninos")) return "kids";
   if (n.includes("baño") || n.includes("bano") || n.includes("wc")) return "bathroom";
   return "";
@@ -5351,6 +5356,7 @@ function serviceKindIcon(kind) {
   if (kind === "elevator") return '<img src="../shared/category-icons/elevator.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
   if (kind === "nursing") return '<img src="../shared/category-icons/nursing.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
   if (kind === "changing_table") return '<img src="../shared/category-icons/changing-table.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
+  if (kind === "atm") return '<img src="../shared/category-icons/atm.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
   if (kind === "kids") return "👶";
   if (kind === "bathroom") return '<img src="../shared/category-icons/restroom.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
   if (kind === "customer_service") return '<img src="../shared/category-icons/customer_service.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
@@ -5701,7 +5707,7 @@ function renderServiceDetailPanel(service) {
   const displayName = sanitizeStoreDisplayName(service.name || t("services"));
   const kind = getServiceKind(service);
   const icon = serviceKindIcon(kind);
-  const typeLabel = kind ? `<span class="store-badge store-badge-floor">${escapeHtml(kind === "bathroom" ? (t("bathrooms") || "Baños") : kind === "cowork" ? (t("cowork") || "Cowork") : kind === "customer_service" ? (t("customerService") || "Atención al cliente") : kind === "elevator" ? (t("elevators") || "Ascensor") : kind === "nursing" ? (t("nursingRoom") || "Sala de lactancia") : kind === "changing_table" ? (t("changingTables") || "Mudadores") : escapeHtml(t("services")))}</span>` : "";
+  const typeLabel = kind ? `<span class="store-badge store-badge-floor">${escapeHtml(kind === "bathroom" ? (t("bathrooms") || "Baños") : kind === "cowork" ? (t("cowork") || "Cowork") : kind === "customer_service" ? (t("customerService") || "Atención al cliente") : kind === "elevator" ? (t("elevators") || "Ascensor") : kind === "nursing" ? (t("nursingRoom") || "Sala de lactancia") : kind === "changing_table" ? (t("changingTables") || "Mudadores") : kind === "atm" ? (t("atm") || "Cajero automático") : escapeHtml(t("services")))}</span>` : "";
   const floorLabel = formatServiceFloors(service.floors) ? `<span class="store-badge store-badge-floor">${escapeHtml(formatServiceFloors(service.floors))}</span>` : "";
   const location = service.location ? `<div class="store-detail-schedule">${escapeHtml(service.location)}</div>` : "";
   const description = String(service.description || service.location || "").trim();
@@ -6129,6 +6135,8 @@ function renderServiceCard(svc, idx) {
             ? `<span class="store-badge store-badge-floor">${escapeHtml(t("cowork") || "Cowork")}</span>`
           : kind === "nursing"
             ? `<span class="store-badge store-badge-floor">${escapeHtml(t("nursingRoom") || "Sala de lactancia")}</span>`
+          : kind === "atm"
+            ? `<span class="store-badge store-badge-floor">${escapeHtml(t("atm") || "Cajero automático")}</span>`
           : kind === "changing_table"
             ? `<span class="store-badge store-badge-promo">${escapeHtml(t("changingTables") || "Mudadores")}</span>`
           : "";
@@ -7279,6 +7287,7 @@ function genericServiceLabelForWc(entry) {
   else if (kind === "cowork") name = t("cowork") || "Cowork";
   else if (kind === "nursing") name = t("nursingRoom") || "Sala de lactancia";
   else if (kind === "changing_table") name = t("changingTables") || "Mudadores";
+  else if (kind === "atm") name = t("atm") || "Cajero automático";
   else if (kind === "bathroom" || kind === "kids") name = t("bathrooms") || "Baños";
   else name = sanitizeStoreDisplayName(entry.name || t("services"));
 

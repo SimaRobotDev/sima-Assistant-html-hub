@@ -1287,6 +1287,666 @@
           "Co-work"
         ]
       }
+    },
+    {
+      "id": "cajero-n1-1",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 1",
+      "floors": [
+        "1"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 1",
+        "piso 1"
+      ],
+      "mapvx": {
+        "placeId": "-NGabz2fiLnxC-kGmfVG",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-n1-2",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 1",
+      "floors": [
+        "1"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 1",
+        "piso 1"
+      ],
+      "mapvx": {
+        "placeId": "-NGa_MwQ_ooTOYfCrZDW",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-n1-3",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 1",
+      "floors": [
+        "1"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 1",
+        "piso 1"
+      ],
+      "mapvx": {
+        "placeId": "-NGaZarQm2aA9iyedYFy",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-n2-1",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 2",
+      "floors": [
+        "2"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 2",
+        "piso 2"
+      ],
+      "mapvx": {
+        "placeId": "-NR9PcWZ6MY4-i8mPJyx",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-n2-2",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 2",
+      "floors": [
+        "2"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 2",
+        "piso 2"
+      ],
+      "mapvx": {
+        "placeId": "-NR9L1WcZNIWxPV-lZuL",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-n2-3",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 2",
+      "floors": [
+        "2"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 2",
+        "piso 2"
+      ],
+      "mapvx": {
+        "placeId": "-NR9NkylDTdFzBT31S0K",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-n3-1",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 3",
+      "floors": [
+        "3"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 3",
+        "piso 3"
+      ],
+      "mapvx": {
+        "placeId": "-NR9Quyebae_BrPRY8rO",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-n3-2",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 3",
+      "floors": [
+        "3"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 3",
+        "piso 3"
+      ],
+      "mapvx": {
+        "placeId": "-NR9SRCq_f8v0cRdlj3Y",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-n4-1",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 4",
+      "floors": [
+        "4"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 4",
+        "piso 4"
+      ],
+      "mapvx": {
+        "placeId": "-NR9UDzn7rCd_5pXTZE_",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-n4-2",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 4",
+      "floors": [
+        "4"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 4",
+        "piso 4"
+      ],
+      "mapvx": {
+        "placeId": "-NR9WXf8BC18AEbFwQKm",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-n5-1",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 5",
+      "floors": [
+        "5"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 5",
+        "piso 5"
+      ],
+      "mapvx": {
+        "placeId": "-NR9YIsBKxKhXvgo5JVb",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-n5-2",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Nivel 5",
+      "floors": [
+        "5"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "nivel 5",
+        "piso 5"
+      ],
+      "mapvx": {
+        "placeId": "-NMB1jCjQuRye1-o6eEs",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-pb-1",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Planta Baja",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "planta baja",
+        "pb"
+      ],
+      "mapvx": {
+        "placeId": "-N2SRcOa7uYI8gYIZZb4",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-pb-2",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Planta Baja",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "planta baja",
+        "pb"
+      ],
+      "mapvx": {
+        "placeId": "-NGTbNs9M0ZFP3ijJpr2",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "cajero-pb-3",
+      "type": "atm",
+      "sector": "",
+      "name": "Cajero automático — Planta Baja",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cajero",
+        "cajeros",
+        "cajero automatico",
+        "cajeros automaticos",
+        "atm",
+        "atms",
+        "sacar plata",
+        "sacar dinero",
+        "retirar dinero",
+        "retirar efectivo",
+        "efectivo",
+        "giro",
+        "cash machine",
+        "cash point",
+        "cash",
+        "withdraw cash",
+        "caixa eletronico",
+        "caixa automatico",
+        "saque",
+        "dinheiro",
+        "planta baja",
+        "pb"
+      ],
+      "mapvx": {
+        "placeId": "-N2Ykjm5YnfNvesLgUmr",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
     }
   ]
 }

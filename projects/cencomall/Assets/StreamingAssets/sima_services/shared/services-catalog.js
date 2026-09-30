@@ -240,11 +240,17 @@ window.ServicesCatalog = (function () {
     return wantsChangingTable(query);
   }
 
+  // Real words within edit distance of "banheiro": pt "dinheiro" (money).
+  var BATHROOM_FUZZY_EXCLUDE = { dinheiro: true };
+
   function looksLikeBathroomQuery(query) {
     var n = canonicalizeServiceQuery(query);
     if (!n) return false;
     if (BATHROOM_INTENT_RE.test(n)) return true;
-    return tokensMatchAnyLemma(n.split(" "), BATHROOM_FUZZY_LEMMAS);
+    var tokens = n.split(" ").filter(function (token) {
+      return !BATHROOM_FUZZY_EXCLUDE[token];
+    });
+    return tokensMatchAnyLemma(tokens, BATHROOM_FUZZY_LEMMAS);
   }
 
   function looksLikeNursingQuery(query) {
@@ -270,6 +276,24 @@ window.ServicesCatalog = (function () {
     return /\b(atencion\s+al\s+cliente|servicio\s+al\s+cliente|customer\s+service|\bsac\b|informacion(\s+del?\s+mall)?)\b/.test(
       n
     );
+  }
+
+  // ATMs: es (cajero / cajero automático), en (ATM / cash machine / cash point),
+  // pt (caixa eletrônico / caixa automático), plus "sacar plata / withdraw cash".
+  var ATM_INTENT_RE =
+    /\b(cajeros?(\s+automaticos?)?|atms?|caixas?\s+(eletronicos?|automaticos?)|cash\s*(machines?|points?)|cashpoints?|bancomat|(sacar|retirar|girar|withdraw|saque|sacar)\s+(dinero|plata|efectivo|cash|money|dinheiro))\b/;
+  // Typos of "cajero(s)". "cajera(s)" (cashier) is a person, not a machine.
+  var ATM_FUZZY_LEMMAS = ["cajero", "cajeros"];
+  var ATM_FUZZY_EXCLUDE = { cajera: true, cajeras: true };
+
+  function looksLikeAtmQuery(query) {
+    var n = canonicalizeServiceQuery(query);
+    if (!n) return false;
+    if (ATM_INTENT_RE.test(n)) return true;
+    var tokens = n.split(" ").filter(function (token) {
+      return !ATM_FUZZY_EXCLUDE[token];
+    });
+    return tokensMatchAnyLemma(tokens, ATM_FUZZY_LEMMAS);
   }
 
   function looksLikeCoworkQuery(query) {
@@ -343,6 +367,7 @@ window.ServicesCatalog = (function () {
     "bathroom",
     "changing_table",
     "nursing",
+    "atm",
     "elevator",
     "cowork",
   ];
@@ -377,6 +402,7 @@ window.ServicesCatalog = (function () {
       looksLikeElevatorQuery(query) ||
       looksLikeCustomerServiceQuery(query) ||
       looksLikeCoworkQuery(query) ||
+      looksLikeAtmQuery(query) ||
       looksLikeGenericServicesQuery(query) ||
       wantsNursing(query) ||
       wantsChangingTable(query)
@@ -623,6 +649,7 @@ window.ServicesCatalog = (function () {
     if (type === "elevator" && looksLikeElevatorQuery(queryNorm)) score += 1;
     if (type === "customer_service" && looksLikeCustomerServiceQuery(queryNorm)) score += 8;
     if (type === "cowork" && looksLikeCoworkQuery(queryNorm)) score += 8;
+    if (type === "atm" && looksLikeAtmQuery(queryNorm)) score += 8;
     if (type === "nursing" && wantsNursing(queryNorm)) score += 8;
     if (type === "changing_table" && wantsChangingTable(queryNorm)) score += 8;
 
@@ -650,6 +677,8 @@ window.ServicesCatalog = (function () {
     var cust = looksLikeCustomerServiceQuery(queryNorm);
     var bath = looksLikeBathroomQuery(queryNorm);
     var elev = looksLikeElevatorQuery(queryNorm);
+    var atm = looksLikeAtmQuery(queryNorm);
+    if (atm && !bath && !elev && !cust && !cowork) return "atm";
     if (cowork && !bath && !elev && !cust) return "cowork";
     if (cust && !bath && !elev) return "customer_service";
     if (elev && !bath) return "elevator";
@@ -718,6 +747,7 @@ window.ServicesCatalog = (function () {
     looksLikeElevatorQuery: looksLikeElevatorQuery,
     looksLikeCustomerServiceQuery: looksLikeCustomerServiceQuery,
     looksLikeCoworkQuery: looksLikeCoworkQuery,
+    looksLikeAtmQuery: looksLikeAtmQuery,
     looksLikeNursingQuery: looksLikeNursingQuery,
     looksLikeChangingTableQuery: looksLikeChangingTableQuery,
     looksLikeServicesQuery: looksLikeServicesQuery,
@@ -819,7 +849,8 @@ window.ServicesCatalog = (function () {
       // When a strong match exists (brand/sector), drop generic-only hits.
       // Elevator banks are peers on a floor — don't hide Vitacura just because
       // Ripley/H&M scored a bit higher from floor landmarks.
-      if (typeFilter === "elevator") {
+      // ATMs are peers too: list every floor, totem floor first (score order).
+      if (typeFilter === "elevator" || typeFilter === "atm") {
         minScore = 1;
       } else if (topScore >= 6) {
         minScore = Math.max(minScore, topScore - 2);
