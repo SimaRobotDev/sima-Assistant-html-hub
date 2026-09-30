@@ -849,8 +849,7 @@ window.ServicesCatalog = (function () {
       // When a strong match exists (brand/sector), drop generic-only hits.
       // Elevator banks are peers on a floor — don't hide Vitacura just because
       // Ripley/H&M scored a bit higher from floor landmarks.
-      // ATMs are peers too: list every floor, totem floor first (score order).
-      if (typeFilter === "elevator" || typeFilter === "atm") {
+      if (typeFilter === "elevator") {
         minScore = 1;
       } else if (topScore >= 6) {
         minScore = Math.max(minScore, topScore - 2);

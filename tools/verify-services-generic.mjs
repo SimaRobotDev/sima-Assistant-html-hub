@@ -147,15 +147,34 @@ check(
   atmPb.length === 3 && atmPb.every((r) => r.floors.includes("PB")),
   `got ${atmPb.length}`
 );
-const atmOnN3 = SC.search("cajero", { preferFloor: "3" });
+// Like bathrooms: from a totem, only that floor's ATMs (a floor with none shows all).
+const expectedOnFloor = { PB: 3, 1: 3, 2: 3, 3: 2, 4: 2, 5: 2 };
+for (const [floor, n] of Object.entries(expectedOnFloor)) {
+  const r = SC.search("cajero", { preferFloor: floor });
+  check(
+    `totem on ${floor}: only that floor's ${n} ATMs`,
+    r.length === n && r.every((x) => x.type === "atm" && x.floors.includes(floor)),
+    `got ${r.length} [${[...new Set(r.map((x) => x.floors.join()))].join("/")}]`
+  );
+}
 check(
-  "totem on N3: all 15 ATMs listed, N3 ones first",
-  atmOnN3.length === 15 && atmOnN3[0].floors.includes("3") && atmOnN3[1].floors.includes("3"),
-  atmOnN3.slice(0, 3).map((r) => r.floors.join()).join(" | ")
+  "totem on a floor without ATMs (6): falls back to all 15",
+  SC.search("cajero", { preferFloor: "6" }).length === 15
+);
+check(
+  'explicit floor in the query wins over the totem floor ("cajero nivel 4" from N1)',
+  (() => {
+    const r = SC.search("cajero nivel 4", { preferFloor: "1" });
+    return r.length === 2 && r.every((x) => x.floors.includes("4"));
+  })()
 );
 check(
   "ATM card carries placeId for the WC map",
-  atmOnN3.every((r) => r.placeId && !r.placeIdNote)
+  SC.search("cajero", { preferFloor: "3" }).every((r) => r.placeId && !r.placeIdNote)
+);
+check(
+  "generic listing still shows every ATM whatever the totem floor",
+  SC.search("servicios del mall", { preferFloor: "1" }).filter((r) => r.type === "atm").length === 15
 );
 ["cajera", "cajeras", "caja", "la cajera", "cajón"].forEach((q) =>
   check(`not atm   "${q}"`, !SC.looksLikeAtmQuery(q))
