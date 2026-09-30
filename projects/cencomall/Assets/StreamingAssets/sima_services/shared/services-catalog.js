@@ -281,12 +281,103 @@ window.ServicesCatalog = (function () {
     );
   }
 
+  // "servicios del mall" / "mall services" / "serviços do shopping": the visitor
+  // wants EVERYTHING classified as a service, not one kind. Lemmas are post-
+  // normalizeText (no accents / cedilla), fuzzy-matched so typos still land.
+  var GENERIC_SERVICE_LEMMAS = [
+    "servicio",
+    "servicios",
+    "service",
+    "services",
+    "servico",
+    "servicos",
+    "amenities",
+    "amenity",
+    "amenidades",
+    "comodidades",
+    "instalaciones",
+    "facilities",
+  ];
+
+  // Words that may surround the service word without narrowing the intent.
+  // Anything outside this set ("cliente", "sanitario", "belleza", a brand…)
+  // means a specific ask, so the query is NOT the generic listing.
+  var GENERIC_SERVICE_FILLER = {
+    // mall vocabulary (es / en / pt)
+    mall: true, malls: true, centro: true, comercial: true, shopping: true,
+    shoppings: true, center: true, centre: true, costanera: true, cenco: true,
+    cencomall: true, cencomalls: true, cencosud: true,
+    // es
+    de: true, del: true, la: true, el: true, los: true, las: true, un: true,
+    una: true, unos: true, unas: true, y: true, e: true, o: true, en: true,
+    al: true, a: true, por: true, para: true, con: true, que: true, cual: true,
+    cuales: true, son: true, hay: true, tiene: true, tienen: true, ofrece: true,
+    ofrecen: true, todo: true, todos: true, toda: true, todas: true,
+    general: true, generales: true, disponible: true, disponibles: true,
+    quiero: true, quisiera: true, necesito: true, busco: true, buscar: true,
+    busca: true, dame: true, dime: true, ver: true, mostrar: true,
+    muestra: true, muestrame: true, mostrame: true, listar: true, lista: true,
+    listado: true, favor: true, ubicacion: true, ubicaciones: true,
+    // en
+    the: true, of: true, at: true, in: true, on: true, for: true, to: true,
+    all: true, every: true, available: true, what: true, which: true, are: true,
+    is: true, there: true, have: true, has: true, offer: true, offers: true,
+    show: true, me: true, list: true, see: true, find: true, want: true,
+    need: true, looking: true, look: true, search: true, please: true, i: true,
+    my: true, s: true, an: true, with: true, where: true, can: true, you: true,
+    tell: true, about: true, does: true,
+    // pt
+    do: true, da: true, dos: true, das: true, no: true, na: true, nos: true,
+    nas: true, um: true, uma: true, os: true, as: true, em: true, ao: true,
+    aos: true, quero: true, preciso: true, procuro: true,
+    mostre: true, quais: true, sao: true, tem: true, tudo: true, gerais: true,
+    disponiveis: true, disponivel: true, onde: true, esta: true, estao: true,
+    // floor scoping ("servicios nivel 2") is handled by the floor filter
+    nivel: true, piso: true, floor: true, level: true, planta: true, baja: true,
+    pb: true, andar: true, n: true,
+  };
+
+  // Display order of the "all services" listing; unknown future types go last.
+  var GENERIC_LIST_TYPE_ORDER = [
+    "customer_service",
+    "bathroom",
+    "changing_table",
+    "nursing",
+    "elevator",
+    "cowork",
+  ];
+
+  function isGenericServiceWord(token) {
+    if (!token || /^\d+$/.test(token)) return false;
+    for (var i = 0; i < GENERIC_SERVICE_LEMMAS.length; i++) {
+      if (tokenMatchesLemma(token, GENERIC_SERVICE_LEMMAS[i])) return true;
+    }
+    return false;
+  }
+
+  function looksLikeGenericServicesQuery(query) {
+    var tokens = tokenizeQuery(query);
+    if (!tokens.length) return false;
+    var hasServiceWord = false;
+    for (var i = 0; i < tokens.length; i++) {
+      var token = tokens[i];
+      if (GENERIC_SERVICE_FILLER[token] || /^\d+$/.test(token)) continue;
+      if (isGenericServiceWord(token)) {
+        hasServiceWord = true;
+        continue;
+      }
+      return false;
+    }
+    return hasServiceWord;
+  }
+
   function looksLikeServicesQuery(query) {
     return (
       looksLikeBathroomQuery(query) ||
       looksLikeElevatorQuery(query) ||
       looksLikeCustomerServiceQuery(query) ||
       looksLikeCoworkQuery(query) ||
+      looksLikeGenericServicesQuery(query) ||
       wantsNursing(query) ||
       wantsChangingTable(query)
     );
@@ -630,6 +721,7 @@ window.ServicesCatalog = (function () {
     looksLikeNursingQuery: looksLikeNursingQuery,
     looksLikeChangingTableQuery: looksLikeChangingTableQuery,
     looksLikeServicesQuery: looksLikeServicesQuery,
+    looksLikeGenericServicesQuery: looksLikeGenericServicesQuery,
     toResultCard: toResultCard,
     search: function (query, options) {
       options = options || {};
@@ -647,6 +739,30 @@ window.ServicesCatalog = (function () {
 
       if (serviceId && byId && byId[serviceId]) {
         return [toResultCard(byId[serviceId], cardOpts)];
+      }
+
+      // "servicios del mall": list every catalog service, whatever its type.
+      // Deliberately ignores the totem-floor elevator filter — "todo" means all.
+      if (!options.type && !mudadorOnly && looksLikeGenericServicesQuery(q)) {
+        return catalog.services
+          .filter(function (entry) {
+            if (!floorFilter || !entry.floors || !entry.floors.length) return true;
+            return entryOnFloor(entry, floorFilter);
+          })
+          .map(function (entry, index) {
+            var onPreferred = preferFloor && entryOnFloor(entry, preferFloor) ? 0 : 1;
+            var typeRank = GENERIC_LIST_TYPE_ORDER.indexOf(entryType(entry));
+            return {
+              entry: entry,
+              key: [typeRank < 0 ? GENERIC_LIST_TYPE_ORDER.length : typeRank, onPreferred, index],
+            };
+          })
+          .sort(function (a, b) {
+            return a.key[0] - b.key[0] || a.key[1] - b.key[1] || a.key[2] - b.key[2];
+          })
+          .map(function (row) {
+            return toResultCard(row.entry, cardOpts);
+          });
       }
 
       var scored = catalog.services

@@ -1368,7 +1368,6 @@ article.service-card .btn-service-map {
   margin: 0 0 10px;
   line-height: 1.4;
 }
-
 .cm-search-landing {
   display: none;
   flex-direction: column;
@@ -3155,6 +3154,11 @@ function runServicesCatalogSearch(query, options) {
   ensureStoreSearchReady();
 
   const totemFloor = getTotemFloorContext();
+  // "servicios del mall" / "mall services" / "serviços do shopping" lists every
+  // catalog service (ServicesCatalog.search handles it).
+  const isGenericListing = !serviceId
+    && !!ServicesCatalog.looksLikeGenericServicesQuery
+    && ServicesCatalog.looksLikeGenericServicesQuery(q);
   ServicesCatalog.loadCatalog()
     .then(function () {
       const searchOpts = Object.assign({}, options, {
@@ -3177,7 +3181,10 @@ function runServicesCatalogSearch(query, options) {
         mall: "costanera",
         totemFloor: totemFloor || "",
       });
-      const willAutoMap = !!(results.length && (options.autoMap || wantsAutoOpenServiceMap()));
+      // A full listing is for browsing: never auto-open the first entry.
+      const willAutoMap = !!(
+        !isGenericListing && results.length && (options.autoMap || wantsAutoOpenServiceMap())
+      );
       if (!willAutoMap) {
         if (results.length === 1 && results[0].description) {
           SimaBridge.speak(results[0].description);
