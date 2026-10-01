@@ -125,10 +125,7 @@
     background: rgba(255, 255, 255, 0.25);
   }
 
-  /* Map + route-QR share this row/column. The QR is a flex SIBLING of the stage,
-     never an overlay on it: it can't cover the map controls, the route
-     instructions (both live inside the stage) or the header's "Ver ruta".
-     Portrait: QR strip under the map. Landscape: QR column to its right. */
+  /* Map area. The route QR floats inside the stage (see .route-qr). */
   .store-map-body {
     display: flex;
     flex-direction: column;
@@ -245,48 +242,53 @@
     color: #fff;
   }
 
-  /* "Continue the route on your phone" QR (window.applyRouteQr). The QR image is
-     drawn by the app (qrDataUrl) — nothing is generated here. The card is white
-     with a padded border (quiet zone) so it scans at arm's length from a totem
-     whatever colour surrounds it. */
+  /* "Continue the route on your phone" QR (window.applyRouteQr). The image is
+     drawn by the app (qrDataUrl) — nothing is generated here.
+     Floating card in the stage's bottom-left corner (feedback 2026-10-01: the
+     full-width strip was far too big): small caption ON TOP, QR below. Bottom
+     left is the free corner — floor badge sits top-left, MapLibre controls
+     top-right and zoom bottom-right. pointer-events:none so it never steals a
+     pan/zoom gesture from the map underneath. White card + padding keeps the
+     quiet zone so it still scans over any map colour. */
   .route-qr {
-    --route-qr-size: clamp(180px, 28vmin, 260px);
-    flex-shrink: 0;
+    --route-qr-size: clamp(76px, 11vmin, 120px);
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    z-index: 15;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: var(--cb-space-l);
-    padding: var(--cb-space-m) var(--cb-space-l);
+    gap: var(--cb-space-3xs);
+    width: max(150px, calc(var(--route-qr-size) + 2 * var(--cb-space-xs)));
+    padding: var(--cb-space-xs);
     box-sizing: border-box;
     background: var(--cb-white);
-    border-top: 1px solid var(--cb-primary-50);
+    border: 1px solid var(--cb-primary-50);
+    border-radius: var(--cb-radius-s);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+    user-select: none;
   }
 
-  .route-qr-card {
-    flex-shrink: 0;
-    padding: var(--cb-space-m);
-    background: var(--cb-white);
-    border: 1px solid var(--cb-primary-50);
-    border-radius: var(--cb-radius-m);
-    box-shadow: var(--cb-shadow-down-s);
-    line-height: 0;
-  }
+  .route-qr-card { line-height: 0; }
 
   .route-qr-img {
     display: block;
     width: var(--route-qr-size);
     height: var(--route-qr-size);
     object-fit: contain;
-    image-rendering: pixelated; /* keep module edges crisp when the GIF is upscaled */
+    image-rendering: pixelated; /* keep module edges crisp when the GIF is scaled */
   }
 
   .route-qr-caption {
+    order: -1; /* caption above the QR */
     margin: 0;
-    max-width: 16em;
     font-family: var(--cb-font-title);
     font-weight: 700;
-    font-size: 18px;
-    line-height: 1.35;
+    font-size: 10px;
+    line-height: 1.25;
+    text-align: center;
     color: var(--cb-primary-900);
   }
 
@@ -294,19 +296,6 @@
 
   @media (orientation: landscape) {
     .store-map-body { flex-direction: row; }
-    .route-qr {
-      flex-direction: column;
-      border-top: 0;
-      border-left: 1px solid var(--cb-primary-50);
-      padding: var(--cb-space-m);
-      gap: var(--cb-space-m);
-      overflow-y: auto;
-    }
-    .route-qr-caption {
-      max-width: calc(var(--route-qr-size) + 2 * var(--cb-space-m));
-      text-align: center;
-      font-size: 15px;
-    }
   }
 
   .store-map-debug {
@@ -465,6 +454,15 @@
       <div id="route-view-mount"></div>
     </div>
 
+    <!-- Filled by window.applyRouteQr(payload) from the native app; the caption
+         arrives already translated, so it is NOT written here. -->
+    <aside class="route-qr hidden" id="route-qr">
+      <div class="route-qr-card">
+        <img class="route-qr-img" id="route-qr-img" alt="" />
+      </div>
+      <p class="route-qr-caption" id="route-qr-caption"></p>
+    </aside>
+
     <div class="store-map-status" id="status" role="status" aria-live="polite">
       <div class="store-map-status-card">
         <div class="store-map-spinner" id="spinner"></div>
@@ -474,14 +472,6 @@
     </div>
   </div>
 
-  <!-- Filled by window.applyRouteQr(payload) from the native app; the caption
-       arrives already translated, so it is NOT written here. -->
-  <aside class="route-qr hidden" id="route-qr">
-    <div class="route-qr-card">
-      <img class="route-qr-img" id="route-qr-img" alt="" />
-    </div>
-    <p class="route-qr-caption" id="route-qr-caption"></p>
-  </aside>
   </div>
 
   <pre class="store-map-debug hidden" id="debug"></pre>
