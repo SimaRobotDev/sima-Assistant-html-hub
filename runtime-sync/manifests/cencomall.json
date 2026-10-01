@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-35",
+  "version": "2026.09.02-36",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-10-01T16:50:17.754Z",
+  "generatedAt": "2026-10-01T17:03:45.295Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -210,8 +210,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 282015,
-      "sha256": "80818bb5d2f4a66ec023b8381f0809cccfe6cf1a67cbe3e0fb2e47c398967055"
+      "size": 283839,
+      "sha256": "94f60dac87e3de2a3cb2cb4b543061a209cc70a12e4b56c69ce6aff2c6f5edd5"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -522,6 +522,11 @@
       "path": "shared/native-payload.js",
       "size": 7330,
       "sha256": "77db230a672445c755258a91c19710e17d3476032a2cfb145f478c8c8238c44a"
+    },
+    {
+      "path": "shared/qrcode-generator.js",
+      "size": 56694,
+      "sha256": "79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c"
     },
     {
       "path": "shared/qrcode.min.js",
