@@ -108,7 +108,7 @@ function resetToLanding() {
 <script src="../shared/lock-viewport.js"></script>
 <script src="../shared/market-search.js"></script>
 <script src="../shared/services-catalog.js"></script>
-<script src="../shared/qrcode.min.js"></script>
+<script src="../shared/qrcode-generator.js"></script>
 <script src="../shared/mapvx/index.js"></script>
 <script src="../shared/mapvx-bridge.js"></script>
 <script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
@@ -936,27 +936,30 @@ route-view-totems,
 /* Generic arrival popup for services shown via the MapVX Web Component. One
    card, positioned over the map — describes the service (name + where + what's
    inside) so bathrooms don't need a route per derivation. */
-/* "Continue the route on your phone" QR for a service's map (same card as
-   store-map-web's .route-qr). Top-left under the floor badge: bottom-centre
-   is the arrival card and the MapVX zoom sits bottom-right.
+/* "Continue the route on your phone" QR for a service's map. Bottom-left,
+   side by side with the arrival/description card (feedback 2026-10-01):
+   while the QR is up, .has-route-qr shifts that card to the QR's right and
+   keeps clear of the MapVX zoom (bottom-right).
    pointer-events:none so it never steals a pan/zoom gesture. */
+.map-embed-wrap {
+  --svc-qr-card-w: clamp(150px, 22vmin, 220px);
+}
 .svc-route-qr {
-  --svc-qr-size: clamp(76px, 11vmin, 120px);
   position: absolute;
   left: 10px;
-  top: 52px;
+  bottom: 18px;
   z-index: 7;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  width: max(150px, calc(var(--svc-qr-size) + 16px));
+  gap: 4px;
+  width: var(--svc-qr-card-w);
   padding: 8px;
   box-sizing: border-box;
   background: var(--cb-white, #fff);
   border: 1px solid var(--cm-line, #e7dff0);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 10px 32px rgba(16, 12, 40, 0.20);
   pointer-events: none;
   user-select: none;
 }
@@ -970,17 +973,24 @@ route-view-totems,
   text-align: center;
   color: var(--cm-purple-dark, #3d1d5c);
 }
+/* Square box the QR is drawn into at its exact on-screen pixel size (see
+   showServiceRouteQr): no CSS rescaling, so every module stays the same size. */
 .svc-route-qr-img {
-  width: var(--svc-qr-size);
-  height: var(--svc-qr-size);
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 0;
+  background: #fff;
 }
-.svc-route-qr-img canvas,
-.svc-route-qr-img img {
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
-  image-rendering: pixelated;
+.svc-route-qr-img img { display: block; image-rendering: pixelated; }
+
+.map-embed-wrap.has-route-qr .service-arrival-card {
+  left: calc(10px + var(--svc-qr-card-w) + 10px);
+  right: 56px;
+  width: auto;
+  transform: none;
 }
 
 .service-arrival-card {
@@ -7894,6 +7904,8 @@ function hideServiceRouteQr() {
   const img = document.getElementById("svc-route-qr-img");
   if (img) img.innerHTML = "";
   if (box) box.classList.add("hidden");
+  const wrap = box && box.closest(".map-embed-wrap");
+  if (wrap) wrap.classList.remove("has-route-qr");
 }
 
 function serviceRouteQrOrigin() {
@@ -7929,8 +7941,8 @@ async function showServiceRouteQr(serviceId) {
     }));
     return;
   }
-  if (typeof QRCode === "undefined") {
-    SimaBridge.log("service route QR skipped: QRCode library missing");
+  if (typeof qrcode !== "function") {
+    SimaBridge.log("service route QR skipped: qrcode library missing");
     return;
   }
   const url = SERVICE_ROUTE_QR_BASE +
@@ -7941,17 +7953,44 @@ async function showServiceRouteQr(serviceId) {
   const img = document.getElementById("svc-route-qr-img");
   const cap = document.getElementById("svc-route-qr-caption");
   if (!box || !img || !cap) return;
+  cap.textContent = t("routeQrCaption");
+  box.classList.remove("hidden");
+  const wrap = box.closest(".map-embed-wrap");
+  if (wrap) wrap.classList.add("has-route-qr");
+  // Measure only after the just-unhidden card has been laid out (the map view
+  // opens in the same tick), otherwise clientWidth reads 0. setTimeout, not
+  // requestAnimationFrame: rAF never fires while the webview is concealed.
+  await new Promise(function (r) { setTimeout(r, 60); });
+  if (gen !== serviceRouteQrGen) return;
   try {
+    // qrcode-generator (the app's own QR lib), drawn with a whole number of
+    // device pixels per module at the box's real size. Scaling a bigger image
+    // down unevenly (the first version: qrcodejs at 240px → ~80px) left modules
+    // of mixed widths and phones would not read it.
+    const qr = qrcode(0, "M");
+    qr.addData(url);
+    qr.make();
+    // 1 module of margin: the card's white padding completes the quiet zone, and
+    // every module of margin costs QR size once rounded to whole pixels.
+    const margin = 1;
+    const modules = qr.getModuleCount() + margin * 2;
+    const dpr = window.devicePixelRatio || 1;
+    const availCss = img.clientWidth || (box.clientWidth - 16) || 120;
+    const boxPx = Math.max(1, Math.floor(availCss * dpr));
+    const cell = Math.max(1, Math.floor(boxPx / modules));
+    const pic = document.createElement("img");
+    pic.alt = "QR";
+    pic.src = qr.createDataURL(cell, margin * cell);
+    const cssPx = (modules * cell) / dpr;
+    pic.style.width = cssPx + "px";
+    pic.style.height = cssPx + "px";
     img.innerHTML = "";
-    // Drawn at 240px and scaled down by CSS so it stays crisp.
-    new QRCode(img, { text: url, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M });
+    img.appendChild(pic);
   } catch (e) {
     SimaBridge.log("service route QR failed: " + String(e && (e.message || e)));
     hideServiceRouteQr();
     return;
   }
-  cap.textContent = t("routeQrCaption");
-  box.classList.remove("hidden");
   SimaBridge.log("service route QR shown: " + JSON.stringify({ id: key, url: url }));
 }
 
