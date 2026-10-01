@@ -108,6 +108,7 @@ function resetToLanding() {
 <script src="../shared/lock-viewport.js"></script>
 <script src="../shared/market-search.js"></script>
 <script src="../shared/services-catalog.js"></script>
+<script src="../shared/qrcode.min.js"></script>
 <script src="../shared/mapvx/index.js"></script>
 <script src="../shared/mapvx-bridge.js"></script>
 <script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
@@ -935,6 +936,53 @@ route-view-totems,
 /* Generic arrival popup for services shown via the MapVX Web Component. One
    card, positioned over the map — describes the service (name + where + what's
    inside) so bathrooms don't need a route per derivation. */
+/* "Continue the route on your phone" QR for a service's map (same card as
+   store-map-web's .route-qr). Top-left under the floor badge: bottom-centre
+   is the arrival card and the MapVX zoom sits bottom-right.
+   pointer-events:none so it never steals a pan/zoom gesture. */
+.svc-route-qr {
+  --svc-qr-size: clamp(76px, 11vmin, 120px);
+  position: absolute;
+  left: 10px;
+  top: 52px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: max(150px, calc(var(--svc-qr-size) + 16px));
+  padding: 8px;
+  box-sizing: border-box;
+  background: var(--cb-white, #fff);
+  border: 1px solid var(--cm-line, #e7dff0);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  user-select: none;
+}
+.svc-route-qr.hidden { display: none; }
+.svc-route-qr-caption {
+  margin: 0;
+  font-family: var(--cb-font-title, inherit);
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--cm-purple-dark, #3d1d5c);
+}
+.svc-route-qr-img {
+  width: var(--svc-qr-size);
+  height: var(--svc-qr-size);
+  line-height: 0;
+}
+.svc-route-qr-img canvas,
+.svc-route-qr-img img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  image-rendering: pixelated;
+}
+
 .service-arrival-card {
   position: absolute;
   left: 50%;
@@ -2041,6 +2089,10 @@ article.service-card .btn-service-map {
       <div id="mapvx-container" class="hidden"></div>
       <iframe id="map-iframe" class="hidden" allowfullscreen></iframe>
       <div id="service-arrival-card" class="service-arrival-card hidden" role="status" aria-live="polite" hidden></div>
+      <aside id="svc-route-qr" class="svc-route-qr hidden" aria-hidden="true">
+        <p class="svc-route-qr-caption" id="svc-route-qr-caption"></p>
+        <div class="svc-route-qr-img" id="svc-route-qr-img"></div>
+      </aside>
       <div id="map-placeholder" class="map-placeholder hidden"></div>
       <div id="map-loading-circle" class="map-loading-circle hidden" aria-hidden="true">
         <div class="map-loading-circle-inner">
@@ -2105,6 +2157,7 @@ const MOBILITY_I18N = {
     promosNotFound: "No hay promociones para",
     tryCategoryOrBrand: "Prueba un chip de categoría o di el nombre de la marca.",
     servicesNotFound: "No encontramos servicios para",
+    routeQrCaption: "Continúa la ruta en tu celular, escaneando el código QR",
     tryAnotherKeyword: "Prueba con otro término, por ejemplo baños, cajero o información.",
     loadError: "No se pudieron mostrar los resultados.",
     loadErrorTitle: "No pudimos cargar resultados",
@@ -2208,6 +2261,7 @@ const MOBILITY_I18N = {
     promosNotFound: "No promotions for",
     tryCategoryOrBrand: "Try a category chip or say a brand name.",
     servicesNotFound: "We couldn't find services for",
+    routeQrCaption: "Continue your route on your phone by scanning the QR code",
     tryAnotherKeyword: "Try another term, e.g. baños, ATM or information.",
     loadError: "We couldn't show the results.",
     loadErrorTitle: "Couldn't load results",
@@ -2311,6 +2365,7 @@ const MOBILITY_I18N = {
     promosNotFound: "Não há promoções para",
     tryCategoryOrBrand: "Tente uma categoria ou diga o nome da marca.",
     servicesNotFound: "Não encontramos serviços para",
+    routeQrCaption: "Continue a rota no seu celular escaneando o código QR",
     tryAnotherKeyword: "Tente outro termo, por exemplo banheiros, caixa ou informação.",
     loadError: "Não foi possível mostrar os resultados.",
     loadErrorTitle: "Não conseguimos carregar resultados",
@@ -3517,6 +3572,7 @@ window.selectGastronomySubcategory = selectGastronomySubcategory;
 window.submitInlineStoreSearch = submitInlineStoreSearch;
 
 function returnToStoreSearchLanding() {
+  window.__nativeServicesSession = false;
   clearSearchBootLoading();
   const container = document.getElementById("resultado");
   if (!container) return;
@@ -3587,6 +3643,22 @@ function handleMobilityBack() {
   if (storeDetailPanel && !storeDetailPanel.classList.contains("hidden")) {
     hideStoreDetailPanel();
     return;
+  }
+
+  // Services results opened by the assistant (native services_search, e.g. "SAC"):
+  // the visitor asked Cami for that service, not for mobility, so there is
+  // nothing behind the results to go "back" to — close instead of dropping them
+  // on the mobility landing (same idea as isPromoOnlySession below). Only at the
+  // root: anything opened from there (map, detail, categories) still steps back
+  // first. Any other screen clears the flag.
+  if (window.__nativeServicesSession) {
+    const rootStack = window.mobilityNavStack || ["landing"];
+    if (rootStack.length <= 1 && !backToServiciosIfNeeded()) {
+      SimaBridge.log("back on assistant services results — closing");
+      window.__nativeServicesSession = false;
+      closeWebview();
+      return;
+    }
   }
 
   // Use the navigation stack to decide where to go back.
@@ -3792,6 +3864,7 @@ function resolveCenco20Categories(categories) {
 }
 
 async function openStoreCategories() {
+  window.__nativeServicesSession = false;
   if (!shouldUseLocalMarketCatalog()) return;
   if (typeof MarketSearch === "undefined") {
     showSearchError(t("loadError"));
@@ -4956,6 +5029,7 @@ function renderIncomingPayload(dataJson) {
 
       // Same guard as ingestMarketSearchPayload: service intents must not become store cards.
       if (incomingQuery && looksLikeServicesCatalogQuery(incomingQuery)) {
+        window.__nativeServicesSession = true;
         SimaBridge.log(
           "market_search results ignored for services intent q=" + incomingQuery +
           " nativeResults=" + (hasResultsArray ? data.results.length : 0)
@@ -5013,6 +5087,7 @@ function renderIncomingPayload(dataJson) {
       renderPromotionResults(data);
       break;
     case "services_search": {
+      window.__nativeServicesSession = true;
       const incomingServiceQuery = String(
         data.query || data.text || data.q || data.search || ""
       ).trim();
@@ -5957,6 +6032,7 @@ function renderPromoCard(promo, appUrl) {
 }
 
 function renderPromotionResults(payload) {
+  window.__nativeServicesSession = false;
   lastPromotionPayload = payload;
   const results = Array.isArray(payload.results) ? payload.results : [];
   const query = payload.query || "";
@@ -7804,6 +7880,81 @@ function waitForMapVxReady(fn, attempt) {
   setTimeout(function () { waitForMapVxReady(fn, attempt + 1); }, 100);
 }
 
+// Route QR for a service map: same public MapVX URL the app builds for stores
+// (qr.ts buildMapVxRouteUrl) — origin = this totem, destination = the service's
+// MapVX place. Verified 2026-10-01 that the public site routes to the catalog's
+// "-N…" ids (CC_N1_1204 → customer-service-n1). Ids flagged "sin validar"
+// (placeIdNote) or in "node:" form get no QR rather than a route that may fail.
+const SERVICE_ROUTE_QR_BASE = "https://cencomalls.costanera.mapvx.com/es/";
+let serviceRouteQrGen = 0;
+
+function hideServiceRouteQr() {
+  serviceRouteQrGen += 1;
+  const box = document.getElementById("svc-route-qr");
+  const img = document.getElementById("svc-route-qr-img");
+  if (img) img.innerHTML = "";
+  if (box) box.classList.add("hidden");
+}
+
+function serviceRouteQrOrigin() {
+  try {
+    const cfg = (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.readConfig)
+      ? MapVxWcRuntime.readConfig()
+      : null;
+    const fromCfg = cfg && String(cfg.totemPlaceId || "").trim();
+    if (fromCfg) return fromCfg;
+  } catch (e) { /* noop */ }
+  return String((window.MAPVX_CONFIG && window.MAPVX_CONFIG.totemPlaceId) || "").trim();
+}
+
+async function showServiceRouteQr(serviceId) {
+  hideServiceRouteQr();
+  const gen = serviceRouteQrGen;
+  const key = String(serviceId || "").trim();
+  if (!key || typeof ServicesCatalog === "undefined" || !ServicesCatalog.getById) return;
+  try {
+    if (ServicesCatalog.loadCatalog) await ServicesCatalog.loadCatalog();
+  } catch (e) { /* use whatever is loaded */ }
+  if (gen !== serviceRouteQrGen) return; // map closed / another service opened meanwhile
+  const entry = ServicesCatalog.getById(key);
+  const mapvx = entry && entry.mapvx;
+  const destination = mapvx && String(mapvx.placeId || "").trim();
+  const origin = serviceRouteQrOrigin();
+  if (!destination || mapvx.placeIdNote || destination.indexOf("-") !== 0 || !origin) {
+    SimaBridge.log("service route QR skipped: " + JSON.stringify({
+      id: key,
+      destination: destination || "",
+      origin: origin || "",
+      unverified: !!(mapvx && mapvx.placeIdNote),
+    }));
+    return;
+  }
+  if (typeof QRCode === "undefined") {
+    SimaBridge.log("service route QR skipped: QRCode library missing");
+    return;
+  }
+  const url = SERVICE_ROUTE_QR_BASE +
+    "?origin=" + encodeURIComponent(origin) +
+    "&destination=" + encodeURIComponent(destination) +
+    "&utm_source=qr-totem&utm_content=route&utm_referrer=totem";
+  const box = document.getElementById("svc-route-qr");
+  const img = document.getElementById("svc-route-qr-img");
+  const cap = document.getElementById("svc-route-qr-caption");
+  if (!box || !img || !cap) return;
+  try {
+    img.innerHTML = "";
+    // Drawn at 240px and scaled down by CSS so it stays crisp.
+    new QRCode(img, { text: url, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M });
+  } catch (e) {
+    SimaBridge.log("service route QR failed: " + String(e && (e.message || e)));
+    hideServiceRouteQr();
+    return;
+  }
+  cap.textContent = t("routeQrCaption");
+  box.classList.remove("hidden");
+  SimaBridge.log("service route QR shown: " + JSON.stringify({ id: key, url: url }));
+}
+
 function openServiceMap(idx, options) {
   options = options || {};
   const svc = lastServicesPayload?.results?.[idx];
@@ -7890,6 +8041,7 @@ function openServiceMap(idx, options) {
     serviceDetail: normalized,
     mode: options.autoRoute ? "navigation" : "place",
   });
+  showServiceRouteQr(normalized.id || normalized.catalogId);
 }
 
 // Whether mobility is currently showing a service route that was deep-linked
@@ -7917,6 +8069,7 @@ function closeMapView() {
 function teardownMapView() {
   clearAutoMapLaunchUi();
   hideServiceArrivalCard();
+  hideServiceRouteQr();
   lastServiceWcEntry = null;
   const container = document.getElementById("mapvx-container");
   const mapKept = typeof MapVxBridge !== "undefined"
