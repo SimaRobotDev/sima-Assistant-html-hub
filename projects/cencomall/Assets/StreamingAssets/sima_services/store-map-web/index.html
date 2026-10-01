@@ -249,14 +249,17 @@
      drawn by the app (qrDataUrl) — nothing is generated here. The card is white
      with a padded border (quiet zone) so it scans at arm's length from a totem
      whatever colour surrounds it. */
+  /* Compact corner strip (feedback 2026-10-01: the full-width 260px block was
+     far too big). Small QR + caption pinned to the bottom-left, still a flex
+     sibling of the stage so it never covers the map or route instructions. */
   .route-qr {
-    --route-qr-size: clamp(180px, 28vmin, 260px);
+    --route-qr-size: clamp(88px, 13vmin, 140px);
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: var(--cb-space-l);
-    padding: var(--cb-space-m) var(--cb-space-l);
+    justify-content: flex-start;
+    gap: var(--cb-space-s);
+    padding: var(--cb-space-xs) var(--cb-space-s);
     box-sizing: border-box;
     background: var(--cb-white);
     border-top: 1px solid var(--cb-primary-50);
@@ -264,11 +267,10 @@
 
   .route-qr-card {
     flex-shrink: 0;
-    padding: var(--cb-space-m);
+    padding: var(--cb-space-xs);
     background: var(--cb-white);
     border: 1px solid var(--cb-primary-50);
-    border-radius: var(--cb-radius-m);
-    box-shadow: var(--cb-shadow-down-s);
+    border-radius: var(--cb-radius-s);
     line-height: 0;
   }
 
@@ -282,11 +284,11 @@
 
   .route-qr-caption {
     margin: 0;
-    max-width: 16em;
+    max-width: 13em;
     font-family: var(--cb-font-title);
     font-weight: 700;
-    font-size: 18px;
-    line-height: 1.35;
+    font-size: 13px;
+    line-height: 1.3;
     color: var(--cb-primary-900);
   }
 
@@ -298,14 +300,15 @@
       flex-direction: column;
       border-top: 0;
       border-left: 1px solid var(--cb-primary-50);
-      padding: var(--cb-space-m);
-      gap: var(--cb-space-m);
+      justify-content: flex-end;
+      padding: var(--cb-space-s);
+      gap: var(--cb-space-xs);
       overflow-y: auto;
     }
     .route-qr-caption {
-      max-width: calc(var(--route-qr-size) + 2 * var(--cb-space-m));
+      max-width: calc(var(--route-qr-size) + 2 * var(--cb-space-xs));
       text-align: center;
-      font-size: 15px;
+      font-size: 12px;
     }
   }
 
