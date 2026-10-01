@@ -125,6 +125,17 @@
     background: rgba(255, 255, 255, 0.25);
   }
 
+  /* Map + route-QR share this row/column. The QR is a flex SIBLING of the stage,
+     never an overlay on it: it can't cover the map controls, the route
+     instructions (both live inside the stage) or the header's "Ver ruta".
+     Portrait: QR strip under the map. Landscape: QR column to its right. */
+  .store-map-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
   .store-map-stage {
     position: relative;
     flex: 1;
@@ -232,6 +243,70 @@
     cursor: pointer;
     background: var(--cm-purple-dark, #582c83);
     color: #fff;
+  }
+
+  /* "Continue the route on your phone" QR (window.applyRouteQr). The QR image is
+     drawn by the app (qrDataUrl) — nothing is generated here. The card is white
+     with a padded border (quiet zone) so it scans at arm's length from a totem
+     whatever colour surrounds it. */
+  .route-qr {
+    --route-qr-size: clamp(180px, 28vmin, 260px);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cb-space-l);
+    padding: var(--cb-space-m) var(--cb-space-l);
+    box-sizing: border-box;
+    background: var(--cb-white);
+    border-top: 1px solid var(--cb-primary-50);
+  }
+
+  .route-qr-card {
+    flex-shrink: 0;
+    padding: var(--cb-space-m);
+    background: var(--cb-white);
+    border: 1px solid var(--cb-primary-50);
+    border-radius: var(--cb-radius-m);
+    box-shadow: var(--cb-shadow-down-s);
+    line-height: 0;
+  }
+
+  .route-qr-img {
+    display: block;
+    width: var(--route-qr-size);
+    height: var(--route-qr-size);
+    object-fit: contain;
+    image-rendering: pixelated; /* keep module edges crisp when the GIF is upscaled */
+  }
+
+  .route-qr-caption {
+    margin: 0;
+    max-width: 16em;
+    font-family: var(--cb-font-title);
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 1.35;
+    color: var(--cb-primary-900);
+  }
+
+  .route-qr-caption:empty { display: none; }
+
+  @media (orientation: landscape) {
+    .store-map-body { flex-direction: row; }
+    .route-qr {
+      flex-direction: column;
+      border-top: 0;
+      border-left: 1px solid var(--cb-primary-50);
+      padding: var(--cb-space-m);
+      gap: var(--cb-space-m);
+      overflow-y: auto;
+    }
+    .route-qr-caption {
+      max-width: calc(var(--route-qr-size) + 2 * var(--cb-space-m));
+      text-align: center;
+      font-size: 15px;
+    }
   }
 
   .store-map-debug {
@@ -372,6 +447,7 @@
     </p>
   </div>
 
+  <div class="store-map-body">
   <div class="store-map-stage status-covering" id="stage">
     <div class="store-map-floor hidden" id="store-map-floor"></div>
     <div class="store-map-view" id="map-view">
@@ -396,6 +472,16 @@
         <p class="store-map-status-copy" id="status-copy">Ubicando la tienda en el mapa del mall.</p>
       </div>
     </div>
+  </div>
+
+  <!-- Filled by window.applyRouteQr(payload) from the native app; the caption
+       arrives already translated, so it is NOT written here. -->
+  <aside class="route-qr hidden" id="route-qr">
+    <div class="route-qr-card">
+      <img class="route-qr-img" id="route-qr-img" alt="" />
+    </div>
+    <p class="route-qr-caption" id="route-qr-caption"></p>
+  </aside>
   </div>
 
   <pre class="store-map-debug hidden" id="debug"></pre>
@@ -756,6 +842,9 @@ function openStoreMapFromPayload(source, meta) {
   // one's own applyStoreDetail (if any) arrives — otherwise a visitor
   // briefly sees the wrong logo/category while the new map loads.
   hideStoreDetail();
+  // Same for the route QR: the app re-injects it right after this call (and
+  // after applyStoreDetail), so dropping it here only removes a stale one.
+  hideRouteQr();
   const placeId = pickIdentifierFromPayload(source);
   const cfg = readConfig();
   if (!placeId) {
@@ -956,6 +1045,46 @@ window.applyStoreDetail = function (detail) {
     id: detail.id || detail.local,
   }));
   enrichStoreDetail(merged, seq);
+  return true;
+};
+
+// "Continue the route on your phone" QR. The app injects, right after
+// openStoreMapById/applyStoreDetail:
+//   window.SIMA_ROUTE_QR = { url, qrDataUrl, caption } | null;
+//   window.applyRouteQr(window.SIMA_ROUTE_QR);
+// qrDataUrl is a ready-made image (no QR library here) and caption is already
+// translated by the app, so neither is generated or hardcoded in this page.
+// null/empty/unusable payload hides the block AND drops the image src, so the
+// previous store's QR can never linger.
+function hideRouteQr() {
+  const box = document.getElementById("route-qr");
+  const img = document.getElementById("route-qr-img");
+  const cap = document.getElementById("route-qr-caption");
+  if (img) { img.removeAttribute("src"); img.alt = ""; }
+  if (cap) cap.textContent = "";
+  if (box) box.classList.add("hidden");
+}
+
+window.applyRouteQr = function (payload) {
+  const box = document.getElementById("route-qr");
+  const img = document.getElementById("route-qr-img");
+  const cap = document.getElementById("route-qr-caption");
+  if (!box || !img || !cap) return false;
+  const dataUrl = payload && typeof payload.qrDataUrl === "string" ? payload.qrDataUrl.trim() : "";
+  if (!/^data:image\//i.test(dataUrl)) {
+    if (payload) log("applyRouteQr: payload without a usable qrDataUrl — hidden");
+    hideRouteQr();
+    return false;
+  }
+  img.onerror = function () {
+    log("applyRouteQr: qrDataUrl failed to decode — hidden");
+    hideRouteQr();
+  };
+  img.alt = typeof payload.url === "string" ? payload.url : "";
+  img.src = dataUrl;
+  cap.textContent = typeof payload.caption === "string" ? payload.caption : "";
+  box.classList.remove("hidden");
+  log("applyRouteQr shown: " + JSON.stringify({ url: payload.url || "" }));
   return true;
 };
 
@@ -1612,6 +1741,10 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   document.getElementById("store-map-back").addEventListener("click", handleBack);
+
+  // The app may have injected window.SIMA_ROUTE_QR before applyRouteQr existed
+  // (its typeof guard then skipped the call) — apply what's already there once.
+  if (window.SIMA_ROUTE_QR) window.applyRouteQr(window.SIMA_ROUTE_QR);
 
   applyPlace(cfg, placeId);
   if (placeId) renderStoreDetailFromPayload(queryParams());
