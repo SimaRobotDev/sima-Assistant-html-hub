@@ -1326,6 +1326,36 @@ window.__SERVICES_CATALOG__ = {
       }
     },
     {
+      "id": "cowork-n4",
+      "type": "cowork",
+      "sector": "",
+      "name": "Cowork (Nivel 4)",
+      "floors": [
+        "4"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "Espacio Cowork en Nivel 4.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "cowork",
+        "co work",
+        "co-work",
+        "espacio de trabajo",
+        "trabajo",
+        "oficina",
+        "workspace",
+        "nivel 4"
+      ],
+      "mapvx": {
+        "placeId": "-ND_0DERqPpgwHYPo5gn",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
       "id": "cajero-n1-1",
       "type": "atm",
       "sector": "",

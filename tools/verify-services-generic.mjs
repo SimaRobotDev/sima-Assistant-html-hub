@@ -258,5 +258,21 @@ check(
   check(`"${q}" -> no extra types`, !SC.search(q).some((r) => Object.keys(EXTRA).includes(r.type)))
 );
 
+// ---- 5. Cowork on two levels (N2 + N4) ----
+const coworks = servicesData.services.filter((s) => s.type === "cowork");
+check("catalog has 2 cowork entries (N2, N4)", coworks.length === 2 && coworks.some((s) => s.floors.includes("4")), `got ${coworks.length}`);
+check(
+  "N4 cowork is WC-eligible (placeId, no placeIdNote, no coordinates)",
+  coworks.filter((s) => s.floors.includes("4")).every((s) => s.mapvx?.placeId && !s.mapvx.placeIdNote && s.mapvx.lat == null)
+);
+["cowork", "coworking", "co-work", "espacio de trabajo", "workspace"].forEach((q) => {
+  const r = SC.search(q);
+  check(`cowork   "${q}" -> both levels, cowork only`, r.length === 2 && r.every((x) => x.type === "cowork"), `got ${r.length}`);
+});
+check('"cowork nivel 4" -> only the N4 one', (() => { const r = SC.search("cowork nivel 4"); return r.length === 1 && r[0].floors.includes("4"); })());
+check("totem on N4: its own cowork", (() => { const r = SC.search("cowork", { preferFloor: "4" }); return r.length === 1 && r[0].floors.includes("4"); })());
+check("totem on N2: its own cowork", (() => { const r = SC.search("cowork", { preferFloor: "2" }); return r.length === 1 && r[0].floors.includes("2"); })());
+check("totem on N3 (no cowork): both listed", SC.search("cowork", { preferFloor: "3" }).length === 2);
+
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");
 process.exit(failed ? 1 : 0);
