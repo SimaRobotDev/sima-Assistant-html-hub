@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-37",
+  "version": "2026.09.02-38",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-10-02T14:31:09.452Z",
+  "generatedAt": "2026-10-02T15:03:06.625Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -295,8 +295,8 @@
     },
     {
       "path": "shared/category-icons/bike.svg",
-      "size": 355,
-      "sha256": "6206abe544aa81e97370f2fbcb65164bf30c209fd6d32f8ce57cb3ec604dd4da"
+      "size": 2876,
+      "sha256": "82b7668aeb9c389898d44659efb8da40998db460f20672df833a71000c92e72d"
     },
     {
       "path": "shared/category-icons/book.svg",
@@ -335,8 +335,8 @@
     },
     {
       "path": "shared/category-icons/civil-registry.svg",
-      "size": 375,
-      "sha256": "2376f294fb3562b336cddb8eaa2839e20d3c38ed4580e0d869e7e389cb4ea8e4"
+      "size": 2913,
+      "sha256": "cbf8459e9bbebc85778488d8e552b869940b874bdcb4f310c15fad43b8aac194"
     },
     {
       "path": "shared/category-icons/cowork.svg",
@@ -360,8 +360,8 @@
     },
     {
       "path": "shared/category-icons/electric-taxi.svg",
-      "size": 322,
-      "sha256": "45f055182b091b1ecc36d4d7d357390ae1aa23db0e1d590db18e9f9be8ce1753"
+      "size": 1786,
+      "sha256": "ffb6f0d086be4d96108720f4ae1d7f2fa1f12db827bce1d6ce189802457ab579"
     },
     {
       "path": "shared/category-icons/elevator.svg",
@@ -410,13 +410,13 @@
     },
     {
       "path": "shared/category-icons/parking-exit.svg",
-      "size": 287,
-      "sha256": "458f845ffb3fece07286bd1da7f860591a221be176f348d2a82b68b9898a7cf8"
+      "size": 1243,
+      "sha256": "3c34fdc512a7c2909e62e55398e719f2ee43e55fd022b23c9ce48b6c9890e00c"
     },
     {
       "path": "shared/category-icons/parking-kit.svg",
-      "size": 335,
-      "sha256": "296abe4fa45d7073bdbb92bba3bfe0edda606f39d4eb04fec7ee2465b4a4b4f9"
+      "size": 1873,
+      "sha256": "e4161c1316706c758b61dde6a51f1c33bb2b5562a1e13b5aacafaf6602c641e3"
     },
     {
       "path": "shared/category-icons/patio-de-comidas.svg",
@@ -475,8 +475,8 @@
     },
     {
       "path": "shared/category-icons/stage.svg",
-      "size": 316,
-      "sha256": "0990ba37e76628972a3c23ebde1adb17feafe9633d47eae3792d53911751a653"
+      "size": 349,
+      "sha256": "4008d2edd5d04537130405c15b1ebedbca157cad45efbb8b974813f099d20b76"
     },
     {
       "path": "shared/category-icons/store.svg",
