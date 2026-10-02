@@ -1,5 +1,7 @@
 /**
- * Mall infrastructure services catalog (bathrooms + elevators).
+ * Mall infrastructure services catalog (bathrooms, elevators, ATMs, nursing,
+ * changing tables, customer service, cowork + the MapVX "Servicios" points:
+ * bike rack, stage, exits, ramps, playground…).
  */
 window.ServicesCatalog = (function () {
   var catalog = null;
@@ -305,6 +307,41 @@ window.ServicesCatalog = (function () {
     );
   }
 
+  // Mall points of interest listed on the public MapVX "Servicios" menu. Each
+  // type is WC-only (placeId, no coordinates) like ATMs. Queries are matched on
+  // canonicalized text (lowercase, no accents). Deliberately narrow: a bare
+  // "taxi" belongs to the taxi screen, a bare "plaza" / "estacionamiento" to
+  // store search, and emergency exits are not part of this catalog.
+  var EXTRA_TYPE_INTENTS = [
+    { type: "parking_kit", re: /\b(kit\s+(de\s+)?(servicios?|servicos?|parking|estacionamiento|auto)|(parking|car)\s+(service\s+)?kit)\b/ },
+    { type: "electric_taxi", re: /\b(taxis?\s+(electricos?|eletricos?)|electric\s+taxis?|(parada|paradero|ponto)\s+de\s+taxis?|taxi\s+(stand|rank))\b/ },
+    { type: "parking_exit", re: /\b(rampas?|(salidas?|exits?|saidas?|accesos?|entradas?)\s+(a\s+|al\s+|del?\s+|to\s+|from\s+|do\s+|ao\s+)?(los?\s+|the\s+)?(estacionamientos?|estacionamento|parking|subterraneo|garage|garaje|autos?|vehiculos?|car)|(estacionamientos?|estacionamento|parking|garage|garaje|car\s+park)\s+(salidas?|exits?|saidas?|rampas?|ramps?))\b/ },
+    { type: "playground", re: /\b(plaza\s+(de\s+)?juegos|juegos\s+infantiles|parque\s+infantil|plaza\s+infantil|patio\s+de\s+juegos|play\s*ground|kids?\s+play\s*(area|ground)|play\s+area|parquinho|praca\s+de\s+jogos|area\s+de\s+brincar)\b/ },
+    { type: "central_plaza", re: /\b(plaza\s+central|central\s+plaza|praca\s+central)\b/ },
+    { type: "civil_registry", re: /\b(registro\s+civil|civil\s+regist\w+|carnet|cedula(\s+de\s+identidad)?|renovar\s+(el\s+)?(carnet|cedula))\b/ },
+    { type: "bike", re: /\b(bike\s+costanera|bicicleteros?|bicicletarios?|paraciclos?|bike\s+(rack|parking)|bicycle\s+parking|(dej|guard|estacion|aparc|deix)\w+\s+(mi\s+|la\s+|una\s+|a\s+|minha\s+)?(bici|bicis|bicicletas?)|(park|lock|leave)\s+(my\s+|a\s+|the\s+)?(bike|bicycle))\b/ },
+    { type: "stage", re: /\b(escenarios?|stages?|palcos?)\b/ },
+    // Last: "salida(s)" / "exit(s)" — only once none of the parking / emergency phrasings applies.
+    { type: "mall_exit", re: /\b(salidas?|salir|exits?|saidas?)\b/, unless: /\b(emergencias?|emergency|emergencia)\b/ },
+  ];
+  var EXTRA_SERVICE_TYPES = EXTRA_TYPE_INTENTS.map(function (row) {
+    return row.type;
+  });
+
+  function extraTypeFromQuery(query) {
+    var n = canonicalizeServiceQuery(query);
+    if (!n) return "";
+    for (var i = 0; i < EXTRA_TYPE_INTENTS.length; i++) {
+      var row = EXTRA_TYPE_INTENTS[i];
+      if (row.re.test(n) && !(row.unless && row.unless.test(n))) return row.type;
+    }
+    return "";
+  }
+
+  function looksLikeExtraServiceQuery(query) {
+    return !!extraTypeFromQuery(query);
+  }
+
   // "servicios del mall" / "mall services" / "serviços do shopping": the visitor
   // wants EVERYTHING classified as a service, not one kind. Lemmas are post-
   // normalizeText (no accents / cedilla), fuzzy-matched so typos still land.
@@ -370,6 +407,15 @@ window.ServicesCatalog = (function () {
     "atm",
     "elevator",
     "cowork",
+    "bike",
+    "stage",
+    "central_plaza",
+    "playground",
+    "civil_registry",
+    "mall_exit",
+    "parking_exit",
+    "electric_taxi",
+    "parking_kit",
   ];
 
   function isGenericServiceWord(token) {
@@ -403,6 +449,7 @@ window.ServicesCatalog = (function () {
       looksLikeCustomerServiceQuery(query) ||
       looksLikeCoworkQuery(query) ||
       looksLikeAtmQuery(query) ||
+      looksLikeExtraServiceQuery(query) ||
       looksLikeGenericServicesQuery(query) ||
       wantsNursing(query) ||
       wantsChangingTable(query)
@@ -652,6 +699,7 @@ window.ServicesCatalog = (function () {
     if (type === "atm" && looksLikeAtmQuery(queryNorm)) score += 8;
     if (type === "nursing" && wantsNursing(queryNorm)) score += 8;
     if (type === "changing_table" && wantsChangingTable(queryNorm)) score += 8;
+    if (EXTRA_SERVICE_TYPES.indexOf(type) >= 0 && extraTypeFromQuery(queryNorm) === type) score += 8;
 
     if (preferFloor && entryOnFloor(entry, preferFloor)) {
       score += floorFilter ? 2 : 8;
@@ -678,6 +726,8 @@ window.ServicesCatalog = (function () {
     var bath = looksLikeBathroomQuery(queryNorm);
     var elev = looksLikeElevatorQuery(queryNorm);
     var atm = looksLikeAtmQuery(queryNorm);
+    var extra = extraTypeFromQuery(queryNorm);
+    if (extra && !bath && !elev && !cust && !cowork && !atm) return extra;
     if (atm && !bath && !elev && !cust && !cowork) return "atm";
     if (cowork && !bath && !elev && !cust) return "cowork";
     if (cust && !bath && !elev) return "customer_service";
@@ -748,6 +798,8 @@ window.ServicesCatalog = (function () {
     looksLikeCustomerServiceQuery: looksLikeCustomerServiceQuery,
     looksLikeCoworkQuery: looksLikeCoworkQuery,
     looksLikeAtmQuery: looksLikeAtmQuery,
+    looksLikeExtraServiceQuery: looksLikeExtraServiceQuery,
+    extraTypeFromQuery: extraTypeFromQuery,
     looksLikeNursingQuery: looksLikeNursingQuery,
     looksLikeChangingTableQuery: looksLikeChangingTableQuery,
     looksLikeServicesQuery: looksLikeServicesQuery,
@@ -816,6 +868,7 @@ window.ServicesCatalog = (function () {
           looksLikeElevatorQuery(q) ||
           looksLikeCustomerServiceQuery(q) ||
           looksLikeCoworkQuery(q) ||
+          looksLikeExtraServiceQuery(q) ||
           wantsNursing(q) ||
           wantsChangingTable(q)
         )
@@ -849,7 +902,9 @@ window.ServicesCatalog = (function () {
       // When a strong match exists (brand/sector), drop generic-only hits.
       // Elevator banks are peers on a floor — don't hide Vitacura just because
       // Ripley/H&M scored a bit higher from floor landmarks.
-      if (typeFilter === "elevator") {
+      // Exits, ramps, the bike rack… are few and spread over several levels:
+      // list them all, the totem's floor simply ranks first.
+      if (typeFilter === "elevator" || EXTRA_SERVICE_TYPES.indexOf(typeFilter) >= 0) {
         minScore = 1;
       } else if (topScore >= 6) {
         minScore = Math.max(minScore, topScore - 2);
