@@ -1328,17 +1328,23 @@ window.__SERVICES_CATALOG__ = {
     {
       "id": "cowork-n4",
       "type": "cowork",
-      "sector": "",
+      "sector": "paris",
       "name": "Cowork (Nivel 4)",
       "floors": [
         "4"
       ],
       "features": {},
-      "anchorStores": [],
+      "anchorStores": [
+        {
+          "brand": "Paris",
+          "local": "CC_N4_1200",
+          "role": "primary"
+        }
+      ],
       "descriptions": {
-        "short": "Espacio Cowork en Nivel 4.",
-        "medium": "",
-        "long": ""
+        "short": "Espacio Cowork en Nivel 4, frente a Paris.",
+        "medium": "Frente a Paris, en el Nivel 4.",
+        "long": "En el Nivel 4, espacio Cowork ubicado frente a Paris."
       },
       "keywords": [
         "cowork",
@@ -1348,7 +1354,8 @@ window.__SERVICES_CATALOG__ = {
         "trabajo",
         "oficina",
         "workspace",
-        "nivel 4"
+        "nivel 4",
+        "paris"
       ],
       "mapvx": {
         "placeId": "-ND_0DERqPpgwHYPo5gn",

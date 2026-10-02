@@ -274,5 +274,14 @@ check("totem on N4: its own cowork", (() => { const r = SC.search("cowork", { pr
 check("totem on N2: its own cowork", (() => { const r = SC.search("cowork", { preferFloor: "2" }); return r.length === 1 && r[0].floors.includes("2"); })());
 check("totem on N3 (no cowork): both listed", SC.search("cowork", { preferFloor: "3" }).length === 2);
 
+check(
+  "N4 cowork is anchored to Paris (CC_N4_1200); '\"cowork paris\"' finds it",
+  (() => {
+    const n4 = coworks.find((s) => s.floors.includes("4"));
+    const r = SC.search("cowork paris");
+    return n4?.anchorStores?.[0]?.local === "CC_N4_1200" && r.length === 1 && r[0].floors.includes("4") && r[0].anchorLocal === "CC_N4_1200";
+  })()
+);
+
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");
 process.exit(failed ? 1 : 0);
