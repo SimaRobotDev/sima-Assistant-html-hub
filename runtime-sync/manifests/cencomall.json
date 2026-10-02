@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-36",
+  "version": "2026.09.02-37",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-10-01T17:03:45.295Z",
+  "generatedAt": "2026-10-02T14:31:09.452Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -115,13 +115,13 @@
     },
     {
       "path": "data/services-catalog.json",
-      "size": 46745,
-      "sha256": "5004c3977b746a6461422aa27ae29fffcdae87746e1c5a2a195e29889ed408d1"
+      "size": 61421,
+      "sha256": "cae4f459ceb035ca97daf1c222e6c434b5883f24fdae24c59e84be6f70bbf00f"
     },
     {
       "path": "data/services-catalog.jsonp.js",
-      "size": 46939,
-      "sha256": "b836b86d555f37c9f3d16afa293c44e89bb62ed9444a7ac4a857bbf6d0d3b6a2"
+      "size": 61615,
+      "sha256": "bb4fb9025e4b905d079ad318533c76f386ff07cf16343633290ae98eaea563d5"
     },
     {
       "path": "docs/MARKET-CATALOG-SLIM.md",
@@ -210,8 +210,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 283839,
-      "sha256": "94f60dac87e3de2a3cb2cb4b543061a209cc70a12e4b56c69ce6aff2c6f5edd5"
+      "size": 286880,
+      "sha256": "98aa63942445ebf84e06dc5d346160881dce1deeb8eb21f548aa93e4ce0f5029"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -294,6 +294,11 @@
       "sha256": "6d68a8fe1eb26c148427721671a793872f71be4b793643a632f7b58e5b2589c4"
     },
     {
+      "path": "shared/category-icons/bike.svg",
+      "size": 355,
+      "sha256": "6206abe544aa81e97370f2fbcb65164bf30c209fd6d32f8ce57cb3ec604dd4da"
+    },
+    {
       "path": "shared/category-icons/book.svg",
       "size": 3812,
       "sha256": "a182c7320869561825b6ab06c1f13486250225bafeac74c3bf91e66765e8eced"
@@ -314,6 +319,11 @@
       "sha256": "6e1dd0aea8198d660dc7c9a18a0a065c019a33c908adde00f0588f78b6d21e5e"
     },
     {
+      "path": "shared/category-icons/central-plaza.svg",
+      "size": 287,
+      "sha256": "f95e6424cebc0bd93be35e46c1ffd0f5dbbdd83840a4dafae8858f20ead44862"
+    },
+    {
       "path": "shared/category-icons/changing-table.svg",
       "size": 1410,
       "sha256": "5d204f04d03dc2069d09444cd02468e4b36354278178a47bed839a39a6881405"
@@ -322,6 +332,11 @@
       "path": "shared/category-icons/chocolateria-confites.svg",
       "size": 3094,
       "sha256": "64016ccb04f841674c7dcf39e590d97d956c70aa659eca435c8515ca13eb6b6c"
+    },
+    {
+      "path": "shared/category-icons/civil-registry.svg",
+      "size": 375,
+      "sha256": "2376f294fb3562b336cddb8eaa2839e20d3c38ed4580e0d869e7e389cb4ea8e4"
     },
     {
       "path": "shared/category-icons/cowork.svg",
@@ -342,6 +357,11 @@
       "path": "shared/category-icons/desktop.svg",
       "size": 2882,
       "sha256": "1a589437cfff3ceca5a91842339422cd7c9c14253e65f229e0af848e50429c83"
+    },
+    {
+      "path": "shared/category-icons/electric-taxi.svg",
+      "size": 322,
+      "sha256": "45f055182b091b1ecc36d4d7d357390ae1aa23db0e1d590db18e9f9be8ce1753"
     },
     {
       "path": "shared/category-icons/elevator.svg",
@@ -379,14 +399,34 @@
       "sha256": "0c6172c490930ff4112996a8303df8cdcee76a7310e296597b06035d6458cd07"
     },
     {
+      "path": "shared/category-icons/mall-exit.svg",
+      "size": 294,
+      "sha256": "e6c49fa48d5aa2708fd83bcea348258c0316967e958c14c94d672c501a886136"
+    },
+    {
       "path": "shared/category-icons/nursing.svg",
       "size": 2204,
       "sha256": "e896a426f4eb6d928d817967431351300ef634c6248e53a5359f757653a9aefe"
     },
     {
+      "path": "shared/category-icons/parking-exit.svg",
+      "size": 287,
+      "sha256": "458f845ffb3fece07286bd1da7f860591a221be176f348d2a82b68b9898a7cf8"
+    },
+    {
+      "path": "shared/category-icons/parking-kit.svg",
+      "size": 335,
+      "sha256": "296abe4fa45d7073bdbb92bba3bfe0edda606f39d4eb04fec7ee2465b4a4b4f9"
+    },
+    {
       "path": "shared/category-icons/patio-de-comidas.svg",
       "size": 2426,
       "sha256": "5e7a8a6ffba98a23c10327996beb677f3e79e553090166d23a1b412994fd041e"
+    },
+    {
+      "path": "shared/category-icons/playground.svg",
+      "size": 324,
+      "sha256": "0472cf422d872d68c9ffcaa31998a5aa4c8aa8007a7f97989ff9635f62c1a1f1"
     },
     {
       "path": "shared/category-icons/popcorn.svg",
@@ -432,6 +472,11 @@
       "path": "shared/category-icons/sports.svg",
       "size": 4638,
       "sha256": "5b30a872287287fdbfa7f2a44abe8e303ef72c51d7431ca04c2f85b263c82f2c"
+    },
+    {
+      "path": "shared/category-icons/stage.svg",
+      "size": 316,
+      "sha256": "0990ba37e76628972a3c23ebde1adb17feafe9633d47eae3792d53911751a653"
     },
     {
       "path": "shared/category-icons/store.svg",
@@ -545,8 +590,8 @@
     },
     {
       "path": "shared/services-catalog.js",
-      "size": 31394,
-      "sha256": "748dbd1968e6204bebcf2b6c62933931735888b11dc598efd23d7d1d0fce0909"
+      "size": 34934,
+      "sha256": "b120f18bc26001fac16c5a8b77b9e874ccd1be5c2d3b6029e962669224404a0a"
     },
     {
       "path": "shared/store-detail.css",
