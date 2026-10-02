@@ -2182,6 +2182,15 @@ const MOBILITY_I18N = {
     elevators: "Ascensores",
     customerService: "Atención al cliente",
     cowork: "Cowork",
+    bikeRack: "Bike Costanera",
+    stage: "Escenario",
+    civilRegistry: "Tótem Registro Civil",
+    centralPlaza: "Plaza Central",
+    playground: "Plaza de Juegos",
+    mallExits: "Salidas Centro Comercial",
+    parkingExits: "Salidas Estacionamientos",
+    electricTaxis: "Taxis Eléctricos",
+    parkingKit: "Kit de servicios parking",
     allLevels: "Todos los niveles",
     level: "Nivel",
     gf: "PB",
@@ -2286,6 +2295,15 @@ const MOBILITY_I18N = {
     elevators: "Elevators",
     customerService: "Customer service",
     cowork: "Cowork",
+    bikeRack: "Bike Costanera",
+    stage: "Stage",
+    civilRegistry: "Civil Registry kiosk",
+    centralPlaza: "Central Plaza",
+    playground: "Playground",
+    mallExits: "Mall exits",
+    parkingExits: "Parking exits",
+    electricTaxis: "Electric taxis",
+    parkingKit: "Parking service kit",
     allLevels: "All levels",
     level: "Level",
     gf: "GF",
@@ -2390,6 +2408,15 @@ const MOBILITY_I18N = {
     elevators: "Elevadores",
     customerService: "Atendimento ao cliente",
     cowork: "Cowork",
+    bikeRack: "Bike Costanera",
+    stage: "Palco",
+    civilRegistry: "Totem do Registro Civil",
+    centralPlaza: "Praça Central",
+    playground: "Parquinho infantil",
+    mallExits: "Saídas do shopping",
+    parkingExits: "Saídas do estacionamento",
+    electricTaxis: "Táxis elétricos",
+    parkingKit: "Kit de serviços do estacionamento",
     allLevels: "Todos os níveis",
     level: "Nível",
     gf: "Térreo",
@@ -5410,6 +5437,27 @@ function formatServiceFloors(floors) {
   return labels[0] + "–" + labels[labels.length - 1];
 }
 
+// Points listed on the public MapVX "Servicios" menu. Each one is a catalog
+// type of its own (WC-only, like ATMs); this table is the single place that
+// says how they are labelled and drawn. useEntryName: several distinct points
+// share the type (exits), so the popup keeps the specific name.
+const EXTRA_SERVICE_KINDS = {
+  bike: { label: "bikeRack", icon: "bike.svg", fallback: "Bike Costanera" },
+  stage: { label: "stage", icon: "stage.svg", fallback: "Escenario" },
+  civil_registry: { label: "civilRegistry", icon: "civil-registry.svg", fallback: "Tótem Registro Civil" },
+  central_plaza: { label: "centralPlaza", icon: "central-plaza.svg", fallback: "Plaza Central" },
+  playground: { label: "playground", icon: "playground.svg", fallback: "Plaza de Juegos" },
+  mall_exit: { label: "mallExits", icon: "mall-exit.svg", fallback: "Salidas Centro Comercial", useEntryName: true },
+  parking_exit: { label: "parkingExits", icon: "parking-exit.svg", fallback: "Salidas Estacionamientos", useEntryName: true },
+  electric_taxi: { label: "electricTaxis", icon: "electric-taxi.svg", fallback: "Taxis Eléctricos" },
+  parking_kit: { label: "parkingKit", icon: "parking-kit.svg", fallback: "Kit de servicios parking" },
+};
+
+function extraServiceKindLabel(kind) {
+  const meta = EXTRA_SERVICE_KINDS[kind];
+  return meta ? (t(meta.label) || meta.fallback) : "";
+}
+
 function getServiceKind(svc) {
   const type = String((svc && svc.type) || "").toLowerCase();
   if (type === "elevator") return "elevator";
@@ -5418,6 +5466,7 @@ function getServiceKind(svc) {
   if (type === "nursing") return "nursing";
   if (type === "changing_table" || type === "changing-table") return "changing_table";
   if (type === "atm") return "atm";
+  if (EXTRA_SERVICE_KINDS[type]) return type;
   if (type === "bathroom") {
     const n = String((svc && svc.name) || "").toLowerCase();
     if (n.includes("niños") || n.includes("ninos") || n.includes("mudador")) return "kids";
@@ -5446,6 +5495,7 @@ function serviceKindIcon(kind) {
   if (kind === "bathroom") return '<img src="../shared/category-icons/restroom.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
   if (kind === "customer_service") return '<img src="../shared/category-icons/customer_service.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
   if (kind === "cowork") return '<img src="../shared/category-icons/cowork.svg" alt="" class="service-card-icon-svg" loading="lazy" />';
+  if (EXTRA_SERVICE_KINDS[kind]) return '<img src="../shared/category-icons/' + EXTRA_SERVICE_KINDS[kind].icon + '" alt="" class="service-card-icon-svg" loading="lazy" />';
   return "📍";
 }
 
@@ -5792,7 +5842,7 @@ function renderServiceDetailPanel(service) {
   const displayName = sanitizeStoreDisplayName(service.name || t("services"));
   const kind = getServiceKind(service);
   const icon = serviceKindIcon(kind);
-  const typeLabel = kind ? `<span class="store-badge store-badge-floor">${escapeHtml(kind === "bathroom" ? (t("bathrooms") || "Baños") : kind === "cowork" ? (t("cowork") || "Cowork") : kind === "customer_service" ? (t("customerService") || "Atención al cliente") : kind === "elevator" ? (t("elevators") || "Ascensor") : kind === "nursing" ? (t("nursingRoom") || "Sala de lactancia") : kind === "changing_table" ? (t("changingTables") || "Mudadores") : kind === "atm" ? (t("atm") || "Cajero automático") : escapeHtml(t("services")))}</span>` : "";
+  const typeLabel = kind ? `<span class="store-badge store-badge-floor">${escapeHtml(kind === "bathroom" ? (t("bathrooms") || "Baños") : kind === "cowork" ? (t("cowork") || "Cowork") : kind === "customer_service" ? (t("customerService") || "Atención al cliente") : kind === "elevator" ? (t("elevators") || "Ascensor") : kind === "nursing" ? (t("nursingRoom") || "Sala de lactancia") : kind === "changing_table" ? (t("changingTables") || "Mudadores") : kind === "atm" ? (t("atm") || "Cajero automático") : EXTRA_SERVICE_KINDS[kind] ? extraServiceKindLabel(kind) : escapeHtml(t("services")))}</span>` : "";
   const floorLabel = formatServiceFloors(service.floors) ? `<span class="store-badge store-badge-floor">${escapeHtml(formatServiceFloors(service.floors))}</span>` : "";
   const location = service.location ? `<div class="store-detail-schedule">${escapeHtml(service.location)}</div>` : "";
   const description = String(service.description || service.location || "").trim();
@@ -6225,6 +6275,8 @@ function renderServiceCard(svc, idx) {
             ? `<span class="store-badge store-badge-floor">${escapeHtml(t("atm") || "Cajero automático")}</span>`
           : kind === "changing_table"
             ? `<span class="store-badge store-badge-promo">${escapeHtml(t("changingTables") || "Mudadores")}</span>`
+          : EXTRA_SERVICE_KINDS[kind]
+            ? `<span class="store-badge store-badge-floor">${escapeHtml(extraServiceKindLabel(kind))}</span>`
           : "";
   const floorsLabel = formatServiceFloors(svc.floors);
   const floorBadge = floorsLabel
@@ -7375,6 +7427,11 @@ function genericServiceLabelForWc(entry) {
   else if (kind === "changing_table") name = t("changingTables") || "Mudadores";
   else if (kind === "atm") name = t("atm") || "Cajero automático";
   else if (kind === "bathroom" || kind === "kids") name = t("bathrooms") || "Baños";
+  else if (EXTRA_SERVICE_KINDS[kind]) {
+    name = EXTRA_SERVICE_KINDS[kind].useEntryName
+      ? sanitizeStoreDisplayName(String(entry.name || "").replace(/\s*\([^)]*\)\s*$/, "")) || extraServiceKindLabel(kind)
+      : extraServiceKindLabel(kind);
+  }
   else name = sanitizeStoreDisplayName(entry.name || t("services"));
 
   const iconRaw = serviceKindIcon(kind === "kids" ? "bathroom" : kind);

@@ -441,6 +441,42 @@
       }
     },
     {
+      "id": "bano-n5-2",
+      "type": "bathroom",
+      "sector": "",
+      "name": "Baños — Nivel 5 (segundo punto)",
+      "floors": [
+        "5"
+      ],
+      "features": {
+        "mudador": false,
+        "accesible": true,
+        "hombresMujeres": true
+      },
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "baño",
+        "baños",
+        "nivel 5"
+      ],
+      "mapvx": {
+        "placeId": "-OycgiPV_F5tRjr0rnUY",
+        "placeIdType": "mujeres",
+        "placeIdSource": "cencomalls.costanera.mapvx.com",
+        "derivations": {
+          "hombres": "-OycgfpNIFDyhZtXJUsC",
+          "mujeres": "-OycgiPV_F5tRjr0rnUY",
+          "accesible": "-Oycgoh_1xXC9qpnX9xK",
+          "ninos": "-Oz8NeHFKQQbUTs_dLYF"
+        }
+      }
+    },
+    {
       "id": "sala-lactancia-n2",
       "type": "nursing",
       "sector": "hm",
@@ -1289,6 +1325,43 @@
       }
     },
     {
+      "id": "cowork-n4",
+      "type": "cowork",
+      "sector": "paris",
+      "name": "Cowork (Nivel 4)",
+      "floors": [
+        "4"
+      ],
+      "features": {},
+      "anchorStores": [
+        {
+          "brand": "Paris",
+          "local": "CC_N4_1200",
+          "role": "primary"
+        }
+      ],
+      "descriptions": {
+        "short": "Espacio Cowork en Nivel 4, frente a Paris.",
+        "medium": "Frente a Paris, en el Nivel 4.",
+        "long": "En el Nivel 4, espacio Cowork ubicado frente a Paris."
+      },
+      "keywords": [
+        "cowork",
+        "co work",
+        "co-work",
+        "espacio de trabajo",
+        "trabajo",
+        "oficina",
+        "workspace",
+        "nivel 4",
+        "paris"
+      ],
+      "mapvx": {
+        "placeId": "-ND_0DERqPpgwHYPo5gn",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
       "id": "cajero-n1-1",
       "type": "atm",
       "sector": "",
@@ -1945,6 +2018,591 @@
       ],
       "mapvx": {
         "placeId": "-N2Ykjm5YnfNvesLgUmr",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "bike-costanera-n1",
+      "type": "bike",
+      "sector": "",
+      "name": "Bike Costanera (Nivel 1)",
+      "floors": [
+        "1"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "Bicicletero en el acceso Vitacura y Andrés Bello.",
+        "medium": "Acceso Vitacura y Andrés Bello. Bicicletero gratuito a disposición de nuestros clientes; debes traer tu propio candado.",
+        "long": "Acceso Vitacura y Andrés Bello. Contamos con bicicletero a disposición de nuestros clientes. Debes traer tu propio candado. Servicio gratuito. Horario: 10:30 hrs. a 19:00 hrs."
+      },
+      "keywords": [
+        "bike",
+        "bike costanera",
+        "bicicletero",
+        "bicicleteros",
+        "bicicleta",
+        "bicicletas",
+        "bici",
+        "bicis",
+        "estacionar bicicleta",
+        "dejar bicicleta",
+        "candado",
+        "bike rack",
+        "bicycle",
+        "bicycle parking",
+        "bike parking",
+        "bicicletario",
+        "paraciclo",
+        "acceso vitacura",
+        "acceso andres bello",
+        "nivel 1",
+        "piso 1"
+      ],
+      "mapvx": {
+        "placeId": "-O3Jj7zFV3MUzvD-25lV",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "escenario-n5",
+      "type": "stage",
+      "sector": "",
+      "name": "Escenario (Nivel 5)",
+      "floors": [
+        "5"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "Escenario del mall en el Nivel 5.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "escenario",
+        "escenarios",
+        "tarima",
+        "show",
+        "shows",
+        "evento",
+        "eventos",
+        "stage",
+        "stages",
+        "palco",
+        "palcos",
+        "nivel 5",
+        "piso 5"
+      ],
+      "mapvx": {
+        "placeId": "-Nju9mk2UisQG1mMXV5W",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "totem-registro-civil-pb",
+      "type": "civil_registry",
+      "sector": "",
+      "name": "Tótem Registro Civil (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "Tótem del Registro Civil en la Planta Baja.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "totem registro civil",
+        "registro civil",
+        "civil",
+        "carnet",
+        "cedula",
+        "cedula de identidad",
+        "renovar carnet",
+        "certificado",
+        "certificados",
+        "civil registry",
+        "civil registration",
+        "id card",
+        "registro civil totem",
+        "identidade",
+        "planta baja",
+        "pb",
+        "piso pb",
+        "nivel pb"
+      ],
+      "mapvx": {
+        "placeId": "-NjrRruPJzRv98r79wGB",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "plaza-central-n1",
+      "type": "central_plaza",
+      "sector": "",
+      "name": "Plaza Central (Nivel 1)",
+      "floors": [
+        "1"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "Plaza Central del mall, en el Nivel 1.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "plaza central",
+        "central plaza",
+        "praca central",
+        "plaza",
+        "nivel 1",
+        "piso 1"
+      ],
+      "mapvx": {
+        "placeId": "-NCzJyvkiVSNlSHkWeoQ",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "plaza-juegos-pb",
+      "type": "playground",
+      "sector": "",
+      "name": "Plaza de Juegos (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "Plaza de juegos infantiles en la Planta Baja.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "plaza de juegos",
+        "plaza juegos",
+        "juegos infantiles",
+        "juegos para ninos",
+        "parque infantil",
+        "plaza infantil",
+        "patio de juegos",
+        "ninos",
+        "playground",
+        "play area",
+        "kids playground",
+        "parquinho",
+        "praca de jogos",
+        "area de brincar",
+        "brinquedos",
+        "planta baja",
+        "pb",
+        "piso pb",
+        "nivel pb"
+      ],
+      "mapvx": {
+        "placeId": "-OT8w72w9zoRf_jJT6xI",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "salida-andres-bello-n1",
+      "type": "mall_exit",
+      "sector": "andres-bello",
+      "name": "Salida Andrés Bello (Nivel 1)",
+      "floors": [
+        "1"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "salida",
+        "salidas",
+        "salir",
+        "exit",
+        "exits",
+        "saida",
+        "saidas",
+        "salida del mall",
+        "salida centro comercial",
+        "salidas centro comercial",
+        "mall exit",
+        "how do i leave",
+        "saida do shopping",
+        "andres bello",
+        "calle andres bello",
+        "nivel 1",
+        "piso 1"
+      ],
+      "mapvx": {
+        "placeId": "-NDe3P3NHDdH-wWv6t6f",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "salida-vitacura-n1",
+      "type": "mall_exit",
+      "sector": "vitacura",
+      "name": "Salida Vitacura (Nivel 1)",
+      "floors": [
+        "1"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "salida",
+        "salidas",
+        "salir",
+        "exit",
+        "exits",
+        "saida",
+        "saidas",
+        "salida del mall",
+        "salida centro comercial",
+        "salidas centro comercial",
+        "mall exit",
+        "how do i leave",
+        "saida do shopping",
+        "vitacura",
+        "avenida vitacura",
+        "av vitacura",
+        "nivel 1",
+        "piso 1"
+      ],
+      "mapvx": {
+        "placeId": "-NDe7l2Cw6wQC7RRDRg9",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "salida-nueva-tobalaba-n1",
+      "type": "mall_exit",
+      "sector": "nueva-tobalaba",
+      "name": "Salida Nueva Tobalaba (Nivel 1)",
+      "floors": [
+        "1"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "salida",
+        "salidas",
+        "salir",
+        "exit",
+        "exits",
+        "saida",
+        "saidas",
+        "salida del mall",
+        "salida centro comercial",
+        "salidas centro comercial",
+        "mall exit",
+        "how do i leave",
+        "saida do shopping",
+        "nueva tobalaba",
+        "tobalaba",
+        "nivel 1",
+        "piso 1"
+      ],
+      "mapvx": {
+        "placeId": "-ND4xtlfaTSo1RlLynXY",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "salida-pasarela-metro-tobalaba-n2",
+      "type": "mall_exit",
+      "sector": "pasarela-metro-tobalaba",
+      "name": "Salida pasarela Metro Tobalaba (Nivel 2)",
+      "floors": [
+        "2"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "salida",
+        "salidas",
+        "salir",
+        "exit",
+        "exits",
+        "saida",
+        "saidas",
+        "salida del mall",
+        "salida centro comercial",
+        "salidas centro comercial",
+        "mall exit",
+        "how do i leave",
+        "saida do shopping",
+        "pasarela",
+        "metro",
+        "metro tobalaba",
+        "pasarela metro tobalaba",
+        "estacion metro",
+        "subte",
+        "nivel 2",
+        "piso 2"
+      ],
+      "mapvx": {
+        "placeId": "-ND5DmsDF3ckSlsOQB-_",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "salida-estacionamiento-n1",
+      "type": "parking_exit",
+      "sector": "",
+      "name": "Salida Estacionamiento (Nivel 1)",
+      "floors": [
+        "1"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "estacionamiento",
+        "estacionamientos",
+        "parking",
+        "salida estacionamiento",
+        "salida del estacionamiento",
+        "parking exit",
+        "car park",
+        "saida estacionamento",
+        "garage",
+        "garaje",
+        "autos",
+        "auto",
+        "salida estacionamiento",
+        "nivel 1",
+        "piso 1"
+      ],
+      "mapvx": {
+        "placeId": "-NCzK5DfjKvu0RWkaV3b",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "salida-estacionamiento-subterraneo-pb",
+      "type": "parking_exit",
+      "sector": "",
+      "name": "Salida a Estacionamiento subterráneo (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "estacionamiento",
+        "estacionamientos",
+        "parking",
+        "salida estacionamiento",
+        "salida del estacionamiento",
+        "parking exit",
+        "car park",
+        "saida estacionamento",
+        "garage",
+        "garaje",
+        "autos",
+        "auto",
+        "subterraneo",
+        "estacionamiento subterraneo",
+        "underground parking",
+        "subsolo",
+        "planta baja",
+        "pb",
+        "piso pb",
+        "nivel pb"
+      ],
+      "mapvx": {
+        "placeId": "-NGTenF-jIgVkAwh5waY",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "rampa-estacionamientos-pb-1",
+      "type": "parking_exit",
+      "sector": "",
+      "name": "Rampa a estacionamientos (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "estacionamiento",
+        "estacionamientos",
+        "parking",
+        "salida estacionamiento",
+        "salida del estacionamiento",
+        "parking exit",
+        "car park",
+        "saida estacionamento",
+        "garage",
+        "garaje",
+        "autos",
+        "auto",
+        "rampa",
+        "rampa a estacionamientos",
+        "ramp",
+        "rampa de autos",
+        "planta baja",
+        "pb",
+        "piso pb",
+        "nivel pb"
+      ],
+      "mapvx": {
+        "placeId": "-N7qAnRsarxS_5atDHNe",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "rampa-estacionamientos-pb-2",
+      "type": "parking_exit",
+      "sector": "",
+      "name": "Rampa a estacionamientos (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "estacionamiento",
+        "estacionamientos",
+        "parking",
+        "salida estacionamiento",
+        "salida del estacionamiento",
+        "parking exit",
+        "car park",
+        "saida estacionamento",
+        "garage",
+        "garaje",
+        "autos",
+        "auto",
+        "rampa",
+        "rampa a estacionamientos",
+        "ramp",
+        "rampa de autos",
+        "planta baja",
+        "pb",
+        "piso pb",
+        "nivel pb"
+      ],
+      "mapvx": {
+        "placeId": "-Njtk8iYe9lvUTg3ur9O",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "taxis-electricos-pb",
+      "type": "electric_taxi",
+      "sector": "",
+      "name": "Taxis Eléctricos (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "Parada de taxis eléctricos en la Planta Baja.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "taxis electricos",
+        "taxi electrico",
+        "parada de taxis",
+        "paradero de taxis",
+        "taxi",
+        "taxis",
+        "electric taxi",
+        "electric taxis",
+        "taxi stand",
+        "taxi rank",
+        "ponto de taxi",
+        "taxis eletricos",
+        "planta baja",
+        "pb",
+        "piso pb",
+        "nivel pb"
+      ],
+      "mapvx": {
+        "placeId": "-OgDbVQT1hf0JWzflDH9",
+        "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "kit-servicios-parking-pb",
+      "type": "parking_kit",
+      "sector": "",
+      "name": "Kit de servicios parking (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [],
+      "descriptions": {
+        "short": "Kit de servicios del estacionamiento en la Planta Baja.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "kit de servicios",
+        "kit servicios parking",
+        "kit de servicios parking",
+        "kit parking",
+        "kit estacionamiento",
+        "kit de estacionamiento",
+        "parking service kit",
+        "parking kit",
+        "kit de servicos",
+        "kit auto",
+        "planta baja",
+        "pb",
+        "piso pb",
+        "nivel pb"
+      ],
+      "mapvx": {
+        "placeId": "-OgDoMQUkchVaYaFfAe0",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
       }
     }

@@ -43,7 +43,7 @@ console.log(
   elevators.length,
   "elevators)"
 );
-if (bathrooms.length !== 9) throw new Error("expected 9 bathrooms, got " + bathrooms.length);
+if (bathrooms.length !== 10) throw new Error("expected 10 bathrooms, got " + bathrooms.length);
 if (elevators.length < 1) throw new Error("expected at least 1 elevator, got " + elevators.length);
 
 const cases = [

@@ -196,5 +196,92 @@ check(
   check(`"${q}" -> no ATMs`, !SC.search(q).some((r) => r.type === "atm"))
 );
 
+// ---- 4. MapVX "Servicios" points (bike, stage, plaza, exits, taxis…) ----
+const EXTRA = {
+  bike: { n: 1, q: ["bicicletero", "bike costanera", "donde dejo mi bicicleta", "bike rack", "bicycle parking"] },
+  stage: { n: 1, q: ["escenario", "stage"] },
+  civil_registry: { n: 1, q: ["registro civil", "renovar carnet", "civil registry"] },
+  central_plaza: { n: 1, q: ["plaza central", "central plaza", "praça central"] },
+  playground: { n: 1, q: ["plaza de juegos", "juegos infantiles", "playground", "parque infantil"] },
+  mall_exit: { n: 4, q: ["salidas", "salida", "exits", "saídas do shopping", "salir del mall"] },
+  parking_exit: { n: 4, q: ["salida estacionamiento", "rampa", "parking exit", "salida al estacionamiento", "estacionamiento salida"] },
+  electric_taxi: { n: 1, q: ["taxis electricos", "electric taxi", "parada de taxis"] },
+  parking_kit: { n: 1, q: ["kit de servicios parking", "parking kit", "kit parking"] },
+};
+for (const [type, { n, q }] of Object.entries(EXTRA)) {
+  const entries = servicesData.services.filter((s) => s.type === type);
+  check(`catalog has ${n} "${type}" entries`, entries.length === n, `got ${entries.length}`);
+  check(
+    `"${type}" entries are WC-eligible (placeId, no placeIdNote, no coordinates)`,
+    entries.every((s) => s.mapvx?.placeId && !s.mapvx.placeIdNote && s.mapvx.lat == null)
+  );
+  q.forEach((query) => {
+    const r = SC.search(query);
+    check(
+      `${type.padEnd(14)} "${query}" -> all ${n} of its type, nothing else`,
+      SC.looksLikeServicesQuery(query) && SC.extraTypeFromQuery(query) === type && r.length === n && r.every((x) => x.type === type),
+      `intent=${SC.extraTypeFromQuery(query) || "-"} got ${r.length} [${[...new Set(r.map((x) => x.type))].join(",")}]`
+    );
+  });
+}
+// Exits / ramps live on several levels: totem floor ranks first, none are hidden.
+const exitsN2 = SC.search("salidas", { preferFloor: "2" });
+check(
+  "exits from a totem on N2: all 4 listed, the N2 one first",
+  exitsN2.length === 4 && exitsN2[0].floors.includes("2"),
+  exitsN2.map((r) => r.floors.join()).join("|")
+);
+check(
+  "parking exits from a totem on N2: all 4 listed (none on N2)",
+  SC.search("salida estacionamiento", { preferFloor: "2" }).length === 4
+);
+// Not part of this catalog / owned by another flow.
+["salida de emergencia", "salidas de emergencia", "emergency exit", "taxi", "plaza", "estacionamiento", "zara", "adidas", "farmacia"].forEach((q) =>
+  check(`no extra intent "${q}"`, !SC.extraTypeFromQuery(q))
+);
+// No store / brand name in the market catalog may read as one of these asks.
+const extraBrandHits = [...new Set(marketData.map((i) => i.brand_name))].filter((b) => b && SC.looksLikeExtraServiceQuery(b));
+check("no store brand name is mistaken for an extra-service query", extraBrandHits.length === 0, extraBrandHits.join("|"));
+// The second N5 restroom block sits next to the patio de comidas one.
+const n5 = SC.search("baños nivel 5");
+check(
+  '"baños nivel 5" -> both N5 restroom blocks',
+  n5.length === 2 && n5.every((r) => r.type === "bathroom" && r.floors.includes("5") && r.placeId),
+  n5.map((r) => r.id).join("|")
+);
+check(
+  '"baños" -> 10 restrooms, none lost to the new entry',
+  SC.search("baños").filter((r) => r.type === "bathroom").length === 10 && SC.search("baños").length === 10
+);
+// Other intents must not pull the new types in.
+["baños", "ascensor", "servicio al cliente", "cowork", "mudador", "cajero", "lactancia"].forEach((q) =>
+  check(`"${q}" -> no extra types`, !SC.search(q).some((r) => Object.keys(EXTRA).includes(r.type)))
+);
+
+// ---- 5. Cowork on two levels (N2 + N4) ----
+const coworks = servicesData.services.filter((s) => s.type === "cowork");
+check("catalog has 2 cowork entries (N2, N4)", coworks.length === 2 && coworks.some((s) => s.floors.includes("4")), `got ${coworks.length}`);
+check(
+  "N4 cowork is WC-eligible (placeId, no placeIdNote, no coordinates)",
+  coworks.filter((s) => s.floors.includes("4")).every((s) => s.mapvx?.placeId && !s.mapvx.placeIdNote && s.mapvx.lat == null)
+);
+["cowork", "coworking", "co-work", "espacio de trabajo", "workspace"].forEach((q) => {
+  const r = SC.search(q);
+  check(`cowork   "${q}" -> both levels, cowork only`, r.length === 2 && r.every((x) => x.type === "cowork"), `got ${r.length}`);
+});
+check('"cowork nivel 4" -> only the N4 one', (() => { const r = SC.search("cowork nivel 4"); return r.length === 1 && r[0].floors.includes("4"); })());
+check("totem on N4: its own cowork", (() => { const r = SC.search("cowork", { preferFloor: "4" }); return r.length === 1 && r[0].floors.includes("4"); })());
+check("totem on N2: its own cowork", (() => { const r = SC.search("cowork", { preferFloor: "2" }); return r.length === 1 && r[0].floors.includes("2"); })());
+check("totem on N3 (no cowork): both listed", SC.search("cowork", { preferFloor: "3" }).length === 2);
+
+check(
+  "N4 cowork is anchored to Paris (CC_N4_1200); '\"cowork paris\"' finds it",
+  (() => {
+    const n4 = coworks.find((s) => s.floors.includes("4"));
+    const r = SC.search("cowork paris");
+    return n4?.anchorStores?.[0]?.local === "CC_N4_1200" && r.length === 1 && r[0].floors.includes("4") && r[0].anchorLocal === "CC_N4_1200";
+  })()
+);
+
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");
 process.exit(failed ? 1 : 0);
