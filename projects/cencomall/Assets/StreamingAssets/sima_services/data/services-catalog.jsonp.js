@@ -2084,10 +2084,6 @@ window.__SERVICES_CATALOG__ = {
         "escenario",
         "escenarios",
         "tarima",
-        "show",
-        "shows",
-        "evento",
-        "eventos",
         "stage",
         "stages",
         "palco",
@@ -2118,18 +2114,15 @@ window.__SERVICES_CATALOG__ = {
       "keywords": [
         "totem registro civil",
         "registro civil",
-        "civil",
-        "carnet",
-        "cedula",
-        "cedula de identidad",
-        "renovar carnet",
-        "certificado",
-        "certificados",
         "civil registry",
         "civil registration",
+        "renovar carnet",
+        "sacar carnet",
+        "carnet de identidad",
+        "cedula de identidad",
+        "renovar cedula",
+        "identity card",
         "id card",
-        "registro civil totem",
-        "identidade",
         "planta baja",
         "pb",
         "piso pb",
@@ -2159,7 +2152,6 @@ window.__SERVICES_CATALOG__ = {
         "plaza central",
         "central plaza",
         "praca central",
-        "plaza",
         "nivel 1",
         "piso 1"
       ],
@@ -2187,11 +2179,9 @@ window.__SERVICES_CATALOG__ = {
         "plaza de juegos",
         "plaza juegos",
         "juegos infantiles",
-        "juegos para ninos",
         "parque infantil",
         "plaza infantil",
         "patio de juegos",
-        "ninos",
         "playground",
         "play area",
         "kids playground",
@@ -2233,8 +2223,6 @@ window.__SERVICES_CATALOG__ = {
         "saida",
         "saidas",
         "salida del mall",
-        "salida centro comercial",
-        "salidas centro comercial",
         "mall exit",
         "how do i leave",
         "saida do shopping",
@@ -2272,8 +2260,6 @@ window.__SERVICES_CATALOG__ = {
         "saida",
         "saidas",
         "salida del mall",
-        "salida centro comercial",
-        "salidas centro comercial",
         "mall exit",
         "how do i leave",
         "saida do shopping",
@@ -2312,8 +2298,6 @@ window.__SERVICES_CATALOG__ = {
         "saida",
         "saidas",
         "salida del mall",
-        "salida centro comercial",
-        "salidas centro comercial",
         "mall exit",
         "how do i leave",
         "saida do shopping",
@@ -2351,8 +2335,6 @@ window.__SERVICES_CATALOG__ = {
         "saida",
         "saidas",
         "salida del mall",
-        "salida centro comercial",
-        "salidas centro comercial",
         "mall exit",
         "how do i leave",
         "saida do shopping",
@@ -2396,8 +2378,6 @@ window.__SERVICES_CATALOG__ = {
         "saida estacionamento",
         "garage",
         "garaje",
-        "autos",
-        "auto",
         "salida estacionamiento",
         "nivel 1",
         "piso 1"
@@ -2433,8 +2413,6 @@ window.__SERVICES_CATALOG__ = {
         "saida estacionamento",
         "garage",
         "garaje",
-        "autos",
-        "auto",
         "subterraneo",
         "estacionamiento subterraneo",
         "underground parking",
@@ -2475,11 +2453,7 @@ window.__SERVICES_CATALOG__ = {
         "saida estacionamento",
         "garage",
         "garaje",
-        "autos",
-        "auto",
-        "rampa",
         "rampa a estacionamientos",
-        "ramp",
         "rampa de autos",
         "planta baja",
         "pb",
@@ -2517,11 +2491,7 @@ window.__SERVICES_CATALOG__ = {
         "saida estacionamento",
         "garage",
         "garaje",
-        "autos",
-        "auto",
-        "rampa",
         "rampa a estacionamientos",
-        "ramp",
         "rampa de autos",
         "planta baja",
         "pb",
@@ -2605,6 +2575,399 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-OgDoMQUkchVaYaFfAe0",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      }
+    },
+    {
+      "id": "tienda-claro-cc_pb_133",
+      "type": "store_service",
+      "source": "market-catalog",
+      "sector": "claro",
+      "name": "Claro (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [
+        {
+          "brand": "Claro",
+          "local": "CC_PB_133",
+          "role": "primary",
+          "floors": [
+            "PB"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Claro ofrece servicio técnico en Planta Baja.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "servicio tecnico",
+        "servicios tecnicos",
+        "asistencia tecnica",
+        "soporte tecnico",
+        "reparacion",
+        "reparaciones",
+        "reparar",
+        "repair",
+        "repairs",
+        "technical service",
+        "tech support",
+        "servico tecnico",
+        "assistencia tecnica",
+        "conserto",
+        "consertar",
+        "telefonos",
+        "internet",
+        "wifi",
+        "servicio hogar",
+        "claro",
+        "planta baja",
+        "piso pb"
+      ],
+      "mapvx": {
+        "placeId": "CC_PB_133",
+        "placeIdSource": "market-catalog"
+      }
+    },
+    {
+      "id": "tienda-claro-cc_pb_6020",
+      "type": "store_service",
+      "source": "market-catalog",
+      "sector": "claro",
+      "name": "Claro (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [
+        {
+          "brand": "Claro",
+          "local": "CC_PB_6020",
+          "role": "primary",
+          "floors": [
+            "PB"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Claro ofrece servicio técnico en Planta Baja.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "servicio tecnico",
+        "servicios tecnicos",
+        "asistencia tecnica",
+        "soporte tecnico",
+        "reparacion",
+        "reparaciones",
+        "reparar",
+        "repair",
+        "repairs",
+        "technical service",
+        "tech support",
+        "servico tecnico",
+        "assistencia tecnica",
+        "conserto",
+        "consertar",
+        "telefonos",
+        "internet",
+        "wifi",
+        "servicio hogar",
+        "claro",
+        "planta baja",
+        "piso pb"
+      ],
+      "mapvx": {
+        "placeId": "CC_PB_6020",
+        "placeIdSource": "market-catalog"
+      }
+    },
+    {
+      "id": "tienda-entel-cc_pb_176",
+      "type": "store_service",
+      "source": "market-catalog",
+      "sector": "entel",
+      "name": "Entel (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [
+        {
+          "brand": "Entel",
+          "local": "CC_PB_176",
+          "role": "primary",
+          "floors": [
+            "PB"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Entel ofrece servicio técnico en Planta Baja.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "servicio tecnico",
+        "servicios tecnicos",
+        "asistencia tecnica",
+        "soporte tecnico",
+        "reparacion",
+        "reparaciones",
+        "reparar",
+        "repair",
+        "repairs",
+        "technical service",
+        "tech support",
+        "servico tecnico",
+        "assistencia tecnica",
+        "conserto",
+        "consertar",
+        "telefonos",
+        "internet",
+        "wifi",
+        "servicio hogar",
+        "entel",
+        "planta baja",
+        "piso pb"
+      ],
+      "mapvx": {
+        "placeId": "CC_PB_176",
+        "placeIdSource": "market-catalog"
+      }
+    },
+    {
+      "id": "tienda-longines-cc_n2_2125",
+      "type": "store_service",
+      "source": "market-catalog",
+      "sector": "longines",
+      "name": "Longines (Nivel 2)",
+      "floors": [
+        "2"
+      ],
+      "features": {},
+      "anchorStores": [
+        {
+          "brand": "Longines",
+          "local": "CC_N2_2125",
+          "role": "primary",
+          "floors": [
+            "2"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Longines ofrece servicio técnico en Nivel 2.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "servicio tecnico",
+        "servicios tecnicos",
+        "asistencia tecnica",
+        "soporte tecnico",
+        "reparacion",
+        "reparaciones",
+        "reparar",
+        "repair",
+        "repairs",
+        "technical service",
+        "tech support",
+        "servico tecnico",
+        "assistencia tecnica",
+        "conserto",
+        "consertar",
+        "reloj",
+        "reloj hombre",
+        "reloj mujer",
+        "correas para reloj",
+        "pilas para reloj",
+        "joyas",
+        "servicio tecnico reloj",
+        "longines",
+        "nivel 2",
+        "piso 2"
+      ],
+      "mapvx": {
+        "placeId": "CC_N2_2125",
+        "placeIdSource": "market-catalog"
+      }
+    },
+    {
+      "id": "tienda-mecanica-del-tiempo-cc_pb_6044",
+      "type": "store_service",
+      "source": "market-catalog",
+      "sector": "mecanica-del-tiempo",
+      "name": "Mecánica del Tiempo (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [
+        {
+          "brand": "Mecánica del Tiempo",
+          "local": "CC_PB_6044",
+          "role": "primary",
+          "floors": [
+            "PB"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Mecánica del Tiempo ofrece servicio técnico y reparación en Planta Baja.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "servicio tecnico",
+        "servicios tecnicos",
+        "asistencia tecnica",
+        "soporte tecnico",
+        "reparacion",
+        "reparaciones",
+        "reparar",
+        "repair",
+        "repairs",
+        "technical service",
+        "tech support",
+        "servico tecnico",
+        "assistencia tecnica",
+        "conserto",
+        "consertar",
+        "reparacion de relojes",
+        "cambio de cristal de relojes",
+        "pilas",
+        "baterias",
+        "pilas para control",
+        "pulseras",
+        "correas",
+        "ajuste de pulseras",
+        "sellado e impermeabilidad de relojes",
+        "mecanica del tiempo",
+        "planta baja",
+        "piso pb"
+      ],
+      "mapvx": {
+        "placeId": "CC_PB_6044",
+        "placeIdSource": "market-catalog"
+      }
+    },
+    {
+      "id": "tienda-movistar-cc_pb_109",
+      "type": "store_service",
+      "source": "market-catalog",
+      "sector": "movistar",
+      "name": "Movistar (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [
+        {
+          "brand": "Movistar",
+          "local": "CC_PB_109",
+          "role": "primary",
+          "floors": [
+            "PB"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Movistar ofrece servicio técnico en Planta Baja.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "servicio tecnico",
+        "servicios tecnicos",
+        "asistencia tecnica",
+        "soporte tecnico",
+        "reparacion",
+        "reparaciones",
+        "reparar",
+        "repair",
+        "repairs",
+        "technical service",
+        "tech support",
+        "servico tecnico",
+        "assistencia tecnica",
+        "conserto",
+        "consertar",
+        "telefonos",
+        "internet",
+        "wifi",
+        "servicio hogar",
+        "fibra optica",
+        "celulares",
+        "movistar",
+        "planta baja",
+        "piso pb"
+      ],
+      "mapvx": {
+        "placeId": "CC_PB_109",
+        "placeIdSource": "market-catalog"
+      }
+    },
+    {
+      "id": "tienda-vtr-cc_pb_128",
+      "type": "store_service",
+      "source": "market-catalog",
+      "sector": "vtr",
+      "name": "VTR (Planta Baja)",
+      "floors": [
+        "PB"
+      ],
+      "features": {},
+      "anchorStores": [
+        {
+          "brand": "VTR",
+          "local": "CC_PB_128",
+          "role": "primary",
+          "floors": [
+            "PB"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "VTR ofrece servicio técnico en Planta Baja.",
+        "medium": "",
+        "long": ""
+      },
+      "keywords": [
+        "servicio tecnico",
+        "servicios tecnicos",
+        "asistencia tecnica",
+        "soporte tecnico",
+        "reparacion",
+        "reparaciones",
+        "reparar",
+        "repair",
+        "repairs",
+        "technical service",
+        "tech support",
+        "servico tecnico",
+        "assistencia tecnica",
+        "conserto",
+        "consertar",
+        "telefonos",
+        "internet",
+        "wifi",
+        "servicio hogar",
+        "fibra optica",
+        "servicio internet",
+        "servicio television",
+        "canales",
+        "television",
+        "vtr",
+        "planta baja",
+        "piso pb"
+      ],
+      "mapvx": {
+        "placeId": "CC_PB_128",
+        "placeIdSource": "market-catalog"
       }
     }
   ]

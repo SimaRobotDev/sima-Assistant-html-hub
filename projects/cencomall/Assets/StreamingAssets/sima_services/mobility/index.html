@@ -2191,6 +2191,7 @@ const MOBILITY_I18N = {
     parkingExits: "Salidas Estacionamientos",
     electricTaxis: "Taxis Eléctricos",
     parkingKit: "Kit de servicios parking",
+    storeService: "Servicio técnico y reparación",
     allLevels: "Todos los niveles",
     level: "Nivel",
     gf: "PB",
@@ -2304,6 +2305,7 @@ const MOBILITY_I18N = {
     parkingExits: "Parking exits",
     electricTaxis: "Electric taxis",
     parkingKit: "Parking service kit",
+    storeService: "Repairs & technical service",
     allLevels: "All levels",
     level: "Level",
     gf: "GF",
@@ -2417,6 +2419,7 @@ const MOBILITY_I18N = {
     parkingExits: "Saídas do estacionamento",
     electricTaxis: "Táxis elétricos",
     parkingKit: "Kit de serviços do estacionamento",
+    storeService: "Reparos e assistência técnica",
     allLevels: "Todos os níveis",
     level: "Nível",
     gf: "Térreo",
@@ -3261,6 +3264,25 @@ function runServicesCatalogSearch(query, options) {
         preferFloor: options.preferFloor || options.totemFloor || totemFloor || undefined,
       });
       const results = ServicesCatalog.search(q || serviceId, searchOpts);
+      // A repair / technical-service ask that no store card answers ("reparar
+      // zapatos") is not a dead end: the STORE search may still find a shop.
+      // allowServicesAsMarket stops it bouncing straight back here.
+      if (
+        !results.length && !serviceId && q
+        && typeof ServicesCatalog.extraTypeFromQuery === "function"
+        && ServicesCatalog.extraTypeFromQuery(q) === "store_service"
+        && shouldUseLocalMarketCatalog()
+      ) {
+        SimaBridge.log("services_catalog_search q=" + q + " empty (store_service) -> store search");
+        clearAutoMapLaunchUi();
+        runMarketCatalogSearch(q, {
+          seq: marketSearchSeq,
+          voice: !!options.voice,
+          source: options.source || "services-fallback",
+          allowServicesAsMarket: true,
+        });
+        return;
+      }
       const displayQuery = q || (results[0] && results[0].name) || serviceId;
       SimaBridge.log(
         "services_catalog_search q=" + displayQuery +
@@ -5451,6 +5473,8 @@ const EXTRA_SERVICE_KINDS = {
   parking_exit: { label: "parkingExits", icon: "parking-exit.svg", fallback: "Salidas Estacionamientos", useEntryName: true },
   electric_taxi: { label: "electricTaxis", icon: "electric-taxi.svg", fallback: "Taxis Eléctricos" },
   parking_kit: { label: "parkingKit", icon: "parking-kit.svg", fallback: "Kit de servicios parking" },
+  // Stores that repair / give technical service (generated from the market catalog).
+  store_service: { label: "storeService", icon: "repair.svg", fallback: "Servicio técnico y reparación", useEntryName: true },
 };
 
 function extraServiceKindLabel(kind) {
@@ -6283,7 +6307,7 @@ function renderServiceCard(svc, idx) {
     ? `<span class="store-badge store-badge-floor">${escapeHtml(floorsLabel)}</span>`
     : "";
   // Elevators already say "junto a X · Nivel N" in location — skip duplicate "Cerca de".
-  const anchorBadge = kind !== "elevator" && svc.anchorBrand
+  const anchorBadge = kind !== "elevator" && kind !== "store_service" && svc.anchorBrand
     ? `<span class="store-badge">${escapeHtml(t("near") + " " + svc.anchorBrand)}</span>`
     : "";
   const mapBtn = svc.id
@@ -7989,7 +8013,10 @@ async function showServiceRouteQr(serviceId) {
   const mapvx = entry && entry.mapvx;
   const destination = mapvx && String(mapvx.placeId || "").trim();
   const origin = serviceRouteQrOrigin();
-  if (!destination || mapvx.placeIdNote || destination.indexOf("-") !== 0 || !origin) {
+  // A MapVX place id ("-N…") or a store's own local code ("CC_PB_6020", the
+  // store_service entries): both are valid public-URL destinations. Anything
+  // else (legacy "node:…" ids) can't be resolved by the public site.
+  if (!destination || mapvx.placeIdNote || !/^(-|CC_(PB|N\d+)_\d+$)/.test(destination) || !origin) {
     SimaBridge.log("service route QR skipped: " + JSON.stringify({
       id: key,
       destination: destination || "",
