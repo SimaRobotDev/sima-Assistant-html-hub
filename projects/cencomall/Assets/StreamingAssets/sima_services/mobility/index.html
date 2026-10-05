@@ -7843,6 +7843,11 @@ function openPoiMap(opts) {
   document.getElementById("map-view").classList.remove("hidden");
   updateHeaderBackVisibility();
 
+  // Store maps get the same "continue the route on your phone" QR as service maps
+  // (it was only wired to openServiceMap, so stores never showed it). Covers both
+  // store entry points: the results list (openStoreMap) and the native push.
+  if (poiType === "store") showStoreRouteQr(mapLocal);
+
   if (poiType === "store" && storeDetail) {
     renderStoreDetailPanel(storeDetail);
     speakStoreDetail(storeDetail);
@@ -8000,6 +8005,19 @@ function serviceRouteQrOrigin() {
   return String((window.MAPVX_CONFIG && window.MAPVX_CONFIG.totemPlaceId) || "").trim();
 }
 
+// Destinations the public MapVX site can route to: a MapVX place id ("-N…", what
+// service entries carry) or a store's own local code ("CC_N2_2001", what store
+// maps and the store_service entries carry). Legacy "node:…" ids can't be
+// resolved by the public site, so they get no QR rather than a broken route.
+// Any "CC_…" local is accepted, not just the common "CC_N2_2001" shape: 13 real
+// stores use others (multi-floor anchors "CC_N1,2,3,4,5_1300" = Ripley, Zara,
+// Falabella; suffixed "CC_N5_5143-2"; "CC_N1_Hotel") and the app already sends
+// the local verbatim in the store-map-web QR — those stores must not lose theirs.
+function isRouteQrDestination(destination) {
+  return /^(-|CC_[A-Za-z0-9,_-]+$)/.test(String(destination || ""));
+}
+
+// QR for a SERVICE map: destination = the catalog entry's MapVX place.
 async function showServiceRouteQr(serviceId) {
   hideServiceRouteQr();
   const gen = serviceRouteQrGen;
@@ -8013,10 +8031,7 @@ async function showServiceRouteQr(serviceId) {
   const mapvx = entry && entry.mapvx;
   const destination = mapvx && String(mapvx.placeId || "").trim();
   const origin = serviceRouteQrOrigin();
-  // A MapVX place id ("-N…") or a store's own local code ("CC_PB_6020", the
-  // store_service entries): both are valid public-URL destinations. Anything
-  // else (legacy "node:…" ids) can't be resolved by the public site.
-  if (!destination || mapvx.placeIdNote || !/^(-|CC_(PB|N\d+)_\d+$)/.test(destination) || !origin) {
+  if (!destination || mapvx.placeIdNote || !isRouteQrDestination(destination) || !origin) {
     SimaBridge.log("service route QR skipped: " + JSON.stringify({
       id: key,
       destination: destination || "",
@@ -8025,8 +8040,31 @@ async function showServiceRouteQr(serviceId) {
     }));
     return;
   }
+  return renderRouteQr(destination, gen, key);
+}
+
+// QR for a STORE map: destination = the store's own local code. Same card, same
+// public URL as the services one (and as the store-map-web page gets from the app).
+// Skipped when there is no local, no totem origin, or the "store" is the totem itself.
+async function showStoreRouteQr(local) {
+  hideServiceRouteQr();
+  const gen = serviceRouteQrGen;
+  const destination = String(local || "").trim();
+  const origin = serviceRouteQrOrigin();
+  if (!isRouteQrDestination(destination) || !origin || destination === origin) {
+    SimaBridge.log("store route QR skipped: " + JSON.stringify({ destination: destination || "", origin: origin || "" }));
+    return;
+  }
+  return renderRouteQr(destination, gen, destination);
+}
+
+// Draws the QR card for an already-validated destination. `gen` is the
+// serviceRouteQrGen captured by the caller: if the map closes or another place
+// opens while this awaits, the newer call wins and this one stops.
+async function renderRouteQr(destination, gen, logKey) {
+  const origin = serviceRouteQrOrigin();
   if (typeof qrcode !== "function") {
-    SimaBridge.log("service route QR skipped: qrcode library missing");
+    SimaBridge.log("route QR skipped: qrcode library missing");
     return;
   }
   const url = SERVICE_ROUTE_QR_BASE +
@@ -8071,11 +8109,11 @@ async function showServiceRouteQr(serviceId) {
     img.innerHTML = "";
     img.appendChild(pic);
   } catch (e) {
-    SimaBridge.log("service route QR failed: " + String(e && (e.message || e)));
+    SimaBridge.log("route QR failed: " + String(e && (e.message || e)));
     hideServiceRouteQr();
     return;
   }
-  SimaBridge.log("service route QR shown: " + JSON.stringify({ id: key, url: url }));
+  SimaBridge.log("route QR shown: " + JSON.stringify({ id: logKey, url: url }));
 }
 
 function openServiceMap(idx, options) {

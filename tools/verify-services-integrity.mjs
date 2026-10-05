@@ -297,5 +297,39 @@ check("EXTRA_TYPE_INTENTS regexes keep their \\b word boundaries", !!intentSrc &
   check(`still claimed: "${q}"`, !!SC.extraTypeFromQuery(q) && claims(q), `intent=${SC.extraTypeFromQuery(q) || "-"}`)
 );
 
+// ---------------------------------------------------------------- 10. route QR on STORE maps (mobility)
+// Regression: the QR was wired only to openServiceMap, so store maps never showed it.
+const mobilityLf = mobilityHtml.replace(/\r\n/g, "\n"); // the file is CRLF; function bodies are matched on LF
+const fnSrc = (name) => {
+  const m = mobilityLf.match(new RegExp(`(?:async )?function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}\\n`));
+  return m ? m[0] : "";
+};
+const showStoreSrc = fnSrc("showStoreRouteQr");
+const showServiceSrc = fnSrc("showServiceRouteQr");
+const renderSrc = fnSrc("renderRouteQr");
+const openPoiSrc = fnSrc("openPoiMap");
+check("mobility defines showStoreRouteQr and the shared renderRouteQr", !!showStoreSrc && !!renderSrc);
+check("openPoiMap shows the route QR for store maps (covers openStoreMap and the native push)", /if \(poiType === "store"\) showStoreRouteQr\(mapLocal\)/.test(openPoiSrc));
+check("openStoreMap and pushNavigationFromUnity both go through openPoiMap with poiType store", (mobilityHtml.match(/openPoiMap\(\{\s*poiType: "store"/g) || []).length >= 2);
+check("both QR entry points clear the previous QR first (no stale QR from another place)", /^\s*hideServiceRouteQr\(\);/m.test(showStoreSrc.split("\n").slice(1, 3).join("\n")) && /^\s*hideServiceRouteQr\(\);/m.test(showServiceSrc.split("\n").slice(1, 3).join("\n")));
+check("a store QR is skipped (and the old one cleared) when destination = the totem itself", /destination === origin/.test(showStoreSrc));
+check("renderRouteQr yields to a newer open (gen guard) before drawing", /gen !== serviceRouteQrGen/.test(renderSrc));
+check("teardownMapView hides the route QR", /function teardownMapView\(\) \{[\s\S]*?hideServiceRouteQr\(\);/.test(mobilityHtml));
+
+// the destination rule, evaluated from the real source
+const destFn = mobilityHtml.match(/function isRouteQrDestination\(destination\) \{[\s\S]*?\n\}/);
+const isDest = destFn ? new Function(`${destFn[0]}; return isRouteQrDestination;`)() : () => false;
+check("isRouteQrDestination exists", !!destFn);
+const rejectedLocals = marketData.filter((m) => !isDest(m.local)).map((m) => `${m.brand_name}:${m.local}`);
+check(`EVERY store local in the market catalog gets a QR (${marketData.length} stores)`, rejectedLocals.length === 0, rejectedLocals.slice(0, 6).join(" | "));
+["-NDe3P3NHDdH-wWv6t6f", "CC_N2_2001", "CC_PB_6020", "CC_N1,2,3,4,5_1300", "CC_N2,3_2156", "CC_N5_5143-2", "CC_N1_Hotel"].forEach((d) =>
+  check(`QR destination accepted: ${d}`, isDest(d))
+);
+["", "   ", "node:993809113", "node:19041", "CC_", "cc_n2_2001", "CC_N2 2001", "https://evil.example/x", "javascript:alert(1)", "../CC_N2_2001", undefined, null].forEach((d) =>
+  check(`QR destination rejected: ${JSON.stringify(d)}`, !isDest(d))
+);
+const wcOnly = services.filter((s) => s.mapvx?.placeId && !isDest(s.mapvx.placeId)).map((s) => `${s.id}:${s.mapvx.placeId}`);
+check("only the legacy node: ids are refused a QR (elevators)", wcOnly.every((x) => /:node:\d+$/.test(x)), wcOnly.join(" | "));
+
 console.log(failed ? `\n${failed} FAILED, ${passed} passed` : `all passed (${passed} checks)`);
 process.exit(failed ? 1 : 0);
