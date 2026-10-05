@@ -207,7 +207,7 @@ const EXTRA = {
   central_plaza: { n: 1, q: ["plaza central", "central plaza", "praça central"] },
   playground: { n: 1, q: ["plaza de juegos", "juegos infantiles", "playground", "parque infantil"] },
   mall_exit: { n: 4, q: ["salidas", "salida", "exits", "saídas do shopping", "salir del mall"] },
-  parking_exit: { n: 4, q: ["salida estacionamiento", "rampa", "parking exit", "salida al estacionamiento", "estacionamiento salida"] },
+  parking_exit: { n: 4, q: ["salida estacionamiento", "rampa de autos", "rampa a estacionamientos", "parking exit", "salida al estacionamiento", "estacionamiento salida"] },
   electric_taxi: { n: 1, q: ["taxis electricos", "electric taxi", "parada de taxis"] },
   parking_kit: { n: 1, q: ["kit de servicios parking", "parking kit", "kit parking"] },
 };

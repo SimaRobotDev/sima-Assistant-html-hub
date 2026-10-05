@@ -42,8 +42,13 @@ window.ServicesCatalog = (function () {
     });
   }
 
+  // A real ask is a few words; anything past this is noise (or an attempt to
+  // stall the totem: fuzzy matching is O(tokens x keywords x entries)).
+  var MAX_QUERY_CHARS = 400;
+
   function normalizeText(value) {
     return String(value || "")
+      .slice(0, MAX_QUERY_CHARS)
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -320,16 +325,24 @@ window.ServicesCatalog = (function () {
       re: /\b(servicios?\s+tecnicos?|a?ssistencia\s+tecnica|asistencia\s+tecnica|soporte\s+tecnico|tech(nical)?\s+(service|support)|reparaci(on|ones)|reparar|repara|arreglos?|arreglar|repairs?|servicos?\s+tecnicos?|conserto|consertar|reparos?)\b/,
       unless: /\b(flor|flores|floral|florales|florist\w*|bouquet|ramos?)\b/,
     },
-    { type: "parking_kit", re: /\b(kit\s+(de\s+)?(servicios?|servicos?|parking|estacionamiento|auto)|(parking|car)\s+(service\s+)?kit)\b/ },
+    // "kit de auto" can be a store product: only the parking service kit is claimed.
+    { type: "parking_kit", re: /\b(kit\s+(de\s+)?(servicios?|servicos?|parking|estacionamiento)|(parking|car\s+park)\s+(service\s+)?kit)\b/ },
     { type: "electric_taxi", re: /\b(taxis?\s+(electricos?|eletricos?)|electric\s+taxis?|(parada|paradero|ponto)\s+de\s+taxis?|taxi\s+(stand|rank))\b/ },
-    { type: "parking_exit", re: /\b(rampas?|(salidas?|exits?|saidas?|accesos?|entradas?)\s+(a\s+|al\s+|del?\s+|to\s+|from\s+|do\s+|ao\s+)?(los?\s+|the\s+)?(estacionamientos?|estacionamento|parking|subterraneo|garage|garaje|autos?|vehiculos?|car)|(estacionamientos?|estacionamento|parking|garage|garaje|car\s+park)\s+(salidas?|exits?|saidas?|rampas?|ramps?))\b/ },
+    // A bare "rampa" is often a wheelchair ramp: only car ramps are claimed here.
+    { type: "parking_exit", re: /\b(rampas?\s+(a\s+|al\s+|de\s+|del\s+|para\s+)(los?\s+)?(estacionamientos?|estacionamento|parking|autos?|vehiculos?|carros?|car|cars)|(salidas?|exits?|saidas?|accesos?|entradas?)\s+(a\s+|al\s+|del?\s+|to\s+|from\s+|do\s+|ao\s+)?(los?\s+|the\s+)?(estacionamientos?|estacionamento|parking|subterraneo|garage|garaje|autos?|vehiculos?|car)|(estacionamientos?|estacionamento|parking|garage|garaje|car\s+park)\s+(salidas?|exits?|saidas?|rampas?|ramps?))\b/ },
     { type: "playground", re: /\b(plaza\s+(de\s+)?juegos|juegos\s+infantiles|parque\s+infantil|plaza\s+infantil|patio\s+de\s+juegos|play\s*ground|kids?\s+play\s*(area|ground)|play\s+area|parquinho|praca\s+de\s+jogos|area\s+de\s+brincar)\b/ },
     { type: "central_plaza", re: /\b(plaza\s+central|central\s+plaza|praca\s+central)\b/ },
-    { type: "civil_registry", re: /\b(registro\s+civil|civil\s+regist\w+|carnet|cedula(\s+de\s+identidad)?|renovar\s+(el\s+)?(carnet|cedula))\b/ },
+    // "foto carnet" is a store (Mi Foto): "carnet" alone must NOT claim the query.
+    { type: "civil_registry", re: /\b(registro\s+civil|civil\s+regist\w+|(renovar|sacar|tramitar|obtener|renew|get)\s+(el\s+|mi\s+|la\s+|my\s+|a\s+)?(carnet|cedula)|carnet\s+de\s+identidad|cedula\s+de\s+identidad|identity\s+card|id\s+card)\b/ },
     { type: "bike", re: /\b(bike\s+costanera|bicicleteros?|bicicletarios?|paraciclos?|bike\s+(rack|parking)|bicycle\s+parking|(dej|guard|estacion|aparc|deix)\w+\s+(mi\s+|la\s+|una\s+|a\s+|minha\s+)?(bici|bicis|bicicletas?)|(park|lock|leave)\s+(my\s+|a\s+|the\s+)?(bike|bicycle))\b/ },
     { type: "stage", re: /\b(escenarios?|stages?|palcos?)\b/ },
     // Last: "salida(s)" / "exit(s)" — only once none of the parking / emergency phrasings applies.
-    { type: "mall_exit", re: /\b(salidas?|salir|exits?|saidas?)\b/, unless: /\b(emergencias?|emergency|emergencia)\b/ },
+    // "ropa de salida", "zapatos para salir", "salir a comer" are shopping / going-out asks.
+    {
+      type: "mall_exit",
+      re: /\b(salidas?|exits?|saidas?|(como|donde|por\s+donde|where\s+(is|are|do\s+i))\s+(salgo|salir|me\s+voy|exit)|salir\s+(del?|de\s+la|al|a\s+la)\s+(mall|centro\s+comercial|centro|edificio|calle))\b/,
+      unless: /\b(emergencias?|emergency|emergencia|ropa|vestidos?|zapatos?|zapatillas|calzado|outfit|moda|look|comer|comida|cenar|almorzar|carrete|fiesta|panorama|noche|nocturna|trago|tragos)\b/,
+    },
   ];
   var EXTRA_SERVICE_TYPES = EXTRA_TYPE_INTENTS.map(function (row) {
     return row.type;
@@ -389,6 +402,30 @@ window.ServicesCatalog = (function () {
         return true;
       })
       .map(storeServiceCanon);
+  }
+
+  // Does this repair / technical-service ask have at least one store to offer?
+  // Without it the visitor would get "no services found" for something the STORE
+  // search might still answer (e.g. "reparar bicicleta" -> a bike shop).
+  function hasStoreServiceMatch(query) {
+    if (!catalog || !catalog.services) return true; // not loaded yet: can't tell, claim it
+    var stores = catalog.services.filter(function (entry) {
+      return entryType(entry) === "store_service";
+    });
+    if (!stores.length) return false;
+    var subject = storeServiceSubjectTokens(canonicalizeServiceQuery(query));
+    if (!subject.length) return true;
+    return stores.some(function (entry) {
+      return storeServiceMatchesSubject(entry, subject);
+    });
+  }
+
+  // Intent AND something to answer with. Everything else in EXTRA_TYPE_INTENTS
+  // always has entries, so only store_service needs the extra check.
+  function claimsExtraService(query) {
+    var type = extraTypeFromQuery(query);
+    if (!type) return false;
+    return type === "store_service" ? hasStoreServiceMatch(query) : true;
   }
 
   function storeServiceMatchesSubject(entry, tokens) {
@@ -518,7 +555,7 @@ window.ServicesCatalog = (function () {
       looksLikeCustomerServiceQuery(query) ||
       looksLikeCoworkQuery(query) ||
       looksLikeAtmQuery(query) ||
-      looksLikeExtraServiceQuery(query) ||
+      claimsExtraService(query) ||
       looksLikeGenericServicesQuery(query) ||
       wantsNursing(query) ||
       wantsChangingTable(query)
@@ -769,9 +806,21 @@ window.ServicesCatalog = (function () {
     if (type === "nursing" && wantsNursing(queryNorm)) score += 8;
     if (type === "changing_table" && wantsChangingTable(queryNorm)) score += 8;
     if (EXTRA_SERVICE_TYPES.indexOf(type) >= 0 && extraTypeFromQuery(queryNorm) === type) score += 8;
-    // Stores that give a service are never "filler" for an unrelated query: with
-    // no store_service intent they must score on their own words (e.g. "internet").
-    if (type === "store_service" && typeFilter !== "store_service" && score <= 0) return -1;
+    // The new types never act as filler for an unrelated query. Without their own
+    // intent they need real evidence:
+    //  - a store service only surfaces when the store's NAME is a whole word of the
+    //    query ("claro", not "huentelauquen", which merely contains "entel");
+    //  - every new type needs two keyword hits (score >= 6): one weak word
+    //    ("niños", "plaza", "auto") must not drag a bike rack or a ramp in.
+    if (type === "store_service" && typeFilter !== type) {
+      var paddedQuery = " " + queryNorm + " ";
+      var brandWord = (entry.anchorStores || []).some(function (a) {
+        var b = normalizeText(a.brand || "");
+        return b && paddedQuery.indexOf(" " + b + " ") >= 0;
+      });
+      if (!brandWord) return -1;
+    }
+    if (EXTRA_SERVICE_TYPES.indexOf(type) >= 0 && typeFilter !== type && score < 6) return -1;
 
     if (preferFloor && entryOnFloor(entry, preferFloor)) {
       score += floorFilter ? 2 : 8;
