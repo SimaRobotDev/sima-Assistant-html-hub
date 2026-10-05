@@ -358,5 +358,33 @@ check("store-map-web: the QR is cleared when another store opens (no stale QR)",
 check("store-map-web: the QR element lives inside the stage, outside the map views", /<div class="store-map-view hidden" id="route-view">[\s\S]*?<\/div>\s*<\/div>\s*\n\s*<!--[\s\S]*?<aside class="route-qr hidden" id="route-qr">/.test(smwHtml));
 check("store-map-web: the QR renders the app's qrDataUrl only (no QR library loaded)", !/qrcode\s*\(/.test(smwHtml) && !/<script[^>]+qrcode/i.test(smwHtml));
 
+// ---------------------------------------------------------------- 12. store-map-web: compact store popup + page health
+// 2026-10-05: the MapVX popup was ~212px wide whatever the logo (MapVX min-width 180 + padding, plus our old
+// fixed 180x72 logo box). It must now hug the logo. These guard the shipped CSS string.
+const popupSrc = smwHtml.match(/const POPUP_CSS = \[([\s\S]*?)\]\.join\(" "\);/);
+let popupCss = "";
+try { popupCss = popupSrc ? new Function(`return [${popupSrc[1]}].join(" ");`)() : ""; } catch (e) { popupCss = ""; }
+check("store-map-web: POPUP_CSS is defined and evaluates to a CSS string", popupCss.length > 200, `len=${popupCss.length}`);
+const popupRule = (sel) => { const m = popupCss.match(new RegExp(`${sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`)); return m ? m[1] : ""; };
+const pCard = popupRule(".popup");
+const pLogo = popupRule(".popup-logo");
+check("popup card can shrink: min-width 0, width max-content, bounded max-width, tight padding", /min-width:\s*0/.test(pCard) && /width:\s*max-content/.test(pCard) && /max-width:\s*\d+px/.test(pCard) && /padding:\s*\d+px\s+\d+px/.test(pCard), pCard.trim().slice(0, 90));
+check("popup card stays compact: max-width <= 200px", (() => { const m = pCard.match(/max-width:\s*(\d+)px/); return !!m && Number(m[1]) <= 200; })());
+check("popup logo keeps its own proportions (auto width/height + object-fit contain)", /width:\s*auto/.test(pLogo) && /height:\s*auto/.test(pLogo) && /object-fit:\s*contain/.test(pLogo), pLogo.trim().slice(0, 90));
+check("popup logo is only capped, never forced to a fixed box (no fixed width/height in px)", !/(^|[\s;])width:\s*\d+px/.test(pLogo) && !/(^|[\s;])height:\s*\d+px/.test(pLogo));
+check("popup logo cap keeps the logo legible (max-height 40..64px, max-width 100..160px, min-height >= 24px)", (() => { const h = Number((pLogo.match(/max-height:\s*(\d+)px/) || [])[1]); const w = Number((pLogo.match(/max-width:\s*(\d+)px/) || [])[1]); const mh = Number((pLogo.match(/min-height:\s*(\d+)px/) || [])[1]); return h >= 40 && h <= 64 && w >= 100 && w <= 160 && mh >= 24; })());
+check("popup category stays hidden and the name stays readable (>= 13px)", /\.popup-category\s*\{\s*display:\s*none\s*!important/.test(popupCss) && Number((popupRule(".popup-name").match(/font-size:\s*(\d+)px/) || [])[1]) >= 13);
+check("popup rules are all !important (MapVX re-appends its own <style> after ours)", popupCss.split("}").filter((r) => r.includes("{")).every((r) => (r.match(/;/g) || []).every(() => true) && /!important/.test(r)));
+check("popup style is injected once per shadow root (idempotent by id)", /POPUP_STYLE_ID/.test(smwHtml) && /getElementById\(POPUP_STYLE_ID\)/.test(smwHtml));
+
+// A broken inline script silently kills the whole page (a CSS string once got split across lines in a hotfix).
+const inlineScripts = (html) => [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]).filter((c) => c.trim());
+for (const [name, html] of [["store-map-web", smwHtml], ["mobility", mobilityLf]]) {
+  const scripts = inlineScripts(html);
+  const errors = [];
+  scripts.forEach((code, i) => { try { new vm.Script(code, { filename: `${name}#inline${i}` }); } catch (e) { errors.push(`#${i}: ${e.message}`); } });
+  check(`${name}: every inline <script> parses (${scripts.length} script(s))`, scripts.length > 0 && errors.length === 0, errors.join(" | "));
+}
+
 console.log(failed ? `\n${failed} FAILED, ${passed} passed` : `all passed (${passed} checks)`);
 process.exit(failed ? 1 : 0);
