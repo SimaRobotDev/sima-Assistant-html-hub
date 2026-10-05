@@ -313,6 +313,13 @@ window.ServicesCatalog = (function () {
   // "taxi" belongs to the taxi screen, a bare "plaza" / "estacionamiento" to
   // store search, and emergency exits are not part of this catalog.
   var EXTRA_TYPE_INTENTS = [
+    // Stores that repair / give technical service (generated from the market
+    // catalog by tools/build-store-services.mjs). "arreglo floral" is a bouquet.
+    {
+      type: "store_service",
+      re: /\b(servicios?\s+tecnicos?|a?ssistencia\s+tecnica|asistencia\s+tecnica|soporte\s+tecnico|tech(nical)?\s+(service|support)|reparaci(on|ones)|reparar|repara|arreglos?|arreglar|repairs?|servicos?\s+tecnicos?|conserto|consertar|reparos?)\b/,
+      unless: /\b(flor|flores|floral|florales|florist\w*|bouquet|ramos?)\b/,
+    },
     { type: "parking_kit", re: /\b(kit\s+(de\s+)?(servicios?|servicos?|parking|estacionamiento|auto)|(parking|car)\s+(service\s+)?kit)\b/ },
     { type: "electric_taxi", re: /\b(taxis?\s+(electricos?|eletricos?)|electric\s+taxis?|(parada|paradero|ponto)\s+de\s+taxis?|taxi\s+(stand|rank))\b/ },
     { type: "parking_exit", re: /\b(rampas?|(salidas?|exits?|saidas?|accesos?|entradas?)\s+(a\s+|al\s+|del?\s+|to\s+|from\s+|do\s+|ao\s+)?(los?\s+|the\s+)?(estacionamientos?|estacionamento|parking|subterraneo|garage|garaje|autos?|vehiculos?|car)|(estacionamientos?|estacionamento|parking|garage|garaje|car\s+park)\s+(salidas?|exits?|saidas?|rampas?|ramps?))\b/ },
@@ -340,6 +347,68 @@ window.ServicesCatalog = (function () {
 
   function looksLikeExtraServiceQuery(query) {
     return !!extraTypeFromQuery(query);
+  }
+
+  // "Where can I get X repaired?": the words that only carry the intent (or a
+  // floor) are noise; what is left names WHAT is being repaired ("reloj",
+  // "celular", "ropa"). A store_service entry only answers when its own card
+  // mentions that thing — Claro must not answer "arreglos de ropa".
+  var STORE_SERVICE_NOISE = {
+    servicio: true, servicios: true, tecnico: true, tecnicos: true, tecnica: true, tecnicas: true, asistencia: true,
+    assistencia: true, soporte: true, reparacion: true, reparaciones: true,
+    reparar: true, repara: true, reparo: true, reparos: true, arreglo: true,
+    arreglos: true, arreglar: true, arregla: true, arreglan: true, repair: true,
+    repairs: true, technical: true, tech: true, service: true, support: true,
+    servico: true, servicos: true, conserto: true, consertar: true,
+    donde: true, dondequiero: true, como: true, puedo: true, puede: true, pueden: true,
+    hacer: true, hago: true, mi: true, mis: true, tu: true, tus: true, me: true,
+    how: true, can: true, get: true, my: true, do: true, fix: true, fixed: true,
+    onde: true, posso: true, meu: true, minha: true, consertar: true,
+  };
+
+  // Same thing, different word (es / en / pt): compared after mapping to one form.
+  var STORE_SERVICE_SYNONYMS = {
+    celular: "telefono", celulares: "telefono", telefonos: "telefono", movil: "telefono",
+    moviles: "telefono", smartphone: "telefono", smartphones: "telefono", phone: "telefono",
+    phones: "telefono", mobile: "telefono", cell: "telefono", cellphone: "telefono",
+    relojes: "reloj", watch: "reloj", watches: "reloj", relogio: "reloj", relogios: "reloj",
+    pila: "pilas", battery: "pilas", bateria: "pilas",
+  };
+
+  function storeServiceCanon(word) {
+    return STORE_SERVICE_SYNONYMS[word] || word;
+  }
+
+  function storeServiceSubjectTokens(queryNorm) {
+    return String(queryNorm || "")
+      .split(" ")
+      .filter(function (token) {
+        if (!token || token.length < 3) return false;
+        if (/^\d+$/.test(token)) return false;
+        if (STORE_SERVICE_NOISE[token] || GENERIC_SERVICE_FILLER[token]) return false;
+        return true;
+      })
+      .map(storeServiceCanon);
+  }
+
+  function storeServiceMatchesSubject(entry, tokens) {
+    var words = {};
+    (entry.keywords || [])
+      .concat([entry.name || "", entry.sector || ""])
+      .forEach(function (text) {
+        normalizeText(text)
+          .split(" ")
+          .forEach(function (word) {
+            if (word) words[storeServiceCanon(word)] = true;
+          });
+      });
+    var list = Object.keys(words);
+    return tokens.some(function (token) {
+      return list.some(function (word) {
+        if (word === token) return true;
+        return token.length >= 4 && word.length >= 4 && tokenMatchesLemma(token, word);
+      });
+    });
   }
 
   // "servicios del mall" / "mall services" / "serviços do shopping": the visitor
@@ -700,6 +769,9 @@ window.ServicesCatalog = (function () {
     if (type === "nursing" && wantsNursing(queryNorm)) score += 8;
     if (type === "changing_table" && wantsChangingTable(queryNorm)) score += 8;
     if (EXTRA_SERVICE_TYPES.indexOf(type) >= 0 && extraTypeFromQuery(queryNorm) === type) score += 8;
+    // Stores that give a service are never "filler" for an unrelated query: with
+    // no store_service intent they must score on their own words (e.g. "internet").
+    if (type === "store_service" && typeFilter !== "store_service" && score <= 0) return -1;
 
     if (preferFloor && entryOnFloor(entry, preferFloor)) {
       score += floorFilter ? 2 : 8;
@@ -828,6 +900,9 @@ window.ServicesCatalog = (function () {
       if (!options.type && !mudadorOnly && looksLikeGenericServicesQuery(q)) {
         return catalog.services
           .filter(function (entry) {
+            // Stores that give a service only answer specific asks ("servicio
+            // técnico", "reparar reloj"); they would drown the mall's own services.
+            if (entryType(entry) === "store_service") return false;
             if (!floorFilter || !entry.floors || !entry.floors.length) return true;
             return entryOnFloor(entry, floorFilter);
           })
@@ -860,6 +935,18 @@ window.ServicesCatalog = (function () {
         .sort(function (a, b) {
           return b.score - a.score;
         });
+
+      // Repair / technical-service asks that name a thing: only stores whose card
+      // mentions it. Nothing matching is an honest empty answer, not "everything".
+      if (typeFilter === "store_service") {
+        var subject = storeServiceSubjectTokens(q);
+        if (subject.length) {
+          scored = scored.filter(function (row) {
+            return storeServiceMatchesSubject(row.entry, subject);
+          });
+          if (!scored.length) return [];
+        }
+      }
 
       if (
         !scored.length &&

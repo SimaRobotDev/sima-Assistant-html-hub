@@ -24,6 +24,7 @@ Checklist corto para validar un cambio antes de publicar el repo o un mirror.
 - [ ] Regenerar con `scripts/build-runtime-manifest-from-git.mjs` (no el builder de disco en Windows).
 - [ ] `baseUrl` apunta al host Vercel estable del proyecto (no un flag CLI).
 - [ ] `node scripts/validate-runtime-manifest-from-git.mjs runtime-sync/manifests/<slug>.json` pasa.
+- [ ] Si cambió `data/market-catalog.json`: `npm run build:store-services` y luego `node tools/build-jsonp-assets.mjs` (las tiendas que dan servicio técnico/reparación se derivan del catálogo; `node tools/verify-services-generic.mjs` falla si quedaron desactualizadas).
 - [ ] El manifest no lista archivos gitignored (`data/*-mapvx-patches.json`).
 
 ## Validación final

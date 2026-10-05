@@ -22,6 +22,9 @@ function load(file, extra = {}) {
 
 const SC = load("shared/services-catalog.js", { __SERVICES_CATALOG__: servicesData }).ServicesCatalog;
 await SC.loadCatalog();
+// Stores that give a service (store_service) only answer specific asks; the full
+// "servicios del mall" listing is the mall's own services.
+const mallServices = servicesData.services.filter((s) => s.type !== "store_service");
 
 let failed = 0;
 function check(label, ok, detail = "") {
@@ -65,12 +68,12 @@ NOT_GENERIC.forEach((q) => check(`specific  "${q}"`, !SC.looksLikeGenericService
 // ---- 2. listing returns EVERYTHING in services-catalog.json ----
 const all = SC.search("servicios del mall");
 check(
-  `"servicios del mall" returns all ${servicesData.services.length} catalog services`,
-  all.length === servicesData.services.length,
+  `"servicios del mall" returns all ${mallServices.length} catalog services`,
+  all.length === mallServices.length,
   `got ${all.length}`
 );
 const types = new Set(all.map((r) => r.type));
-const catalogTypes = new Set(servicesData.services.map((s) => s.type));
+const catalogTypes = new Set(mallServices.map((s) => s.type));
 check(
   "every catalog type is present",
   [...catalogTypes].every((t) => types.has(t)),
@@ -187,8 +190,8 @@ check("no store brand name is mistaken for an ATM query", brandHits.length === 0
 // Generic listing now includes the ATMs too (still EVERY catalog service).
 const allNow = SC.search("servicios del mall");
 check(
-  `"servicios del mall" -> all ${servicesData.services.length} services incl. 15 ATMs`,
-  allNow.length === servicesData.services.length && allNow.filter((r) => r.type === "atm").length === 15,
+  `"servicios del mall" -> all ${mallServices.length} services incl. 15 ATMs`,
+  allNow.length === mallServices.length && allNow.filter((r) => r.type === "atm").length === 15,
   `got ${allNow.length}`
 );
 // Other intents must not pull ATMs in.
@@ -281,6 +284,57 @@ check(
     const r = SC.search("cowork paris");
     return n4?.anchorStores?.[0]?.local === "CC_N4_1200" && r.length === 1 && r[0].floors.includes("4") && r[0].anchorLocal === "CC_N4_1200";
   })()
+);
+
+// ---- 7. Stores that give a service (store_service), derived from the market catalog ----
+const { buildEntries } = await import("./build-store-services.mjs");
+const generatedNow = buildEntries(marketData);
+const generatedInCatalog = servicesData.services.filter((s) => s.source === "market-catalog");
+check(
+  "store_service entries are up to date with market-catalog.json (else: node tools/build-store-services.mjs)",
+  JSON.stringify(generatedNow) === JSON.stringify(generatedInCatalog),
+  `catalog ${generatedInCatalog.length} vs market ${generatedNow.length}`
+);
+check("every store_service entry is generated (none hand-typed)", servicesData.services.filter((s) => s.type === "store_service").every((s) => s.source === "market-catalog"));
+check(
+  "store_service entries are WC-eligible: placeId = the store's local, anchored to it, no coordinates",
+  generatedInCatalog.every((s) => s.mapvx?.placeId && s.mapvx.placeId === s.anchorStores?.[0]?.local && s.mapvx.lat == null && !s.mapvx.placeIdNote)
+);
+check("store_service ids are unique", new Set(generatedInCatalog.map((s) => s.id)).size === generatedInCatalog.length);
+
+const brandsFor = (query, opts) => SC.search(query, opts).filter((r) => r.type === "store_service").map((r) => r.name.replace(/ [(].*$/, ""));
+const sameSet = (a, b) => JSON.stringify([...new Set(a)].sort()) === JSON.stringify([...new Set(b)].sort());
+const STORE_CASES = [
+  ["servicio técnico", ["Claro", "Entel", "Longines", "Mecánica del Tiempo", "Movistar", "VTR"]],
+  ["reparación", ["Claro", "Entel", "Longines", "Mecánica del Tiempo", "Movistar", "VTR"]],
+  ["dónde arreglo mi reloj", ["Longines", "Mecánica del Tiempo"]],
+  ["reparar reloj", ["Longines", "Mecánica del Tiempo"]],
+  ["repair watch", ["Longines", "Mecánica del Tiempo"]],
+  ["conserto de relógio", ["Longines", "Mecánica del Tiempo"]],
+  ["reparar celular", ["Claro", "Entel", "Movistar", "VTR"]],
+  ["repair my phone", ["Claro", "Entel", "Movistar", "VTR"]],
+  ["assistência técnica celular", ["Claro", "Entel", "Movistar", "VTR"]],
+  ["servicio técnico Claro", ["Claro"]],
+  ["servicio técnico nivel 2", ["Longines"]],
+  ["servicio técnico planta baja", ["Claro", "Entel", "Mecánica del Tiempo", "Movistar", "VTR"]],
+];
+STORE_CASES.forEach(([query, expected]) => {
+  const got = brandsFor(query);
+  check(`store svc "${query}" -> ${expected.join(", ")}`, SC.looksLikeServicesQuery(query) && sameSet(got, expected), got.join(", ") || "(none)");
+});
+// Asking for something no store repairs is an honest empty answer, never "everything".
+["arreglos de ropa", "reparar zapatos", "reparar bicicleta", "reparación de autos"].forEach((query) =>
+  check(`store svc "${query}" -> no results (no store repairs that)`, SC.search(query).length === 0, `got ${SC.search(query).length}`)
+);
+check('"arreglo de flores" is not a repair ask', !SC.extraTypeFromQuery("arreglo de flores") && brandsFor("arreglo de flores").length === 0);
+check("generic listing never includes store_service", !SC.search("servicios del mall").some((r) => r.type === "store_service"));
+["servicios", "baños", "ascensor", "cajero", "cowork", "servicio al cliente", "lactancia", "mudador", "salidas", "bicicletero"].forEach((query) =>
+  check(`"${query}" -> no store_service`, !SC.search(query).some((r) => r.type === "store_service"))
+);
+check("store_service card carries placeId for the WC map", SC.search("servicio técnico").every((r) => r.placeId && /^CC_/.test(r.placeId)));
+check(
+  "store_service from a totem on N2: still lists every store, N2 first",
+  (() => { const r = SC.search("servicio técnico", { preferFloor: "2" }); return r.length === 7 && r[0].floors.includes("2"); })()
 );
 
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");

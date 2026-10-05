@@ -2191,6 +2191,7 @@ const MOBILITY_I18N = {
     parkingExits: "Salidas Estacionamientos",
     electricTaxis: "Taxis Eléctricos",
     parkingKit: "Kit de servicios parking",
+    storeService: "Servicio técnico y reparación",
     allLevels: "Todos los niveles",
     level: "Nivel",
     gf: "PB",
@@ -2304,6 +2305,7 @@ const MOBILITY_I18N = {
     parkingExits: "Parking exits",
     electricTaxis: "Electric taxis",
     parkingKit: "Parking service kit",
+    storeService: "Repairs & technical service",
     allLevels: "All levels",
     level: "Level",
     gf: "GF",
@@ -2417,6 +2419,7 @@ const MOBILITY_I18N = {
     parkingExits: "Saídas do estacionamento",
     electricTaxis: "Táxis elétricos",
     parkingKit: "Kit de serviços do estacionamento",
+    storeService: "Reparos e assistência técnica",
     allLevels: "Todos os níveis",
     level: "Nível",
     gf: "Térreo",
@@ -5451,6 +5454,8 @@ const EXTRA_SERVICE_KINDS = {
   parking_exit: { label: "parkingExits", icon: "parking-exit.svg", fallback: "Salidas Estacionamientos", useEntryName: true },
   electric_taxi: { label: "electricTaxis", icon: "electric-taxi.svg", fallback: "Taxis Eléctricos" },
   parking_kit: { label: "parkingKit", icon: "parking-kit.svg", fallback: "Kit de servicios parking" },
+  // Stores that repair / give technical service (generated from the market catalog).
+  store_service: { label: "storeService", icon: "repair.svg", fallback: "Servicio técnico y reparación", useEntryName: true },
 };
 
 function extraServiceKindLabel(kind) {
@@ -6283,7 +6288,7 @@ function renderServiceCard(svc, idx) {
     ? `<span class="store-badge store-badge-floor">${escapeHtml(floorsLabel)}</span>`
     : "";
   // Elevators already say "junto a X · Nivel N" in location — skip duplicate "Cerca de".
-  const anchorBadge = kind !== "elevator" && svc.anchorBrand
+  const anchorBadge = kind !== "elevator" && kind !== "store_service" && svc.anchorBrand
     ? `<span class="store-badge">${escapeHtml(t("near") + " " + svc.anchorBrand)}</span>`
     : "";
   const mapBtn = svc.id

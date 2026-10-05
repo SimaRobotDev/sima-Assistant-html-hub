@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:store-services": "node tools/build-store-services.mjs",
     "build:manifests": "node scripts/build-runtime-manifest-from-git.mjs",
     "build:manifests:disk": "node scripts/build-runtime-manifest.mjs",
     "validate:manifest": "node scripts/validate-runtime-manifest-from-git.mjs",
