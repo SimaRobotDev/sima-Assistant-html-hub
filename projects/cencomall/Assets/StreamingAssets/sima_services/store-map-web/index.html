@@ -17,6 +17,7 @@
 <script src="../shared/market-search.js"></script>
 <script src="../shared/market-i18n.js"></script>
 <script src="../shared/store-detail.js?v=20260812-5"></script>
+<script src="../shared/mapvx-label-tuning.js?v=20261005-1"></script>
 
 <!--
   Official MapVX Web Components (@mapvx/web-components@0.3.0), self-hosted
@@ -1310,6 +1311,10 @@ function hideGenericPoiIcons(hostEl) {
     });
     layers.forEach(function (l) { libreMap.setLayoutProperty(l.id, "visibility", "none"); });
     if (layers.length) log("hideGenericPoiIcons: hid " + layers.map(function (l) { return l.id; }).join(", "));
+    // The filter above also catches "indoor-poi": the TEXT layer that draws the store
+    // names. Those are wanted — and visible at every zoom, shrinking as the map is
+    // zoomed out — so they are re-shown and tuned right after (shared/mapvx-label-tuning.js).
+    if (window.MapVxLabels) window.MapVxLabels.tune(libreMap, log);
   } catch (e) {
     log("hideGenericPoiIcons failed (internals likely changed): " + (e.message || e));
   }

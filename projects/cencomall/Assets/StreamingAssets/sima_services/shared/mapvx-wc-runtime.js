@@ -204,6 +204,11 @@
       if (layers.length) {
         log("hideGenericPoiIcons: hid " + layers.map(function (l) { return l.id; }).join(", "));
       }
+      // The filter above also catches "indoor-poi": the TEXT layer that draws the
+      // store names. Those are wanted — visible at every zoom, shrinking as the map
+      // is zoomed out — so they are re-shown and tuned right after
+      // (shared/mapvx-label-tuning.js, loaded before this file).
+      if (typeof window !== "undefined" && window.MapVxLabels) window.MapVxLabels.tune(libreMap, log);
     } catch (e) {
       log("hideGenericPoiIcons failed: " + (e && e.message ? e.message : e));
     }
