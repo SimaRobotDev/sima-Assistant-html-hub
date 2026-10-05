@@ -331,5 +331,32 @@ check(`EVERY store local in the market catalog gets a QR (${marketData.length} s
 const wcOnly = services.filter((s) => s.mapvx?.placeId && !isDest(s.mapvx.placeId)).map((s) => `${s.id}:${s.mapvx.placeId}`);
 check("only the legacy node: ids are refused a QR (elevators)", wcOnly.every((x) => /:node:\d+$/.test(x)), wcOnly.join(" | "));
 
+// ---------------------------------------------------------------- 11. store-map-web route QR stays visible
+// Regression: the MapVX web components paint layers with z-index up to 99999 (loading-overlay 1000,
+// floor bar / overlays 9999, error modal 10000). A shadow root does not isolate them, so with the QR at
+// z-index 15 they washed it out whenever the map was loading / changing store / changing floor.
+const smwHtml = read("store-map-web/index.html").replace(/\r\n/g, "\n");
+const cssBlock = (selector) => {
+  const m = smwHtml.match(new RegExp(`(?:^|\\n)\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`));
+  return m ? m[1] : "";
+};
+const viewCss = cssBlock(".store-map-view");
+const qrCss = cssBlock(".route-qr");
+const statusCss = cssBlock(".store-map-status");
+const zOf = (css) => { const m = css.match(/(?:^|[\s;])z-index:\s*(-?\d+)/); return m ? Number(m[1]) : null; };
+check("store-map-web: .store-map-view is its own stacking context (isolation:isolate, z-index:0)", /isolation:\s*isolate/.test(viewCss) && zOf(viewCss) === 0, viewCss.trim().slice(0, 60));
+check("store-map-web: the route-view container shares that class (so route-view-totems is contained too)", /class="store-map-view hidden" id="route-view"/.test(smwHtml) && /class="store-map-view" id="map-view"/.test(smwHtml));
+check("store-map-web: the route QR sits above the map layers", zOf(qrCss) !== null && zOf(qrCss) > (zOf(viewCss) ?? 0), `qr z=${zOf(qrCss)}`);
+check("store-map-web: the route QR sits above the status card (stays visible when the map is slow or failed)", zOf(qrCss) !== null && zOf(statusCss) !== null && zOf(qrCss) > zOf(statusCss), `qr z=${zOf(qrCss)} status z=${zOf(statusCss)}`);
+check("store-map-web: the QR never steals map gestures (pointer-events:none)", /pointer-events:\s*none/.test(qrCss));
+// the real components really do use z-indexes this high: if MapVX ever lowers them this test can be relaxed
+const wcZ = (f) => Math.max(...[...read(f).matchAll(/z-index:\s*(\d+)/g)].map((m) => Number(m[1])));
+check("vendored MapVX bundles still use z-index far above any page layer (why the isolation is needed)", wcZ("shared/mapvx-wc/map-view-with-modal.js") >= 1000 && wcZ("shared/mapvx-wc/route-view-totems.js") >= 9999);
+// the app contract (window.applyRouteQr / SIMA_ROUTE_QR) must stay intact
+check("store-map-web: applyRouteQr contract present (function, null clears, init from SIMA_ROUTE_QR)", /window\.applyRouteQr\s*=\s*function/.test(smwHtml) && /function hideRouteQr\(\)/.test(smwHtml) && /if \(window\.SIMA_ROUTE_QR\) window\.applyRouteQr\(window\.SIMA_ROUTE_QR\)/.test(smwHtml));
+check("store-map-web: the QR is cleared when another store opens (no stale QR)", /function openStoreMapFromPayload\([\s\S]*?hideRouteQr\(\);/.test(smwHtml));
+check("store-map-web: the QR element lives inside the stage, outside the map views", /<div class="store-map-view hidden" id="route-view">[\s\S]*?<\/div>\s*<\/div>\s*\n\s*<!--[\s\S]*?<aside class="route-qr hidden" id="route-qr">/.test(smwHtml));
+check("store-map-web: the QR renders the app's qrDataUrl only (no QR library loaded)", !/qrcode\s*\(/.test(smwHtml) && !/<script[^>]+qrcode/i.test(smwHtml));
+
 console.log(failed ? `\n${failed} FAILED, ${passed} passed` : `all passed (${passed} checks)`);
 process.exit(failed ? 1 : 0);
