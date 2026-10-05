@@ -17,6 +17,7 @@
 <script src="../shared/market-search.js"></script>
 <script src="../shared/market-i18n.js"></script>
 <script src="../shared/store-detail.js?v=20260812-5"></script>
+<script src="../shared/mapvx-label-tuning.js?v=20261005-1"></script>
 
 <!--
   Official MapVX Web Components (@mapvx/web-components@0.3.0), self-hosted
@@ -1310,6 +1311,10 @@ function hideGenericPoiIcons(hostEl) {
     });
     layers.forEach(function (l) { libreMap.setLayoutProperty(l.id, "visibility", "none"); });
     if (layers.length) log("hideGenericPoiIcons: hid " + layers.map(function (l) { return l.id; }).join(", "));
+    // The filter above also catches "indoor-poi": the TEXT layer that draws the store
+    // names. Those are wanted — and visible at every zoom, shrinking as the map is
+    // zoomed out — so they are re-shown and tuned right after (shared/mapvx-label-tuning.js).
+    if (window.MapVxLabels) window.MapVxLabels.tune(libreMap, log);
   } catch (e) {
     log("hideGenericPoiIcons failed (internals likely changed): " + (e.message || e));
   }
@@ -1479,16 +1484,26 @@ function findDeepShadow(root, selector, depth) {
 // a beat after mapReady/applyPlace; idempotent per root (by id).
 const POPUP_STYLE_ID = "cm-popup-style";
 const POPUP_CSS = [
+  /* COMPACT card (feedback 2026-10-05): it hugs the logo instead of keeping MapVX's
+     180px minimum width + 15px padding and our old fixed 180x72 logo box, which made
+     every card ~212px wide whatever the logo's shape. Measured against MapVX's own
+     CSS: a wide logo (GAP) 212 -> ~150px, square / tall logos 212 -> 50-66px, and
+     ~45px less height. width:max-content lets the card shrink to its content. */
+  ".popup { min-width: 0 !important; width: max-content !important;",
+  "  max-width: 176px !important; padding: 6px 10px !important; }",
   ".popup-content { gap: 2px !important; align-items: center !important; }",
-  ".popup-logo { height: 72px !important; max-height: 72px !important;",
-  "  max-width: 180px !important; width: 180px !important; }",
+  /* The logo keeps its own proportions (auto/auto + contain), only capped, so the
+     card follows the logo. min-height stops a tiny logo from vanishing. */
+  ".popup-logo { width: auto !important; height: auto !important;",
+  "  max-width: 130px !important; max-height: 52px !important;",
+  "  min-height: 30px !important; object-fit: contain !important; }",
   /* Keeps MapVX's own type (Poppins 700, black, tight tracking), only smaller. */
-  ".popup-name { margin-top: 2px !important; font-size: 14px !important;",
-  "  line-height: 16px !important; letter-spacing: -0.5px !important;",
-  "  max-width: 180px !important; }",
+  ".popup-name { margin-top: 2px !important; font-size: 13px !important;",
+  "  line-height: 15px !important; letter-spacing: -0.5px !important;",
+  "  max-width: 150px !important; }",
   /* Without a logo the name is the only identification: keep it readable. */
-  ".popup-content:not(:has(.popup-logo)) .popup-name { font-size: 16px !important;",
-  "  line-height: 19px !important; font-weight: 700 !important; }",
+  ".popup-content:not(:has(.popup-logo)) .popup-name { font-size: 15px !important;",
+  "  line-height: 18px !important; font-weight: 700 !important; }",
   ".popup-category { display: none !important; }",
 ].join(" ");
 

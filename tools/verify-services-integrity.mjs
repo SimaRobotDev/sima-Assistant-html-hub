@@ -358,5 +358,167 @@ check("store-map-web: the QR is cleared when another store opens (no stale QR)",
 check("store-map-web: the QR element lives inside the stage, outside the map views", /<div class="store-map-view hidden" id="route-view">[\s\S]*?<\/div>\s*<\/div>\s*\n\s*<!--[\s\S]*?<aside class="route-qr hidden" id="route-qr">/.test(smwHtml));
 check("store-map-web: the QR renders the app's qrDataUrl only (no QR library loaded)", !/qrcode\s*\(/.test(smwHtml) && !/<script[^>]+qrcode/i.test(smwHtml));
 
+// ---------------------------------------------------------------- 12. store-map-web: compact store popup + page health
+// 2026-10-05: the MapVX popup was ~212px wide whatever the logo (MapVX min-width 180 + padding, plus our old
+// fixed 180x72 logo box). It must now hug the logo. These guard the shipped CSS string.
+const popupSrc = smwHtml.match(/const POPUP_CSS = \[([\s\S]*?)\]\.join\(" "\);/);
+let popupCss = "";
+try { popupCss = popupSrc ? new Function(`return [${popupSrc[1]}].join(" ");`)() : ""; } catch (e) { popupCss = ""; }
+check("store-map-web: POPUP_CSS is defined and evaluates to a CSS string", popupCss.length > 200, `len=${popupCss.length}`);
+const popupRule = (sel) => { const m = popupCss.match(new RegExp(`${sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`)); return m ? m[1] : ""; };
+const pCard = popupRule(".popup");
+const pLogo = popupRule(".popup-logo");
+check("popup card can shrink: min-width 0, width max-content, bounded max-width, tight padding", /min-width:\s*0/.test(pCard) && /width:\s*max-content/.test(pCard) && /max-width:\s*\d+px/.test(pCard) && /padding:\s*\d+px\s+\d+px/.test(pCard), pCard.trim().slice(0, 90));
+check("popup card stays compact: max-width <= 200px", (() => { const m = pCard.match(/max-width:\s*(\d+)px/); return !!m && Number(m[1]) <= 200; })());
+check("popup logo keeps its own proportions (auto width/height + object-fit contain)", /width:\s*auto/.test(pLogo) && /height:\s*auto/.test(pLogo) && /object-fit:\s*contain/.test(pLogo), pLogo.trim().slice(0, 90));
+check("popup logo is only capped, never forced to a fixed box (no fixed width/height in px)", !/(^|[\s;])width:\s*\d+px/.test(pLogo) && !/(^|[\s;])height:\s*\d+px/.test(pLogo));
+check("popup logo cap keeps the logo legible (max-height 40..64px, max-width 100..160px, min-height >= 24px)", (() => { const h = Number((pLogo.match(/max-height:\s*(\d+)px/) || [])[1]); const w = Number((pLogo.match(/max-width:\s*(\d+)px/) || [])[1]); const mh = Number((pLogo.match(/min-height:\s*(\d+)px/) || [])[1]); return h >= 40 && h <= 64 && w >= 100 && w <= 160 && mh >= 24; })());
+check("popup category stays hidden and the name stays readable (>= 13px)", /\.popup-category\s*\{\s*display:\s*none\s*!important/.test(popupCss) && Number((popupRule(".popup-name").match(/font-size:\s*(\d+)px/) || [])[1]) >= 13);
+check("popup rules are all !important (MapVX re-appends its own <style> after ours)", popupCss.split("}").filter((r) => r.includes("{")).every((r) => (r.match(/;/g) || []).every(() => true) && /!important/.test(r)));
+check("popup style is injected once per shadow root (idempotent by id)", /POPUP_STYLE_ID/.test(smwHtml) && /getElementById\(POPUP_STYLE_ID\)/.test(smwHtml));
+
+// A broken inline script silently kills the whole page (a CSS string once got split across lines in a hotfix).
+const inlineScripts = (html) => [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]).filter((c) => c.trim());
+for (const [name, html] of [["store-map-web", smwHtml], ["mobility", mobilityLf]]) {
+  const scripts = inlineScripts(html);
+  const errors = [];
+  scripts.forEach((code, i) => { try { new vm.Script(code, { filename: `${name}#inline${i}` }); } catch (e) { errors.push(`#${i}: ${e.message}`); } });
+  check(`${name}: every inline <script> parses (${scripts.length} script(s))`, scripts.length > 0 && errors.length === 0, errors.join(" | "));
+}
+
+// ---------------------------------------------------------------- 13. store-name labels: visible when zoomed out, adaptive size
+// The names around a store are MapVX's `indoor-poi` TEXT layer (minzoom 19, 12px). shared/mapvx-label-tuning.js shows them across
+// the whole zoom range with a size that grows with zoom. Tested here against a mock MapLibre built from the real layer fields.
+const labelSrc = read("shared/mapvx-label-tuning.js");
+const labelWin = {};
+vm.runInContext(labelSrc, vm.createContext({ window: labelWin, console }), { filename: "mapvx-label-tuning.js" });
+const ML = labelWin.MapVxLabels;
+check("MapVxLabels module loads and exposes tune/apply/CONFIG", !!ML && typeof ML.tune === "function" && typeof ML.apply === "function" && !!ML.CONFIG);
+
+// real fields of the MapVX style layers involved (captured from the public site's mapStyleJson, 2026-10-05)
+const mkLayers = () => [
+  { id: "indoor-poi", type: "symbol", source: "indoorequal", "source-layer": "poi", minzoom: 19, maxzoom: 24, layout: { "text-size": 12, "text-padding": 2, "text-max-width": 10, "text-allow-overlap": false, visibility: "visible" } },
+  { id: "indoor-poi-logo", type: "symbol", source: "indoorequal", "source-layer": "poi", minzoom: 17, maxzoom: 24, layout: { visibility: "visible" } },
+  { id: "indoor-transportation-poi", type: "symbol", source: "indoorequal", "source-layer": "transportation", minzoom: 17, maxzoom: 24, layout: { visibility: "visible" } },
+  { id: "indoor-poi-tree", type: "symbol", source: "indoorequal", "source-layer": "poi", minzoom: 17, maxzoom: 24, layout: { visibility: "visible" } },
+  { id: "indoor-area_name", type: "symbol", source: "indoorequal", "source-layer": "area_name", minzoom: 19, maxzoom: 24, layout: { "text-size": 10, visibility: "visible" } },
+  { id: "indoor-polygon-room", type: "fill", source: "indoorequal", "source-layer": "area", layout: {} },
+];
+function mkMap(layers = mkLayers()) {
+  const handlers = {};
+  const calls = { set: 0, range: 0, on: 0 };
+  const L = (id) => layers.find((l) => l.id === id);
+  const map = {
+    calls, layers, handlers,
+    getStyle: () => ({ layers }),
+    getLayer: (id) => L(id),
+    getLayoutProperty: (id, p) => L(id)?.layout?.[p],
+    setLayoutProperty: (id, p, v) => { L(id).layout[p] = v; calls.set += 1; (handlers.styledata || []).forEach((f) => f()); },
+    setLayerZoomRange: (id, a, b) => { L(id).minzoom = a; L(id).maxzoom = b; calls.range += 1; (handlers.styledata || []).forEach((f) => f()); },
+    on: (n, f) => { (handlers[n] = handlers[n] || []).push(f); calls.on += 1; },
+    fire: (n) => (handlers[n] || []).forEach((f) => f()),
+  };
+  return map;
+}
+const poiOf = (map) => map.layers.find((l) => l.id === "indoor-poi");
+
+{ // tuning
+  const map = mkMap(); const logs = [];
+  const ok = ML.tune(map, (s) => logs.push(s));
+  const p = poiOf(map);
+  check("tune() returns true and tunes indoor-poi: visible, minzoom = CONFIG.minZoom, padding, adaptive size", ok === true && p.layout.visibility === "visible" && p.minzoom === ML.CONFIG.minZoom && p.layout["text-padding"] === ML.CONFIG.padding && Array.isArray(p.layout["text-size"]) && p.layout["text-size"][0] === "interpolate" && p.layout["text-size"][2][0] === "zoom", JSON.stringify(p.layout["text-size"]));
+  check("tune() leaves every other layer untouched (area_name, logos, transport icons, polygons)", JSON.stringify(map.layers.filter((l) => l.id !== "indoor-poi")) === JSON.stringify(mkLayers().filter((l) => l.id !== "indoor-poi")));
+  check("tune() logs what it changed (visible in the totem logs)", logs.length === 1 && /MapVxLabels: tuned indoor-poi/.test(logs[0]), logs.join("|"));
+}
+{ // idempotence + a single listener
+  const map = mkMap(); ML.tune(map); const sets = map.calls.set, ranges = map.calls.range, ons = map.calls.on;
+  ML.tune(map); ML.tune(map); ML.tune(map);
+  check("calling tune() again changes nothing and never stacks style listeners", map.calls.set === sets && map.calls.range === ranges && map.calls.on === ons && ons === 1, `set ${sets}->${map.calls.set} on=${map.calls.on}`);
+}
+{ // hide helper runs first (as on the totem), then tune re-shows only the label layer
+  const map = mkMap();
+  map.layers.filter((l) => l.type === "symbol" && l["source-layer"] !== "area_name" && l.id !== "indoor-poi-tree").forEach((l) => { l.layout.visibility = "none"; });
+  ML.tune(map);
+  const vis = (id) => map.layers.find((l) => l.id === id).layout.visibility;
+  check("after the hide helper, only the label layer comes back (logos / transport icons stay hidden)", vis("indoor-poi") === "visible" && vis("indoor-poi-logo") === "none" && vis("indoor-transportation-poi") === "none");
+}
+{ // self-healing without runaway loops
+  const map = mkMap(); ML.tune(map);
+  const p = poiOf(map);
+  p.layout.visibility = "none"; p.layout["text-size"] = 12; p.layout["text-padding"] = 2; p.minzoom = 19;   // SDK-style reset
+  const before = map.calls.set + map.calls.range;
+  map.fire("styledata");
+  check("a style reset (SDK rebuilds the layer) is repaired on the next styledata", p.layout.visibility === "visible" && p.minzoom === ML.CONFIG.minZoom && p.layout["text-padding"] === ML.CONFIG.padding && Array.isArray(p.layout["text-size"]));
+  const after = map.calls.set + map.calls.range;
+  check("self-healing is bounded: repairing the 4 reset properties (visibility, minzoom, size, padding) costs 4 writes, then it is quiet (no styledata loop)", after - before === 4 && (() => { const c = map.calls.set + map.calls.range; map.fire("styledata"); map.fire("styledata"); return map.calls.set + map.calls.range === c; })(), `writes ${after - before}`);
+}
+{ // robustness
+  const weird = [null, undefined, {}, [], 42, "map", { getLayer: () => null, on() {} }, { getLayer() { throw new Error("style not loaded"); }, on() {} }, { getLayer: () => ({ minzoom: 19 }), getLayoutProperty() { throw new Error("boom"); }, on() {} }];
+  let threw = null; const rets = [];
+  weird.forEach((m, i) => { try { rets.push(ML.tune(m, () => {})); } catch (e) { threw = `#${i}: ${e.message}`; } });
+  check("tune() never throws on missing/odd maps (returns false instead)", !threw && rets.every((r) => r === false), threw || rets.join(","));
+  check("a map without the label layer is a silent no-op", (() => { const m = mkMap(mkLayers().filter((l) => l.id !== "indoor-poi")); return ML.tune(m) === false && m.calls.set === 0 && m.calls.range === 0; })());
+  const errs = []; ML.tune({ getLayer() { throw new Error("MapVX renamed things"); }, on() {} }, (s) => errs.push(s));
+  check("an internal failure is logged for the totem logs, not thrown", errs.length === 1 && /MapVxLabels failed/.test(errs[0]), errs.join("|"));
+}
+{ // the numbers: adaptive, legible, and the closest zoom unchanged
+  const C = ML.CONFIG; const pages = { smw: smwHtml, runtime: read("shared/mapvx-wc-runtime.js") };
+  const zMin = Number((smwHtml.match(/const ZOOM_MIN = ([\d.]+);/) || [])[1]); const zMax = Number((smwHtml.match(/const ZOOM_MAX = ([\d.]+);/) || [])[1]);
+  const rMin = Number((pages.runtime.match(/var ZOOM_MIN = ([\d.]+);/) || [])[1]); const rMax = Number((pages.runtime.match(/var ZOOM_MAX = ([\d.]+);/) || [])[1]);
+  check("labels start exactly at the pages' lowest zoom (so they exist at EVERY allowed zoom)", C.minZoom === zMin && C.minZoom === rMin, `labels ${C.minZoom} pages ${zMin}/${rMin}`);
+  check("size stops: first stop at minZoom, last stop at the pages' ZOOM_MAX", C.sizeStops[0][0] === C.minZoom && C.sizeStops[C.sizeStops.length - 1][0] === zMax && zMax === rMax);
+  check("size stops are strictly ordered by zoom and non-decreasing in size (smaller when zoomed out)", C.sizeStops.every((s, i, a) => i === 0 || (s[0] > a[i - 1][0] && s[1] >= a[i - 1][1])));
+  check("closest zoom keeps MapVX's own 12px (the close-up view is exactly as before)", C.sizeStops[C.sizeStops.length - 1][1] === 12);
+  check("zoomed-out size stays legible but clearly smaller (7..10px at the lowest zoom)", C.sizeStops[0][1] >= 7 && C.sizeStops[0][1] <= 10 && C.sizeStops[0][1] < 12);
+  check("padding and wrap width are sane (padding 0..2, wrap 6..12em, stops ordered)", C.padding >= 0 && C.padding <= 2 && C.maxWidthStops.every((s, i, a) => s[1] >= 6 && s[1] <= 12 && (i === 0 || s[0] > a[i - 1][0])));
+}
+
+// ---- wiring in the three pages that draw the MapVX maps
+const smwScripts = [...smwHtml.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1].split("?")[0]);
+const idxOf = (list, name) => list.findIndex((s) => s.endsWith(name));
+check("store-map-web loads mapvx-label-tuning.js before the MapVX bundles", idxOf(smwScripts, "mapvx-label-tuning.js") >= 0 && idxOf(smwScripts, "mapvx-label-tuning.js") < idxOf(smwScripts, "map-view-with-modal.js"));
+for (const [name, html] of [["mobility", mobilityLf], ["store-map (legacy)", read("store-map/index.html").replace(/\r\n/g, "\n")]]) {
+  const list = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1].split("?")[0]);
+  check(`${name} loads mapvx-label-tuning.js BEFORE mapvx-wc-runtime.js (which calls it)`, idxOf(list, "mapvx-label-tuning.js") >= 0 && idxOf(list, "mapvx-label-tuning.js") < idxOf(list, "mapvx-wc-runtime.js"));
+  check(`${name}: the runtime script URL carries the new cache-busting version`, /mapvx-wc-runtime\.js\?v=20261005/.test(html));
+}
+
+// run each page's REAL hideGenericPoiIcons against the mock: hides the icon layers, then re-shows + tunes the labels
+function realHide(src, kind) {
+  const m = kind === "smw"
+    ? src.match(/function hideGenericPoiIcons\(hostEl\) \{[\s\S]*?\n\}\n/)
+    : src.match(/function hideGenericPoiIcons\(hostEl\) \{[\s\S]*?\n  \}\n/);
+  if (!m) return null;
+  const body = m[0];
+  return kind === "smw"
+    ? new Function("window", "log", "HIDDEN_ICON_SOURCE_LAYERS", `${body}; return hideGenericPoiIcons;`)
+    : new Function("window", "log", "HIDDEN_ICON_SOURCE_LAYERS", "getLiveMap", `${body}; return hideGenericPoiIcons;`);
+}
+for (const [name, kind, src] of [["store-map-web", "smw", smwHtml], ["mapvx-wc-runtime (mobility / store-map)", "runtime", read("shared/mapvx-wc-runtime.js").replace(/\r\n/g, "\n")]]) {
+  const factory = realHide(src, kind);
+  check(`${name}: hideGenericPoiIcons is present and calls MapVxLabels.tune`, !!factory && /MapVxLabels\.tune\(libreMap, log\)/.test(src));
+  if (!factory) continue;
+  const map = mkMap(); const logs = [];
+  const host = { shadowRoot: { querySelector: () => ({ lzMap: { map } }) } };
+  const win = { MapVxLabels: ML };
+  const hide = kind === "smw"
+    ? factory(win, (s) => logs.push(s), ["poi", "transportation"])
+    : factory(win, (s) => logs.push(s), ["poi", "transportation"], () => ({ lzMap: { map } }).lzMap.map);
+  hide(host);
+  const vis = (id) => map.layers.find((l) => l.id === id).layout.visibility;
+  check(`${name}: real hide helper hides logos/transport icons but the store-name layer ends visible, shrunk by zoom`, vis("indoor-poi-logo") === "none" && vis("indoor-transportation-poi") === "none" && vis("indoor-poi") === "visible" && vis("indoor-poi-tree") === "visible" && poiOf(map).minzoom === ML.CONFIG.minZoom && Array.isArray(poiOf(map).layout["text-size"]), `poi=${vis("indoor-poi")} logo=${vis("indoor-poi-logo")}`);
+  const sets = map.calls.set; hide(host); hide(host);
+  check(`${name}: floor changes call the helper again — still tuned, no stacked listeners, no extra writes beyond re-hiding`, poiOf(map).layout.visibility === "visible" && map.calls.on === 1, `on=${map.calls.on} extraSets=${map.calls.set - sets}`);
+  check(`${name}: nothing thrown and the totem log shows the tuning`, logs.some((s) => /MapVxLabels: tuned indoor-poi/.test(s)) && !logs.some((s) => /failed/.test(s)), logs.join(" | ").slice(0, 160));
+}
+check("the label module is part of the OTA payload (listed in the runtime manifest after the next build)", existsSync(resolve(sima, "shared/mapvx-label-tuning.js")));
+
+// external scripts the map pages depend on must parse too (a syntax slip silently disables the whole map code)
+for (const f of ["shared/mapvx-wc-runtime.js", "shared/mapvx-label-tuning.js", "shared/services-catalog.js"]) {
+  let err = "";
+  try { new vm.Script(read(f), { filename: f }); } catch (e) { err = e.message; }
+  check(`${f} parses`, !err, err);
+}
+
 console.log(failed ? `\n${failed} FAILED, ${passed} passed` : `all passed (${passed} checks)`);
 process.exit(failed ? 1 : 0);
