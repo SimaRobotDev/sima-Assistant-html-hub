@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-40",
+  "version": "2026.09.02-41",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-10-02T15:08:11.496Z",
+  "generatedAt": "2026-10-05T12:14:49.735Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -115,13 +115,13 @@
     },
     {
       "path": "data/services-catalog.json",
-      "size": 62300,
-      "sha256": "f1c0bbc014fcdfbe5f144e31161d5a97557c9e81c2eea643f797e739eb97a29b"
+      "size": 71337,
+      "sha256": "25a658f71e46f53d5c367dbf08b1449bc25554ae9f7f5595eea97346bde457a5"
     },
     {
       "path": "data/services-catalog.jsonp.js",
-      "size": 62494,
-      "sha256": "83b61e02237effa0ea1220f02d937492d0a41f8c993982ba9875ff2ca34ca7ea"
+      "size": 71531,
+      "sha256": "7e8ffbccd8e739d86a0263003adfa6b7e1d1264844ad8a29a7a3993b2d0c7e2f"
     },
     {
       "path": "docs/MARKET-CATALOG-SLIM.md",
@@ -210,8 +210,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 286880,
-      "sha256": "98aa63942445ebf84e06dc5d346160881dce1deeb8eb21f548aa93e4ce0f5029"
+      "size": 287278,
+      "sha256": "344c43be0166b688ddf78be6a2deaa89356e1232753d1a34f146fe99d2bfc093"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -439,6 +439,11 @@
       "sha256": "ceb7cdac053be86863a87c5cecc6c966d854301712d279ab1ac7390dc5fb9111"
     },
     {
+      "path": "shared/category-icons/repair.svg",
+      "size": 1873,
+      "sha256": "e4161c1316706c758b61dde6a51f1c33bb2b5562a1e13b5aacafaf6602c641e3"
+    },
+    {
       "path": "shared/category-icons/restroom.svg",
       "size": 2992,
       "sha256": "88f19917f4e623dc1000e35215af458d63344fabb891aa46e47329d46607760d"
@@ -590,8 +595,8 @@
     },
     {
       "path": "shared/services-catalog.js",
-      "size": 34934,
-      "sha256": "b120f18bc26001fac16c5a8b77b9e874ccd1be5c2d3b6029e962669224404a0a"
+      "size": 39245,
+      "sha256": "8a2d22bf558b0a37995bb3de5beffe98503eb9bc7449289ac0f9b874acefb5ed"
     },
     {
       "path": "shared/store-detail.css",
