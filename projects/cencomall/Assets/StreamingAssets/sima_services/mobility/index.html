@@ -98,7 +98,7 @@ function resetToLanding() {
 <link rel="stylesheet" href="../shared/cencobricks-tokens.css" />
 <link rel="stylesheet" href="../shared/cencobricks-shell.css" />
 <link rel="stylesheet" href="../shared/app.css" />
-<link rel="stylesheet" href="../shared/store-detail.css?v=20261007-3" />
+<link rel="stylesheet" href="../shared/store-detail.css?v=20260812-5" />
 <link rel="stylesheet" href="../shared/mapvx/styles.css" />
 <script src="../shared/locale.js"></script>
 <script src="../shared/native-payload.js"></script>
@@ -116,7 +116,7 @@ function resetToLanding() {
 <script src="../shared/mapvx-wc/route-view-totems.js" data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
 <script src="../shared/mapvx-label-tuning.js?v=20261005-1"></script>
 <script src="../shared/mapvx-wc-runtime.js?v=20261005-1"></script>
-<script src="../shared/store-detail.js?v=20261007-1"></script>
+<script src="../shared/store-detail.js?v=20260812-5"></script>
 <script src="../assistant-embed.js"></script>
 <style>
 /* Color/type/space tokens: ../shared/cencobricks-tokens.css (--cb-* and --cm-* aliases) */
@@ -2100,8 +2100,8 @@ article.service-card .btn-service-map {
       <div id="mapvx-container" class="hidden"></div>
       <iframe id="map-iframe" class="hidden" allowfullscreen></iframe>
       <div id="service-arrival-card" class="service-arrival-card hidden" role="status" aria-live="polite" hidden></div>
-      <aside id="svc-route-qr" class="svc-route-qr hidden" aria-hidden="true" data-route-qr>
-        <p class="svc-route-qr-caption" id="svc-route-qr-caption" data-route-qr-caption></p>
+      <aside id="svc-route-qr" class="svc-route-qr hidden" aria-hidden="true">
+        <p class="svc-route-qr-caption" id="svc-route-qr-caption"></p>
         <div class="svc-route-qr-img" id="svc-route-qr-img"></div>
       </aside>
       <div id="map-placeholder" class="map-placeholder hidden"></div>
@@ -5826,7 +5826,6 @@ function renderStoreDetailPanel(store) {
   if (!store) {
     panel.classList.add("hidden");
     panel.innerHTML = "";
-    syncDockedQr();
     return;
   }
 
@@ -5862,7 +5861,6 @@ function renderServiceDetailPanel(service) {
   if (!service) {
     panel.classList.add("hidden");
     panel.innerHTML = "";
-    syncDockedQr();
     return;
   }
 
@@ -5876,10 +5874,7 @@ function renderServiceDetailPanel(service) {
 
   panel.innerHTML = `
     <div class="store-detail-header">
-      <div class="store-detail-side store-detail-side-icon">
-        <div class="store-detail-photo service-detail-icon">${icon}</div>
-        <div class="store-detail-qr-slot"></div>
-      </div>
+      <div class="store-detail-photo service-detail-icon">${icon}</div>
       <div class="store-detail-head-text">
         <h2 class="store-detail-name">${escapeHtml(displayName)}</h2>
         <div class="store-detail-meta">${typeLabel}${floorLabel}</div>
@@ -5888,13 +5883,6 @@ function renderServiceDetailPanel(service) {
       </div>
     </div>`;
   panel.classList.remove("hidden");
-  syncDockedQr();
-}
-
-// The route QR is docked under the photo/icon (shared/store-detail.js) while this
-// panel is visible; otherwise it floats over the map.
-function syncDockedQr() {
-  try { if (typeof StoreDetail !== "undefined" && StoreDetail.syncQr) StoreDetail.syncQr(); } catch (e) { /* noop */ }
 }
 
 function findStoreInMarketPayload(localOrId) {
@@ -5929,7 +5917,6 @@ function hideStoreDetailPanel() {
   if (!panel) return;
   panel.classList.add("hidden");
   panel.innerHTML = "";
-  syncDockedQr();
   // pop storeDetail view if it was top
   try {
     if (currentMobilityView() === 'storeDetail') popMobilityView();
@@ -8006,7 +7993,6 @@ function hideServiceRouteQr() {
   if (box) box.classList.add("hidden");
   const wrap = box && box.closest(".map-embed-wrap");
   if (wrap) wrap.classList.remove("has-route-qr");
-  syncDockedQr();
 }
 
 function serviceRouteQrOrigin() {
@@ -8092,16 +8078,12 @@ async function renderRouteQr(destination, gen, logKey) {
   if (!box || !img || !cap) return;
   cap.textContent = t("routeQrCaption");
   box.classList.remove("hidden");
-  // Docked under the photo (shared StoreDetail) when the detail panel is up: the
-  // floating card is then only the hidden source, drawn at the dock's fixed size.
-  syncDockedQr();
-  const docked = box.classList.contains("qr-docked");
   const wrap = box.closest(".map-embed-wrap");
-  if (wrap && !docked) wrap.classList.add("has-route-qr");
+  if (wrap) wrap.classList.add("has-route-qr");
   // Measure only after the just-unhidden card has been laid out (the map view
   // opens in the same tick), otherwise clientWidth reads 0. setTimeout, not
   // requestAnimationFrame: rAF never fires while the webview is concealed.
-  if (!docked) await new Promise(function (r) { setTimeout(r, 60); });
+  await new Promise(function (r) { setTimeout(r, 60); });
   if (gen !== serviceRouteQrGen) return;
   try {
     // qrcode-generator (the app's own QR lib), drawn with a whole number of
@@ -8116,8 +8098,7 @@ async function renderRouteQr(destination, gen, logKey) {
     const margin = 1;
     const modules = qr.getModuleCount() + margin * 2;
     const dpr = window.devicePixelRatio || 1;
-    const dockSize = docked ? parseFloat(getComputedStyle(StoreDetail.qrSlot()).getPropertyValue("--qr-dock-size")) : 0;
-    const availCss = docked ? (dockSize || 100) : (img.clientWidth || (box.clientWidth - 16) || 120);
+    const availCss = img.clientWidth || (box.clientWidth - 16) || 120;
     const boxPx = Math.max(1, Math.floor(availCss * dpr));
     const cell = Math.max(1, Math.floor(boxPx / modules));
     const pic = document.createElement("img");
@@ -8128,7 +8109,6 @@ async function renderRouteQr(destination, gen, logKey) {
     pic.style.height = cssPx + "px";
     img.innerHTML = "";
     img.appendChild(pic);
-    syncDockedQr();
   } catch (e) {
     SimaBridge.log("route QR failed: " + String(e && (e.message || e)));
     hideServiceRouteQr();

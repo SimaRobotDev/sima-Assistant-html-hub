@@ -285,7 +285,6 @@
     if (!store) {
       container.classList.add("hidden");
       container.innerHTML = "";
-      syncQr();
       return;
     }
     options = options || {};
@@ -306,10 +305,7 @@
     container.setAttribute("data-store-name", name);
     container.innerHTML =
       '<div class="store-detail-header">' +
-        '<div class="store-detail-side">' +
-          '<div class="store-detail-media">' + mediaMarkup(store) + "</div>" +
-          '<div class="store-detail-qr-slot"></div>' +
-        "</div>" +
+        '<div class="store-detail-media">' + mediaMarkup(store) + "</div>" +
         '<div class="store-detail-body">' +
           '<h2 class="store-detail-name">' + escapeHtml(name) + "</h2>" +
           (floor
@@ -328,56 +324,6 @@
         "</div>" +
       "</div>";
     container.classList.remove("hidden");
-    syncQr();
-  }
-
-  // "Continue on your phone" QR docked under the photo. The page keeps its own QR
-  // element (marked data-route-qr: store-map-web draws nothing, mobility draws the
-  // image) and this puts a COPY of it into the visible panel's .store-detail-qr-slot,
-  // shrinking the photo (.has-qr). The original stays in the DOM as the source, only
-  // hidden (.qr-docked), because the panel re-renders and wipes whatever is inside it.
-  // No visible panel with a slot → the original floats over the map as before.
-  // Call after the panel renders and after the QR is shown / hidden / (re)drawn.
-  function qrSlot() {
-    return document.querySelector(
-      ".store-detail-panel:not(.hidden) .store-detail-qr-slot"
-    );
-  }
-
-  function syncQr() {
-    var doc = global.document;
-    if (!doc) return false;
-    var panels = doc.querySelectorAll(".store-detail-panel");
-    for (var i = 0; i < panels.length; i++) {
-      var slot = panels[i].querySelector(".store-detail-qr-slot");
-      if (slot) slot.innerHTML = "";
-      panels[i].classList.remove("has-qr");
-    }
-    var qr = doc.querySelector("[data-route-qr]");
-    var wrap = qr && qr.closest ? qr.closest(".map-embed-wrap") : null;
-    var target = qrSlot();
-    var wanted = !!(qr && !qr.classList.contains("hidden") && target);
-    if (qr) qr.classList.toggle("qr-docked", wanted);
-    // mobility shifts its arrival card aside only while the QR floats next to it
-    if (wrap) wrap.classList.toggle("has-route-qr", !wanted && !!qr && !qr.classList.contains("hidden"));
-    if (!wanted) return false;
-    var source = qr.querySelector("img[src]");
-    if (!source) return false; // docked, image not drawn yet — filled by the next sync
-    var capEl = qr.querySelector("[data-route-qr-caption]");
-    var card = doc.createElement("div");
-    card.className = "store-detail-qr";
-    var image = source.cloneNode(true);
-    image.removeAttribute("id");
-    image.removeAttribute("onerror");
-    image.className = "store-detail-qr-img";
-    card.appendChild(image);
-    var caption = doc.createElement("p");
-    caption.className = "store-detail-qr-caption";
-    caption.textContent = capEl ? text(capEl.textContent) : "";
-    if (caption.textContent) card.appendChild(caption);
-    target.appendChild(card);
-    target.closest(".store-detail-panel").classList.add("has-qr");
-    return true;
   }
 
   async function enrich(store) {
@@ -396,7 +342,5 @@
     handleMediaError: handleMediaError,
     merge: merge,
     render: render,
-    syncQr: syncQr,
-    qrSlot: qrSlot,
   };
 })(window);

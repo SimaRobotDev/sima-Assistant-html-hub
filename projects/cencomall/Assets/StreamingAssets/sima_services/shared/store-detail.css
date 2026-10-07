@@ -61,83 +61,6 @@
   font-weight: 800;
 }
 
-/* Photo column (photo + QR slot). With a docked QR (.has-qr, set by StoreDetail.syncQr)
-   the layout changes: see the min-width block below. */
-.store-detail-side {
-  flex: 0 0 156px;
-  width: 156px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.store-detail-side .store-detail-media {
-  flex: 0 0 auto;
-  width: 100%;
-}
-
-.store-detail-side-icon {
-  flex-basis: auto;
-  width: auto;
-}
-
-.store-detail-qr-slot { --qr-dock-size: 100px; }
-.store-detail-qr-slot:empty { display: none; }
-
-/* Wide screens, QR docked: QR card on the LEFT (big), text in the middle, small photo
-   on the RIGHT. display:contents lets the photo and the slot become siblings of the
-   text so plain "order" can rearrange them. Narrow screens keep the stacked column. */
-@media (min-width: 521px) {
-  .store-detail-qr-slot { --qr-dock-size: 150px; }
-  .store-detail-panel.has-qr .store-detail-side { display: contents; }
-  .store-detail-panel.has-qr .store-detail-qr-slot { order: 0; flex: 0 0 172px; width: 172px; }
-  .store-detail-panel.has-qr .store-detail-body { order: 1; }
-  .store-detail-panel.has-qr .store-detail-side .service-detail-icon { order: 2; }
-  .store-detail-panel.has-qr .store-detail-side .store-detail-media {
-    order: 2;
-    flex: 0 0 150px;
-    width: 150px;
-    height: 112px;
-  }
-}
-
-.store-detail-qr {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
-  padding: 6px;
-  box-sizing: border-box;
-  background: #fff;
-  border: 1px solid var(--cm-line, #e7dff0);
-  border-radius: 12px;
-}
-
-.store-detail-qr-img {
-  display: block;
-  flex: 0 0 auto;
-  width: var(--qr-dock-size, 100px);
-  height: var(--qr-dock-size, 100px);
-  object-fit: contain;
-  image-rendering: pixelated; /* crisp modules; mobility sets an exact px size inline */
-}
-
-.store-detail-qr-caption {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-family: var(--cb-font-title, inherit);
-  font-weight: 700;
-  font-size: 11px;
-  line-height: 1.3;
-  color: var(--cm-purple-dark, #3d1d5c);
-}
-
-/* The page's own floating QR is only the source while it is docked. */
-[data-route-qr].qr-docked { display: none !important; }
-
 .store-detail-body {
   flex: 1;
   min-width: 0;
@@ -204,11 +127,6 @@
     height: 84px;
     flex-basis: 112px;
   }
-
-  .store-detail-side { flex-basis: 112px; width: 112px; }
-  .store-detail-side.store-detail-side-icon { flex-basis: auto; width: auto; }
-  .store-detail-panel.has-qr .store-detail-side { flex-basis: 150px; width: 150px; }
-  .store-detail-panel.has-qr .store-detail-media { height: 64px; }
 
   .store-detail-name {
     font-size: 17px;
