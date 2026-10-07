@@ -355,20 +355,7 @@ check("vendored MapVX bundles still use z-index far above any page layer (why th
 // the app contract (window.applyRouteQr / SIMA_ROUTE_QR) must stay intact
 check("store-map-web: applyRouteQr contract present (function, null clears, init from SIMA_ROUTE_QR)", /window\.applyRouteQr\s*=\s*function/.test(smwHtml) && /function hideRouteQr\(\)/.test(smwHtml) && /if \(window\.SIMA_ROUTE_QR\) window\.applyRouteQr\(window\.SIMA_ROUTE_QR\)/.test(smwHtml));
 check("store-map-web: the QR is cleared when another store opens (no stale QR)", /function openStoreMapFromPayload\([\s\S]*?hideRouteQr\(\);/.test(smwHtml));
-check("store-map-web: the QR element lives inside the stage, outside the map views", /<div class="store-map-view hidden" id="route-view">[\s\S]*?<\/div>\s*<\/div>\s*\n\s*<!--[\s\S]*?<aside class="route-qr hidden" id="route-qr" data-route-qr>/.test(smwHtml));
-// 2026-10-07: the QR is docked under the store photo (copy in the detail panel's
-// slot, photo shrinks), floating over the map only when no panel is visible
-{
-  const sd = read("shared/store-detail.js");
-  const sdCss = read("shared/store-detail.css");
-  const mobHtml = read("mobility/index.html");
-  check("store-detail: markup has a photo column with a QR slot", /store-detail-side[\s\S]{0,200}store-detail-media[\s\S]{0,200}store-detail-qr-slot/.test(sd));
-  check("store-detail: syncQr exported and run after every render (incl. the null/hide path)", /syncQr:\s*syncQr/.test(sd) && (sd.match(/syncQr\(\);/g) || []).length >= 2);
-  check("store-detail: docked QR copies image + caption from [data-route-qr]", /\[data-route-qr\]/.test(sd) && /data-route-qr-caption/.test(sd));
-  check("store-detail css: .has-qr moves the photo to the right, docked source is hidden", /\.has-qr \.store-detail-side \.store-detail-media\s*\{[^}]*order:\s*2/.test(sdCss) && /\.has-qr \.store-detail-side \{ display: contents/.test(sdCss) && /\[data-route-qr\]\.qr-docked\s*\{\s*display:\s*none\s*!important/.test(sdCss));
-  check("store-map-web: syncs the docked QR on show and hide", (smwHtml.match(/syncDockedQr\(\)/g) || []).length >= 3);
-  check("mobility: QR aside is [data-route-qr]; service panel has the slot; synced on show/hide/draw", /id="svc-route-qr"[^>]*data-route-qr/.test(mobHtml) && /service-detail-icon[\s\S]{0,200}store-detail-qr-slot/.test(mobHtml) && (mobHtml.match(/syncDockedQr\(\)/g) || []).length >= 7);
-}
+check("store-map-web: the QR element lives inside the stage, outside the map views", /<div class="store-map-view hidden" id="route-view">[\s\S]*?<\/div>\s*<\/div>\s*\n\s*<!--[\s\S]*?<aside class="route-qr hidden" id="route-qr">/.test(smwHtml));
 check("store-map-web: the QR renders the app's qrDataUrl only (no QR library loaded)", !/qrcode\s*\(/.test(smwHtml) && !/<script[^>]+qrcode/i.test(smwHtml));
 
 // ---------------------------------------------------------------- 12. store-map-web: compact store popup + page health
