@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-50",
+  "version": "2026.09.02-51",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-10-07T15:40:20.372Z",
+  "generatedAt": "2026-10-07T16:00:51.996Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -675,8 +675,8 @@
     },
     {
       "path": "store-map-web/index.html",
-      "size": 77469,
-      "sha256": "44f539697442c1055e5e5762ce3eb25ed85518d354f78382b800bc9646d6896c"
+      "size": 81250,
+      "sha256": "4c659c886403eb72e77d2519a1d3c3009ef150a728e0132d751eef010be61b12"
     },
     {
       "path": "store-map/index.html",
