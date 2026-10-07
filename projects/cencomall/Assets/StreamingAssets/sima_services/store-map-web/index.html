@@ -252,17 +252,22 @@
 
   /* "Continue the route on your phone" QR (window.applyRouteQr). The image is
      drawn by the app (qrDataUrl) — nothing is generated here.
-     Floating card in the stage's top-left corner, under the floor badge (moved from
+     Floating card in the stage's top-left corner (floor badge steps aside; moved from
      bottom-left 2026-10-07; the full-width strip was far too big): caption ON TOP,
      QR below. MapLibre controls are top-right and zoom bottom-right, so the left edge is free.
      pointer-events:none so it never steals a
      pan/zoom gesture from the map underneath. White card + padding keeps the
      quiet zone so it still scans over any map colour. */
+  .store-map-stage {
+    --route-qr-size: clamp(60px, 8.5vmin, 92px);
+    --route-qr-w: max(112px, calc(var(--route-qr-size) + 2 * var(--cb-space-xs)));
+  }
+  /* While the QR is up it takes the top-left corner; the floor badge steps aside to its right. */
+  .store-map-stage.has-route-qr .store-map-floor { left: calc(10px + var(--route-qr-w) + 8px); }
   .route-qr {
-    --route-qr-size: clamp(76px, 11vmin, 120px);
     position: absolute;
     left: 10px;
-    top: 50px; /* top-left, just under the floor badge (top:10px, ~31px tall) */
+    top: 10px;
     /* Above the map (its layers are contained, see .store-map-view) AND above the
        status card (z-index 20): "continue on your phone" is most useful exactly
        when the map is slow or failed, so the QR must not hide under that cover.
@@ -272,7 +277,7 @@
     flex-direction: column;
     align-items: center;
     gap: var(--cb-space-3xs);
-    width: max(150px, calc(var(--route-qr-size) + 2 * var(--cb-space-xs)));
+    width: var(--route-qr-w);
     padding: var(--cb-space-xs);
     box-sizing: border-box;
     background: var(--cb-white);
@@ -298,7 +303,7 @@
     margin: 0;
     font-family: var(--cb-font-title);
     font-weight: 700;
-    font-size: 10px;
+    font-size: 9px;
     line-height: 1.25;
     text-align: center;
     color: var(--cb-primary-900);
@@ -1066,6 +1071,13 @@ function hideRouteQr() {
   if (img) { img.removeAttribute("src"); img.alt = ""; }
   if (cap) cap.textContent = "";
   if (box) box.classList.add("hidden");
+  setQrStageFlag(false);
+}
+
+// Lets the CSS move the floor badge aside while the QR owns the top-left corner.
+function setQrStageFlag(on) {
+  const stage = document.getElementById("stage");
+  if (stage) stage.classList.toggle("has-route-qr", !!on);
 }
 
 window.applyRouteQr = function (payload) {
@@ -1087,6 +1099,7 @@ window.applyRouteQr = function (payload) {
   img.src = dataUrl;
   cap.textContent = typeof payload.caption === "string" ? payload.caption : "";
   box.classList.remove("hidden");
+  setQrStageFlag(true);
   log("applyRouteQr shown: " + JSON.stringify({ url: payload.url || "" }));
   return true;
 };
