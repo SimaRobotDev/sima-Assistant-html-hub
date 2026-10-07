@@ -356,7 +356,13 @@ check("vendored MapVX bundles still use z-index far above any page layer (why th
 check("store-map-web: applyRouteQr contract present (function, null clears, init from SIMA_ROUTE_QR)", /window\.applyRouteQr\s*=\s*function/.test(smwHtml) && /function hideRouteQr\(\)/.test(smwHtml) && /if \(window\.SIMA_ROUTE_QR\) window\.applyRouteQr\(window\.SIMA_ROUTE_QR\)/.test(smwHtml));
 check("store-map-web: the QR is cleared when another store opens (no stale QR)", /function openStoreMapFromPayload\([\s\S]*?hideRouteQr\(\);/.test(smwHtml));
 check("store-map-web: the QR element lives inside the stage, outside the map views", /<div class="store-map-view hidden" id="route-view">[\s\S]*?<\/div>\s*<\/div>\s*\n\s*<!--[\s\S]*?<aside class="route-qr hidden" id="route-qr">/.test(smwHtml));
-check("store-map-web: the QR renders the app's qrDataUrl only (no QR library loaded)", !/qrcode\s*\(/.test(smwHtml) && !/<script[^>]+qrcode/i.test(smwHtml));
+// 2026-10-07: the store list / chat buttons open this page by URL (?local=…&from=mobility)
+// and the app injects no QR there, so the page draws a FALLBACK one itself (qrcode-generator,
+// same public URL as mobility). Whatever the app injects — even an explicit null — must win.
+check("store-map-web: app-supplied qrDataUrl is still displayed as-is (applyRouteQr takes the payload image)", /img\.src\s*=\s*dataUrl/.test(smwHtml));
+check("store-map-web: fallback QR — lib loaded, scheduled on open + boot, validated destination, origin = totem", /<script src="\.\.\/shared\/qrcode-generator\.js"><\/script>/.test(smwHtml) && (smwHtml.match(/scheduleFallbackRouteQr\(placeId\)/g) || []).length === 2 && /function isRouteQrDestination/.test(smwHtml) && /readConfig\(\)\.totemPlaceId/.test(smwHtml));
+check("store-map-web: an injected payload (applyRouteQr, incl. null) and a store change cancel the fallback", /function hideRouteQr\(\) \{[\s\S]*?cancelFallbackRouteQr\(\)/.test(smwHtml) && /cancelFallbackRouteQr\(\); \/\/ the app sent its own QR/.test(smwHtml));
+check("store-map-web: fallback caption translated in es/en/pt", (smwHtml.match(/routeQrCaption:/g) || []).length === 3);
 
 // ---------------------------------------------------------------- 12. store-map-web: compact store popup + page health
 // 2026-10-05: the MapVX popup was ~212px wide whatever the logo (MapVX min-width 180 + padding, plus our old

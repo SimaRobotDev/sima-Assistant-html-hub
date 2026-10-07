@@ -18,6 +18,7 @@
 <script src="../shared/market-i18n.js"></script>
 <script src="../shared/store-detail.js?v=20260812-5"></script>
 <script src="../shared/mapvx-label-tuning.js?v=20261005-1"></script>
+<script src="../shared/qrcode-generator.js"></script>
 
 <!--
   Official MapVX Web Components (@mapvx/web-components@0.3.0), self-hosted
@@ -520,7 +521,8 @@ const I18N = {
     mapError: "No se pudo cargar el mapa",
     mapErrorCopy: "Vuelve a intentarlo en unos segundos.",
     noValidLocal: "Sin local válido para ese resultado.",
-    catalogUnavailable: "Catálogo no disponible."
+    catalogUnavailable: "Catálogo no disponible.",
+    routeQrCaption: "Continúa la ruta en tu celular, escaneando el código QR"
   },
   en: {
     headerTitle: "Store map",
@@ -541,7 +543,8 @@ const I18N = {
     mapError: "The map could not be loaded",
     mapErrorCopy: "Please try again in a few seconds.",
     noValidLocal: "No valid location for that result.",
-    catalogUnavailable: "Catalog unavailable."
+    catalogUnavailable: "Catalog unavailable.",
+    routeQrCaption: "Continue your route on your phone by scanning the QR code"
   },
   pt: {
     headerTitle: "Mapa da loja",
@@ -562,7 +565,8 @@ const I18N = {
     mapError: "Não foi possível carregar o mapa",
     mapErrorCopy: "Tente novamente em alguns segundos.",
     noValidLocal: "Sem localização válida para esse resultado.",
-    catalogUnavailable: "Catálogo indisponível."
+    catalogUnavailable: "Catálogo indisponível.",
+    routeQrCaption: "Continue a rota no seu celular escaneando o código QR"
   }
 };
 
@@ -862,6 +866,7 @@ function openStoreMapFromPayload(source, meta) {
     return;
   }
   document.getElementById("store-local").value = placeId;
+  scheduleFallbackRouteQr(placeId);
 
   // Header follows THIS store, always. resetHeaderTitle() also invalidates any
   // updateHeaderTitle retry still pending from the previous store (that stale
@@ -1068,7 +1073,9 @@ function hideRouteQr() {
   const box = document.getElementById("route-qr");
   const img = document.getElementById("route-qr-img");
   const cap = document.getElementById("route-qr-caption");
-  if (img) { img.removeAttribute("src"); img.alt = ""; }
+  cancelFallbackRouteQr();
+  if (img) { img.removeAttribute("src"); img.removeAttribute("style"); img.alt = ""; }
+  if (box) box.style.minWidth = "";
   if (cap) cap.textContent = "";
   if (box) box.classList.add("hidden");
   setQrStageFlag(false);
@@ -1091,6 +1098,9 @@ window.applyRouteQr = function (payload) {
     hideRouteQr();
     return false;
   }
+  cancelFallbackRouteQr(); // the app sent its own QR (or an explicit null) — ours is not needed
+  img.removeAttribute("style");
+  box.style.minWidth = "";
   img.onerror = function () {
     log("applyRouteQr: qrDataUrl failed to decode — hidden");
     hideRouteQr();
@@ -1103,6 +1113,75 @@ window.applyRouteQr = function (payload) {
   log("applyRouteQr shown: " + JSON.stringify({ url: payload.url || "" }));
   return true;
 };
+
+// FALLBACK route QR. The app only injects applyRouteQr when it opens the map through
+// PreloadedStoreMapWeb; the store list / chat buttons load this page by URL
+// (?local=…&from=mobility&route=0) and nobody sends a QR, so the screen showed none.
+// When a store is open, nothing has been injected after FALLBACK_QR_DELAY_MS and the
+// destination is a real local, the page draws the same public MapVX route QR itself
+// (origin = totem, like mobility). An injected payload — even an explicit null — always wins.
+const FALLBACK_QR_DELAY_MS = 2500;
+const ROUTE_QR_BASE = "https://cencomalls.costanera.mapvx.com/es/";
+let fallbackQrTimer = null;
+
+function isRouteQrDestination(destination) {
+  return /^(-|CC_[A-Za-z0-9,_-]+$)/.test(String(destination || ""));
+}
+
+function cancelFallbackRouteQr() {
+  if (fallbackQrTimer) { clearTimeout(fallbackQrTimer); fallbackQrTimer = null; }
+}
+
+function scheduleFallbackRouteQr(destination) {
+  cancelFallbackRouteQr();
+  const dest = String(destination || "").trim();
+  if (!isRouteQrDestination(dest)) return;
+  fallbackQrTimer = setTimeout(function () {
+    fallbackQrTimer = null;
+    drawFallbackRouteQr(dest);
+  }, FALLBACK_QR_DELAY_MS);
+}
+
+function drawFallbackRouteQr(destination) {
+  const origin = String(readConfig().totemPlaceId || "").trim();
+  if (!origin || destination === origin || typeof qrcode !== "function") {
+    log("fallback route QR skipped: " + JSON.stringify({ destination: destination, origin: origin, lib: typeof qrcode === "function" }));
+    return false;
+  }
+  try {
+    const url = ROUTE_QR_BASE +
+      "?origin=" + encodeURIComponent(origin) +
+      "&destination=" + encodeURIComponent(destination) +
+      "&utm_source=qr-totem&utm_content=route&utm_referrer=totem";
+    const qr = qrcode(0, "M");
+    qr.addData(url);
+    qr.make();
+    // Whole device pixels per module (an unevenly scaled QR does not scan): size the
+    // image to what the card shows (same clamp as --route-qr-size) in device px.
+    const margin = 1;
+    const modules = qr.getModuleCount() + margin * 2;
+    const dpr = window.devicePixelRatio || 1;
+    const cssSize = Math.min(92, Math.max(60, 0.085 * Math.min(window.innerWidth, window.innerHeight)));
+    // at least 2 device px per module: 1px modules do not scan on a phone camera
+    const cell = Math.max(2, Math.floor((cssSize * dpr) / modules));
+    const dataUrl = qr.createDataURL(cell, margin * cell);
+    const shown = window.applyRouteQr({ url: url, qrDataUrl: dataUrl, caption: t("routeQrCaption") });
+    const img = document.getElementById("route-qr-img");
+    if (shown && img) {
+      const px = (modules * cell) / dpr;
+      img.style.width = px + "px";
+      img.style.height = px + "px";
+      // the card is a fixed width; widen it only if the QR needed more than that
+      const box = document.getElementById("route-qr");
+      if (box) box.style.minWidth = (px + 24) + "px";
+    }
+    log("fallback route QR shown: " + JSON.stringify({ destination: destination, cell: cell, dpr: dpr }));
+    return shown;
+  } catch (e) {
+    log("fallback route QR failed: " + String(e && (e.message || e)));
+    return false;
+  }
+}
 
 let routeStatusTimeoutId = null;
 
@@ -1822,6 +1901,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   applyPlace(cfg, placeId);
   if (placeId) renderStoreDetailFromPayload(queryParams());
+  if (placeId) scheduleFallbackRouteQr(placeId);
   if (placeId && /^(1|true|yes)$/i.test(queryParams().route || "")) {
     if (cfg.totemPlaceId) {
       showRouteView(cfg, placeId, pickNameFromPayload(queryParams()));
