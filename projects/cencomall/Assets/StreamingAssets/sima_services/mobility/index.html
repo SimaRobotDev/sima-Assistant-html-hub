@@ -5852,6 +5852,19 @@ function renderStoreDetailPanel(store) {
   panel.classList.remove("hidden");
 }
 
+// Translated name of a service kind ("Nursing room", "Trocadores"…).
+function serviceKindLabel(kind) {
+  if (kind === "bathroom") return t("bathrooms") || "Baños";
+  if (kind === "cowork") return t("cowork") || "Cowork";
+  if (kind === "customer_service") return t("customerService") || "Atención al cliente";
+  if (kind === "elevator") return t("elevators") || "Ascensor";
+  if (kind === "nursing") return t("nursingRoom") || "Sala de lactancia";
+  if (kind === "changing_table") return t("changingTables") || "Mudadores";
+  if (kind === "atm") return t("atm") || "Cajero automático";
+  if (EXTRA_SERVICE_KINDS[kind]) return extraServiceKindLabel(kind);
+  return t("services");
+}
+
 function renderServiceDetailPanel(service) {
   const panel = document.getElementById("store-detail-panel");
   if (!panel) return;
@@ -5864,7 +5877,7 @@ function renderServiceDetailPanel(service) {
   const displayName = sanitizeStoreDisplayName(service.name || t("services"));
   const kind = getServiceKind(service);
   const icon = serviceKindIcon(kind);
-  const typeLabel = kind ? `<span class="store-badge store-badge-floor">${escapeHtml(kind === "bathroom" ? (t("bathrooms") || "Baños") : kind === "cowork" ? (t("cowork") || "Cowork") : kind === "customer_service" ? (t("customerService") || "Atención al cliente") : kind === "elevator" ? (t("elevators") || "Ascensor") : kind === "nursing" ? (t("nursingRoom") || "Sala de lactancia") : kind === "changing_table" ? (t("changingTables") || "Mudadores") : kind === "atm" ? (t("atm") || "Cajero automático") : EXTRA_SERVICE_KINDS[kind] ? extraServiceKindLabel(kind) : escapeHtml(t("services")))}</span>` : "";
+  const typeLabel = kind ? `<span class="store-badge store-badge-floor">${escapeHtml(serviceKindLabel(kind))}</span>` : "";
   const floorLabel = formatServiceFloors(service.floors) ? `<span class="store-badge store-badge-floor">${escapeHtml(formatServiceFloors(service.floors))}</span>` : "";
   const location = service.location ? `<div class="store-detail-schedule">${escapeHtml(service.location)}</div>` : "";
   const description = String(service.description || service.location || "").trim();
@@ -6346,7 +6359,13 @@ function renderServicesResults(payload) {
   const results = Array.isArray(payload.results)
     ? payload.results.map(normalizeServiceResult)
     : [];
-  const query = payload.query || "";
+  // The search term from the assistant is the Spanish catalog word
+  // ("lactancia", "mudador"); on EN/PT show the translated kind instead
+  // when every result is the same kind of service.
+  const kinds = new Set(results.map(getServiceKind).filter(Boolean));
+  const query = mobilityLocale !== "es" && results.length && kinds.size === 1
+    ? serviceKindLabel([...kinds][0])
+    : (payload.query || "");
   const floorHint = payload.floorHint || payload.FloorHint || "";
   hideWelcome();
 

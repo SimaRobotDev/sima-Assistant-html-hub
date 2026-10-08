@@ -629,18 +629,49 @@ window.ServicesCatalog = (function () {
     return matched[0] || null;
   }
 
+  // "en" / "pt" / "es" from the caller, the page's MALL_LOCALE or ?locale=.
+  function resolveLocale(explicit) {
+    var raw = explicit;
+    try {
+      if (!raw) raw = window.MALL_LOCALE;
+      if (!raw) raw = new URLSearchParams(window.location.search).get("locale");
+    } catch (e) { /* noop */ }
+    var lang = String(raw || "es").toLowerCase().slice(0, 2);
+    return lang === "en" || lang === "pt" ? lang : "es";
+  }
+
+  // The catalog is written in Spanish; entry.i18n.{en,pt} carries the same
+  // fields translated. A visitor on EN/PT used to get the card in Spanish
+  // ("Sala de lactancia del Nivel 2…", BlueStacks battery 2026-10-08).
+  // Anything a translation leaves out falls back to Spanish.
+  function localizedFields(entry, locale) {
+    var tr = entry.i18n && entry.i18n[resolveLocale(locale)];
+    var base = entry.descriptions || {};
+    if (!tr) return {name: entry.name, descriptions: base};
+    var td = tr.descriptions || {};
+    return {
+      name: tr.name || entry.name,
+      descriptions: {
+        short: td.short || base.short,
+        medium: td.medium || base.medium,
+        long: td.long || base.long,
+      },
+    };
+  }
+
   function toResultCard(entry, options) {
     if (!entry) return {};
     options = options || {};
     var preferFloor = options.preferFloor || options.floor || "";
     var anchor = primaryAnchor(entry, preferFloor);
     var approach = entry.type === "elevator" ? pickRouteApproach(entry, preferFloor) : null;
-    var desc = entry.descriptions || {};
+    var localized = localizedFields(entry, options.locale);
+    var desc = localized.descriptions || {};
     var isElevator = entry.type === "elevator";
     return {
       id: entry.id,
       catalogId: entry.id,
-      name: entry.name,
+      name: localized.name,
       description: desc.short || desc.medium || "",
       location: isElevator
         ? elevatorLocationHint(entry, preferFloor, anchor)
