@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-51",
+  "version": "2026.09.02-52",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-10-07T16:00:51.996Z",
+  "generatedAt": "2026-10-08T15:14:09.889Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -115,13 +115,13 @@
     },
     {
       "path": "data/services-catalog.json",
-      "size": 70674,
-      "sha256": "d7fd6e86c49001ffe3564a57cd149a822f4dc6b2b5c9b9121bc2104aafafc706"
+      "size": 97949,
+      "sha256": "20ce26123a131752777bbac3ab5a5daa925ff45365091d76fc7dd837621f4c25"
     },
     {
       "path": "data/services-catalog.jsonp.js",
-      "size": 70868,
-      "sha256": "f6e547a63e57f949e33691630a0b90cbe913c30aae6d404361ecb63900f20865"
+      "size": 98143,
+      "sha256": "f9416aecacb369b2b8f68465a05568fa2d3cfa1d1ad758214f40fca36376204e"
     },
     {
       "path": "docs/MARKET-CATALOG-SLIM.md",
@@ -210,8 +210,8 @@
     },
     {
       "path": "mobility/index.html",
-      "size": 290518,
-      "sha256": "3e140dde859a0713c56fbc10e7b55bef5b9632067bfcfc61219de29bdc975777"
+      "size": 291093,
+      "sha256": "bc505340ef303028b62308a556765f530a659bde3243169c91d3c09c62c1305b"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -600,8 +600,8 @@
     },
     {
       "path": "shared/services-catalog.js",
-      "size": 42039,
-      "sha256": "3adcdf88968b7732e973c85469d7b89fb100039e080c5d09f3824aae0577e5f5"
+      "size": 43271,
+      "sha256": "c9b7860b32116682618099297a3ad2071c38050b61a6bc02dbedbe4b9da86638"
     },
     {
       "path": "shared/store-detail.css",
