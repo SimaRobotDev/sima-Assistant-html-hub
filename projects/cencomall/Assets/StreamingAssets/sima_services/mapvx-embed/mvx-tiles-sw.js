@@ -2,7 +2,8 @@
   MapVX Tiles Service Worker (Workbox)
   - Progressive bounded tile prefetch (INITIAL_TILE_LOAD / REFRESH_TILES)
   - Cache-first for PBF tiles; stale-while-revalidate / network-first for MapVX APIs
-  - Restricted to lazarillo.app and mapvx.com (any subdomain)
+  - Restricted to lazarillo.app and mapvx.com (any subdomain), plus the 3D model
+    bucket; glyph ranges are matched by path, whatever host the style points at
 
   How to use:
   1) Copy this file to your site root as "/mvx-tiles-sw.js"
@@ -19,6 +20,8 @@ const CACHE_API_CONFIG = 'api-config-cache';
 const CACHE_API_ROUTES = 'api-routes-cache';
 const CACHE_API_FALLBACK = 'api-cache';
 const CACHE_MAP_ASSETS = 'map-assets';
+const CACHE_GLYPHS = 'map-glyphs';
+const CACHE_VENDOR = 'map-vendor';
 
 const KNOWN_RUNTIME_CACHES = new Set([
   CACHE_TILES,
@@ -27,6 +30,8 @@ const KNOWN_RUNTIME_CACHES = new Set([
   CACHE_API_ROUTES,
   CACHE_API_FALLBACK,
   CACHE_MAP_ASSETS,
+  CACHE_GLYPHS,
+  CACHE_VENDOR,
 ]);
 
 const DEFAULT_VECTOR_TILES_BASE_URL = 'https://tiles.mapvx.com/tiles';
@@ -318,7 +323,14 @@ function notifyClients(message) {
     .catch(err => console.warn('[MVX-SW] notifyClients matchAll failed', err));
 }
 
-const ALLOWED_HOSTS = ['mapvx.com', 'lazarillo.app'];
+const ALLOWED_HOSTS = [
+  'mapvx.com',
+  'lazarillo.app',
+  // GLB models for the 3D scene. The bucket is pinned in
+  // `src/config/scene3d.config.ts` (GLB_BASE), so this stays as narrow as the
+  // host it actually serves — an `amazonaws.com` suffix would match any bucket.
+  'mapvx-glb-assets.s3.us-east-1.amazonaws.com',
+];
 const isAllowedHost = hostname => ALLOWED_HOSTS.some(host => hostname.endsWith(host));
 
 self.skipWaiting();
@@ -392,6 +404,57 @@ registerRoute(
       new ExpirationPlugin({
         maxEntries: 500,
         maxAgeSeconds: 60 * 60,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  })
+);
+
+// Third-party code the map pulls from unpkg at runtime. Neither entry is ours to
+// remove from here — that belongs upstream — but both URLs are version-pinned and
+// immutable, so caching them keeps a totem that has been online once working
+// after it loses connectivity.
+//
+// `@loaders.gl` is deck.gl's MVT worker, loaded when the 3D scene is on. Verified
+// intercepted: a `new Worker()` script load from a controlled page goes through
+// the service worker.
+//
+// `mapbox-gl-rtl-text` is best-effort. The SDK registers it through maplibre,
+// which fetches it from inside the maplibre worker, and a fetch issued there is
+// not guaranteed to reach us. It was never observed in the page's network log
+// during testing, so treat this entry as a no-op until proven otherwise.
+const VENDOR_CDN_PATHS = ['/@loaders.gl/', '/@mapbox/mapbox-gl-rtl-text'];
+
+registerRoute(
+  ({ url }) => url.hostname === 'unpkg.com' && VENDOR_CDN_PATHS.some(path => url.pathname.includes(path)),
+  new CacheFirst({
+    cacheName: CACHE_VENDOR,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200, 204] }),
+      new ExpirationPlugin({
+        maxEntries: 20,
+        maxAgeSeconds: 60 * 60 * 24 * 30,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  })
+);
+
+// Glyph ranges for map labels. The basemap style decides the host (MapTiler
+// today), so match on the path the way the tile route does instead of
+// allowlisting one provider. A range is immutable for a given font stack, hence
+// CacheFirst and a long TTL. Without this every label disappears as soon as a
+// totem loses connectivity, because `/fonts/` matches neither the tile route
+// (no `/tiles/` in the path) nor the asset route (host not allowlisted).
+registerRoute(
+  ({ url }) => url.pathname.includes('/fonts/') && /\.pbf($|\?)/.test(url.pathname),
+  new CacheFirst({
+    cacheName: CACHE_GLYPHS,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200, 204] }),
+      new ExpirationPlugin({
+        maxEntries: 500,
+        maxAgeSeconds: 60 * 60 * 24 * 30,
         purgeOnQuotaError: true,
       }),
     ],

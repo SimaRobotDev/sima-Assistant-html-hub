@@ -461,6 +461,9 @@
     el.id = "mvx-place";
     el.setAttribute("compact-mode", "");
     el.setAttribute("zoom-size", "small");
+    // 0.13.0 defaults the popup to an icon-only bubble; keep the full card the
+    // generic-label rewrite (applyGenericLabel) and the store-map-web CSS expect.
+    el.setAttribute("marker-variant", "full");
     el.setAttribute("style", WC_THEME_STYLE);
     el.showFloorSelector = false;
     state.placeMount.appendChild(el);
@@ -840,11 +843,33 @@
     return true;
   }
 
+  // Show a given MapVX floor on the place map. map-view-with-modal has no floor prop,
+  // but its controller does (sdkController.setFloor(floorKey), the call its own floor
+  // bar makes). The place resolves asynchronously and the SDK then picks the place's
+  // FIRST floor (the car park, for an elevator), so re-apply a few times — setFloor is
+  // a no-op once the floor matches. Soft-fails: if the internals change the map just
+  // stays on the place's first floor.
+  function focusPlaceFloor(mapEl, floorId) {
+    floorId = text(floorId);
+    if (!mapEl || !floorId) return;
+    [0, 400, 1200, 2600].forEach(function (ms) {
+      setTimeout(function () {
+        try {
+          var ctl = mapEl.sdkController;
+          if (ctl && typeof ctl.setFloor === "function") ctl.setFloor(floorId);
+        } catch (e) {
+          log("focusPlaceFloor failed: " + (e && e.message ? e.message : e));
+        }
+      }, ms);
+    });
+  }
+
   function showPlace(placeId, options) {
     options = options || {};
     var timeoutMs = options.timeoutMs != null ? Number(options.timeoutMs) : PLACE_TIMEOUT_MS;
     var cfg = readConfig();
     var id = text(placeId);
+    var floorId = text(options.floorId);
 
     return new Promise(function (resolve, reject) {
       if (!state.initialized) {
@@ -884,6 +909,7 @@
         if (settled) return;
         settled = true;
         clearPlaceTimeout();
+        focusPlaceFloor(mapEl, floorId);
         resolve(payload || { placeId: id, engine: "wc", route: false });
       }
       function fail(reason) {
@@ -932,7 +958,33 @@
     });
   }
 
+  // "Ruta accesible" button (shared/mapvx-accessible-route.js): on request only,
+  // one per route element, drawn over the route view. MAPVX_CONFIG.accessibleRouteButton
+  // = false turns it off without an OTA.
+  function destroyAccessibleButton() {
+    if (state.accessibleCtl) {
+      try { state.accessibleCtl.destroy(); } catch (e) { /* noop */ }
+      state.accessibleCtl = null;
+    }
+  }
+
+  function attachAccessibleButton(routeEl, cfg) {
+    destroyAccessibleButton();
+    if (!global.MapVxAccessibleRoute || !state.routeView) return;
+    var flag = cfg && cfg.accessibleRouteButton;
+    if (flag === false || flag === "false" || flag === 0 || flag === "0") return;
+    try {
+      state.accessibleCtl = global.MapVxAccessibleRoute.attach(routeEl, {
+        container: state.routeView,
+        log: log,
+      });
+    } catch (e) {
+      log("accessible-route button failed: " + (e && e.message ? e.message : e));
+    }
+  }
+
   function closeRoute() {
+    destroyAccessibleButton();
     clearRouteTimeout();
     clearStallWatchdog();
     // Drop the route popup's observer, but keep state.genericLabel and re-apply
@@ -1008,6 +1060,7 @@
         // (closeRoute would fight the view switch below).
         clearRouteTimeout();
         clearStallWatchdog();
+        destroyAccessibleButton();
         state.routeActive = false;
         state.routeMount.innerHTML = "";
         state.lastPlaceId = dest;
@@ -1017,6 +1070,18 @@
 
         var routeEl = document.createElement("route-view-totems");
         routeEl.id = "mvx-route";
+        // 0.13.0 defaults: 3D scene ON for Costanera (extra WebGL load, GLB/unpkg
+        // fetches) and an icon-only popup. Pin the 0.3.0 behaviour.
+        routeEl.setAttribute("enable-3d", "false");
+        routeEl.setAttribute("marker-variant", "full");
+        // A destination that lives on several floors (an elevator) needs the floor the
+        // route should end on: MapVX is one place id spread over many floors and, with
+        // no floor, ends the route on its FIRST floor (the Nivel -1 car park). Set
+        // before the ids so the pair loads once with the floor already in place. A
+        // floor the place is not on is ignored silently, so callers only pass ids
+        // taken from the catalog's verified floor table.
+        var destFloorId = text(options.destinationFloorId);
+        if (destFloorId) routeEl.setAttribute("destination-floor-id", destFloorId);
         routeEl.setAttribute(
           "style",
           "--mvx-primary-color:#5B2D8E; --mvx-surface-color:#ffffff; --mvx-on-surface-color:#3D1D5C;"
@@ -1056,6 +1121,7 @@
           stopGenerate();
           clearRouteTimeout();
           clearStallWatchdog();
+          destroyAccessibleButton();
           state.routeActive = false;
           setActiveView("place");
           var err = reason instanceof Error ? reason : new Error(String(reason || "wc showRoute failed"));
@@ -1193,10 +1259,11 @@
         });
 
         state.routeMount.appendChild(routeEl);
+        attachAccessibleButton(routeEl, cfg);
         hideVendorLoadingOverlay(routeEl);
         // Sync credentials immediately after append — same as store-map-web.
         applyRouteCredentials(routeEl, cfg, origin, dest);
-        log("showRoute " + JSON.stringify({ destinationId: dest, originId: origin }));
+        log("showRoute " + JSON.stringify({ destinationId: dest, originId: origin, destinationFloorId: destFloorId || undefined }));
 
         clearRouteTimeout();
         state.routeTimeoutId = setTimeout(function () {

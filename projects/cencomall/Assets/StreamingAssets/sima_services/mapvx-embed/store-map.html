@@ -144,7 +144,7 @@
 
   <div class="stage" id="stage">
     <div class="view" id="map-view">
-      <map-view-with-modal id="mvx-place" compact-mode zoom-size="small" style="
+      <map-view-with-modal id="mvx-place" compact-mode zoom-size="small" marker-variant="full" style="
         --mvx-primary-color:#5B2D8E;
         --mvx-surface-color:#ffffff;
         --mvx-on-surface-color:#3D1D5C;
@@ -324,6 +324,10 @@ function wireRouteElement(routeEl) {
 function createRouteElement() {
   const el = document.createElement("route-view-totems");
   el.id = "mvx-route";
+  // 0.13.0 defaults: 3D scene ON for Costanera and a compact icon-only popup.
+  // Pin the 0.3.0 behaviour (2D, full popup).
+  el.setAttribute("enable-3d", "false");
+  el.setAttribute("marker-variant", "full");
   el.setAttribute("style", "--mvx-primary-color:#5B2D8E; --mvx-surface-color:#ffffff; --mvx-on-surface-color:#3D1D5C;");
   wireRouteElement(el);
   return el;

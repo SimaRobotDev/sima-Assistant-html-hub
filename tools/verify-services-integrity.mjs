@@ -330,6 +330,11 @@ check(`EVERY store local in the market catalog gets a QR (${marketData.length} s
 );
 const wcOnly = services.filter((s) => s.mapvx?.placeId && !isDest(s.mapvx.placeId)).map((s) => `${s.id}:${s.mapvx.placeId}`);
 check("only the legacy node: ids are refused a QR (elevators)", wcOnly.every((x) => /:node:\d+$/.test(x)), wcOnly.join(" | "));
+// Multi-floor places (the elevators) get NO QR: the public site reads only origin/destination/floor(view) and routes to the
+// place's FIRST floor — the Nivel -1 car park (checked 2026-10-20: totem N2 → "Ascensores Torre Tobalaba, Nivel -1").
+const multiFloorServices = services.filter((s) => s.mapvx?.placeId && Array.isArray(s.floors) && s.floors.length > 1);
+check("showServiceRouteQr skips multi-floor services (QR would send the phone to the car park)", /const multiFloor = !!\(entry && Array\.isArray\(entry\.floors\) && entry\.floors\.length > 1\)/.test(showServiceSrc) && /multiFloor \|\|/.test(showServiceSrc));
+check("only elevators are multi-floor, so no bathroom / SAC / cowork / ATM loses its QR", multiFloorServices.length >= 3 && multiFloorServices.every((s) => s.type === "elevator"), multiFloorServices.filter((s) => s.type !== "elevator").map((s) => s.id).join(","));
 
 // ---------------------------------------------------------------- 11. store-map-web route QR stays visible
 // Regression: the MapVX web components paint layers with z-index up to 99999 (loading-overlay 1000,
@@ -486,7 +491,7 @@ check("store-map-web loads mapvx-label-tuning.js before the MapVX bundles", idxO
 for (const [name, html] of [["mobility", mobilityLf], ["store-map (legacy)", read("store-map/index.html").replace(/\r\n/g, "\n")]]) {
   const list = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1].split("?")[0]);
   check(`${name} loads mapvx-label-tuning.js BEFORE mapvx-wc-runtime.js (which calls it)`, idxOf(list, "mapvx-label-tuning.js") >= 0 && idxOf(list, "mapvx-label-tuning.js") < idxOf(list, "mapvx-wc-runtime.js"));
-  check(`${name}: the runtime script URL carries the new cache-busting version`, /mapvx-wc-runtime\.js\?v=20261005/.test(html));
+  check(`${name}: the runtime script URL carries the new cache-busting version`, /mapvx-wc-runtime\.js\?v=20261020/.test(html));
 }
 
 // run each page's REAL hideGenericPoiIcons against the mock: hides the icon layers, then re-shows + tunes the labels
@@ -519,8 +524,179 @@ for (const [name, kind, src] of [["store-map-web", "smw", smwHtml], ["mapvx-wc-r
 }
 check("the label module is part of the OTA payload (listed in the runtime manifest after the next build)", existsSync(resolve(sima, "shared/mapvx-label-tuning.js")));
 
+// ---- "Ruta accesible" button (shared/mapvx-accessible-route.js): on request only, store-map-web + mobility
+// MapVX's own walking/accessible switch lives in <route-options>, which never registers in our pages
+// (2nd bundle throws on define("custom-map")), so the button is ours. Wiring + a state-machine run on a mock DOM.
+{
+  const accSrc = read("shared/mapvx-accessible-route.js");
+  const runtimeSrc = read("shared/mapvx-wc-runtime.js").replace(/\r\n/g, "\n");
+  const mobScripts = [...mobilityLf.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1].split("?")[0]);
+  check("store-map-web loads mapvx-accessible-route.js", idxOf(smwScripts, "mapvx-accessible-route.js") >= 0);
+  check("mobility loads mapvx-accessible-route.js BEFORE mapvx-wc-runtime.js (which attaches it)", idxOf(mobScripts, "mapvx-accessible-route.js") >= 0 && idxOf(mobScripts, "mapvx-accessible-route.js") < idxOf(mobScripts, "mapvx-wc-runtime.js"));
+  check("store-map-web attaches the button to the route element and tears it down on close", /MapVxAccessibleRoute\.attach\(routeEl/.test(smwHtml) && /function closeRouteView\(\) \{\s*destroyAccessibleRouteButton\(\);/.test(smwHtml));
+  check("runtime attaches the button on showRoute, and tears it down on closeRoute / before a new route", /attachAccessibleButton\(routeEl, cfg\)/.test(runtimeSrc) && /function closeRoute\(\) \{\s*destroyAccessibleButton\(\);/.test(runtimeSrc) && (runtimeSrc.match(/destroyAccessibleButton\(\);/g) || []).length >= 4);
+  check("runtime lets MAPVX_CONFIG.accessibleRouteButton=false switch it off (no OTA needed)", /cfg\.accessibleRouteButton/.test(runtimeSrc));
+  check("the accessible-route module is the ON-REQUEST design: nothing requests accessible=true on its own (route starts walking)", !/accessible-route["']?\s*,\s*["']?true|accessibleRoute:\s*true/.test(smwHtml + runtimeSrc));
+  for (const [n, src] of [["runtime route element", runtimeSrc], ["store-map-web route element", smwHtml], ["mapvx-embed route element", read("mapvx-embed/store-map.html")]]) {
+    check(`${n} pins enable-3d=false and marker-variant=full (0.13.0 flipped both defaults)`, /setAttribute\("enable-3d", "false"\)/.test(src) && /setAttribute\("marker-variant", "full"\)/.test(src));
+  }
+
+  // --- the module itself, on a minimal mock DOM
+  const mkEl = (tag) => {
+    const el = { tag, children: [], attrs: {}, listeners: {}, classes: new Set(), parentNode: null, disabled: false, title: "", textContent: "", _html: "" };
+    el.setAttribute = (k, v) => { el.attrs[k] = String(v); };
+    el.getAttribute = (k) => el.attrs[k];
+    el.appendChild = (c) => { c.parentNode = el; el.children.push(c); return c; };
+    el.removeChild = (c) => { el.children = el.children.filter((x) => x !== c); c.parentNode = null; };
+    el.addEventListener = (t, f) => { (el.listeners[t] = el.listeners[t] || []).push(f); };
+    el.removeEventListener = (t, f) => { el.listeners[t] = (el.listeners[t] || []).filter((x) => x !== f); };
+    el.classList = { toggle: (c, on) => (on ? el.classes.add(c) : el.classes.delete(c)), contains: (c) => el.classes.has(c) };
+    Object.defineProperty(el, "className", { set(v) { el.classes = new Set(String(v).split(/\s+/).filter(Boolean)); }, get() { return [...el.classes].join(" "); } });
+    Object.defineProperty(el, "innerHTML", { set(v) { el._html = v; el.children = [mkEl("svg"), mkEl("span")]; }, get() { return el._html; } });
+    Object.defineProperty(el, "lastChild", { get() { return el.children[el.children.length - 1]; } });
+    el.click = () => (el.listeners.click || []).slice().forEach((f) => f({ type: "click" }));
+    return el;
+  };
+  const head = mkEl("head");
+  const win = { MALL_LOCALE: "es", addEventListener() {}, removeEventListener() {} };
+  win.window = win;
+  const doc = { head, getElementById: () => null, createElement: mkEl };
+  vm.runInContext(accSrc, vm.createContext({ window: win, document: doc, console, setTimeout, clearTimeout }), { filename: "mapvx-accessible-route.js" });
+  const ACC = win.MapVxAccessibleRoute;
+  check("accessible-route module loads and exposes attach()", !!ACC && typeof ACC.attach === "function");
+  if (ACC) {
+    const keys = (p) => Object.keys(p).sort().join(",");
+    check("es/en/pt strings carry the same keys, all non-empty", keys(ACC.PACK.es) === keys(ACC.PACK.en) && keys(ACC.PACK.en) === keys(ACC.PACK.pt) && ["es", "en", "pt"].every((l) => Object.values(ACC.PACK[l]).every((v) => typeof v === "string" && v.trim())));
+
+    const mkRoute = () => {
+      const r = mkEl("route-view-totems");
+      r.isConnected = true;
+      r.calls = [];
+      r.next = { success: true };
+      r.updateComponent = (p) => { r.calls.push(p); return Promise.resolve(r.next); };
+      r.fire = (type, detail) => (r.listeners[type] || []).slice().forEach((f) => f({ type, detail }));
+      return r;
+    };
+    const tick = () => new Promise((r) => setImmediate(r));
+    const route = mkRoute(); const stage = mkEl("div"); const logs = [];
+    const ctl = ACC.attach(route, { container: stage, log: (s) => logs.push(s) });
+    const wrap = stage.children[0]; const btn = wrap.children[0]; const toast = wrap.children[1];
+    const label = () => btn.lastChild.textContent;
+    check("starts hidden: no button until the first route is drawn (and it starts as a walking route)", wrap.classList.contains("mvx-acc-hidden") && !ctl.isOn() && route.calls.length === 0);
+
+    route.fire("startRouteAnimation");
+    check("first route drawn → button appears, not pressed, es label", !wrap.classList.contains("mvx-acc-hidden") && btn.attrs["aria-pressed"] === "false" && label() === ACC.PACK.es.label && !btn.disabled);
+
+    btn.click();
+    check("tap → asks the component for the accessible route (updateComponent({accessibleRoute:true})) and disables while calculating", route.calls.length === 1 && route.calls[0].accessibleRoute === true && Object.keys(route.calls[0]).length === 1 && btn.disabled && label() === ACC.PACK.es.pending);
+    btn.click();
+    check("taps while calculating are ignored", route.calls.length === 1);
+    await tick(); route.fire("startRouteAnimation");
+    check("route redrawn → button is pressed (on) and enabled", ctl.isOn() && btn.attrs["aria-pressed"] === "true" && !btn.disabled && label() === ACC.PACK.es.labelOn);
+
+    win.MALL_LOCALE = "en"; btn.click(); await tick();
+    check("tap again → back to the walking route (accessibleRoute:false); strings follow the locale", route.calls.length === 2 && route.calls[1].accessibleRoute === false && label() === ACC.PACK.en.pending);
+    route.fire("mvxLoadingChange", { loading: false });
+    check("a 'loading:false' with no 'loading:true' first is NOT taken as done (stale event)", ctl.isPending());
+    route.fire("mvxLoadingChange", { loading: true }); route.fire("mvxLoadingChange", { loading: false });
+    check("loading true→false settles the request: walking route again, button off", !ctl.isPending() && !ctl.isOn() && label() === ACC.PACK.en.label);
+
+    // failure: no accessible route exists → keep walking, tell the visitor, and put the component back
+    win.MALL_LOCALE = "pt"; btn.click(); await tick();
+    route.fire("mvxError", { code: "ROUTE_NOT_FOUND", message: "x" });
+    check("no accessible route (ROUTE_NOT_FOUND) → stays off, shows the 'unavailable' notice in the locale", !ctl.isOn() && toast.textContent === ACC.PACK.pt.unavailable);
+    check("…and re-requests the walking route so the component's mode matches what is on screen (else the next tap is a no-op)", route.calls.length === 4 && route.calls[3].accessibleRoute === false && btn.disabled && label() === ACC.PACK.pt.label);
+    route.fire("startRouteAnimation");
+    btn.click(); await tick();
+    check("after a failure the next tap really re-requests the accessible route", btn.disabled && route.calls.length === 5 && route.calls[4].accessibleRoute === true);
+    route.fire("startRouteAnimation");
+    btn.click(); await tick(); route.fire("startRouteAnimation"); // back to walking so the next request is "turn on"
+
+    route.next = { success: false, error: "boom" };
+    btn.click(); await tick();
+    check("updateComponent reporting success:false is a failure too (button not left on, visitor told)", !ctl.isOn() && /request failed/.test(logs.join(" ")) && toast.textContent === ACC.PACK.pt.failed);
+    route.fire("startRouteAnimation");
+    route.next = { success: true }; btn.click(); await tick(); route.fire("startRouteAnimation"); // on again
+    route.next = { success: false, error: "boom" }; btn.click(); await tick(); // fail while going BACK to walking
+    check("failing to go back to the walking route keeps it on and says so — never 'no accessible route'", ctl.isOn() && toast.textContent === ACC.PACK.pt.failedWalking && toast.textContent !== ACC.PACK.pt.unavailable);
+    route.fire("startRouteAnimation");
+
+    ctl.destroy();
+    check("destroy() removes the button and the listeners (later events are harmless)", stage.children.length === 0 && (route.listeners.startRouteAnimation || []).length === 0 && (() => { try { route.fire("startRouteAnimation"); route.fire("mvxError", {}); return true; } catch (e) { return false; } })());
+    const ctl2 = ACC.attach(route, { container: stage }); const ctl3 = ACC.attach(route, { container: stage });
+    check("attaching twice to the same route element leaves a single button", stage.children.length === 1);
+    ctl3.destroy(); ctl2.destroy();
+  }
+}
+
+// ---- Elevators on the Web Component + the MapVX floor table (verified live 2026-10-20)
+// An elevator is ONE MapVX place spread over many floors. Without destination-floor-id a route ends on
+// its FIRST floor (the Nivel -1 car park), and MapVX ignores a wrong floor silently — so the floor ids
+// come from a fixed table, are checked here, and are never guessed at runtime.
+{
+  const table = servicesData.mapvxFloors || {};
+  const floorsT = table.floors || {};
+  const labels = ["PB", "1", "2", "3", "4", "5"];
+  check("mapvxFloors table: one MapVX floor key per catalog floor (PB..5), keys unique and MapVX-shaped", labels.every((l) => floorsT[l] && /^-[A-Za-z0-9_-]{19}$/.test(floorsT[l].key)) && new Set(labels.map((l) => floorsT[l] && floorsT[l].key)).size === labels.length);
+  check("mapvxFloors: levels strictly ascending PB<1<…<5 (PB is MapVX level -1: level -2 is the car park 'Nivel -1')", labels.every((l, i, a) => i === 0 || floorsT[l].level > floorsT[a[i - 1]].level) && floorsT.PB.level === -1 && floorsT.PB.name === "Planta Baja");
+  const elevators = services.filter((s) => s.type === "elevator");
+  const wcElevators = elevators.filter((s) => !s.mapvx.placeIdNote);
+  check("elevators on the Web Component have a real MapVX id (never 'node:…', which MapVX rejects with DESTINATION_NOT_FOUND)", wcElevators.length >= 1 && wcElevators.every((s) => /^-[A-Za-z0-9_-]{19}$/.test(s.mapvx.placeId)), wcElevators.map((s) => s.id + "=" + s.mapvx.placeId).join(","));
+  check("an elevator with a 'node:' id stays gated by a placeIdNote (so it cannot reach the Web Component)", elevators.filter((s) => /^node:/.test(s.mapvx.placeId)).every((s) => !!s.mapvx.placeIdNote));
+  check("every Web Component elevator exists in MapVX on EVERY floor the catalog claims (mapvx.inFloors ⊇ floors, verified live)", wcElevators.every((s) => Array.isArray(s.mapvx.inFloors) && s.floors.every((f) => s.mapvx.inFloors.includes(f)) && s.mapvx.inFloorsVerifiedAt), wcElevators.filter((s) => !(Array.isArray(s.mapvx.inFloors) && s.floors.every((f) => s.mapvx.inFloors.includes(f)))).map((s) => s.id).join(","));
+  check("every elevator carries lat/lng — the legacy fallback ignores a poiRef without coordinates and picks the NEAREST elevator (a wrong destination)", elevators.every((s) => Number.isFinite(s.mapvx.lat) && Number.isFinite(s.mapvx.lng)), elevators.filter((s) => !(Number.isFinite(s.mapvx.lat) && Number.isFinite(s.mapvx.lng))).map((s) => s.id).join(","));
+  const ripley = elevators.find((s) => s.id === "ascensor-ripley");
+  const cine = elevators.find((s) => s.id === "ascensor-cine");
+  check("Ripley's tower stops at N4 and the N5 leg (Burger King) is the separate cinema elevator, as MapVX publishes them", ripley && !ripley.floors.includes("5") && cine && cine.floors.join() === "5" && !JSON.stringify(ripley.anchorStores).includes("CC_N5_5524"));
+  check("elevator translations stay in sync with the corrected texts (no stale 'Burger King'/'L5' on Ripley, cinema entry translated)", !/Burger King|L5/.test(JSON.stringify(ripley.i18n)) && cine.i18n && cine.i18n.en.name && cine.i18n.pt.name && cine.i18n.en.descriptions.long && cine.i18n.pt.descriptions.long);
+
+  // the picker: totem floor when the place is there; nearest floor otherwise; PB (never the car park) with no totem floor
+  const keyOf = (l) => floorsT[l].key;
+  const hm = elevators.find((s) => s.id === "ascensor-hm");
+  check("pickMapvxFloorId: totem on N2 → the elevator's N2 floor (route stays on the visitor's floor, not the car park)", SC.pickMapvxFloorId(hm, "2") === keyOf("2") && SC.pickMapvxFloorId(hm, "Nivel 2") === keyOf("2") && SC.pickMapvxFloorId(hm, "PB") === keyOf("PB"));
+  check("pickMapvxFloorId: floor the elevator does not serve → the NEAREST one (Ripley's tower tops out at N4, so a totem on N5 gets N4)", SC.pickMapvxFloorId(ripley, "5") === keyOf("4") && SC.pickMapvxFloorId(ripley, "3") === keyOf("3"));
+  check("pickMapvxFloorId: no/unknown totem floor → the lowest floor (PB), never the Nivel -1 car park MapVX would default to", SC.pickMapvxFloorId(hm, "") === keyOf("PB") && SC.pickMapvxFloorId(hm, undefined) === keyOf("PB") && SC.pickMapvxFloorId(hm, "zz") === keyOf("PB"));
+  check("pickMapvxFloorId: single-floor services (bathrooms, SAC, cowork, the cinema elevator) get no floor id — they behave exactly as before", services.filter((s) => s.floors.length < 2).every((s) => SC.pickMapvxFloorId(s, "2") === "") && SC.pickMapvxFloorId(null, "2") === "");
+  check("pickMapvxFloorId never returns an id outside the table", services.every((s) => { const k = SC.pickMapvxFloorId(s, "3"); return k === "" || Object.values(floorsT).some((f) => f.key === k); }));
+
+  // wiring (runtime + mobility)
+  const rt = read("shared/mapvx-wc-runtime.js").replace(/\r\n/g, "\n");
+  const mobFloors = mobilityLf;
+  check("runtime: showRoute sets destination-floor-id BEFORE the ids, and showPlace re-applies the floor via sdkController.setFloor", /setAttribute\("destination-floor-id", destFloorId\)/.test(rt) && rt.indexOf('setAttribute("destination-floor-id"') < rt.indexOf("applyRouteCredentials(routeEl, cfg, origin, dest);") && /sdkController/.test(rt) && /ctl\.setFloor\(floorId\)/.test(rt));
+  check("mobility: all three service call sites pass the floor (showPlace floorId, two showRoute destinationFloorId)", (mobFloors.match(/destinationFloorId: mapvxFloorIdForServiceEntry\(/g) || []).length === 2 && /floorId: mapvxFloorIdForServiceEntry\(entry\)/.test(mobFloors));
+}
+
+// ---- Location references of bathrooms / changing tables / nursing room (corrected 2026-10-20 against the real MapVX data)
+// The "where is it" text is what a visitor reads next to the pin, so it must exist in all three languages and its
+// anchor stores must be on the entry's own floor (mudador-pb-2 once anchored to Ripley of Nivel 1 while on PB, and
+// bano-n5-2 had no text at all).
+{
+  const tok = (l) => { const m = /^CC_(PB|N\d+)_/.exec(l || ""); return m ? (m[1] === "PB" ? "PB" : m[1].slice(1)) : null; };
+  const rows = services.filter((s) => ["bathroom", "changing_table", "nursing"].includes(s.type));
+  const gaps = [];
+  for (const s of rows) {
+    for (const lang of ["es", "en", "pt"]) {
+      const d = lang === "es" ? s.descriptions : s.i18n && s.i18n[lang] && s.i18n[lang].descriptions;
+      for (const k of ["short", "medium", "long"]) if (!d || !String(d[k] || "").trim()) gaps.push(`${s.id}.${lang}.${k}`);
+    }
+    if (!(s.i18n && s.i18n.en && s.i18n.en.name && s.i18n.pt && s.i18n.pt.name)) gaps.push(`${s.id}.name`);
+  }
+  check("every bathroom / changing table / nursing entry has short+medium+long text in es, en and pt (and a translated name)", rows.length >= 16 && gaps.length === 0, gaps.slice(0, 6).join(","));
+  const wrong = [];
+  for (const s of rows) for (const a of s.anchorStores || []) {
+    const t = tok(a.local);
+    if (t && s.floors.length === 1 && t !== s.floors[0]) wrong.push(`${s.id}:${a.brand}(${a.local})`);
+    if (!(a.floors || []).every((f) => s.floors.includes(f))) wrong.push(`${s.id}:${a.brand} floors ${JSON.stringify(a.floors)}`);
+  }
+  check("anchor stores of single-floor bathroom-like entries are on the entry's own floor (local code CC_<floor>_… matches)", wrong.length === 0, wrong.join(","));
+  const loc = (id) => services.find((s) => s.id === id);
+  const textOf = (s) => [s.descriptions.short, s.descriptions.medium, s.descriptions.long].join(" ");
+  check("PB 'Sector Afex' block no longer claims Audiomusica / the Easy escalators (Audiomusica is ~107 m from this pin, in the west block)", !/Audiomusica|Easy/.test(textOf(loc("bano-pb-afex"))) && !/Easy|Audiomusica/.test(JSON.stringify(loc("bano-pb-afex").i18n)));
+  check("Ripley N2 restrooms no longer say 'junto al ascensor' (the elevators are ~28 m away) — es/en/pt", !/junto al ascensor|next to the elevator|ao lado do elevador/i.test(textOf(loc("bano-n2-ripley")) + JSON.stringify(loc("bano-n2-ripley").i18n)));
+}
+
 // external scripts the map pages depend on must parse too (a syntax slip silently disables the whole map code)
-for (const f of ["shared/mapvx-wc-runtime.js", "shared/mapvx-label-tuning.js", "shared/services-catalog.js"]) {
+for (const f of ["shared/mapvx-wc-runtime.js", "shared/mapvx-label-tuning.js", "shared/mapvx-accessible-route.js", "shared/services-catalog.js"]) {
   let err = "";
   try { new vm.Script(read(f), { filename: f }); } catch (e) { err = e.message; }
   check(`${f} parses`, !err, err);

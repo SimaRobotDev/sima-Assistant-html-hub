@@ -18,10 +18,11 @@
 <script src="../shared/market-i18n.js"></script>
 <script src="../shared/store-detail.js?v=20260812-5"></script>
 <script src="../shared/mapvx-label-tuning.js?v=20261005-1"></script>
+<script src="../shared/mapvx-accessible-route.js"></script>
 <script src="../shared/qrcode-generator.js"></script>
 
 <!--
-  Official MapVX Web Components (@mapvx/web-components@0.3.0), self-hosted
+  Official MapVX Web Components (@mapvx/web-components@0.13.0), self-hosted
   IIFE builds vendored under ../shared/mapvx-wc/ — see that folder's
   README.md for provenance and how to update the version. Each script
   defines its custom element as a side effect on load.
@@ -458,7 +459,7 @@
   <div class="store-map-stage status-covering" id="stage">
     <div class="store-map-floor hidden" id="store-map-floor"></div>
     <div class="store-map-view" id="map-view">
-      <map-view-with-modal id="mvx-place" compact-mode zoom-size="small" style="
+      <map-view-with-modal id="mvx-place" compact-mode zoom-size="small" marker-variant="full" style="
         --mvx-primary-color:#5B2D8E;
         --mvx-surface-color:#ffffff;
         --mvx-on-surface-color:#3D1D5C;
@@ -1310,17 +1311,40 @@ function wireRouteElement(routeEl) {
 function createRouteElement() {
   const el = document.createElement("route-view-totems");
   el.id = "mvx-route";
+  // 0.13.0 defaults: 3D scene ON for Costanera and a compact icon-only popup.
+  // Pin the 0.3.0 behaviour (2D, full popup that POPUP_CSS restyles).
+  el.setAttribute("enable-3d", "false");
+  el.setAttribute("marker-variant", "full");
   el.setAttribute("style", "--mvx-primary-color:#5B2D8E; --mvx-surface-color:#ffffff; --mvx-on-surface-color:#3D1D5C;");
   wireRouteElement(el);
   return el;
 }
 
+// "Ruta accesible" button (shared/mapvx-accessible-route.js). One per route element;
+// it lives in the stage (outside .store-map-view's stacking context) so it has to be
+// torn down by hand whenever the route view is replaced or closed.
+var accessibleRouteCtl = null; // var: hoisted, closeRouteView() may run before this line
+function destroyAccessibleRouteButton() {
+  if (accessibleRouteCtl) { accessibleRouteCtl.destroy(); accessibleRouteCtl = null; }
+}
+
 function showRouteView(cfg, placeId, destLabel) {
   if (!placeId || !cfg.totemPlaceId) return;
   const mount = document.getElementById("route-view-mount");
+  destroyAccessibleRouteButton();
   mount.innerHTML = ""; // drop the previous instance entirely, don't reuse it
   const routeEl = createRouteElement();
   mount.appendChild(routeEl);
+  if (window.MapVxAccessibleRoute) {
+    try {
+      accessibleRouteCtl = MapVxAccessibleRoute.attach(routeEl, {
+        container: document.getElementById("stage"),
+        log: log,
+      });
+    } catch (e) {
+      log("accessible-route button failed: " + (e.message || e));
+    }
+  }
 
   document.getElementById("map-view").classList.add("hidden");
   document.getElementById("route-view").classList.remove("hidden");
@@ -1368,6 +1392,7 @@ function showRouteView(cfg, placeId, destLabel) {
 // closeRouteView still just hides (matches MapVX's guide) — recreation only
 // happens on the next showRouteView call, not on every close.
 function closeRouteView() {
+  destroyAccessibleRouteButton();
   document.getElementById("route-view").classList.add("hidden");
   document.getElementById("map-view").classList.remove("hidden");
   setStatus(false);

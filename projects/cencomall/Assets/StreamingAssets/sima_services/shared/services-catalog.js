@@ -735,6 +735,44 @@ window.ServicesCatalog = (function () {
     });
   }
 
+  // MapVX floor table ({label: {key, level, name}}), "" entries skipped.
+  function mapvxFloorTable() {
+    var t = catalog && catalog.mapvxFloors && catalog.mapvxFloors.floors;
+    return t && typeof t === "object" ? t : {};
+  }
+
+  // The MapVX floor id (InnerFloor.key) to hand to the Web Component as
+  // destination-floor-id / the place map's floor, for a place that lives on SEVERAL
+  // floors (an elevator). MapVX is one place id spread over many floors; without a
+  // floor the route ends on its FIRST floor — the Nivel -1 car park — and a floor the
+  // place is not on is ignored silently. So this never guesses: it returns "" for a
+  // single-floor place, for a catalog without the floor table, or when no floor of
+  // the entry maps to a MapVX key.
+  // Choice: the totem's own floor when the place is there; otherwise the nearest
+  // floor by MapVX level; with no totem floor, the lowest (PB), never the car park.
+  function pickMapvxFloorId(entry, totemFloor) {
+    if (!entry || !entry.floors || entry.floors.length < 2) return "";
+    var table = mapvxFloorTable();
+    var verified = entry.mapvx && Array.isArray(entry.mapvx.inFloors) ? entry.mapvx.inFloors : entry.floors;
+    var labels = [];
+    for (var i = 0; i < verified.length; i++) {
+      var label = normalizeFloorKey(verified[i]);
+      if (label && table[label] && table[label].key && labels.indexOf(label) === -1) labels.push(label);
+    }
+    if (!labels.length) return "";
+    labels.sort(function (a, b) { return table[a].level - table[b].level; });
+    var target = normalizeFloorKey(totemFloor);
+    if (target && labels.indexOf(target) !== -1) return table[target].key;
+    if (target && table[target]) {
+      var best = labels[0];
+      for (var j = 1; j < labels.length; j++) {
+        if (Math.abs(table[labels[j]].level - table[target].level) < Math.abs(table[best].level - table[target].level)) best = labels[j];
+      }
+      return table[best].key;
+    }
+    return table[labels[0]].key;
+  }
+
   function scoreEntry(entry, queryNorm, floorFilter, mudadorOnly, preferFloor, typeFilter) {
     if (!entry) return -1;
     var type = entryType(entry);
@@ -957,6 +995,7 @@ window.ServicesCatalog = (function () {
     looksLikeServicesQuery: looksLikeServicesQuery,
     looksLikeGenericServicesQuery: looksLikeGenericServicesQuery,
     toResultCard: toResultCard,
+    pickMapvxFloorId: pickMapvxFloorId,
     search: function (query, options) {
       options = options || {};
       if (!catalog || !catalog.services) return [];

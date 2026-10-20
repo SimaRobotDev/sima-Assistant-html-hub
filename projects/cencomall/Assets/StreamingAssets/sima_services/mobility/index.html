@@ -115,7 +115,8 @@ function resetToLanding() {
 <!-- Preload route WC: Unity WebViews often block dynamically injected scripts. -->
 <script src="../shared/mapvx-wc/route-view-totems.js" data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
 <script src="../shared/mapvx-label-tuning.js?v=20261005-1"></script>
-<script src="../shared/mapvx-wc-runtime.js?v=20261005-1"></script>
+<script src="../shared/mapvx-accessible-route.js?v=20261020-1"></script>
+<script src="../shared/mapvx-wc-runtime.js?v=20261020-1"></script>
 <script src="../shared/store-detail.js?v=20260812-5"></script>
 <script src="../assistant-embed.js"></script>
 <style>
@@ -7003,7 +7004,11 @@ async function showMobilityHybridRoute() {
         // on totem hardware. A tight timeout here doesn't fail fast, it demotes
         // every route to the legacy renderer (the totem symptom after the
         // mapEngine="auto" rollout).
-        await MapVxWcRuntime.showRoute(dest, { originId: cfg.totemPlaceId, timeoutMs: 60000 });
+        await MapVxWcRuntime.showRoute(dest, {
+          originId: cfg.totemPlaceId,
+          timeoutMs: 60000,
+          destinationFloorId: mapvxFloorIdForServiceEntry(lastServiceWcEntry),
+        });
         setRouteTracingState(false);
         mobilityMapRouteActive = true;
         mobilityActiveMapEngine = "wc";
@@ -7531,6 +7536,20 @@ function showServiceArrivalCard(entry) {
   el.hidden = false;
 }
 
+// MapVX floor id for a service that lives on SEVERAL floors (the elevators): the
+// totem's own floor when the place is there, else the nearest one. MapVX is a single
+// place id spread over many floors and, with no floor, shows/routes to its FIRST floor
+// (the Nivel -1 car park). "" for every single-floor service (bathrooms, SAC…), so
+// those behave exactly as before. See ServicesCatalog.pickMapvxFloorId.
+function mapvxFloorIdForServiceEntry(entry) {
+  try {
+    if (entry && typeof ServicesCatalog !== "undefined" && ServicesCatalog.pickMapvxFloorId) {
+      return ServicesCatalog.pickMapvxFloorId(entry, getTotemFloorContext()) || "";
+    }
+  } catch (e) { /* noop: no floor → MapVX picks the place's first floor, as before */ }
+  return "";
+}
+
 // Services via the MapVX Web Component — the sibling of openPoiMapViaMapVxWc for
 // poiType "service". Gated behind ?mapEngine=wc AND a catalog entry that has a
 // verified mapvx.placeId (no placeIdNote). Anything else — flag off, no placeId,
@@ -7613,7 +7632,10 @@ async function openServiceMapViaWc(opts) {
       cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
     }
 
-    await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 3000 : 12000 });
+    await MapVxWcRuntime.showPlace(placeId, {
+      timeoutMs: cached ? 3000 : 12000,
+      floorId: mapvxFloorIdForServiceEntry(entry),
+    });
     mobilityActiveMapEngine = "wc";
     setMapLoadingState(false);
     clearAutoMapLaunchUi();
@@ -7624,7 +7646,11 @@ async function openServiceMapViaWc(opts) {
       if (cfg.totemPlaceId) {
         try {
           setRouteTracingState(true);
-          await MapVxWcRuntime.showRoute(placeId, { originId: cfg.totemPlaceId, timeoutMs: 60000 });
+          await MapVxWcRuntime.showRoute(placeId, {
+            originId: cfg.totemPlaceId,
+            timeoutMs: 60000,
+            destinationFloorId: mapvxFloorIdForServiceEntry(entry),
+          });
           setRouteTracingState(false);
           routed = true;
           mobilityMapRouteActive = true;
@@ -8048,12 +8074,21 @@ async function showServiceRouteQr(serviceId) {
   const mapvx = entry && entry.mapvx;
   const destination = mapvx && String(mapvx.placeId || "").trim();
   const origin = serviceRouteQrOrigin();
-  if (!destination || mapvx.placeIdNote || !isRouteQrDestination(destination) || !origin) {
+  // A place that lives on SEVERAL floors (the elevators) cannot be sent to the public
+  // site with a floor: it only reads origin / destination / floor (the view, not the
+  // route end) and routes to the place's FIRST floor — the Nivel -1 car park (checked
+  // 2026-10-20: totem N2 → "Ascensores Torre Tobalaba, Nivel -1", 246 m). Skip rather
+  // than print a QR that sends the visitor's phone to the car park; the totem screen
+  // itself does pass the floor (destination-floor-id). Revisit if the public site
+  // gains a destination-floor parameter.
+  const multiFloor = !!(entry && Array.isArray(entry.floors) && entry.floors.length > 1);
+  if (!destination || mapvx.placeIdNote || multiFloor || !isRouteQrDestination(destination) || !origin) {
     SimaBridge.log("service route QR skipped: " + JSON.stringify({
       id: key,
       destination: destination || "",
       origin: origin || "",
       unverified: !!(mapvx && mapvx.placeIdNote),
+      multiFloor: multiFloor,
     }));
     return;
   }
