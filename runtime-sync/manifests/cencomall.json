@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-52",
+  "version": "2026.09.02-53",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-10-08T15:14:09.889Z",
+  "generatedAt": "2026-10-20T16:26:13.612Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -115,13 +115,13 @@
     },
     {
       "path": "data/services-catalog.json",
-      "size": 97949,
-      "sha256": "20ce26123a131752777bbac3ab5a5daa925ff45365091d76fc7dd837621f4c25"
+      "size": 110078,
+      "sha256": "03ea3037dc5a7026aa088052e563b337f994f87c970c853d3de7fb0e08c981f1"
     },
     {
       "path": "data/services-catalog.jsonp.js",
-      "size": 98143,
-      "sha256": "f9416aecacb369b2b8f68465a05568fa2d3cfa1d1ad758214f40fca36376204e"
+      "size": 110272,
+      "sha256": "99c044ce1f522fa120ccb08bb7c50438d05d77b6c72e9f728c67df73068ca800"
     },
     {
       "path": "docs/MARKET-CATALOG-SLIM.md",
@@ -190,8 +190,8 @@
     },
     {
       "path": "mapvx-embed/mvx-tiles-sw.js",
-      "size": 14808,
-      "sha256": "6f5733ed419b3fdb232dc01744bc090f4febaef97b58975e30059fc914198bd5"
+      "size": 17391,
+      "sha256": "753b87cac8800ee9f56e07a84087665f0b0d03a54357e9d0ae78cc107f52a044"
     },
     {
       "path": "mapvx-embed/README.md",
@@ -205,13 +205,13 @@
     },
     {
       "path": "mapvx-embed/store-map.html",
-      "size": 35293,
-      "sha256": "3f4f532f7e5d04c2544a0e6b282c87288c4fb8c8a2eabb799dc397a3c3a7e973"
+      "size": 35527,
+      "sha256": "c599c1dd0d097632da0358e71c1f26ec1ff6d15243edb609a03a17133c38f3dd"
     },
     {
       "path": "mobility/index.html",
-      "size": 291093,
-      "sha256": "bc505340ef303028b62308a556765f530a659bde3243169c91d3c09c62c1305b"
+      "size": 292895,
+      "sha256": "49abfbbe592e558378698a5332a584c2ec9c55e9139b0db6c981ca333b50ba15"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -519,6 +519,11 @@
       "sha256": "38d0515c8d7664c5b94dacb3ca6dce4e22f2d92086061547edda0c15a83e44d0"
     },
     {
+      "path": "shared/mapvx-accessible-route.js",
+      "size": 12428,
+      "sha256": "853fadcbff45ff50cdbc92a9e34f1e48e2da898fdc3da8e0b26a8f7d4766591b"
+    },
+    {
       "path": "shared/mapvx-bridge.js",
       "size": 196507,
       "sha256": "e7d3bbb2a358e3cd467ff6da5f337700a5f3c129a3ce28bd1333e7e8196fb502"
@@ -530,23 +535,23 @@
     },
     {
       "path": "shared/mapvx-wc-runtime.js",
-      "size": 48445,
-      "sha256": "37a8473c6187dcaae84cc0cd8840010e5967d979c239e2e8585d2a87cde6d2ff"
+      "size": 51694,
+      "sha256": "69643e9206415326b8aa1f10a89c8a4cba085ab414f0ebc9b3392aa0a351b3f4"
     },
     {
       "path": "shared/mapvx-wc/map-view-with-modal.js",
-      "size": 4286820,
-      "sha256": "27791e99e9b6eab7702d4f62ba48a5070ee6bab9f2bc390703846017585b911f"
+      "size": 6477527,
+      "sha256": "3c9d89b0b0f3ad0f7b7fd6f8c7686fd0c337f7601506aba2873f63de3cd653a8"
     },
     {
       "path": "shared/mapvx-wc/README.md",
-      "size": 1851,
-      "sha256": "7655b816c47f7b4955e8c93ab5e7bab7a133b43e7f4e7e81d1875e8ea5f3a1e8"
+      "size": 4376,
+      "sha256": "13d54e192eb86be4be33d70f7af4e4c50d9a0d58063e44e86fcc258f928c3d97"
     },
     {
       "path": "shared/mapvx-wc/route-view-totems.js",
-      "size": 4334436,
-      "sha256": "7ac731e69422fbc6e5dee547fbe8edf0f84241172d2c42c2d34fcb03419ccf3b"
+      "size": 6538835,
+      "sha256": "6cb5bcf754083dffe5f90f623f581a26034217026ec249aab1be961ceba6079c"
     },
     {
       "path": "shared/mapvx/index.js",
@@ -600,8 +605,8 @@
     },
     {
       "path": "shared/services-catalog.js",
-      "size": 43271,
-      "sha256": "c9b7860b32116682618099297a3ad2071c38050b61a6bc02dbedbe4b9da86638"
+      "size": 45309,
+      "sha256": "bcf879ac2c4c493ae33e04bd62c62b82b3e17242efeda6a598231cfa58808784"
     },
     {
       "path": "shared/store-detail.css",
@@ -675,13 +680,13 @@
     },
     {
       "path": "store-map-web/index.html",
-      "size": 81250,
-      "sha256": "4c659c886403eb72e77d2519a1d3c3009ef150a728e0132d751eef010be61b12"
+      "size": 82387,
+      "sha256": "7235cdf55993ddc4347358ed6ffd24d6cb120d0e63294facf62a7dad509f5cce"
     },
     {
       "path": "store-map/index.html",
       "size": 44773,
-      "sha256": "6c907fdea597d4012c89efc4c8c303a32ee1e53dbc6360be1f03cf0121a65b92"
+      "sha256": "1f6e1e02d6fccab49f105fbaa7689546abfee66cdea0785ed9937569f9185fe2"
     },
     {
       "path": "taxi/index.html",
