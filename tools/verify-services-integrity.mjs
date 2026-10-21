@@ -330,6 +330,11 @@ check(`EVERY store local in the market catalog gets a QR (${marketData.length} s
 );
 const wcOnly = services.filter((s) => s.mapvx?.placeId && !isDest(s.mapvx.placeId)).map((s) => `${s.id}:${s.mapvx.placeId}`);
 check("only the legacy node: ids are refused a QR (elevators)", wcOnly.every((x) => /:node:\d+$/.test(x)), wcOnly.join(" | "));
+// Multi-floor places (the elevators) get NO QR: the public site reads only origin/destination/floor(view) and routes to the
+// place's FIRST floor — the Nivel -1 car park (checked 2026-10-20: totem N2 → "Ascensores Torre Tobalaba, Nivel -1").
+const multiFloorServices = services.filter((s) => s.mapvx?.placeId && Array.isArray(s.floors) && s.floors.length > 1);
+check("showServiceRouteQr skips multi-floor services (QR would send the phone to the car park)", /const multiFloor = !!\(entry && Array\.isArray\(entry\.floors\) && entry\.floors\.length > 1\)/.test(showServiceSrc) && /multiFloor \|\|/.test(showServiceSrc));
+check("only elevators are multi-floor, so no bathroom / SAC / cowork / ATM loses its QR", multiFloorServices.length >= 3 && multiFloorServices.every((s) => s.type === "elevator"), multiFloorServices.filter((s) => s.type !== "elevator").map((s) => s.id).join(","));
 
 // ---------------------------------------------------------------- 11. store-map-web route QR stays visible
 // Regression: the MapVX web components paint layers with z-index up to 99999 (loading-overlay 1000,
@@ -486,7 +491,7 @@ check("store-map-web loads mapvx-label-tuning.js before the MapVX bundles", idxO
 for (const [name, html] of [["mobility", mobilityLf], ["store-map (legacy)", read("store-map/index.html").replace(/\r\n/g, "\n")]]) {
   const list = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1].split("?")[0]);
   check(`${name} loads mapvx-label-tuning.js BEFORE mapvx-wc-runtime.js (which calls it)`, idxOf(list, "mapvx-label-tuning.js") >= 0 && idxOf(list, "mapvx-label-tuning.js") < idxOf(list, "mapvx-wc-runtime.js"));
-  check(`${name}: the runtime script URL carries the new cache-busting version`, /mapvx-wc-runtime\.js\?v=20261005/.test(html));
+  check(`${name}: the runtime script URL carries the new cache-busting version`, /mapvx-wc-runtime\.js\?v=20261021/.test(html));
 }
 
 // run each page's REAL hideGenericPoiIcons against the mock: hides the icon layers, then re-shows + tunes the labels
@@ -519,8 +524,239 @@ for (const [name, kind, src] of [["store-map-web", "smw", smwHtml], ["mapvx-wc-r
 }
 check("the label module is part of the OTA payload (listed in the runtime manifest after the next build)", existsSync(resolve(sima, "shared/mapvx-label-tuning.js")));
 
+// ---- "Ver ruta" / "Ruta accesible" picker (shared/route-mode-picker.js): two buttons in the detail card
+// MapVX's own walking/accessible switch lives in <route-options>, which never registers in our pages
+// (2nd bundle throws on define("custom-map")), so the control is ours. The visitor picks BEFORE the route exists;
+// accessible routes are only ever on request. Wiring checks + the state machine run on a mock DOM.
+{
+  const pickerSrc = read("shared/route-mode-picker.js");
+  const runtimeSrc = read("shared/mapvx-wc-runtime.js").replace(/\r\n/g, "\n");
+  const mobScripts = [...mobilityLf.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1].split("?")[0]);
+  check("the old floating-button module is gone and nothing references it", !existsSync(resolve(sima, "shared/mapvx-accessible-route.js")) && !/MapVxAccessibleRoute|mapvx-accessible-route/.test(smwHtml + mobilityLf + runtimeSrc));
+  check("store-map-web loads route-mode-picker.js", idxOf(smwScripts, "route-mode-picker.js") >= 0);
+  check("mobility loads route-mode-picker.js before the runtime", idxOf(mobScripts, "route-mode-picker.js") >= 0 && idxOf(mobScripts, "route-mode-picker.js") < idxOf(mobScripts, "mapvx-wc-runtime.js"));
+  check("store-map-web: the route element starts in the picked mode (accessible-route value) and is adopted by the picker", /setAttribute\("accessible-route", mode === "accessible" \? "true" : "false"\)/.test(smwHtml) && /picker\.adopt\(mode, routeEl\)/.test(smwHtml));
+  check("store-map-web: closing the route resets the picker; the old header pill is hidden by CSS", /function closeRouteView\(\) \{\s*if \(routePicker\) routePicker\.reset\(\);/.test(smwHtml) && /#route-toggle \{ display: none !important; \}/.test(smwHtml));
+  check("store-map-web: a route that fails to draw goes back to the store map, and closing a route disarms its 60 s 'too long' timer (it would otherwise ask the native app to close the webview)", /onStartFailed: function \(\) \{ closeRouteView\(\); \}/.test(smwHtml) && /function closeRouteView\(\) \{[\s\S]*?clearTimeout\(routeStatusTimeoutId\)/.test(smwHtml));
+  check("store-map-web: the buttons dock in the store card body", /dock: \{ panel: document\.getElementById\("store-detail"\), body: "\.store-detail-body" \}/.test(smwHtml));
+  check("mobility: the buttons dock in the detail card and the old header button is hidden by CSS", /dock: \{ panel: panel, body: "\.store-detail-head-text" \}/.test(mobilityLf) && /#map-route-btn \{ display: none !important; \}/.test(mobilityLf));
+  check("runtime: showRoute sets accessible-route from options.accessible BEFORE the ids and hands the element to options.onElement", /setAttribute\("accessible-route", options\.accessible \? "true" : "false"\)/.test(runtimeSrc) && /options\.onElement\(routeEl\)/.test(runtimeSrc) && runtimeSrc.indexOf('setAttribute("accessible-route"') < runtimeSrc.indexOf("applyRouteCredentials(routeEl, cfg, origin, dest);"));
+  check("ON REQUEST only: the only place that asks for accessible:true is the picker's own accessible action (mobility); smw/runtime never do", (mobilityLf.match(/accessible: true/g) || []).length === 1 && !/accessible: true/.test(smwHtml + runtimeSrc));
+  const accFn = (mobilityLf.match(/async function showMobilityAccessibleRoute\(ctx\) \{[\s\S]*?\n\}\n/) || [""])[0];
+  check("mobility: an accessible route never silently falls back to a walking (legacy) one", accFn.length > 200 && !/openPoiMapViaMapVx|fallBackToLegacyRoute/.test(accFn));
+  check("mobility: a store's 'Ver ruta' stays on the legacy hybrid draw (the accessible one is the only new Web Component path)", /await openPoiMapViaMapVx\(Object\.assign\(\{\}, opts, \{\s*mode: "navigation"/.test(mobilityLf));
+  for (const [n, src] of [["runtime route element", runtimeSrc], ["store-map-web route element", smwHtml], ["mapvx-embed route element", read("mapvx-embed/store-map.html")]]) {
+    check(`${n} pins enable-3d=false and marker-variant=full (0.13.0 flipped both defaults)`, /setAttribute\("enable-3d", "false"\)/.test(src) && /setAttribute\("marker-variant", "full"\)/.test(src));
+  }
+
+  // --- the module itself, on a minimal mock DOM
+  const mkEl = (tag) => {
+    const el = { tag, children: [], attrs: {}, listeners: {}, classes: new Set(), parentNode: null, disabled: false, hidden: false, title: "", textContent: "", _html: "", type: "" };
+    el.setAttribute = (k, v) => { el.attrs[k] = String(v); };
+    el.getAttribute = (k) => el.attrs[k];
+    el.appendChild = (c) => { if (c.parentNode) c.parentNode.removeChild(c); c.parentNode = el; el.children.push(c); return c; };
+    el.insertBefore = (c, ref) => { if (c.parentNode) c.parentNode.removeChild(c); c.parentNode = el; const i = ref ? el.children.indexOf(ref) : -1; if (i < 0) el.children.push(c); else el.children.splice(i, 0, c); return c; };
+    el.removeChild = (c) => { el.children = el.children.filter((x) => x !== c); c.parentNode = null; };
+    el.addEventListener = (t, f) => { (el.listeners[t] = el.listeners[t] || []).push(f); };
+    el.removeEventListener = (t, f) => { el.listeners[t] = (el.listeners[t] || []).filter((x) => x !== f); };
+    el.classList = { toggle: (c, on) => (on ? el.classes.add(c) : el.classes.delete(c)), contains: (c) => el.classes.has(c) };
+    Object.defineProperty(el, "className", { set(v) { el.classes = new Set(String(v).split(/\s+/).filter(Boolean)); }, get() { return [...el.classes].join(" "); } });
+    Object.defineProperty(el, "innerHTML", { set(v) { el._html = v; el.children = [mkEl("svg"), mkEl("span")]; el.children.forEach((c) => { c.parentNode = el; }); }, get() { return el._html; } });
+    Object.defineProperty(el, "lastChild", { get() { return el.children[el.children.length - 1]; } });
+    Object.defineProperty(el, "firstChild", { get() { return el.children[0] || null; } });
+    el.click = () => (el.listeners.click || []).slice().forEach((f) => f({ type: "click" }));
+    return el;
+  };
+  const win = { MALL_LOCALE: "es", addEventListener() {}, removeEventListener() {} };
+  win.window = win;
+  const doc = { head: mkEl("head"), getElementById: () => null, createElement: mkEl };
+  vm.runInContext(pickerSrc, vm.createContext({ window: win, document: doc, console, setTimeout, clearTimeout, Promise }), { filename: "route-mode-picker.js" });
+  const RMP = win.RouteModePicker;
+  check("route-mode-picker loads and exposes create()", !!RMP && typeof RMP.create === "function");
+  if (RMP) {
+    const keys = (p) => Object.keys(p).sort().join(",");
+    check("es/en/pt strings carry the same keys, all non-empty", keys(RMP.PACK.es) === keys(RMP.PACK.en) && keys(RMP.PACK.en) === keys(RMP.PACK.pt) && ["es", "en", "pt"].every((l) => Object.values(RMP.PACK[l]).every((v) => typeof v === "string" && v.trim())));
+    check("both Figma icons are inlined with currentColor (so the active state can invert them) and no hard-coded purple", /currentColor/.test(RMP.ICONS.walk) && /currentColor/.test(RMP.ICONS.accessible) && !/#584E80/i.test(RMP.ICONS.walk + RMP.ICONS.accessible));
+    const tick = () => new Promise((r) => setTimeout(r, 5));
+    const fireR = async (t, d) => { host.route.fire(t, d); await tick(); };
+    const mkRoute = () => {
+      const r = mkEl("route-view-totems");
+      r.isConnected = true; r.calls = []; r.next = { success: true };
+      r.updateComponent = (p) => { r.calls.push(p); return Promise.resolve(r.next); };
+      r.fire = (type, detail) => (r.listeners[type] || []).slice().forEach((f) => f({ type, detail }));
+      return r;
+    };
+    const body = mkEl("div"); const panel = { querySelector: () => body };
+    const host = { starts: [], clears: 0, route: null, inPlace: true, avail: true, failNext: null, bindIt: true, legacyWalk: false };
+    const picker = RMP.create({
+      dock: { panel, body: ".store-detail-body" },
+      start: (mode, ctx) => { host.starts.push(mode); if (host.failNext) { const e = host.failNext; host.failNext = null; return Promise.reject(e); } if (host.bindIt && !(host.legacyWalk && mode === "walk")) { host.route = mkRoute(); ctx.bind(host.route); } return Promise.resolve(); },
+      clear: () => { host.clears += 1; host.route = null; return Promise.resolve(); },
+      canSwitchInPlace: () => host.inPlace,
+      isAvailable: (m) => m !== "accessible" || host.avail,
+      onStartFailed: () => { host.startFailed = (host.startFailed || 0) + 1; },
+      log: () => {},
+    });
+    const group = picker.element; const walk = group.children[0]; const acc = group.children[1]; const note = group.children[2];
+    const lbl = (b) => b.lastChild.textContent;
+    const pressed = (b) => b.attrs["aria-pressed"] === "true";
+
+    check("docked: the group is the FIRST child of the card body (the text wraps around it, nothing is covered)", body.firstChild === group);
+    body.children = []; body.appendChild(mkEl("h2")); picker.dockInto(body);
+    check("re-docks first after the card is re-rendered", body.firstChild === group && body.children.length === 2);
+    check("starts with nothing pressed, es labels 'Ver ruta' / 'Ruta accesible'", !pressed(walk) && !pressed(acc) && lbl(walk) === RMP.PACK.es.walk && lbl(acc) === RMP.PACK.es.accessible && picker.getMode() === null);
+    picker.setVisible(false);
+    check("setVisible(false) hides the pair (no totem origin → nothing to route from)", group.hidden === true);
+    picker.setVisible(true);
+
+    acc.click();
+    check("choosing 'Ruta accesible' BEFORE any route starts the accessible route directly", host.starts.join() === "accessible" && lbl(acc) === RMP.PACK.es.pending && walk.disabled && acc.disabled);
+    acc.click();
+    check("taps while calculating are ignored", host.starts.length === 1);
+    await tick(); await fireR("startRouteAnimation");
+    check("route drawn → 'Ruta accesible' is the active (pressed) one, both enabled", picker.getMode() === "accessible" && pressed(acc) && !pressed(walk) && !acc.disabled && !walk.disabled && lbl(acc) === RMP.PACK.es.accessible);
+
+    walk.click(); await tick();
+    check("tapping the other one switches IN PLACE (updateComponent), the target shows 'Calculando…'", host.route.calls.length === 1 && host.route.calls[0].accessibleRoute === false && Object.keys(host.route.calls[0]).length === 1 && lbl(walk) === RMP.PACK.es.pending);
+    await fireR("mvxLoadingChange", { loading: false });
+    check("a 'loading:false' with no 'loading:true' before it is a stale event, not 'done'", picker.getMode() === "accessible");
+    await fireR("mvxLoadingChange", { loading: true }); await fireR("mvxLoadingChange", { loading: false });
+    check("loading true→false settles the switch: 'Ver ruta' (walking) is now active", picker.getMode() === "walk" && pressed(walk) && !pressed(acc));
+
+    win.MALL_LOCALE = "en";
+    acc.click(); await tick();
+    await fireR("mvxError", { code: "ROUTE_NOT_FOUND", message: "x" });
+    check("no accessible route (ROUTE_NOT_FOUND): stays on the walking route, says so in the locale", picker.getMode() === "walk" && note.textContent === RMP.PACK.en.unavailable && pressed(walk));
+    check("…and re-requests the walking mode so the component matches the screen (else the next tap is a no-op)", host.route.calls.length === 3 && host.route.calls[2].accessibleRoute === false && lbl(acc) === RMP.PACK.en.accessible);
+    await fireR("startRouteAnimation");
+    acc.click(); await tick();
+    check("after a failure the next tap really re-requests the accessible route", host.route.calls.length === 4 && host.route.calls[3].accessibleRoute === true);
+    await fireR("startRouteAnimation");
+    check("…and it works this time", picker.getMode() === "accessible");
+
+    host.route.next = { success: false, error: "boom" };
+    walk.click(); await tick();
+    check("updateComponent reporting success:false while going BACK to walking keeps the accessible route and says 'could not change' (never 'no accessible route')", picker.getMode() === "accessible" && note.textContent === RMP.PACK.en.failedBack);
+    await fireR("startRouteAnimation"); host.route.next = { success: true };
+
+    acc.click(); await tick();
+    check("tapping the ACTIVE button removes the route (clear) and nothing stays pressed", host.clears === 1 && picker.getMode() === null && !pressed(acc) && !pressed(walk));
+
+    // start failures
+    host.failNext = Object.assign(new Error("x"), { code: "ROUTE_NOT_FOUND" });
+    acc.click(); await tick();
+    check("accessible route that cannot be drawn: nothing active, 'unavailable' notice", picker.getMode() === null && note.textContent === RMP.PACK.en.unavailable && !acc.disabled);
+    check("…and the page is told (onStartFailed) so it can drop the half-drawn 'Cargando ruta…' view", host.startFailed === 1);
+    host.failNext = new Error("boom");
+    walk.click(); await tick();
+    check("walking route that cannot be drawn: nothing active, plain 'could not calculate'", picker.getMode() === null && note.textContent === RMP.PACK.en.failedWalk);
+
+    // cross-engine (a store in mobility: 'Ver ruta' = legacy, no route element; 'Ruta accesible' = Web Component)
+    host.legacyWalk = true; host.inPlace = false; host.starts = []; host.clears = 0;
+    walk.click(); await tick();
+    check("legacy walking route (no route element): active as soon as start() resolves", picker.getMode() === "walk" && host.starts.join() === "walk");
+    acc.click(); await tick(); await fireR("startRouteAnimation"); await tick();
+    check("walking → accessible across engines = clear the old route, then draw the new one", host.clears === 1 && host.starts.join() === "walk,accessible" && picker.getMode() === "accessible");
+    host.failNext = null;
+    host.starts = []; host.clears = 0;
+    walk.click(); await tick();
+    check("accessible → walking across engines = clear, then the legacy route again", host.clears === 1 && host.starts.join() === "walk" && picker.getMode() === "walk");
+    host.failNext = new Error("boom"); host.starts = []; host.clears = 0;
+    acc.click(); await tick();
+    check("if the new route fails, the visitor is put back on the one they had (walking) and told", host.clears === 1 && host.starts.join() === "accessible,walk" && picker.getMode() === "walk" && note.textContent === RMP.PACK.en.failed);
+    host.failNext = null; host.inPlace = true; host.legacyWalk = false;
+
+    // availability
+    host.avail = false; picker.refresh(); host.starts = [];
+    acc.click(); await tick();
+    check("where an accessible route is not possible (e.g. a legacy-only place): button dimmed, tap explains, nothing starts", acc.classes.has("rmp-unavailable") && acc.attrs["aria-disabled"] === "true" && host.starts.length === 0 && note.textContent === RMP.PACK.en.unsupported);
+    host.avail = true; picker.refresh();
+
+    // a route the PAGE started (native payload, ?route=1, auto-route)
+    picker.reset(true);
+    const nativeRoute = mkRoute(); picker.adopt("walk", nativeRoute);
+    check("adopt(): a route started by the page is followed — pending until it draws, then 'Ver ruta' is active", picker.getPending() === "walk" && lbl(walk) === RMP.PACK.en.pending);
+    picker.reset();
+    check("a soft reset() is ignored while a route is being drawn (the page's map resets land mid-draw)", picker.getPending() === "walk");
+    await (async () => { nativeRoute.fire("startRouteAnimation"); await tick(); })();
+    check("…and the route then settles as active", picker.getMode() === "walk" && !picker.isBusy());
+    picker.reset();
+    check("reset() when the route is gone clears the pair", picker.getMode() === null && !pressed(walk));
+    check("labels follow the locale", (win.MALL_LOCALE = "pt", picker.refresh(), lbl(walk) === RMP.PACK.pt.walk && lbl(acc) === RMP.PACK.pt.accessible));
+
+    picker.destroy();
+    check("destroy() removes the group from the card", group.parentNode === null && !body.children.includes(group));
+  }
+}
+
+// ---- Elevators on the Web Component + the MapVX floor table (verified live 2026-10-20)
+// An elevator is ONE MapVX place spread over many floors. Without destination-floor-id a route ends on
+// its FIRST floor (the Nivel -1 car park), and MapVX ignores a wrong floor silently — so the floor ids
+// come from a fixed table, are checked here, and are never guessed at runtime.
+{
+  const table = servicesData.mapvxFloors || {};
+  const floorsT = table.floors || {};
+  const labels = ["PB", "1", "2", "3", "4", "5"];
+  check("mapvxFloors table: one MapVX floor key per catalog floor (PB..5), keys unique and MapVX-shaped", labels.every((l) => floorsT[l] && /^-[A-Za-z0-9_-]{19}$/.test(floorsT[l].key)) && new Set(labels.map((l) => floorsT[l] && floorsT[l].key)).size === labels.length);
+  check("mapvxFloors: levels strictly ascending PB<1<…<5 (PB is MapVX level -1: level -2 is the car park 'Nivel -1')", labels.every((l, i, a) => i === 0 || floorsT[l].level > floorsT[a[i - 1]].level) && floorsT.PB.level === -1 && floorsT.PB.name === "Planta Baja");
+  const elevators = services.filter((s) => s.type === "elevator");
+  const wcElevators = elevators.filter((s) => !s.mapvx.placeIdNote);
+  check("elevators on the Web Component have a real MapVX id (never 'node:…', which MapVX rejects with DESTINATION_NOT_FOUND)", wcElevators.length >= 1 && wcElevators.every((s) => /^-[A-Za-z0-9_-]{19}$/.test(s.mapvx.placeId)), wcElevators.map((s) => s.id + "=" + s.mapvx.placeId).join(","));
+  check("an elevator with a 'node:' id stays gated by a placeIdNote (so it cannot reach the Web Component)", elevators.filter((s) => /^node:/.test(s.mapvx.placeId)).every((s) => !!s.mapvx.placeIdNote));
+  check("every Web Component elevator exists in MapVX on EVERY floor the catalog claims (mapvx.inFloors ⊇ floors, verified live)", wcElevators.every((s) => Array.isArray(s.mapvx.inFloors) && s.floors.every((f) => s.mapvx.inFloors.includes(f)) && s.mapvx.inFloorsVerifiedAt), wcElevators.filter((s) => !(Array.isArray(s.mapvx.inFloors) && s.floors.every((f) => s.mapvx.inFloors.includes(f)))).map((s) => s.id).join(","));
+  check("every elevator carries lat/lng — the legacy fallback ignores a poiRef without coordinates and picks the NEAREST elevator (a wrong destination)", elevators.every((s) => Number.isFinite(s.mapvx.lat) && Number.isFinite(s.mapvx.lng)), elevators.filter((s) => !(Number.isFinite(s.mapvx.lat) && Number.isFinite(s.mapvx.lng))).map((s) => s.id).join(","));
+  const ripley = elevators.find((s) => s.id === "ascensor-ripley");
+  const cine = elevators.find((s) => s.id === "ascensor-cine");
+  check("Ripley's tower stops at N4 and the N5 leg (Burger King) is the separate cinema elevator, as MapVX publishes them", ripley && !ripley.floors.includes("5") && cine && cine.floors.join() === "5" && !JSON.stringify(ripley.anchorStores).includes("CC_N5_5524"));
+  check("elevator translations stay in sync with the corrected texts (no stale 'Burger King'/'L5' on Ripley, cinema entry translated)", !/Burger King|L5/.test(JSON.stringify(ripley.i18n)) && cine.i18n && cine.i18n.en.name && cine.i18n.pt.name && cine.i18n.en.descriptions.long && cine.i18n.pt.descriptions.long);
+
+  // the picker: totem floor when the place is there; nearest floor otherwise; PB (never the car park) with no totem floor
+  const keyOf = (l) => floorsT[l].key;
+  const hm = elevators.find((s) => s.id === "ascensor-hm");
+  check("pickMapvxFloorId: totem on N2 → the elevator's N2 floor (route stays on the visitor's floor, not the car park)", SC.pickMapvxFloorId(hm, "2") === keyOf("2") && SC.pickMapvxFloorId(hm, "Nivel 2") === keyOf("2") && SC.pickMapvxFloorId(hm, "PB") === keyOf("PB"));
+  check("pickMapvxFloorId: floor the elevator does not serve → the NEAREST one (Ripley's tower tops out at N4, so a totem on N5 gets N4)", SC.pickMapvxFloorId(ripley, "5") === keyOf("4") && SC.pickMapvxFloorId(ripley, "3") === keyOf("3"));
+  check("pickMapvxFloorId: no/unknown totem floor → the lowest floor (PB), never the Nivel -1 car park MapVX would default to", SC.pickMapvxFloorId(hm, "") === keyOf("PB") && SC.pickMapvxFloorId(hm, undefined) === keyOf("PB") && SC.pickMapvxFloorId(hm, "zz") === keyOf("PB"));
+  check("pickMapvxFloorId: single-floor services (bathrooms, SAC, cowork, the cinema elevator) get no floor id — they behave exactly as before", services.filter((s) => s.floors.length < 2).every((s) => SC.pickMapvxFloorId(s, "2") === "") && SC.pickMapvxFloorId(null, "2") === "");
+  check("pickMapvxFloorId never returns an id outside the table", services.every((s) => { const k = SC.pickMapvxFloorId(s, "3"); return k === "" || Object.values(floorsT).some((f) => f.key === k); }));
+
+  // wiring (runtime + mobility)
+  const rt = read("shared/mapvx-wc-runtime.js").replace(/\r\n/g, "\n");
+  const mobFloors = mobilityLf;
+  check("runtime: showRoute sets destination-floor-id BEFORE the ids, and showPlace re-applies the floor via sdkController.setFloor", /setAttribute\("destination-floor-id", destFloorId\)/.test(rt) && rt.indexOf('setAttribute("destination-floor-id"') < rt.indexOf("applyRouteCredentials(routeEl, cfg, origin, dest);") && /sdkController/.test(rt) && /ctl\.setFloor\(floorId\)/.test(rt));
+  check("mobility: every service route passes the floor (walk, accessible and the auto-route showRoute, plus showPlace floorId)", (mobFloors.match(/destinationFloorId: mapvxFloorIdForServiceEntry\(/g) || []).length === 3 && /floorId: mapvxFloorIdForServiceEntry\(entry\)/.test(mobFloors));
+}
+
+// ---- Location references of bathrooms / changing tables / nursing room (corrected 2026-10-20 against the real MapVX data)
+// The "where is it" text is what a visitor reads next to the pin, so it must exist in all three languages and its
+// anchor stores must be on the entry's own floor (mudador-pb-2 once anchored to Ripley of Nivel 1 while on PB, and
+// bano-n5-2 had no text at all).
+{
+  const tok = (l) => { const m = /^CC_(PB|N\d+)_/.exec(l || ""); return m ? (m[1] === "PB" ? "PB" : m[1].slice(1)) : null; };
+  const rows = services.filter((s) => ["bathroom", "changing_table", "nursing"].includes(s.type));
+  const gaps = [];
+  for (const s of rows) {
+    for (const lang of ["es", "en", "pt"]) {
+      const d = lang === "es" ? s.descriptions : s.i18n && s.i18n[lang] && s.i18n[lang].descriptions;
+      for (const k of ["short", "medium", "long"]) if (!d || !String(d[k] || "").trim()) gaps.push(`${s.id}.${lang}.${k}`);
+    }
+    if (!(s.i18n && s.i18n.en && s.i18n.en.name && s.i18n.pt && s.i18n.pt.name)) gaps.push(`${s.id}.name`);
+  }
+  check("every bathroom / changing table / nursing entry has short+medium+long text in es, en and pt (and a translated name)", rows.length >= 16 && gaps.length === 0, gaps.slice(0, 6).join(","));
+  const wrong = [];
+  for (const s of rows) for (const a of s.anchorStores || []) {
+    const t = tok(a.local);
+    if (t && s.floors.length === 1 && t !== s.floors[0]) wrong.push(`${s.id}:${a.brand}(${a.local})`);
+    if (!(a.floors || []).every((f) => s.floors.includes(f))) wrong.push(`${s.id}:${a.brand} floors ${JSON.stringify(a.floors)}`);
+  }
+  check("anchor stores of single-floor bathroom-like entries are on the entry's own floor (local code CC_<floor>_… matches)", wrong.length === 0, wrong.join(","));
+  const loc = (id) => services.find((s) => s.id === id);
+  const textOf = (s) => [s.descriptions.short, s.descriptions.medium, s.descriptions.long].join(" ");
+  check("PB 'Sector Afex' block no longer claims Audiomusica / the Easy escalators (Audiomusica is ~107 m from this pin, in the west block)", !/Audiomusica|Easy/.test(textOf(loc("bano-pb-afex"))) && !/Easy|Audiomusica/.test(JSON.stringify(loc("bano-pb-afex").i18n)));
+  check("Ripley N2 restrooms no longer say 'junto al ascensor' (the elevators are ~28 m away) — es/en/pt", !/junto al ascensor|next to the elevator|ao lado do elevador/i.test(textOf(loc("bano-n2-ripley")) + JSON.stringify(loc("bano-n2-ripley").i18n)));
+}
+
 // external scripts the map pages depend on must parse too (a syntax slip silently disables the whole map code)
-for (const f of ["shared/mapvx-wc-runtime.js", "shared/mapvx-label-tuning.js", "shared/services-catalog.js"]) {
+for (const f of ["shared/mapvx-wc-runtime.js", "shared/mapvx-label-tuning.js", "shared/route-mode-picker.js", "shared/services-catalog.js"]) {
   let err = "";
   try { new vm.Script(read(f), { filename: f }); } catch (e) { err = e.message; }
   check(`${f} parses`, !err, err);

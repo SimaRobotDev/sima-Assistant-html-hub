@@ -3,6 +3,43 @@ window.__SERVICES_CATALOG__ = {
   "version": 1,
   "mall": "costanera",
   "locale": "es",
+  "mapvxFloors": {
+    "parentPlaceId": "-N19VjzEVIj2RDKu7i4r",
+    "retrievedAt": "2026-10-20",
+    "note": "MapVX floor ids (InnerFloor.key) per catalog floor label. Pass them as destination-floor-id: a place on several floors (an elevator) otherwise routes to its FIRST floor, the Nivel -1 car park. Careful: MapVX level -2 is named 'Nivel -1' and level -1 is named 'Planta Baja' (our PB).",
+    "floors": {
+      "1": {
+        "key": "-NCtxDrJbDWE3gMkZ_45",
+        "level": 1,
+        "name": "Nivel 1"
+      },
+      "2": {
+        "key": "-NCtxOT4E4n3XlW_-hzL",
+        "level": 2,
+        "name": "Nivel 2"
+      },
+      "3": {
+        "key": "-NCtxUY6bYLXOEndcqMl",
+        "level": 3,
+        "name": "Nivel 3"
+      },
+      "4": {
+        "key": "-NCtxd01xaDOjDQSOPCT",
+        "level": 4,
+        "name": "Nivel 4"
+      },
+      "5": {
+        "key": "-NCtxg_OxCuCfGVevdck",
+        "level": 5,
+        "name": "Nivel 5"
+      },
+      "PB": {
+        "key": "-N1OJ6FIVBV6dpjCXEFM",
+        "level": -1,
+        "name": "Planta Baja"
+      }
+    }
+  },
   "services": [
     {
       "id": "bano-pb-afex",
@@ -22,23 +59,32 @@ window.__SERVICES_CATALOG__ = {
         {
           "brand": "AFEX",
           "local": "CC_PB_150",
-          "role": "primary"
+          "role": "primary",
+          "floors": [
+            "PB"
+          ]
         },
         {
-          "brand": "Audiomusica",
-          "local": "CC_PB_204",
-          "role": "secondary"
+          "brand": "Punto Salud",
+          "local": "CC_PB_148",
+          "role": "secondary",
+          "floors": [
+            "PB"
+          ]
         },
         {
-          "brand": "Easy",
-          "local": "CC_PB_100",
-          "role": "secondary"
+          "brand": "Amano",
+          "local": "CC_PB_152",
+          "role": "secondary",
+          "floors": [
+            "PB"
+          ]
         }
       ],
       "descriptions": {
-        "short": "En el pasillo interior ubicado justo detrás de Afex.",
-        "medium": "Pasillo lateral junto a Afex, cerca de Audiomusica y las escaleras mecánicas hacia Easy.",
-        "long": "Ingresa por el pasillo interior; la referencia es Afex. En la entrada hay mudador y baño accesible."
+        "short": "Pasillo interior detrás de Afex, junto a Punto Salud y Amano.",
+        "medium": "Bloque de baños del pasillo interior, rodeado de Punto Salud, 5aSec, Multiservice y Amano; a pocos metros de los ascensores del lado H&M.",
+        "long": "Pasillo interior de la Planta Baja: la referencia es Afex, con Punto Salud, 5aSec, Multiservice y Amano alrededor, y los ascensores del lado H&M a pocos metros. En la entrada hay mudador y baño accesible."
       },
       "keywords": [
         "baño",
@@ -48,7 +94,12 @@ window.__SERVICES_CATALOG__ = {
         "planta baja",
         "pb",
         "mudador",
-        "accesible"
+        "accesible",
+        "punto salud",
+        "5asec",
+        "multiservice",
+        "amano",
+        "h&m"
       ],
       "mapvx": {
         "placeId": "-N1jltFjKg6-2V7-RWxv",
@@ -58,6 +109,24 @@ window.__SERVICES_CATALOG__ = {
         "lat": -33.417478310948745,
         "lng": -70.605956800282,
         "validatedAt": "2026-07-21"
+      },
+      "i18n": {
+        "en": {
+          "name": "Restrooms — Afex area (Ground Floor)",
+          "descriptions": {
+            "short": "Inner hallway behind Afex, next to Punto Salud and Amano.",
+            "medium": "Restroom block in the inner hallway, surrounded by Punto Salud, 5aSec, Multiservice and Amano; a few meters from the H&M-side elevators.",
+            "long": "Inner hallway on the Ground Floor: Afex is the landmark, with Punto Salud, 5aSec, Multiservice and Amano around it and the H&M-side elevators a few meters away. There is a changing table and an accessible restroom at the entrance."
+          }
+        },
+        "pt": {
+          "name": "Banheiros — Setor Afex (Térreo)",
+          "descriptions": {
+            "short": "Corredor interno atrás da Afex, junto à Punto Salud e à Amano.",
+            "medium": "Bloco de banheiros do corredor interno, cercado por Punto Salud, 5aSec, Multiservice e Amano; a poucos metros dos elevadores do lado H&M.",
+            "long": "Corredor interno do Térreo: a referência é a Afex, com Punto Salud, 5aSec, Multiservice e Amano ao redor e os elevadores do lado H&M a poucos metros. Na entrada há fraldário e banheiro acessível."
+          }
+        }
       }
     },
     {
@@ -113,6 +182,24 @@ window.__SERVICES_CATALOG__ = {
         "lat": -33.41733754716824,
         "lng": -70.60636214911938,
         "validatedAt": "2026-07-21"
+      },
+      "i18n": {
+        "en": {
+          "name": "Restrooms — Central hallway (Level 1)",
+          "descriptions": {
+            "short": "Opposite Piedras Australes and Volka, in the central structure of the hallway.",
+            "medium": "Central block of the hallway, opposite Piedras Australes and Volka, diagonally across from Adagio Teas.",
+            "long": "Central structure of Level 1. Cross the hallway from Piedras Australes or Volka."
+          }
+        },
+        "pt": {
+          "name": "Banheiros — Corredor central (Piso 1)",
+          "descriptions": {
+            "short": "Em frente à Piedras Australes e à Volka, na estrutura central do corredor.",
+            "medium": "Bloco central do corredor, em frente à Piedras Australes e à Volka, na diagonal do Adagio Teas.",
+            "long": "Estrutura central do Piso 1. Atravesse o corredor a partir da Piedras Australes ou da Volka."
+          }
+        }
       }
     },
     {
@@ -156,6 +243,24 @@ window.__SERVICES_CATALOG__ = {
         "lat": -33.417938660088865,
         "lng": -70.60616668313742,
         "validatedAt": "2026-07-21"
+      },
+      "i18n": {
+        "en": {
+          "name": "Restrooms — Guess area (Level 2)",
+          "descriptions": {
+            "short": "In the central structure opposite Guess and Longines.",
+            "medium": "Central island between Guess and the row of Longines, Tous and Amphora.",
+            "long": "Opposite Guess, the restroom structure is across the main hallway."
+          }
+        },
+        "pt": {
+          "name": "Banheiros — Setor Guess (Piso 2)",
+          "descriptions": {
+            "short": "Na estrutura central em frente à Guess e à Longines.",
+            "medium": "Ilha central entre a Guess e a fileira Longines, Tous e Amphora.",
+            "long": "Em frente à Guess, a estrutura dos banheiros fica do outro lado do corredor principal."
+          }
+        }
       }
     },
     {
@@ -176,20 +281,44 @@ window.__SERVICES_CATALOG__ = {
         {
           "brand": "Ripley",
           "local": "CC_N2_1300",
-          "role": "primary"
+          "role": "primary",
+          "floors": [
+            "2"
+          ]
+        },
+        {
+          "brand": "IO",
+          "local": "CC_N2_2176",
+          "role": "secondary",
+          "floors": [
+            "2"
+          ]
+        },
+        {
+          "brand": "Black Bubba",
+          "local": "CC_N2_2184",
+          "role": "secondary",
+          "floors": [
+            "2"
+          ]
         }
       ],
       "descriptions": {
-        "short": "En el pasillo lateral entre Ripley y Natura.",
-        "medium": "Pasillo que separa Ripley de Natura y Black Bubba, junto al ascensor.",
-        "long": "Pasillo lateral entre Ripley y Natura. Mudador al fondo del pasillo."
+        "short": "Pegado a Ripley, frente a Tienda iO y BOR.",
+        "medium": "Pasillo lateral de Ripley: bloque pegado a la tienda, frente a Tienda iO y BOR y al lado de Black Bubba y Natura.",
+        "long": "Pasillo lateral de Ripley en el Nivel 2. Los baños quedan pegados a la tienda Ripley; enfrente están Tienda iO y BOR, y al costado Black Bubba y Natura. Mudador en el extremo del bloque junto a Ripley; los ascensores quedan a unos 28 m."
       },
       "keywords": [
         "baño",
         "baños",
         "nivel 2",
         "ripley",
-        "mudador"
+        "mudador",
+        "tienda io",
+        "io",
+        "bor",
+        "black bubba",
+        "natura"
       ],
       "mapvx": {
         "placeId": "-NDeEvwA9XSQQTMmX-AR",
@@ -199,6 +328,24 @@ window.__SERVICES_CATALOG__ = {
         "lat": -33.417621872978934,
         "lng": -70.6070950627327,
         "validatedAt": "2026-07-21"
+      },
+      "i18n": {
+        "en": {
+          "name": "Restrooms — Ripley area (Level 2)",
+          "descriptions": {
+            "short": "Right next to Ripley, facing Tienda iO and BOR.",
+            "medium": "Ripley side hallway: restroom block against the store, facing Tienda iO and BOR and beside Black Bubba and Natura.",
+            "long": "Ripley side hallway on Level 2. The restrooms sit against the Ripley store; Tienda iO and BOR are across from them, with Black Bubba and Natura beside. Changing table at the end of the block closest to Ripley; the elevators are about 28 m away."
+          }
+        },
+        "pt": {
+          "name": "Banheiros — Setor Ripley (Piso 2)",
+          "descriptions": {
+            "short": "Colado à Ripley, em frente à Tienda iO e à BOR.",
+            "medium": "Corredor lateral da Ripley: bloco colado à loja, em frente à Tienda iO e à BOR e ao lado da Black Bubba e da Natura.",
+            "long": "Corredor lateral da Ripley no Piso 2. Os banheiros ficam colados à loja Ripley; em frente estão a Tienda iO e a BOR, e ao lado a Black Bubba e a Natura. Fraldário na ponta do bloco junto à Ripley; os elevadores ficam a cerca de 28 m."
+          }
+        }
       }
     },
     {
@@ -242,6 +389,24 @@ window.__SERVICES_CATALOG__ = {
         "lat": -33.417958249359835,
         "lng": -70.60621429234743,
         "validatedAt": "2026-07-21"
+      },
+      "i18n": {
+        "en": {
+          "name": "Restrooms — Adidas Originals area (Level 3)",
+          "descriptions": {
+            "short": "In the central structure, between Adidas Originals and New Man.",
+            "medium": "Central island between Adidas Originals and Original Penguin, Weinbrenner and New Man.",
+            "long": "From Adidas Originals, cross the hallway to the central structure."
+          }
+        },
+        "pt": {
+          "name": "Banheiros — Setor Adidas Originals (Piso 3)",
+          "descriptions": {
+            "short": "Na estrutura central, entre a Adidas Originals e a New Man.",
+            "medium": "Ilha central entre a Adidas Originals e a Original Penguin, Weinbrenner e New Man.",
+            "long": "A partir da Adidas Originals, atravesse o corredor até a estrutura central."
+          }
+        }
       }
     },
     {
@@ -262,24 +427,49 @@ window.__SERVICES_CATALOG__ = {
         {
           "brand": "Ripley",
           "local": "CC_N3_1300",
-          "role": "primary"
+          "role": "primary",
+          "floors": [
+            "3"
+          ]
         },
         {
           "brand": "Wrangler",
           "local": "CC_N3_3204",
-          "role": "secondary"
+          "role": "secondary",
+          "floors": [
+            "3"
+          ]
+        },
+        {
+          "brand": "Head",
+          "local": "CC_N3_3200",
+          "role": "secondary",
+          "floors": [
+            "3"
+          ]
+        },
+        {
+          "brand": "Merrell",
+          "local": "CC_N3_3196",
+          "role": "secondary",
+          "floors": [
+            "3"
+          ]
         }
       ],
       "descriptions": {
-        "short": "En el pasillo lateral entre Ripley y Wrangler.",
-        "medium": "Pasillo entre Ripley y Wrangler y Head, cerca del ascensor.",
-        "long": "Entra al pasillo formado por Ripley y Wrangler. Baños a la izquierda."
+        "short": "Pegado a Ripley, frente a Merrell, Head y Wrangler.",
+        "medium": "Pasillo lateral de Ripley: bloque pegado a la tienda, con Merrell, Head y Wrangler enfrente; los ascensores quedan a unos 23 m.",
+        "long": "Pasillo lateral de Ripley en el Nivel 3. Los baños quedan pegados a la tienda Ripley; enfrente están Merrell, Head y Wrangler."
       },
       "keywords": [
         "baño",
         "baños",
         "nivel 3",
-        "ripley"
+        "ripley",
+        "merrell",
+        "head",
+        "wrangler"
       ],
       "mapvx": {
         "placeId": "-NE7bc9sfcOYbhv_bC8w",
@@ -289,6 +479,24 @@ window.__SERVICES_CATALOG__ = {
         "lat": -33.41766329044061,
         "lng": -70.6071349605918,
         "validatedAt": "2026-07-21"
+      },
+      "i18n": {
+        "en": {
+          "name": "Restrooms — Ripley area (Level 3)",
+          "descriptions": {
+            "short": "Right next to Ripley, facing Merrell, Head and Wrangler.",
+            "medium": "Ripley side hallway: restroom block against the store, with Merrell, Head and Wrangler across from it; the elevators are about 23 m away.",
+            "long": "Ripley side hallway on Level 3. The restrooms sit against the Ripley store; Merrell, Head and Wrangler are across from them."
+          }
+        },
+        "pt": {
+          "name": "Banheiros — Setor Ripley (Piso 3)",
+          "descriptions": {
+            "short": "Colado à Ripley, em frente à Merrell, à Head e à Wrangler.",
+            "medium": "Corredor lateral da Ripley: bloco colado à loja, com Merrell, Head e Wrangler em frente; os elevadores ficam a cerca de 23 m.",
+            "long": "Corredor lateral da Ripley no Piso 3. Os banheiros ficam colados à loja Ripley; em frente estão a Merrell, a Head e a Wrangler."
+          }
+        }
       }
     },
     {
@@ -309,17 +517,31 @@ window.__SERVICES_CATALOG__ = {
         {
           "brand": "Under Armour",
           "local": "CC_N4_4189",
-          "role": "primary"
+          "role": "primary",
+          "floors": [
+            "4"
+          ]
+        },
+        {
+          "brand": "DC Shoes",
+          "local": "CC_N4_4193",
+          "role": "secondary",
+          "floors": [
+            "4"
+          ]
         },
         {
           "brand": "Hoka",
           "local": "CC_N4_4125",
-          "role": "secondary"
+          "role": "secondary",
+          "floors": [
+            "4"
+          ]
         }
       ],
       "descriptions": {
-        "short": "En la estructura central, entre Under Armour y Hoka.",
-        "medium": "Isla central entre Under Armour y Hoka, Tramontina y Bamers.",
+        "short": "En la estructura central, entre Under Armour y DC Shoes.",
+        "medium": "Isla central entre Under Armour y DC Shoes, con Snobby, Volcom y Bamers al otro lado.",
         "long": "Estructura central con escalera mecánica integrada. Cruza el pasillo desde Under Armour."
       },
       "keywords": [
@@ -327,7 +549,11 @@ window.__SERVICES_CATALOG__ = {
         "baños",
         "nivel 4",
         "under armour",
-        "central"
+        "central",
+        "dc shoes",
+        "snobby",
+        "volcom",
+        "bamers"
       ],
       "mapvx": {
         "placeId": "-ND_0dRJ45M2oQrUvCMX",
@@ -337,6 +563,24 @@ window.__SERVICES_CATALOG__ = {
         "lat": -33.418022334229725,
         "lng": -70.60622535645962,
         "validatedAt": "2026-07-21"
+      },
+      "i18n": {
+        "en": {
+          "name": "Restrooms — Under Armour area (Level 4)",
+          "descriptions": {
+            "short": "In the central structure, between Under Armour and DC Shoes.",
+            "medium": "Central island between Under Armour and DC Shoes, with Snobby, Volcom and Bamers on the other side.",
+            "long": "Central structure with a built-in escalator. Cross the hallway from Under Armour."
+          }
+        },
+        "pt": {
+          "name": "Banheiros — Setor Under Armour (Piso 4)",
+          "descriptions": {
+            "short": "Na estrutura central, entre a Under Armour e a DC Shoes.",
+            "medium": "Ilha central entre a Under Armour e a DC Shoes, com Snobby, Volcom e Bamers do outro lado.",
+            "long": "Estrutura central com escada rolante integrada. Atravesse o corredor a partir da Under Armour."
+          }
+        }
       }
     },
     {
@@ -368,7 +612,7 @@ window.__SERVICES_CATALOG__ = {
       "descriptions": {
         "short": "En el pasillo lateral entre Ripley y Totto.",
         "medium": "Pasillo entre Ripley y Totto, Weplay y Columbia. Mudador en la entrada.",
-        "long": "Pasillo lateral Ripley–Totto. Mudador y ascensor en la esquina de Ripley."
+        "long": "Pasillo lateral Ripley–Totto. Mudador en la entrada; los ascensores quedan a unos 24 m."
       },
       "keywords": [
         "baño",
@@ -385,6 +629,24 @@ window.__SERVICES_CATALOG__ = {
         "lat": -33.417691275200816,
         "lng": -70.60709841549397,
         "validatedAt": "2026-07-21"
+      },
+      "i18n": {
+        "en": {
+          "name": "Restrooms — Ripley area (Level 4)",
+          "descriptions": {
+            "short": "In the side hallway between Ripley and Totto.",
+            "medium": "Hallway between Ripley and Totto, Weplay and Columbia. Changing table at the entrance.",
+            "long": "Ripley–Totto side hallway. Changing table at the entrance; the elevators are about 24 m away."
+          }
+        },
+        "pt": {
+          "name": "Banheiros — Setor Ripley (Piso 4)",
+          "descriptions": {
+            "short": "No corredor lateral entre a Ripley e a Totto.",
+            "medium": "Corredor entre a Ripley e a Totto, Weplay e Columbia. Fraldário na entrada.",
+            "long": "Corredor lateral Ripley–Totto. Fraldário na entrada; os elevadores ficam a cerca de 24 m."
+          }
+        }
       }
     },
     {
@@ -439,13 +701,31 @@ window.__SERVICES_CATALOG__ = {
         "lat": -33.41793390269381,
         "lng": -70.60629274696112,
         "validatedAt": "2026-07-21"
+      },
+      "i18n": {
+        "en": {
+          "name": "Restrooms — Food court (Level 5)",
+          "descriptions": {
+            "short": "In the central structure of the food court.",
+            "medium": "Central island between Crepes y Waffles and Buffet Express / Doggis.",
+            "long": "Large central island on the restaurant level, with accessible access toward La Sanguchera del Barrio."
+          }
+        },
+        "pt": {
+          "name": "Banheiros — Praça de alimentação (Piso 5)",
+          "descriptions": {
+            "short": "Na estrutura central da praça de alimentação.",
+            "medium": "Ilha central entre a Crepes y Waffles e o Buffet Express / Doggis.",
+            "long": "Grande ilha central do piso de restaurantes, com acesso acessível para La Sanguchera del Barrio."
+          }
+        }
       }
     },
     {
       "id": "bano-n5-2",
       "type": "bathroom",
       "sector": "",
-      "name": "Baños — Nivel 5 (segundo punto)",
+      "name": "Baños — Sector Ripley (Nivel 5)",
       "floors": [
         "5"
       ],
@@ -454,16 +734,48 @@ window.__SERVICES_CATALOG__ = {
         "accesible": true,
         "hombresMujeres": true
       },
-      "anchorStores": [],
+      "anchorStores": [
+        {
+          "brand": "Ripley",
+          "local": "CC_N5_1300",
+          "role": "primary",
+          "floors": [
+            "5"
+          ]
+        },
+        {
+          "brand": "Doc Popcorn",
+          "local": "CC_N5_5194",
+          "role": "secondary",
+          "floors": [
+            "5"
+          ]
+        },
+        {
+          "brand": "The Crêpe Café",
+          "local": "CC_N5_5190",
+          "role": "secondary",
+          "floors": [
+            "5"
+          ]
+        }
+      ],
       "descriptions": {
-        "short": "",
-        "medium": "",
-        "long": ""
+        "short": "Pegado a Ripley, frente a Doc Popcorn y Go Açaí.",
+        "medium": "Segundo bloque de baños del Nivel 5, pegado a la tienda Ripley, frente a Doc Popcorn, Go Açaí y The Crêpe Café.",
+        "long": "Segundo bloque de baños del Nivel 5, en el costado de Ripley (lado poniente del nivel de restaurantes): quedan pegados a la tienda, con Doc Popcorn, Go Açaí y The Crêpe Café enfrente. Los ascensores quedan lejos, a unos 65 m."
       },
       "keywords": [
         "baño",
         "baños",
-        "nivel 5"
+        "nivel 5",
+        "piso 5",
+        "ripley",
+        "doc popcorn",
+        "go acai",
+        "crepe cafe",
+        "patio de comidas",
+        "accesible"
       ],
       "mapvx": {
         "placeId": "-OycgiPV_F5tRjr0rnUY",
@@ -474,6 +786,24 @@ window.__SERVICES_CATALOG__ = {
           "mujeres": "-OycgiPV_F5tRjr0rnUY",
           "accesible": "-Oycgoh_1xXC9qpnX9xK",
           "ninos": "-Oz8NeHFKQQbUTs_dLYF"
+        }
+      },
+      "i18n": {
+        "en": {
+          "name": "Restrooms — Ripley area (Level 5)",
+          "descriptions": {
+            "short": "Right next to Ripley, facing Doc Popcorn and Go Açaí.",
+            "medium": "Second restroom block on Level 5, against the Ripley store, facing Doc Popcorn, Go Açaí and The Crêpe Café.",
+            "long": "Second restroom block on Level 5, on the Ripley side (west end of the restaurant level): it sits against the store, with Doc Popcorn, Go Açaí and The Crêpe Café across from it. The elevators are far, about 65 m away."
+          }
+        },
+        "pt": {
+          "name": "Banheiros — Setor Ripley (Piso 5)",
+          "descriptions": {
+            "short": "Colado à Ripley, em frente à Doc Popcorn e à Go Açaí.",
+            "medium": "Segundo bloco de banheiros do Piso 5, colado à loja Ripley, em frente à Doc Popcorn, à Go Açaí e à The Crêpe Café.",
+            "long": "Segundo bloco de banheiros do Piso 5, no lado da Ripley (ponta oeste do nível de restaurantes): fica colado à loja, com Doc Popcorn, Go Açaí e The Crêpe Café em frente. Os elevadores ficam longe, a cerca de 65 m."
+          }
         }
       }
     },
@@ -508,8 +838,8 @@ window.__SERVICES_CATALOG__ = {
       ],
       "descriptions": {
         "short": "Nivel 2, en el pasillo entre GAP y H&M.",
-        "medium": "Sala de lactancia del Nivel 2, en el pasillo que conecta GAP con H&M.",
-        "long": "Sala de lactancia del Nivel 2. Está en el pasillo que une GAP con H&M."
+        "medium": "Sala de lactancia del Nivel 2, en el pasillo que conecta GAP con H&M, junto a los ascensores del lado H&M.",
+        "long": "Sala de lactancia del Nivel 2. Está en el pasillo que une GAP con H&M, a unos 15 m de los ascensores del lado H&M."
       },
       "keywords": [
         "sala de lactancia",
@@ -531,13 +861,31 @@ window.__SERVICES_CATALOG__ = {
         "placeId": "-NDeXfqsAvnjX7VToDag",
         "placeIdSource": "mapvx-directory",
         "validatedAt": "2026-09-10"
+      },
+      "i18n": {
+        "en": {
+          "name": "Nursing room (Level 2)",
+          "descriptions": {
+            "short": "Level 2, in the hallway between GAP and H&M.",
+            "medium": "Level 2 nursing room, in the hallway that connects GAP with H&M, next to the H&M-side elevators.",
+            "long": "Level 2 nursing room. It is in the hallway that joins GAP with H&M, about 15 m from the H&M-side elevators."
+          }
+        },
+        "pt": {
+          "name": "Sala de amamentação (Piso 2)",
+          "descriptions": {
+            "short": "Piso 2, no corredor entre a GAP e a H&M.",
+            "medium": "Sala de amamentação do Piso 2, no corredor que liga a GAP à H&M, junto aos elevadores do lado H&M.",
+            "long": "Sala de amamentação do Piso 2. Fica no corredor que une a GAP à H&M, a cerca de 15 m dos elevadores do lado H&M."
+          }
+        }
       }
     },
     {
       "id": "mudador-pb-afex",
       "type": "changing_table",
       "sector": "afex",
-      "name": "Mudadores — Planta Baja",
+      "name": "Mudadores — Planta Baja (lado Afex)",
       "floors": [
         "PB"
       ],
@@ -556,8 +904,8 @@ window.__SERVICES_CATALOG__ = {
       ],
       "descriptions": {
         "short": "Planta Baja, en el pasillo interior detrás de Afex.",
-        "medium": "Planta Baja, en el pasillo interior detrás de Afex, junto a los baños del sector.",
-        "long": "Planta Baja, en el pasillo interior detrás de Afex, junto a los baños del sector."
+        "medium": "Planta Baja, en el pasillo interior detrás de Afex, junto a los baños del sector (cerca de Punto Salud y Amano).",
+        "long": "Planta Baja, en el pasillo interior detrás de Afex, junto a los baños del sector (cerca de Punto Salud y Amano)."
       },
       "keywords": [
         "mudador",
@@ -570,19 +918,39 @@ window.__SERVICES_CATALOG__ = {
         "panales",
         "bebe",
         "planta baja",
-        "afex"
+        "afex",
+        "punto salud",
+        "amano"
       ],
       "mapvx": {
         "placeId": "-N1jltFjKg6-2V7-RWxv",
         "placeIdSource": "mapvx-directory",
         "validatedAt": "2026-09-10"
+      },
+      "i18n": {
+        "en": {
+          "name": "Changing tables — Ground Floor (Afex side)",
+          "descriptions": {
+            "short": "Ground Floor, in the inner hallway behind Afex.",
+            "medium": "Ground Floor, in the inner hallway behind Afex, next to the restrooms in that area (near Punto Salud and Amano).",
+            "long": "Ground Floor, in the inner hallway behind Afex, next to the restrooms in that area (near Punto Salud and Amano)."
+          }
+        },
+        "pt": {
+          "name": "Fraldários — Térreo (lado Afex)",
+          "descriptions": {
+            "short": "Térreo, no corredor interno atrás da Afex.",
+            "medium": "Térreo, no corredor interno atrás da Afex, ao lado dos banheiros do setor (perto da Punto Salud e da Amano).",
+            "long": "Térreo, no corredor interno atrás da Afex, ao lado dos banheiros do setor (perto da Punto Salud e da Amano)."
+          }
+        }
       }
     },
     {
       "id": "mudador-pb-2",
       "type": "changing_table",
       "sector": "ripley",
-      "name": "Mudadores — Planta Baja",
+      "name": "Mudadores — Planta Baja (junto a Audiomusica)",
       "floors": [
         "PB"
       ],
@@ -591,18 +959,26 @@ window.__SERVICES_CATALOG__ = {
       },
       "anchorStores": [
         {
-          "brand": "Ripley",
-          "local": "CC_N1_1300",
+          "brand": "Audiomusica",
+          "local": "CC_PB_204",
           "role": "primary",
+          "floors": [
+            "PB"
+          ]
+        },
+        {
+          "brand": "AFEX",
+          "local": "CC_PB_212",
+          "role": "secondary",
           "floors": [
             "PB"
           ]
         }
       ],
       "descriptions": {
-        "short": "Planta Baja, al lado de Ripley.",
-        "medium": "Planta Baja, al lado de Ripley.",
-        "long": "Planta Baja, al lado de Ripley."
+        "short": "Planta Baja, junto a Audiomusica y Red de Salud UC CHRISTUS.",
+        "medium": "Planta Baja, en el pasillo interior junto a Audiomusica y Red de Salud UC CHRISTUS, cerca de los ascensores de Ripley; el segundo Afex (local 212) queda al lado.",
+        "long": "Planta Baja, en el pasillo interior junto a Audiomusica y Red de Salud UC CHRISTUS, cerca de los ascensores de Ripley; el segundo Afex (local 212) queda al lado."
       },
       "keywords": [
         "mudador",
@@ -615,12 +991,34 @@ window.__SERVICES_CATALOG__ = {
         "panales",
         "bebe",
         "planta baja",
-        "ripley"
+        "ripley",
+        "audiomusica",
+        "afex",
+        "red de salud",
+        "christus"
       ],
       "mapvx": {
         "placeId": "-NGTN_kdH0MTrCtpaDGB",
         "placeIdSource": "mapvx-directory",
         "validatedAt": "2026-09-10"
+      },
+      "i18n": {
+        "en": {
+          "name": "Changing tables — Ground Floor (next to Audiomusica)",
+          "descriptions": {
+            "short": "Ground Floor, next to Audiomusica and Red de Salud UC CHRISTUS.",
+            "medium": "Ground Floor, in the inner hallway next to Audiomusica and Red de Salud UC CHRISTUS, near the Ripley elevators; the second Afex (unit 212) is right beside it.",
+            "long": "Ground Floor, in the inner hallway next to Audiomusica and Red de Salud UC CHRISTUS, near the Ripley elevators; the second Afex (unit 212) is right beside it."
+          }
+        },
+        "pt": {
+          "name": "Fraldários — Térreo (junto à Audiomusica)",
+          "descriptions": {
+            "short": "Térreo, junto à Audiomusica e à Red de Salud UC CHRISTUS.",
+            "medium": "Térreo, no corredor interno junto à Audiomusica e à Red de Salud UC CHRISTUS, perto dos elevadores da Ripley; a segunda Afex (loja 212) fica ao lado.",
+            "long": "Térreo, no corredor interno junto à Audiomusica e à Red de Salud UC CHRISTUS, perto dos elevadores da Ripley; a segunda Afex (loja 212) fica ao lado."
+          }
+        }
       }
     },
     {
@@ -645,9 +1043,9 @@ window.__SERVICES_CATALOG__ = {
         }
       ],
       "descriptions": {
-        "short": "Nivel 2, al lado de Ripley.",
-        "medium": "Nivel 2, al lado de Ripley.",
-        "long": "Nivel 2, al lado de Ripley."
+        "short": "Nivel 2, pegado a Ripley, en el bloque de baños frente a Tienda iO.",
+        "medium": "Nivel 2, en el extremo del bloque de baños pegado a Ripley, frente a Tienda iO y BOR.",
+        "long": "Nivel 2, en el extremo del bloque de baños pegado a Ripley, frente a Tienda iO y BOR."
       },
       "keywords": [
         "mudador",
@@ -661,12 +1059,32 @@ window.__SERVICES_CATALOG__ = {
         "bebe",
         "nivel 2",
         "piso 2",
-        "ripley"
+        "ripley",
+        "tienda io",
+        "bor"
       ],
       "mapvx": {
         "placeId": "-NDeEvwA9XSQQTMmX-AR",
         "placeIdSource": "mapvx-directory",
         "validatedAt": "2026-09-10"
+      },
+      "i18n": {
+        "en": {
+          "name": "Changing tables — Level 2",
+          "descriptions": {
+            "short": "Level 2, against Ripley, in the restroom block facing Tienda iO.",
+            "medium": "Level 2, at the end of the restroom block against Ripley, facing Tienda iO and BOR.",
+            "long": "Level 2, at the end of the restroom block against Ripley, facing Tienda iO and BOR."
+          }
+        },
+        "pt": {
+          "name": "Fraldários — Piso 2",
+          "descriptions": {
+            "short": "Piso 2, colado à Ripley, no bloco de banheiros em frente à Tienda iO.",
+            "medium": "Piso 2, na ponta do bloco de banheiros colado à Ripley, em frente à Tienda iO e à BOR.",
+            "long": "Piso 2, na ponta do bloco de banheiros colado à Ripley, em frente à Tienda iO e à BOR."
+          }
+        }
       }
     },
     {
@@ -691,9 +1109,9 @@ window.__SERVICES_CATALOG__ = {
         }
       ],
       "descriptions": {
-        "short": "Nivel 3, al lado de Ripley.",
-        "medium": "Nivel 3, al lado de Ripley.",
-        "long": "Nivel 3, al lado de Ripley."
+        "short": "Nivel 3, bajo el bloque de baños de Ripley, junto a Wrangler.",
+        "medium": "Nivel 3, en el pasillo lateral de Ripley, junto a los baños y frente a Wrangler; los ascensores quedan a unos 16 m.",
+        "long": "Nivel 3, en el pasillo lateral de Ripley, junto a los baños y frente a Wrangler; los ascensores quedan a unos 16 m."
       },
       "keywords": [
         "mudador",
@@ -707,12 +1125,32 @@ window.__SERVICES_CATALOG__ = {
         "bebe",
         "nivel 3",
         "piso 3",
-        "ripley"
+        "ripley",
+        "wrangler",
+        "head"
       ],
       "mapvx": {
         "placeId": "-NDe_Xg61b8E4IombD1q",
         "placeIdSource": "mapvx-directory",
         "validatedAt": "2026-09-10"
+      },
+      "i18n": {
+        "en": {
+          "name": "Changing tables — Level 3",
+          "descriptions": {
+            "short": "Level 3, below the Ripley restroom block, next to Wrangler.",
+            "medium": "Level 3, in the Ripley side hallway, next to the restrooms and facing Wrangler; the elevators are about 16 m away.",
+            "long": "Level 3, in the Ripley side hallway, next to the restrooms and facing Wrangler; the elevators are about 16 m away."
+          }
+        },
+        "pt": {
+          "name": "Fraldários — Piso 3",
+          "descriptions": {
+            "short": "Piso 3, abaixo do bloco de banheiros da Ripley, junto à Wrangler.",
+            "medium": "Piso 3, no corredor lateral da Ripley, junto aos banheiros e em frente à Wrangler; os elevadores ficam a cerca de 16 m.",
+            "long": "Piso 3, no corredor lateral da Ripley, junto aos banheiros e em frente à Wrangler; os elevadores ficam a cerca de 16 m."
+          }
+        }
       }
     },
     {
@@ -737,9 +1175,9 @@ window.__SERVICES_CATALOG__ = {
         }
       ],
       "descriptions": {
-        "short": "Nivel 4, al lado de Ripley.",
-        "medium": "Nivel 4, al lado de Ripley.",
-        "long": "Nivel 4, al lado de Ripley."
+        "short": "Nivel 4, junto a los baños del pasillo de Ripley, cerca de Totto.",
+        "medium": "Nivel 4, en el pasillo lateral de Ripley, junto a los baños y cerca de Totto, Weplay y Sparta.",
+        "long": "Nivel 4, en el pasillo lateral de Ripley, junto a los baños y cerca de Totto, Weplay y Sparta."
       },
       "keywords": [
         "mudador",
@@ -753,12 +1191,33 @@ window.__SERVICES_CATALOG__ = {
         "bebe",
         "nivel 4",
         "piso 4",
-        "ripley"
+        "ripley",
+        "totto",
+        "weplay",
+        "sparta"
       ],
       "mapvx": {
         "placeId": "-ND_0Yi_bYgm2EM7jctQ",
         "placeIdSource": "mapvx-directory",
         "validatedAt": "2026-09-10"
+      },
+      "i18n": {
+        "en": {
+          "name": "Changing tables — Level 4",
+          "descriptions": {
+            "short": "Level 4, next to the Ripley hallway restrooms, near Totto.",
+            "medium": "Level 4, in the Ripley side hallway, next to the restrooms and near Totto, Weplay and Sparta.",
+            "long": "Level 4, in the Ripley side hallway, next to the restrooms and near Totto, Weplay and Sparta."
+          }
+        },
+        "pt": {
+          "name": "Fraldários — Piso 4",
+          "descriptions": {
+            "short": "Piso 4, junto aos banheiros do corredor da Ripley, perto da Totto.",
+            "medium": "Piso 4, no corredor lateral da Ripley, junto aos banheiros e perto da Totto, da Weplay e da Sparta.",
+            "long": "Piso 4, no corredor lateral da Ripley, junto aos banheiros e perto da Totto, da Weplay e da Sparta."
+          }
+        }
       }
     },
     {
@@ -771,8 +1230,7 @@ window.__SERVICES_CATALOG__ = {
         "1",
         "2",
         "3",
-        "4",
-        "5"
+        "4"
       ],
       "features": {
         "accesible": true
@@ -860,20 +1318,12 @@ window.__SERVICES_CATALOG__ = {
           "floors": [
             "4"
           ]
-        },
-        {
-          "brand": "Burger King",
-          "local": "CC_N5_5524",
-          "role": "secondary",
-          "floors": [
-            "5"
-          ]
         }
       ],
       "descriptions": {
-        "short": "Eje Ripley / ancla, todos los pisos.",
-        "medium": "Zona Ripley: Easy (PB), Jumbo (N1), Nike/Ripley (N2), Bold (N3), Sparta (N4), Burger King (N5).",
-        "long": "Torre del sector Ripley. En cada piso la referencia es la tienda ancla de ese nivel (Easy, Jumbo, Ripley, Bold, Sparta o Burger King)."
+        "short": "Eje Ripley / ancla, de PB a N4.",
+        "medium": "Zona Ripley: Easy (PB), Jumbo (N1), Nike/Ripley (N2), Bold (N3), Sparta (N4).",
+        "long": "Torre del sector Ripley (Torre Andrés Bello). En cada piso la referencia es la tienda ancla de ese nivel (Easy, Jumbo, Ripley, Bold o Sparta)."
       },
       "keywords": [
         "ascensor",
@@ -888,18 +1338,42 @@ window.__SERVICES_CATALOG__ = {
         "nike rise",
         "bold",
         "sparta",
-        "burger king",
-        "bk",
         "ancla"
       ],
       "mapvx": {
         "placeId": "-N1e2dagzGnuGIFpinw0",
-        "placeIdNote": "el volcado MapVX lo lista como 'Ascensores Torre Andrés Bello' (acceso de estacionamiento, N-1). Confirmar que sea el banco de pasajeros del eje Ripley y un destino de ruta válido en route-view-totems.",
         "poiRef": "-N1e2dagzGnuGIFpinw0",
         "mapvxId": "-N1e2dagzGnuGIFpinw0",
         "lat": -33.41780349399868,
         "lng": -70.6073646247387,
-        "validatedAt": "2026-07-21"
+        "validatedAt": "2026-07-21",
+        "placeIdSource": "mapvx-directory",
+        "inFloors": [
+          "PB",
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "inFloorsVerifiedAt": "2026-10-20"
+      },
+      "i18n": {
+        "en": {
+          "name": "Elevators · Ripley",
+          "descriptions": {
+            "short": "Ripley / anchor-store axis, GF to L4.",
+            "medium": "Ripley area: Easy (GF), Jumbo (L1), Nike/Ripley (L2), Bold (L3), Sparta (L4).",
+            "long": "Tower in the Ripley area (Andrés Bello Tower). On each floor the landmark is that level's anchor store (Easy, Jumbo, Ripley, Bold or Sparta)."
+          }
+        },
+        "pt": {
+          "name": "Elevadores · Ripley",
+          "descriptions": {
+            "short": "Eixo Ripley / loja âncora, de T a P4.",
+            "medium": "Zona Ripley: Easy (T), Jumbo (P1), Nike/Ripley (P2), Bold (P3), Sparta (P4).",
+            "long": "Torre do setor Ripley (Torre Andrés Bello). Em cada piso a referência é a loja âncora daquele nível (Easy, Jumbo, Ripley, Bold ou Sparta)."
+          }
+        }
       }
     },
     {
@@ -1037,13 +1511,40 @@ window.__SERVICES_CATALOG__ = {
         "barra chalaca"
       ],
       "mapvx": {
-        "placeId": "node:993809113",
-        "placeIdNote": "identificador propio — el volcado MapVX no expone los ascensores de pasajeros. Formato node: — validar como destino de ruta en route-view-totems o reemplazar por el -Nxxx equivalente.",
+        "placeId": "-Oz8T1-e1Du7kdXHKGPp",
         "poiRef": "node:993809113",
         "mapvxId": "node:993809113",
         "lat": -33.41820479394959,
         "lng": -70.60576099902391,
-        "validatedAt": "2026-07-21"
+        "validatedAt": "2026-07-21",
+        "placeIdSource": "mapvx-directory",
+        "inFloors": [
+          "PB",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "inFloorsVerifiedAt": "2026-10-20"
+      },
+      "i18n": {
+        "en": {
+          "name": "Elevators · Av. Vitacura",
+          "descriptions": {
+            "short": "Av. Vitacura side (Decathlon / Maxi K).",
+            "medium": "Vitacura side: Decathlon (GF), Maxi K–Victorinox (L1), Victoria’s Secret (L2), Samsonite/Studio F (L3), Oakley (L4), Barra Chalaca (L5).",
+            "long": "Elevators on the Av. Vitacura side. On Level 1 they are next to Maxi K / the stairs, between Victorinox and The Body Shop."
+          }
+        },
+        "pt": {
+          "name": "Elevadores · Av. Vitacura",
+          "descriptions": {
+            "short": "Lado da Av. Vitacura (Decathlon / Maxi K).",
+            "medium": "Lado Vitacura: Decathlon (T), Maxi K–Victorinox (P1), Victoria’s Secret (P2), Samsonite/Studio F (P3), Oakley (P4), Barra Chalaca (P5).",
+            "long": "Elevadores do lado da Av. Vitacura. No Piso 1 ficam ao lado da Maxi K / escadas, entre a Victorinox e a The Body Shop."
+          }
+        }
       }
     },
     {
@@ -1116,7 +1617,7 @@ window.__SERVICES_CATALOG__ = {
       "descriptions": {
         "short": "Pasillo lateral, zona H&M.",
         "medium": "Pasillo H&M: Afex (PB), Blush Bar (N1), H&M (N2–N3), Fabrics (N4), Texas Ribs (N5).",
-        "long": "Ascensores del pasillo lateral (lado H&M), opuesto a Vitacura."
+        "long": "Ascensores del pasillo lateral (lado H&M, Torre Tobalaba), opuesto a Vitacura."
       },
       "keywords": [
         "ascensor",
@@ -1134,12 +1635,39 @@ window.__SERVICES_CATALOG__ = {
       ],
       "mapvx": {
         "placeId": "-N2SSgpaCHzZe80nRkOx",
-        "placeIdNote": "el volcado MapVX lo lista como 'Ascensores Torre Tobalaba' (acceso de estacionamiento, N-1). Confirmar que sea el banco de pasajeros del lado H&M y un destino de ruta válido.",
         "poiRef": "-N2SSgpaCHzZe80nRkOx",
         "mapvxId": "-N2SSgpaCHzZe80nRkOx",
         "lat": -33.41743185612792,
         "lng": -70.60591321438551,
-        "validatedAt": "2026-07-21"
+        "validatedAt": "2026-07-21",
+        "placeIdSource": "mapvx-directory",
+        "inFloors": [
+          "PB",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "inFloorsVerifiedAt": "2026-10-20"
+      },
+      "i18n": {
+        "en": {
+          "name": "Elevators · H&M",
+          "descriptions": {
+            "short": "Side hallway, H&M area.",
+            "medium": "H&M hallway: Afex (GF), Blush Bar (L1), H&M (L2–L3), Fabrics (L4), Texas Ribs (L5).",
+            "long": "Elevators in the side hallway (H&M side, Tobalaba Tower), opposite Vitacura."
+          }
+        },
+        "pt": {
+          "name": "Elevadores · H&M",
+          "descriptions": {
+            "short": "Corredor lateral, zona H&M.",
+            "medium": "Corredor H&M: Afex (T), Blush Bar (P1), H&M (P2–P3), Fabrics (P4), Texas Ribs (P5).",
+            "long": "Elevadores do corredor lateral (lado H&M, Torre Tobalaba), oposto a Vitacura."
+          }
+        }
       }
     },
     {
@@ -1189,12 +1717,103 @@ window.__SERVICES_CATALOG__ = {
       ],
       "mapvx": {
         "placeId": "node:19041",
-        "placeIdNote": "identificador propio (node:19041 / 19042). Formato node: — validar como destino de ruta en route-view-totems o reemplazar por el -Nxxx equivalente.",
+        "placeIdNote": "MapVX no publica este banco (su directorio solo lista ascensores que no caen en el N3 junto a Hugo). El único candidato, '-Oyi3uAHnTXfdh57qIWM' (Ascensor, N1 y N5), queda a ~7 m de estas coordenadas pero no está publicado en el N3: preguntar a MapVX. Sigue en el motor legacy hasta que entregue el placeId.",
         "poiRef": "node:19041",
         "mapvxId": "node:19041",
         "lat": -33.41725506172419,
         "lng": -70.60655797133222,
         "validatedAt": "2026-07-22"
+      },
+      "i18n": {
+        "en": {
+          "name": "Elevators · Zara",
+          "descriptions": {
+            "short": "Hallway next to Hugo (Level 3).",
+            "medium": "Bank in the side hallway next to Hugo, beside Zara (Level 3) — not the H&M one.",
+            "long": "On Level 3, elevators in the hallway next to Hugo."
+          }
+        },
+        "pt": {
+          "name": "Elevadores · Zara",
+          "descriptions": {
+            "short": "Corredor ao lado da Hugo (Piso 3).",
+            "medium": "Conjunto no corredor lateral ao lado da Hugo, junto à Zara (Piso 3) — não é o da H&M.",
+            "long": "No Piso 3, elevadores do corredor ao lado da Hugo."
+          }
+        }
+      }
+    },
+    {
+      "id": "ascensor-cine",
+      "type": "elevator",
+      "sector": "patio-comidas",
+      "name": "Ascensor Cine",
+      "floors": [
+        "5"
+      ],
+      "features": {
+        "accesible": true
+      },
+      "layout": "banco_vertical",
+      "anchorStores": [
+        {
+          "brand": "Burger King",
+          "local": "CC_N5_5524",
+          "role": "primary",
+          "floors": [
+            "5"
+          ]
+        }
+      ],
+      "descriptions": {
+        "short": "Junto a Burger King, sube al cine.",
+        "medium": "Ascensor del cine: en el Nivel 5 está junto a Burger King, en el patio de comidas, y sube al Nivel 6.",
+        "long": "Ascensor Cine. Se toma en el Nivel 5 junto a Burger King (patio de comidas) y llega al Nivel 6, donde están los cines."
+      },
+      "keywords": [
+        "ascensor",
+        "ascensores",
+        "elevador",
+        "elevator",
+        "cine",
+        "cines",
+        "peliculas",
+        "burger king",
+        "bk",
+        "patio de comidas",
+        "nivel 6",
+        "piso 6"
+      ],
+      "mapvx": {
+        "placeId": "-NFuopc7p3j0Ig4flPSC",
+        "placeIdSource": "mapvx-directory",
+        "poiRef": "-NFuopc7p3j0Ig4flPSC",
+        "mapvxId": "-NFuopc7p3j0Ig4flPSC",
+        "lat": -33.41829339443703,
+        "lng": -70.60662479822457,
+        "validatedAt": "2026-10-20",
+        "inFloors": [
+          "5"
+        ],
+        "inFloorsVerifiedAt": "2026-10-20"
+      },
+      "i18n": {
+        "en": {
+          "name": "Cinema Elevator",
+          "descriptions": {
+            "short": "Next to Burger King, goes up to the cinema.",
+            "medium": "Cinema elevator: on Level 5 it is next to Burger King, in the food court, and goes up to Level 6.",
+            "long": "Cinema Elevator. Take it on Level 5 next to Burger King (food court); it reaches Level 6, where the cinemas are."
+          }
+        },
+        "pt": {
+          "name": "Elevador Cine",
+          "descriptions": {
+            "short": "Ao lado do Burger King, sobe ao cinema.",
+            "medium": "Elevador do cinema: no Piso 5 fica ao lado do Burger King, na praça de alimentação, e sobe ao Piso 6.",
+            "long": "Elevador Cine. Pegue no Piso 5 ao lado do Burger King (praça de alimentação) e chegue ao Piso 6, onde ficam os cinemas."
+          }
+        }
       }
     },
     {
@@ -1262,6 +1881,24 @@ window.__SERVICES_CATALOG__ = {
           "Atención al cliente",
           "Atencion al cliente"
         ]
+      },
+      "i18n": {
+        "en": {
+          "name": "Customer service (Level 1)",
+          "descriptions": {
+            "short": "Customer service desk on Level 1.",
+            "medium": "Between Dbs Beauty, Sony and MacOnline, in the central hallway of Level 1.",
+            "long": "On Level 1, the customer service desk is in the hallway between Dbs Beauty Store, Sony and MacOnline."
+          }
+        },
+        "pt": {
+          "name": "Atendimento ao cliente (Piso 1)",
+          "descriptions": {
+            "short": "Balcão de atendimento ao cliente no Piso 1.",
+            "medium": "Entre a Dbs Beauty, a Sony e a MacOnline, no corredor central do Piso 1.",
+            "long": "No Piso 1, o balcão de atendimento ao cliente fica no corredor entre a Dbs Beauty Store, a Sony e a MacOnline."
+          }
+        }
       }
     },
     {
@@ -1323,6 +1960,24 @@ window.__SERVICES_CATALOG__ = {
           "Co work",
           "Co-work"
         ]
+      },
+      "i18n": {
+        "en": {
+          "name": "Cowork (Level 2)",
+          "descriptions": {
+            "short": "Cowork space on Level 2.",
+            "medium": "Between Bubba and Steve Madden, in the Level 2 hallway.",
+            "long": "On Level 2, the Cowork space is between Bubba Essentials and Steve Madden, opposite the hallway escalators."
+          }
+        },
+        "pt": {
+          "name": "Cowork (Piso 2)",
+          "descriptions": {
+            "short": "Espaço Cowork no Piso 2.",
+            "medium": "Entre a Bubba e a Steve Madden, no corredor do Piso 2.",
+            "long": "No Piso 2, o espaço Cowork fica entre a Bubba Essentials e a Steve Madden, em frente às escadas rolantes do corredor."
+          }
+        }
       }
     },
     {
@@ -1360,6 +2015,24 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-ND_0DERqPpgwHYPo5gn",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Cowork (Level 4)",
+          "descriptions": {
+            "short": "Cowork space on Level 4, opposite Paris.",
+            "medium": "Opposite Paris, on Level 4.",
+            "long": "On Level 4, the Cowork space is opposite Paris."
+          }
+        },
+        "pt": {
+          "name": "Cowork (Piso 4)",
+          "descriptions": {
+            "short": "Espaço Cowork no Piso 4, em frente à Paris.",
+            "medium": "Em frente à Paris, no Piso 4.",
+            "long": "No Piso 4, o espaço Cowork fica em frente à Paris."
+          }
+        }
       }
     },
     {
@@ -1404,6 +2077,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NGabz2fiLnxC-kGmfVG",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 1"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 1"
+        }
       }
     },
     {
@@ -1448,6 +2129,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NGa_MwQ_ooTOYfCrZDW",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 1"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 1"
+        }
       }
     },
     {
@@ -1492,6 +2181,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NGaZarQm2aA9iyedYFy",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 1"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 1"
+        }
       }
     },
     {
@@ -1536,6 +2233,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NR9PcWZ6MY4-i8mPJyx",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 2"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 2"
+        }
       }
     },
     {
@@ -1580,6 +2285,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NR9L1WcZNIWxPV-lZuL",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 2"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 2"
+        }
       }
     },
     {
@@ -1624,6 +2337,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NR9NkylDTdFzBT31S0K",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 2"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 2"
+        }
       }
     },
     {
@@ -1668,6 +2389,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NR9Quyebae_BrPRY8rO",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 3"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 3"
+        }
       }
     },
     {
@@ -1712,6 +2441,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NR9SRCq_f8v0cRdlj3Y",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 3"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 3"
+        }
       }
     },
     {
@@ -1756,6 +2493,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NR9UDzn7rCd_5pXTZE_",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 4"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 4"
+        }
       }
     },
     {
@@ -1800,6 +2545,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NR9WXf8BC18AEbFwQKm",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 4"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 4"
+        }
       }
     },
     {
@@ -1844,6 +2597,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NR9YIsBKxKhXvgo5JVb",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 5"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 5"
+        }
       }
     },
     {
@@ -1888,6 +2649,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NMB1jCjQuRye1-o6eEs",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Level 5"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Piso 5"
+        }
       }
     },
     {
@@ -1932,6 +2701,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-N2SRcOa7uYI8gYIZZb4",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Ground Floor"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Térreo"
+        }
       }
     },
     {
@@ -1976,6 +2753,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NGTbNs9M0ZFP3ijJpr2",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Ground Floor"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Térreo"
+        }
       }
     },
     {
@@ -2020,6 +2805,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-N2Ykjm5YnfNvesLgUmr",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "ATM — Ground Floor"
+        },
+        "pt": {
+          "name": "Caixa eletrônico — Térreo"
+        }
       }
     },
     {
@@ -2063,6 +2856,24 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-O3Jj7zFV3MUzvD-25lV",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Bike Costanera (Level 1)",
+          "descriptions": {
+            "short": "Bike rack at the Vitacura and Andrés Bello entrance.",
+            "medium": "Vitacura and Andrés Bello entrance. Free bike rack for our visitors; bring your own lock.",
+            "long": "Vitacura and Andrés Bello entrance. Bike rack available for our visitors. Bring your own lock. Free service. Hours: 10:30 to 19:00."
+          }
+        },
+        "pt": {
+          "name": "Bike Costanera (Piso 1)",
+          "descriptions": {
+            "short": "Bicicletário no acesso Vitacura e Andrés Bello.",
+            "medium": "Acesso Vitacura e Andrés Bello. Bicicletário gratuito para nossos clientes; traga seu próprio cadeado.",
+            "long": "Acesso Vitacura e Andrés Bello. Bicicletário à disposição dos nossos clientes. Traga seu próprio cadeado. Serviço gratuito. Horário: 10h30 às 19h00."
+          }
+        }
       }
     },
     {
@@ -2094,6 +2905,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-Nju9mk2UisQG1mMXV5W",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Stage (Level 5)",
+          "descriptions": {
+            "short": "The mall stage on Level 5."
+          }
+        },
+        "pt": {
+          "name": "Palco (Piso 5)",
+          "descriptions": {
+            "short": "O palco do shopping no Piso 5."
+          }
+        }
       }
     },
     {
@@ -2131,6 +2956,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NjrRruPJzRv98r79wGB",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Civil Registry kiosk (Ground Floor)",
+          "descriptions": {
+            "short": "Civil Registry self-service kiosk on the Ground Floor."
+          }
+        },
+        "pt": {
+          "name": "Totem do Registro Civil (Térreo)",
+          "descriptions": {
+            "short": "Totem de autoatendimento do Registro Civil no Térreo."
+          }
+        }
       }
     },
     {
@@ -2158,6 +2997,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NCzJyvkiVSNlSHkWeoQ",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Central Plaza (Level 1)",
+          "descriptions": {
+            "short": "The mall's Central Plaza, on Level 1."
+          }
+        },
+        "pt": {
+          "name": "Praça Central (Piso 1)",
+          "descriptions": {
+            "short": "Praça Central do shopping, no Piso 1."
+          }
+        }
       }
     },
     {
@@ -2197,6 +3050,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-OT8w72w9zoRf_jJT6xI",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Playground (Ground Floor)",
+          "descriptions": {
+            "short": "Children's playground on the Ground Floor."
+          }
+        },
+        "pt": {
+          "name": "Parquinho (Térreo)",
+          "descriptions": {
+            "short": "Parquinho infantil no Térreo."
+          }
+        }
       }
     },
     {
@@ -2234,6 +3101,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NDe3P3NHDdH-wWv6t6f",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Andrés Bello exit (Level 1)"
+        },
+        "pt": {
+          "name": "Saída Andrés Bello (Piso 1)"
+        }
       }
     },
     {
@@ -2272,6 +3147,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NDe7l2Cw6wQC7RRDRg9",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Vitacura exit (Level 1)"
+        },
+        "pt": {
+          "name": "Saída Vitacura (Piso 1)"
+        }
       }
     },
     {
@@ -2309,6 +3192,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-ND4xtlfaTSo1RlLynXY",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Nueva Tobalaba exit (Level 1)"
+        },
+        "pt": {
+          "name": "Saída Nueva Tobalaba (Piso 1)"
+        }
       }
     },
     {
@@ -2350,6 +3241,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-ND5DmsDF3ckSlsOQB-_",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Exit to the Metro Tobalaba walkway (Level 2)"
+        },
+        "pt": {
+          "name": "Saída pela passarela do Metrô Tobalaba (Piso 2)"
+        }
       }
     },
     {
@@ -2385,6 +3284,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NCzK5DfjKvu0RWkaV3b",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Parking exit (Level 1)"
+        },
+        "pt": {
+          "name": "Saída para o estacionamento (Piso 1)"
+        }
       }
     },
     {
@@ -2425,6 +3332,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-NGTenF-jIgVkAwh5waY",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Exit to underground parking (Ground Floor)"
+        },
+        "pt": {
+          "name": "Saída para o estacionamento subterrâneo (Térreo)"
+        }
       }
     },
     {
@@ -2463,6 +3378,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-N7qAnRsarxS_5atDHNe",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Ramp to parking (Ground Floor)"
+        },
+        "pt": {
+          "name": "Rampa para o estacionamento (Térreo)"
+        }
       }
     },
     {
@@ -2501,6 +3424,14 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-Njtk8iYe9lvUTg3ur9O",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Ramp to parking (Ground Floor)"
+        },
+        "pt": {
+          "name": "Rampa para o estacionamento (Térreo)"
+        }
       }
     },
     {
@@ -2539,6 +3470,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-OgDbVQT1hf0JWzflDH9",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Electric taxis (Ground Floor)",
+          "descriptions": {
+            "short": "Electric taxi stand on the Ground Floor."
+          }
+        },
+        "pt": {
+          "name": "Táxis elétricos (Térreo)",
+          "descriptions": {
+            "short": "Ponto de táxis elétricos no Térreo."
+          }
+        }
       }
     },
     {
@@ -2575,6 +3520,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "-OgDoMQUkchVaYaFfAe0",
         "placeIdSource": "cencomalls.costanera.mapvx.com"
+      },
+      "i18n": {
+        "en": {
+          "name": "Parking service kit (Ground Floor)",
+          "descriptions": {
+            "short": "Parking service kit on the Ground Floor."
+          }
+        },
+        "pt": {
+          "name": "Kit de serviços do estacionamento (Térreo)",
+          "descriptions": {
+            "short": "Kit de serviços do estacionamento no Térreo."
+          }
+        }
       }
     },
     {
@@ -2629,6 +3588,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "CC_PB_133",
         "placeIdSource": "market-catalog"
+      },
+      "i18n": {
+        "en": {
+          "name": "Claro (Ground Floor)",
+          "descriptions": {
+            "short": "Claro offers technical service on the Ground Floor."
+          }
+        },
+        "pt": {
+          "name": "Claro (Térreo)",
+          "descriptions": {
+            "short": "A Claro oferece assistência técnica no Térreo."
+          }
+        }
       }
     },
     {
@@ -2683,6 +3656,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "CC_PB_6020",
         "placeIdSource": "market-catalog"
+      },
+      "i18n": {
+        "en": {
+          "name": "Claro (Ground Floor)",
+          "descriptions": {
+            "short": "Claro offers technical service on the Ground Floor."
+          }
+        },
+        "pt": {
+          "name": "Claro (Térreo)",
+          "descriptions": {
+            "short": "A Claro oferece assistência técnica no Térreo."
+          }
+        }
       }
     },
     {
@@ -2737,6 +3724,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "CC_PB_176",
         "placeIdSource": "market-catalog"
+      },
+      "i18n": {
+        "en": {
+          "name": "Entel (Ground Floor)",
+          "descriptions": {
+            "short": "Entel offers technical service on the Ground Floor."
+          }
+        },
+        "pt": {
+          "name": "Entel (Térreo)",
+          "descriptions": {
+            "short": "A Entel oferece assistência técnica no Térreo."
+          }
+        }
       }
     },
     {
@@ -2794,6 +3795,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "CC_N2_2125",
         "placeIdSource": "market-catalog"
+      },
+      "i18n": {
+        "en": {
+          "name": "Longines (Level 2)",
+          "descriptions": {
+            "short": "Longines offers technical service on Level 2."
+          }
+        },
+        "pt": {
+          "name": "Longines (Piso 2)",
+          "descriptions": {
+            "short": "A Longines oferece assistência técnica no Piso 2."
+          }
+        }
       }
     },
     {
@@ -2853,6 +3868,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "CC_PB_6044",
         "placeIdSource": "market-catalog"
+      },
+      "i18n": {
+        "en": {
+          "name": "Mecánica del Tiempo (Ground Floor)",
+          "descriptions": {
+            "short": "Mecánica del Tiempo offers technical service and repairs on the Ground Floor."
+          }
+        },
+        "pt": {
+          "name": "Mecánica del Tiempo (Térreo)",
+          "descriptions": {
+            "short": "A Mecánica del Tiempo oferece assistência técnica e reparos no Térreo."
+          }
+        }
       }
     },
     {
@@ -2909,6 +3938,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "CC_PB_109",
         "placeIdSource": "market-catalog"
+      },
+      "i18n": {
+        "en": {
+          "name": "Movistar (Ground Floor)",
+          "descriptions": {
+            "short": "Movistar offers technical service on the Ground Floor."
+          }
+        },
+        "pt": {
+          "name": "Movistar (Térreo)",
+          "descriptions": {
+            "short": "A Movistar oferece assistência técnica no Térreo."
+          }
+        }
       }
     },
     {
@@ -2968,6 +4011,20 @@ window.__SERVICES_CATALOG__ = {
       "mapvx": {
         "placeId": "CC_PB_128",
         "placeIdSource": "market-catalog"
+      },
+      "i18n": {
+        "en": {
+          "name": "VTR (Ground Floor)",
+          "descriptions": {
+            "short": "VTR offers technical service on the Ground Floor."
+          }
+        },
+        "pt": {
+          "name": "VTR (Térreo)",
+          "descriptions": {
+            "short": "A VTR oferece assistência técnica no Térreo."
+          }
+        }
       }
     }
   ]

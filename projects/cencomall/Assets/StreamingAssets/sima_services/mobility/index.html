@@ -115,7 +115,8 @@ function resetToLanding() {
 <!-- Preload route WC: Unity WebViews often block dynamically injected scripts. -->
 <script src="../shared/mapvx-wc/route-view-totems.js" data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
 <script src="../shared/mapvx-label-tuning.js?v=20261005-1"></script>
-<script src="../shared/mapvx-wc-runtime.js?v=20261005-1"></script>
+<script src="../shared/route-mode-picker.js?v=20261021-1"></script>
+<script src="../shared/mapvx-wc-runtime.js?v=20261021-1"></script>
 <script src="../shared/store-detail.js?v=20260812-5"></script>
 <script src="../assistant-embed.js"></script>
 <style>
@@ -701,6 +702,10 @@ html.search-boot-loading #resultado {
 }
 
 .btn-map-route.hidden { display: none; }
+
+/* Replaced by the "Ver ruta" / "Ruta accesible" buttons inside the detail card (route-mode-picker.js).
+   The element stays in the DOM: older code still reads and writes its text/disabled state. */
+#map-route-btn { display: none !important; }
 
 .btn-map-route:disabled,
 .btn-map-route.disabled {
@@ -5852,6 +5857,19 @@ function renderStoreDetailPanel(store) {
   panel.classList.remove("hidden");
 }
 
+// Translated name of a service kind ("Nursing room", "Trocadores"…).
+function serviceKindLabel(kind) {
+  if (kind === "bathroom") return t("bathrooms") || "Baños";
+  if (kind === "cowork") return t("cowork") || "Cowork";
+  if (kind === "customer_service") return t("customerService") || "Atención al cliente";
+  if (kind === "elevator") return t("elevators") || "Ascensor";
+  if (kind === "nursing") return t("nursingRoom") || "Sala de lactancia";
+  if (kind === "changing_table") return t("changingTables") || "Mudadores";
+  if (kind === "atm") return t("atm") || "Cajero automático";
+  if (EXTRA_SERVICE_KINDS[kind]) return extraServiceKindLabel(kind);
+  return t("services");
+}
+
 function renderServiceDetailPanel(service) {
   const panel = document.getElementById("store-detail-panel");
   if (!panel) return;
@@ -5864,7 +5882,7 @@ function renderServiceDetailPanel(service) {
   const displayName = sanitizeStoreDisplayName(service.name || t("services"));
   const kind = getServiceKind(service);
   const icon = serviceKindIcon(kind);
-  const typeLabel = kind ? `<span class="store-badge store-badge-floor">${escapeHtml(kind === "bathroom" ? (t("bathrooms") || "Baños") : kind === "cowork" ? (t("cowork") || "Cowork") : kind === "customer_service" ? (t("customerService") || "Atención al cliente") : kind === "elevator" ? (t("elevators") || "Ascensor") : kind === "nursing" ? (t("nursingRoom") || "Sala de lactancia") : kind === "changing_table" ? (t("changingTables") || "Mudadores") : kind === "atm" ? (t("atm") || "Cajero automático") : EXTRA_SERVICE_KINDS[kind] ? extraServiceKindLabel(kind) : escapeHtml(t("services")))}</span>` : "";
+  const typeLabel = kind ? `<span class="store-badge store-badge-floor">${escapeHtml(serviceKindLabel(kind))}</span>` : "";
   const floorLabel = formatServiceFloors(service.floors) ? `<span class="store-badge store-badge-floor">${escapeHtml(formatServiceFloors(service.floors))}</span>` : "";
   const location = service.location ? `<div class="store-detail-schedule">${escapeHtml(service.location)}</div>` : "";
   const description = String(service.description || service.location || "").trim();
@@ -6346,7 +6364,13 @@ function renderServicesResults(payload) {
   const results = Array.isArray(payload.results)
     ? payload.results.map(normalizeServiceResult)
     : [];
-  const query = payload.query || "";
+  // The search term from the assistant is the Spanish catalog word
+  // ("lactancia", "mudador"); on EN/PT show the translated kind instead
+  // when every result is the same kind of service.
+  const kinds = new Set(results.map(getServiceKind).filter(Boolean));
+  const query = mobilityLocale !== "es" && results.length && kinds.size === 1
+    ? serviceKindLabel([...kinds][0])
+    : (payload.query || "");
   const floorHint = payload.floorHint || payload.FloorHint || "";
   hideWelcome();
 
@@ -6870,6 +6894,8 @@ function resetMapControls() {
     routeBtn.classList.remove("disabled");
     routeBtn.textContent = t("viewRoute");
   }
+  // A map (re)opened: whatever route the two buttons were tracking is gone.
+  if (mobilityRoutePicker) mobilityRoutePicker.reset(true);
 }
 
 // Bind the "Ver ruta" tap handler. This lives here, not in setupMapControls(),
@@ -6898,6 +6924,8 @@ function updateMapRouteButton(result) {
     && MapVxWcRuntime.hasRouteOrigin && MapVxWcRuntime.hasRouteOrigin();
   const canRoute = legacyOrigin || wcOrigin;
   btn.classList.remove("hidden");
+  const picker = getMobilityRoutePicker();
+  if (picker) picker.setVisible(!!canRoute);
   if (!canRoute) {
     btn.textContent = t("routeNeedsTotem");
     btn.classList.add("disabled");
@@ -6908,6 +6936,13 @@ function updateMapRouteButton(result) {
   btn.classList.remove("disabled");
   const active = !!(result && (result.routeActive || result.routeStarted)) || mobilityMapRouteActive;
   btn.textContent = active ? t("clearRoute") : t("viewRoute");
+  if (picker) {
+    // Keep the two buttons in step with what is on screen. Soft: both calls are ignored
+    // while the picker is itself drawing a route.
+    picker.refresh();
+    if (!active) picker.reset();
+    else if (!picker.getMode()) picker.setActive("walk"); // a route drawn without the picker is a walking route
+  }
 }
 
 function renderMapFloorBar(activeFloorKey) {
@@ -6958,7 +6993,117 @@ async function onMapRouteToggle() {
   btn.disabled = false;
 }
 
-async function showMobilityHybridRoute() {
+// ---- "Ver ruta" / "Ruta accesible" picker (shared/route-mode-picker.js) ---------------------
+// Two buttons docked in the detail card replace the old header button (#map-route-btn, now
+// hidden). Services run on the Web Component in BOTH modes (switching is in place). A STORE's
+// "Ver ruta" still uses the legacy hybrid draw on purpose (see openPoiMapViaMapVxWc); its
+// "Ruta accesible" runs on the Web Component, which is where accessible routing lives, so
+// switching between the two for a store swaps the engine (clear, then draw).
+var mobilityRoutePicker = null; // var: hoisted, updateMapRouteButton() runs early
+
+function mobilityRouteElementHook(ctx, mode) {
+  return function (el) {
+    if (ctx && typeof ctx.bind === "function") { ctx.bind(el); return; }
+    const picker = getMobilityRoutePicker();
+    if (picker) picker.adopt(mode, el);
+  };
+}
+
+function mobilityRouteModeAvailable(mode) {
+  if (mode !== "accessible") return true;
+  if (typeof MapVxWcRuntime === "undefined" || !MapVxWcRuntime.showRoute
+    || !MapVxWcRuntime.isAvailable || !MapVxWcRuntime.isAvailable()) return false;
+  if (preferredMobilityMapEngine() === "legacy") return false;
+  const cfg = MapVxWcRuntime.readConfig ? MapVxWcRuntime.readConfig() : (window.MAPVX_CONFIG || {});
+  if (!cfg.totemPlaceId || !cfg.apiKey) return false;
+  if (lastServiceWcEntry) {
+    const m = lastServiceWcEntry.mapvx || {};
+    return !!m.placeId && !m.placeIdNote;
+  }
+  const opts = window.__mobilityLastMapOpts || {};
+  const id = String(window.__mobilityLastWcPlaceId || "");
+  if (!id || /^node:/.test(id) || opts.local !== id) return false;
+  // A legacy-only service (e.g. the Zara elevator, placeIdNote) has no Web Component place.
+  const key = String(opts.serviceId || "").trim();
+  if (key && typeof ServicesCatalog !== "undefined" && ServicesCatalog.getById) {
+    const entry = ServicesCatalog.getById(key);
+    if (entry && entry.mapvx && entry.mapvx.placeIdNote) return false;
+  }
+  return true;
+}
+
+// Accessible route: always the Web Component (elevators over stairs and escalators). No silent
+// fallback to a walking route — a failure is reported so the visitor knows it is not accessible.
+async function showMobilityAccessibleRoute(ctx) {
+  const cfg = MapVxWcRuntime.readConfig ? MapVxWcRuntime.readConfig() : (window.MAPVX_CONFIG || {});
+  const opts = window.__mobilityLastMapOpts || {};
+  const entry = lastServiceWcEntry;
+  const dest = (entry && entry.mapvx && entry.mapvx.placeId) || window.__mobilityLastWcPlaceId || opts.local || "";
+  if (!dest || !cfg.totemPlaceId) throw new Error("accessible route: no destination or no totem origin");
+  logMap("info", "accessible route show", { placeId: dest, service: !!entry });
+  hideServiceArrivalCard();
+  setRouteTracingState(true);
+  try {
+    await MapVxWcRuntime.showRoute(dest, {
+      originId: cfg.totemPlaceId,
+      timeoutMs: 60000,
+      accessible: true,
+      destinationFloorId: mapvxFloorIdForServiceEntry(entry),
+      onElement: mobilityRouteElementHook(ctx, "accessible"),
+    });
+  } finally {
+    setRouteTracingState(false);
+  }
+  mobilityMapRouteActive = true;
+  mobilityActiveMapEngine = "wc";
+}
+
+function mobilityRouteStatusTitle() {
+  return (window.__mobilityLastMapOpts && window.__mobilityLastMapOpts.name) || placeIdLabelForRoute() || "";
+}
+
+async function mobilityPickerStart(mode, ctx) {
+  try {
+    if (mode === "accessible") await showMobilityAccessibleRoute(ctx);
+    else await showMobilityHybridRoute(ctx);
+    updateMapRouteButton({ routeActive: true });
+    setMapStatus(mobilityRouteStatusTitle() + " · " + t("routeActive"));
+  } catch (e) {
+    mobilityMapRouteActive = false;
+    logMap("error", "route start failed", { mode: mode, message: String(e && (e.message || e)) });
+    setMapStatus("");
+    throw e;
+  }
+}
+
+async function mobilityPickerClear() {
+  await hideMobilityHybridRoute();
+  mobilityMapRouteActive = false;
+  updateMapRouteButton({ routeActive: false });
+  setMapStatus(mobilityRouteStatusTitle());
+}
+
+function getMobilityRoutePicker() {
+  if (mobilityRoutePicker || !window.RouteModePicker) return mobilityRoutePicker;
+  const panel = document.getElementById("store-detail-panel");
+  if (!panel) return null;
+  try {
+    mobilityRoutePicker = RouteModePicker.create({
+      dock: { panel: panel, body: ".store-detail-head-text" },
+      isAvailable: mobilityRouteModeAvailable,
+      // Same engine for both modes only for a service that is on the Web Component.
+      canSwitchInPlace: function () { return !!lastServiceWcEntry && mobilityActiveMapEngine === "wc"; },
+      start: mobilityPickerStart,
+      clear: mobilityPickerClear,
+      log: function (line) { logMap("info", String(line)); },
+    });
+  } catch (e) {
+    logMap("warn", "route picker failed", { message: String(e && (e.message || e)) });
+  }
+  return mobilityRoutePicker;
+}
+
+async function showMobilityHybridRoute(ctx) {
   const opts = window.__mobilityLastMapOpts || {};
   const placeId = window.__mobilityLastWcPlaceId
     || opts.local
@@ -6984,7 +7129,13 @@ async function showMobilityHybridRoute() {
         // on totem hardware. A tight timeout here doesn't fail fast, it demotes
         // every route to the legacy renderer (the totem symptom after the
         // mapEngine="auto" rollout).
-        await MapVxWcRuntime.showRoute(dest, { originId: cfg.totemPlaceId, timeoutMs: 60000 });
+        await MapVxWcRuntime.showRoute(dest, {
+          originId: cfg.totemPlaceId,
+          timeoutMs: 60000,
+          destinationFloorId: mapvxFloorIdForServiceEntry(lastServiceWcEntry),
+          accessible: false,
+          onElement: mobilityRouteElementHook(ctx, "walk"),
+        });
         setRouteTracingState(false);
         mobilityMapRouteActive = true;
         mobilityActiveMapEngine = "wc";
@@ -7285,7 +7436,14 @@ function initMobilityWcRuntime() {
       // Hand the whole thing to the legacy renderer.
       onRouteStalled: function (info) {
         logMap("warn", "wc route stalled — legacy route fallback", info || {});
-        fallBackToLegacyRoute();
+        // The legacy renderer draws a WALKING route: tell the picker so it does not keep waiting
+        // for the Web Component, and say so if the visitor had asked for the accessible one.
+        const stalledPicker = getMobilityRoutePicker();
+        const wasAccessible = !!(stalledPicker && (stalledPicker.getMode() === "accessible" || stalledPicker.getPending() === "accessible"));
+        if (stalledPicker) stalledPicker.reset(true);
+        fallBackToLegacyRoute().then(function () {
+          if (stalledPicker && wasAccessible && typeof stalledPicker.notify === "function") stalledPicker.notify("failed");
+        });
       },
     });
     mobilityWcReady = true;
@@ -7512,6 +7670,20 @@ function showServiceArrivalCard(entry) {
   el.hidden = false;
 }
 
+// MapVX floor id for a service that lives on SEVERAL floors (the elevators): the
+// totem's own floor when the place is there, else the nearest one. MapVX is a single
+// place id spread over many floors and, with no floor, shows/routes to its FIRST floor
+// (the Nivel -1 car park). "" for every single-floor service (bathrooms, SAC…), so
+// those behave exactly as before. See ServicesCatalog.pickMapvxFloorId.
+function mapvxFloorIdForServiceEntry(entry) {
+  try {
+    if (entry && typeof ServicesCatalog !== "undefined" && ServicesCatalog.pickMapvxFloorId) {
+      return ServicesCatalog.pickMapvxFloorId(entry, getTotemFloorContext()) || "";
+    }
+  } catch (e) { /* noop: no floor → MapVX picks the place's first floor, as before */ }
+  return "";
+}
+
 // Services via the MapVX Web Component — the sibling of openPoiMapViaMapVxWc for
 // poiType "service". Gated behind ?mapEngine=wc AND a catalog entry that has a
 // verified mapvx.placeId (no placeIdNote). Anything else — flag off, no placeId,
@@ -7594,7 +7766,10 @@ async function openServiceMapViaWc(opts) {
       cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
     }
 
-    await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 3000 : 12000 });
+    await MapVxWcRuntime.showPlace(placeId, {
+      timeoutMs: cached ? 3000 : 12000,
+      floorId: mapvxFloorIdForServiceEntry(entry),
+    });
     mobilityActiveMapEngine = "wc";
     setMapLoadingState(false);
     clearAutoMapLaunchUi();
@@ -7605,7 +7780,13 @@ async function openServiceMapViaWc(opts) {
       if (cfg.totemPlaceId) {
         try {
           setRouteTracingState(true);
-          await MapVxWcRuntime.showRoute(placeId, { originId: cfg.totemPlaceId, timeoutMs: 60000 });
+          await MapVxWcRuntime.showRoute(placeId, {
+            originId: cfg.totemPlaceId,
+            timeoutMs: 60000,
+            destinationFloorId: mapvxFloorIdForServiceEntry(entry),
+            accessible: false,
+            onElement: mobilityRouteElementHook(null, "walk"),
+          });
           setRouteTracingState(false);
           routed = true;
           mobilityMapRouteActive = true;
@@ -8029,12 +8210,21 @@ async function showServiceRouteQr(serviceId) {
   const mapvx = entry && entry.mapvx;
   const destination = mapvx && String(mapvx.placeId || "").trim();
   const origin = serviceRouteQrOrigin();
-  if (!destination || mapvx.placeIdNote || !isRouteQrDestination(destination) || !origin) {
+  // A place that lives on SEVERAL floors (the elevators) cannot be sent to the public
+  // site with a floor: it only reads origin / destination / floor (the view, not the
+  // route end) and routes to the place's FIRST floor — the Nivel -1 car park (checked
+  // 2026-10-20: totem N2 → "Ascensores Torre Tobalaba, Nivel -1", 246 m). Skip rather
+  // than print a QR that sends the visitor's phone to the car park; the totem screen
+  // itself does pass the floor (destination-floor-id). Revisit if the public site
+  // gains a destination-floor parameter.
+  const multiFloor = !!(entry && Array.isArray(entry.floors) && entry.floors.length > 1);
+  if (!destination || mapvx.placeIdNote || multiFloor || !isRouteQrDestination(destination) || !origin) {
     SimaBridge.log("service route QR skipped: " + JSON.stringify({
       id: key,
       destination: destination || "",
       origin: origin || "",
       unverified: !!(mapvx && mapvx.placeIdNote),
+      multiFloor: multiFloor,
     }));
     return;
   }

@@ -18,10 +18,11 @@
 <script src="../shared/market-i18n.js"></script>
 <script src="../shared/store-detail.js?v=20260812-5"></script>
 <script src="../shared/mapvx-label-tuning.js?v=20261005-1"></script>
+<script src="../shared/route-mode-picker.js"></script>
 <script src="../shared/qrcode-generator.js"></script>
 
 <!--
-  Official MapVX Web Components (@mapvx/web-components@0.3.0), self-hosted
+  Official MapVX Web Components (@mapvx/web-components@0.13.0), self-hosted
   IIFE builds vendored under ../shared/mapvx-wc/ — see that folder's
   README.md for provenance and how to update the version. Each script
   defines its custom element as a side effect on load.
@@ -114,6 +115,9 @@
     background: var(--cm-pink, #e6007e);
     color: #fff;
   }
+
+  /* Replaced by the "Ver ruta" / "Ruta accesible" buttons inside the store card (route-mode-picker.js). */
+  #route-toggle { display: none !important; }
 
   .store-map-pill.ghost {
     background: rgba(255, 255, 255, 0.18);
@@ -458,7 +462,7 @@
   <div class="store-map-stage status-covering" id="stage">
     <div class="store-map-floor hidden" id="store-map-floor"></div>
     <div class="store-map-view" id="map-view">
-      <map-view-with-modal id="mvx-place" compact-mode zoom-size="small" style="
+      <map-view-with-modal id="mvx-place" compact-mode zoom-size="small" marker-variant="full" style="
         --mvx-primary-color:#5B2D8E;
         --mvx-surface-color:#ffffff;
         --mvx-on-surface-color:#3D1D5C;
@@ -805,6 +809,8 @@ function applyPlace(cfg, placeId) {
   // Header title is owned by openStoreMapFromPayload (payload name) +
   // updateHeaderTitle (popup-name fallback) — applyPlace does not touch it.
   document.getElementById("route-toggle").classList.toggle("hidden", !cfg.totemPlaceId);
+  const routeModes = getRoutePicker();
+  if (routeModes) routeModes.setVisible(!!cfg.totemPlaceId);
   lastAppliedPlaceId = placeId;
   log("applyPlace " + JSON.stringify({ placeId: placeId, parentPlace: cfg.parentPlace }));
 }
@@ -1310,17 +1316,55 @@ function wireRouteElement(routeEl) {
 function createRouteElement() {
   const el = document.createElement("route-view-totems");
   el.id = "mvx-route";
+  // 0.13.0 defaults: 3D scene ON for Costanera and a compact icon-only popup.
+  // Pin the 0.3.0 behaviour (2D, full popup that POPUP_CSS restyles).
+  el.setAttribute("enable-3d", "false");
+  el.setAttribute("marker-variant", "full");
   el.setAttribute("style", "--mvx-primary-color:#5B2D8E; --mvx-surface-color:#ffffff; --mvx-on-surface-color:#3D1D5C;");
   wireRouteElement(el);
   return el;
 }
 
-function showRouteView(cfg, placeId, destLabel) {
+// "Ver ruta" / "Ruta accesible" picker (shared/route-mode-picker.js). Two buttons docked
+// inside the store detail card; the visitor picks the route type BEFORE the route exists,
+// and afterwards the pair switches it (tap the other) or removes it (tap the active one).
+// The page's old orange header pill (#route-toggle) is hidden; accessible routes are only
+// ever drawn on request.
+var routePicker = null; // var: hoisted, closeRouteView() may run before this line
+function getRoutePicker() {
+  if (routePicker || !window.RouteModePicker) return routePicker;
+  try {
+    routePicker = RouteModePicker.create({
+      dock: { panel: document.getElementById("store-detail"), body: ".store-detail-body" },
+      start: function (mode) {
+        const cfg = readConfig();
+        const placeId = lastAppliedPlaceId || currentPlaceId();
+        if (!placeId || !cfg.totemPlaceId) throw new Error("route: no place or no totem origin");
+        showRouteView(cfg, placeId, undefined, { mode: mode });
+      },
+      clear: function () { closeRouteView(); },
+      // A route that could not be drawn: back to the store map, not stuck on "Cargando ruta…".
+      onStartFailed: function () { closeRouteView(); },
+      log: log,
+    });
+    routePicker.setVisible(!!readConfig().totemPlaceId);
+  } catch (e) {
+    log("route picker failed: " + (e.message || e));
+  }
+  return routePicker;
+}
+
+function showRouteView(cfg, placeId, destLabel, routeOpts) {
   if (!placeId || !cfg.totemPlaceId) return;
+  const mode = routeOpts && routeOpts.mode === "accessible" ? "accessible" : "walk";
   const mount = document.getElementById("route-view-mount");
   mount.innerHTML = ""; // drop the previous instance entirely, don't reuse it
   const routeEl = createRouteElement();
+  // Route type: the component starts in it (accessible-route reads the VALUE, so "false" = walking).
+  routeEl.setAttribute("accessible-route", mode === "accessible" ? "true" : "false");
   mount.appendChild(routeEl);
+  const picker = getRoutePicker();
+  if (picker) picker.adopt(mode, routeEl);
 
   document.getElementById("map-view").classList.add("hidden");
   document.getElementById("route-view").classList.remove("hidden");
@@ -1368,6 +1412,10 @@ function showRouteView(cfg, placeId, destLabel) {
 // closeRouteView still just hides (matches MapVX's guide) — recreation only
 // happens on the next showRouteView call, not on every close.
 function closeRouteView() {
+  if (routePicker) routePicker.reset();
+  // The "route took too long" safety net (60 s) belongs to the route being closed: left armed it would
+  // fire on the store map and ask the native app to close this webview (store_map_error).
+  if (routeStatusTimeoutId) { clearTimeout(routeStatusTimeoutId); routeStatusTimeoutId = null; }
   document.getElementById("route-view").classList.add("hidden");
   document.getElementById("map-view").classList.remove("hidden");
   setStatus(false);
@@ -1670,9 +1718,9 @@ function wireEvents(cfg) {
     log("map-view-with-modal: floorChange " + JSON.stringify(ev.detail || {}));
   });
 
-  document.getElementById("route-toggle").addEventListener("click", function () {
-    showRouteView(readConfig(), currentPlaceId());
-  });
+  // The old header pill (#route-toggle) is hidden: "Ver ruta" / "Ruta accesible" now live in the
+  // store detail card (getRoutePicker). Create the picker once the page is wired.
+  getRoutePicker();
 }
 
 function wireConfigBox() {

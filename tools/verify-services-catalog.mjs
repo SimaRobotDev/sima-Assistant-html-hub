@@ -54,8 +54,8 @@ const cases = [
   { q: "afex", min: 1, max: 3 },
   { q: "patio de comidas", min: 1, max: 3 },
   { serviceId: "bano-n2-ripley", min: 1, max: 1 },
-  { q: "ascensor", min: 1, max: 4, type: "elevator" },
-  { q: "ascensores", min: 1, max: 4, type: "elevator" },
+  { q: "ascensor", min: 1, max: 5, type: "elevator" }, // ripley, vitacura, h&m, zara, cine
+  { q: "ascensores", min: 1, max: 5, type: "elevator" },
   { q: "elevador ripley", min: 1, max: 2, type: "elevator" },
   { q: "ascensor zara", min: 1, max: 1, type: "elevator" },
   { q: "ascensor decathlon", min: 1, max: 1, type: "elevator" },
@@ -111,16 +111,23 @@ for (const testCase of cases) {
   if (!ok) fails++;
 }
 {
+  // Burger King (N5) belongs to the cinema elevator now: Ripley's tower stops at N4.
   const card = ServicesCatalog.toResultCard(
-    ServicesCatalog.getById("ascensor-ripley"),
+    ServicesCatalog.getById("ascensor-cine"),
     { preferFloor: "5" }
   );
   const ok = card.anchorLocal === "CC_N5_5524";
   console.log(
     (ok ? "PASS" : "FAIL") +
-      " ascensor-ripley preferFloor=5 anchor=" +
+      " ascensor-cine preferFloor=5 anchor=" +
       (card.anchorLocal || "-")
   );
+  if (!ok) fails++;
+}
+{
+  const ripley = ServicesCatalog.getById("ascensor-ripley");
+  const ok = ripley && ripley.floors.indexOf("5") === -1 && ripley.floors.indexOf("4") !== -1;
+  console.log((ok ? "PASS" : "FAIL") + " ascensor-ripley stops at N4 (MapVX: Torre Andrés Bello is PB-N4)");
   if (!ok) fails++;
 }
 
