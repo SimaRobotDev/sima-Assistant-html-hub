@@ -64,20 +64,25 @@ Defaults that changed and that we pin explicitly (every creation site —
 `generateRoute`'s `detail.accessible` is analytics only; the route type comes from
 the `accessible-route` property.
 
-## Accessible route = our own button
+## Route type: "Ver ruta" / "Ruta accesible" are our own buttons
 
 The component's walking/accessible switch lives in `<route-options>`, which does
 **not** register in our pages: they load `map-view-with-modal.js` first, then
 `route-view-totems.js`, whose `define("custom-map")` throws (already defined) and
 aborts before `route-options`, `qr-modal` and `floor-selector` (same on 0.3.0 and
 0.13.0; loading route-first would register them and drop the whole vendor panel
-over our UI). So `shared/mapvx-accessible-route.js` draws a "Ruta accesible"
-button (top-right, es/en/pt) in `store-map-web` and, through
-`mapvx-wc-runtime.js`, in `mobility`. Accessible routes are on request only: every
-route starts walking; a tap calls `updateComponent({ accessibleRoute })`; it
-listens for `startRouteAnimation` / `mvxLoadingChange` (done) and `mvxError`
-(`ROUTE_NOT_FOUND` → notice, back to walking). `MAPVX_CONFIG.accessibleRouteButton
-= false` hides it without an OTA. Guarded by `tools/verify-services-integrity.mjs`.
+over our UI). So `shared/route-mode-picker.js` draws the two buttons (es/en/pt,
+Figma icons) inside the store / service detail card of `store-map-web` and
+`mobility` (floated right, the text wraps around them). The visitor picks BEFORE
+the route exists: `showRoute({ accessible })` starts the element with
+`accessible-route="true|false"`; afterwards the active button is filled, tapping
+the other switches in place (`updateComponent({ accessibleRoute })`, signals:
+`startRouteAnimation` / `mvxLoadingChange` = done, `mvxError` = failed, with
+`ROUTE_NOT_FOUND` → notice and the previous route restored) and tapping the active
+one removes the route. Accessible routes are on request only. In `mobility` a
+STORE's "Ver ruta" stays on the legacy hybrid draw and its "Ruta accesible" runs on
+the Web Component (switching swaps the engine); services use the Web Component in
+both modes. Guarded by `tools/verify-services-integrity.mjs`.
 
 `mvx-tiles-sw.js` is additive (glyph + vendor caches, 3D bucket allow-listed); the
 files are stored with CRLF in the working tree, git normalises to LF.

@@ -115,8 +115,8 @@ function resetToLanding() {
 <!-- Preload route WC: Unity WebViews often block dynamically injected scripts. -->
 <script src="../shared/mapvx-wc/route-view-totems.js" data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
 <script src="../shared/mapvx-label-tuning.js?v=20261005-1"></script>
-<script src="../shared/mapvx-accessible-route.js?v=20261020-1"></script>
-<script src="../shared/mapvx-wc-runtime.js?v=20261020-1"></script>
+<script src="../shared/route-mode-picker.js?v=20261021-1"></script>
+<script src="../shared/mapvx-wc-runtime.js?v=20261021-1"></script>
 <script src="../shared/store-detail.js?v=20260812-5"></script>
 <script src="../assistant-embed.js"></script>
 <style>
@@ -702,6 +702,10 @@ html.search-boot-loading #resultado {
 }
 
 .btn-map-route.hidden { display: none; }
+
+/* Replaced by the "Ver ruta" / "Ruta accesible" buttons inside the detail card (route-mode-picker.js).
+   The element stays in the DOM: older code still reads and writes its text/disabled state. */
+#map-route-btn { display: none !important; }
 
 .btn-map-route:disabled,
 .btn-map-route.disabled {
@@ -6890,6 +6894,8 @@ function resetMapControls() {
     routeBtn.classList.remove("disabled");
     routeBtn.textContent = t("viewRoute");
   }
+  // A map (re)opened: whatever route the two buttons were tracking is gone.
+  if (mobilityRoutePicker) mobilityRoutePicker.reset(true);
 }
 
 // Bind the "Ver ruta" tap handler. This lives here, not in setupMapControls(),
@@ -6918,6 +6924,8 @@ function updateMapRouteButton(result) {
     && MapVxWcRuntime.hasRouteOrigin && MapVxWcRuntime.hasRouteOrigin();
   const canRoute = legacyOrigin || wcOrigin;
   btn.classList.remove("hidden");
+  const picker = getMobilityRoutePicker();
+  if (picker) picker.setVisible(!!canRoute);
   if (!canRoute) {
     btn.textContent = t("routeNeedsTotem");
     btn.classList.add("disabled");
@@ -6928,6 +6936,13 @@ function updateMapRouteButton(result) {
   btn.classList.remove("disabled");
   const active = !!(result && (result.routeActive || result.routeStarted)) || mobilityMapRouteActive;
   btn.textContent = active ? t("clearRoute") : t("viewRoute");
+  if (picker) {
+    // Keep the two buttons in step with what is on screen. Soft: both calls are ignored
+    // while the picker is itself drawing a route.
+    picker.refresh();
+    if (!active) picker.reset();
+    else if (!picker.getMode()) picker.setActive("walk"); // a route drawn without the picker is a walking route
+  }
 }
 
 function renderMapFloorBar(activeFloorKey) {
@@ -6978,7 +6993,117 @@ async function onMapRouteToggle() {
   btn.disabled = false;
 }
 
-async function showMobilityHybridRoute() {
+// ---- "Ver ruta" / "Ruta accesible" picker (shared/route-mode-picker.js) ---------------------
+// Two buttons docked in the detail card replace the old header button (#map-route-btn, now
+// hidden). Services run on the Web Component in BOTH modes (switching is in place). A STORE's
+// "Ver ruta" still uses the legacy hybrid draw on purpose (see openPoiMapViaMapVxWc); its
+// "Ruta accesible" runs on the Web Component, which is where accessible routing lives, so
+// switching between the two for a store swaps the engine (clear, then draw).
+var mobilityRoutePicker = null; // var: hoisted, updateMapRouteButton() runs early
+
+function mobilityRouteElementHook(ctx, mode) {
+  return function (el) {
+    if (ctx && typeof ctx.bind === "function") { ctx.bind(el); return; }
+    const picker = getMobilityRoutePicker();
+    if (picker) picker.adopt(mode, el);
+  };
+}
+
+function mobilityRouteModeAvailable(mode) {
+  if (mode !== "accessible") return true;
+  if (typeof MapVxWcRuntime === "undefined" || !MapVxWcRuntime.showRoute
+    || !MapVxWcRuntime.isAvailable || !MapVxWcRuntime.isAvailable()) return false;
+  if (preferredMobilityMapEngine() === "legacy") return false;
+  const cfg = MapVxWcRuntime.readConfig ? MapVxWcRuntime.readConfig() : (window.MAPVX_CONFIG || {});
+  if (!cfg.totemPlaceId || !cfg.apiKey) return false;
+  if (lastServiceWcEntry) {
+    const m = lastServiceWcEntry.mapvx || {};
+    return !!m.placeId && !m.placeIdNote;
+  }
+  const opts = window.__mobilityLastMapOpts || {};
+  const id = String(window.__mobilityLastWcPlaceId || "");
+  if (!id || /^node:/.test(id) || opts.local !== id) return false;
+  // A legacy-only service (e.g. the Zara elevator, placeIdNote) has no Web Component place.
+  const key = String(opts.serviceId || "").trim();
+  if (key && typeof ServicesCatalog !== "undefined" && ServicesCatalog.getById) {
+    const entry = ServicesCatalog.getById(key);
+    if (entry && entry.mapvx && entry.mapvx.placeIdNote) return false;
+  }
+  return true;
+}
+
+// Accessible route: always the Web Component (elevators over stairs and escalators). No silent
+// fallback to a walking route — a failure is reported so the visitor knows it is not accessible.
+async function showMobilityAccessibleRoute(ctx) {
+  const cfg = MapVxWcRuntime.readConfig ? MapVxWcRuntime.readConfig() : (window.MAPVX_CONFIG || {});
+  const opts = window.__mobilityLastMapOpts || {};
+  const entry = lastServiceWcEntry;
+  const dest = (entry && entry.mapvx && entry.mapvx.placeId) || window.__mobilityLastWcPlaceId || opts.local || "";
+  if (!dest || !cfg.totemPlaceId) throw new Error("accessible route: no destination or no totem origin");
+  logMap("info", "accessible route show", { placeId: dest, service: !!entry });
+  hideServiceArrivalCard();
+  setRouteTracingState(true);
+  try {
+    await MapVxWcRuntime.showRoute(dest, {
+      originId: cfg.totemPlaceId,
+      timeoutMs: 60000,
+      accessible: true,
+      destinationFloorId: mapvxFloorIdForServiceEntry(entry),
+      onElement: mobilityRouteElementHook(ctx, "accessible"),
+    });
+  } finally {
+    setRouteTracingState(false);
+  }
+  mobilityMapRouteActive = true;
+  mobilityActiveMapEngine = "wc";
+}
+
+function mobilityRouteStatusTitle() {
+  return (window.__mobilityLastMapOpts && window.__mobilityLastMapOpts.name) || placeIdLabelForRoute() || "";
+}
+
+async function mobilityPickerStart(mode, ctx) {
+  try {
+    if (mode === "accessible") await showMobilityAccessibleRoute(ctx);
+    else await showMobilityHybridRoute(ctx);
+    updateMapRouteButton({ routeActive: true });
+    setMapStatus(mobilityRouteStatusTitle() + " · " + t("routeActive"));
+  } catch (e) {
+    mobilityMapRouteActive = false;
+    logMap("error", "route start failed", { mode: mode, message: String(e && (e.message || e)) });
+    setMapStatus("");
+    throw e;
+  }
+}
+
+async function mobilityPickerClear() {
+  await hideMobilityHybridRoute();
+  mobilityMapRouteActive = false;
+  updateMapRouteButton({ routeActive: false });
+  setMapStatus(mobilityRouteStatusTitle());
+}
+
+function getMobilityRoutePicker() {
+  if (mobilityRoutePicker || !window.RouteModePicker) return mobilityRoutePicker;
+  const panel = document.getElementById("store-detail-panel");
+  if (!panel) return null;
+  try {
+    mobilityRoutePicker = RouteModePicker.create({
+      dock: { panel: panel, body: ".store-detail-head-text" },
+      isAvailable: mobilityRouteModeAvailable,
+      // Same engine for both modes only for a service that is on the Web Component.
+      canSwitchInPlace: function () { return !!lastServiceWcEntry && mobilityActiveMapEngine === "wc"; },
+      start: mobilityPickerStart,
+      clear: mobilityPickerClear,
+      log: function (line) { logMap("info", String(line)); },
+    });
+  } catch (e) {
+    logMap("warn", "route picker failed", { message: String(e && (e.message || e)) });
+  }
+  return mobilityRoutePicker;
+}
+
+async function showMobilityHybridRoute(ctx) {
   const opts = window.__mobilityLastMapOpts || {};
   const placeId = window.__mobilityLastWcPlaceId
     || opts.local
@@ -7008,6 +7133,8 @@ async function showMobilityHybridRoute() {
           originId: cfg.totemPlaceId,
           timeoutMs: 60000,
           destinationFloorId: mapvxFloorIdForServiceEntry(lastServiceWcEntry),
+          accessible: false,
+          onElement: mobilityRouteElementHook(ctx, "walk"),
         });
         setRouteTracingState(false);
         mobilityMapRouteActive = true;
@@ -7309,7 +7436,14 @@ function initMobilityWcRuntime() {
       // Hand the whole thing to the legacy renderer.
       onRouteStalled: function (info) {
         logMap("warn", "wc route stalled — legacy route fallback", info || {});
-        fallBackToLegacyRoute();
+        // The legacy renderer draws a WALKING route: tell the picker so it does not keep waiting
+        // for the Web Component, and say so if the visitor had asked for the accessible one.
+        const stalledPicker = getMobilityRoutePicker();
+        const wasAccessible = !!(stalledPicker && (stalledPicker.getMode() === "accessible" || stalledPicker.getPending() === "accessible"));
+        if (stalledPicker) stalledPicker.reset(true);
+        fallBackToLegacyRoute().then(function () {
+          if (stalledPicker && wasAccessible && typeof stalledPicker.notify === "function") stalledPicker.notify("failed");
+        });
       },
     });
     mobilityWcReady = true;
@@ -7650,6 +7784,8 @@ async function openServiceMapViaWc(opts) {
             originId: cfg.totemPlaceId,
             timeoutMs: 60000,
             destinationFloorId: mapvxFloorIdForServiceEntry(entry),
+            accessible: false,
+            onElement: mobilityRouteElementHook(null, "walk"),
           });
           setRouteTracingState(false);
           routed = true;

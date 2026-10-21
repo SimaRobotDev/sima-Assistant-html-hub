@@ -491,7 +491,7 @@ check("store-map-web loads mapvx-label-tuning.js before the MapVX bundles", idxO
 for (const [name, html] of [["mobility", mobilityLf], ["store-map (legacy)", read("store-map/index.html").replace(/\r\n/g, "\n")]]) {
   const list = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1].split("?")[0]);
   check(`${name} loads mapvx-label-tuning.js BEFORE mapvx-wc-runtime.js (which calls it)`, idxOf(list, "mapvx-label-tuning.js") >= 0 && idxOf(list, "mapvx-label-tuning.js") < idxOf(list, "mapvx-wc-runtime.js"));
-  check(`${name}: the runtime script URL carries the new cache-busting version`, /mapvx-wc-runtime\.js\?v=20261020/.test(html));
+  check(`${name}: the runtime script URL carries the new cache-busting version`, /mapvx-wc-runtime\.js\?v=20261021/.test(html));
 }
 
 // run each page's REAL hideGenericPoiIcons against the mock: hides the icon layers, then re-shows + tunes the labels
@@ -524,108 +524,168 @@ for (const [name, kind, src] of [["store-map-web", "smw", smwHtml], ["mapvx-wc-r
 }
 check("the label module is part of the OTA payload (listed in the runtime manifest after the next build)", existsSync(resolve(sima, "shared/mapvx-label-tuning.js")));
 
-// ---- "Ruta accesible" button (shared/mapvx-accessible-route.js): on request only, store-map-web + mobility
+// ---- "Ver ruta" / "Ruta accesible" picker (shared/route-mode-picker.js): two buttons in the detail card
 // MapVX's own walking/accessible switch lives in <route-options>, which never registers in our pages
-// (2nd bundle throws on define("custom-map")), so the button is ours. Wiring + a state-machine run on a mock DOM.
+// (2nd bundle throws on define("custom-map")), so the control is ours. The visitor picks BEFORE the route exists;
+// accessible routes are only ever on request. Wiring checks + the state machine run on a mock DOM.
 {
-  const accSrc = read("shared/mapvx-accessible-route.js");
+  const pickerSrc = read("shared/route-mode-picker.js");
   const runtimeSrc = read("shared/mapvx-wc-runtime.js").replace(/\r\n/g, "\n");
   const mobScripts = [...mobilityLf.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1].split("?")[0]);
-  check("store-map-web loads mapvx-accessible-route.js", idxOf(smwScripts, "mapvx-accessible-route.js") >= 0);
-  check("mobility loads mapvx-accessible-route.js BEFORE mapvx-wc-runtime.js (which attaches it)", idxOf(mobScripts, "mapvx-accessible-route.js") >= 0 && idxOf(mobScripts, "mapvx-accessible-route.js") < idxOf(mobScripts, "mapvx-wc-runtime.js"));
-  check("store-map-web attaches the button to the route element and tears it down on close", /MapVxAccessibleRoute\.attach\(routeEl/.test(smwHtml) && /function closeRouteView\(\) \{\s*destroyAccessibleRouteButton\(\);/.test(smwHtml));
-  check("runtime attaches the button on showRoute, and tears it down on closeRoute / before a new route", /attachAccessibleButton\(routeEl, cfg\)/.test(runtimeSrc) && /function closeRoute\(\) \{\s*destroyAccessibleButton\(\);/.test(runtimeSrc) && (runtimeSrc.match(/destroyAccessibleButton\(\);/g) || []).length >= 4);
-  check("runtime lets MAPVX_CONFIG.accessibleRouteButton=false switch it off (no OTA needed)", /cfg\.accessibleRouteButton/.test(runtimeSrc));
-  check("the accessible-route module is the ON-REQUEST design: nothing requests accessible=true on its own (route starts walking)", !/accessible-route["']?\s*,\s*["']?true|accessibleRoute:\s*true/.test(smwHtml + runtimeSrc));
+  check("the old floating-button module is gone and nothing references it", !existsSync(resolve(sima, "shared/mapvx-accessible-route.js")) && !/MapVxAccessibleRoute|mapvx-accessible-route/.test(smwHtml + mobilityLf + runtimeSrc));
+  check("store-map-web loads route-mode-picker.js", idxOf(smwScripts, "route-mode-picker.js") >= 0);
+  check("mobility loads route-mode-picker.js before the runtime", idxOf(mobScripts, "route-mode-picker.js") >= 0 && idxOf(mobScripts, "route-mode-picker.js") < idxOf(mobScripts, "mapvx-wc-runtime.js"));
+  check("store-map-web: the route element starts in the picked mode (accessible-route value) and is adopted by the picker", /setAttribute\("accessible-route", mode === "accessible" \? "true" : "false"\)/.test(smwHtml) && /picker\.adopt\(mode, routeEl\)/.test(smwHtml));
+  check("store-map-web: closing the route resets the picker; the old header pill is hidden by CSS", /function closeRouteView\(\) \{\s*if \(routePicker\) routePicker\.reset\(\);/.test(smwHtml) && /#route-toggle \{ display: none !important; \}/.test(smwHtml));
+  check("store-map-web: a route that fails to draw goes back to the store map, and closing a route disarms its 60 s 'too long' timer (it would otherwise ask the native app to close the webview)", /onStartFailed: function \(\) \{ closeRouteView\(\); \}/.test(smwHtml) && /function closeRouteView\(\) \{[\s\S]*?clearTimeout\(routeStatusTimeoutId\)/.test(smwHtml));
+  check("store-map-web: the buttons dock in the store card body", /dock: \{ panel: document\.getElementById\("store-detail"\), body: "\.store-detail-body" \}/.test(smwHtml));
+  check("mobility: the buttons dock in the detail card and the old header button is hidden by CSS", /dock: \{ panel: panel, body: "\.store-detail-head-text" \}/.test(mobilityLf) && /#map-route-btn \{ display: none !important; \}/.test(mobilityLf));
+  check("runtime: showRoute sets accessible-route from options.accessible BEFORE the ids and hands the element to options.onElement", /setAttribute\("accessible-route", options\.accessible \? "true" : "false"\)/.test(runtimeSrc) && /options\.onElement\(routeEl\)/.test(runtimeSrc) && runtimeSrc.indexOf('setAttribute("accessible-route"') < runtimeSrc.indexOf("applyRouteCredentials(routeEl, cfg, origin, dest);"));
+  check("ON REQUEST only: the only place that asks for accessible:true is the picker's own accessible action (mobility); smw/runtime never do", (mobilityLf.match(/accessible: true/g) || []).length === 1 && !/accessible: true/.test(smwHtml + runtimeSrc));
+  const accFn = (mobilityLf.match(/async function showMobilityAccessibleRoute\(ctx\) \{[\s\S]*?\n\}\n/) || [""])[0];
+  check("mobility: an accessible route never silently falls back to a walking (legacy) one", accFn.length > 200 && !/openPoiMapViaMapVx|fallBackToLegacyRoute/.test(accFn));
+  check("mobility: a store's 'Ver ruta' stays on the legacy hybrid draw (the accessible one is the only new Web Component path)", /await openPoiMapViaMapVx\(Object\.assign\(\{\}, opts, \{\s*mode: "navigation"/.test(mobilityLf));
   for (const [n, src] of [["runtime route element", runtimeSrc], ["store-map-web route element", smwHtml], ["mapvx-embed route element", read("mapvx-embed/store-map.html")]]) {
     check(`${n} pins enable-3d=false and marker-variant=full (0.13.0 flipped both defaults)`, /setAttribute\("enable-3d", "false"\)/.test(src) && /setAttribute\("marker-variant", "full"\)/.test(src));
   }
 
   // --- the module itself, on a minimal mock DOM
   const mkEl = (tag) => {
-    const el = { tag, children: [], attrs: {}, listeners: {}, classes: new Set(), parentNode: null, disabled: false, title: "", textContent: "", _html: "" };
+    const el = { tag, children: [], attrs: {}, listeners: {}, classes: new Set(), parentNode: null, disabled: false, hidden: false, title: "", textContent: "", _html: "", type: "" };
     el.setAttribute = (k, v) => { el.attrs[k] = String(v); };
     el.getAttribute = (k) => el.attrs[k];
-    el.appendChild = (c) => { c.parentNode = el; el.children.push(c); return c; };
+    el.appendChild = (c) => { if (c.parentNode) c.parentNode.removeChild(c); c.parentNode = el; el.children.push(c); return c; };
+    el.insertBefore = (c, ref) => { if (c.parentNode) c.parentNode.removeChild(c); c.parentNode = el; const i = ref ? el.children.indexOf(ref) : -1; if (i < 0) el.children.push(c); else el.children.splice(i, 0, c); return c; };
     el.removeChild = (c) => { el.children = el.children.filter((x) => x !== c); c.parentNode = null; };
     el.addEventListener = (t, f) => { (el.listeners[t] = el.listeners[t] || []).push(f); };
     el.removeEventListener = (t, f) => { el.listeners[t] = (el.listeners[t] || []).filter((x) => x !== f); };
     el.classList = { toggle: (c, on) => (on ? el.classes.add(c) : el.classes.delete(c)), contains: (c) => el.classes.has(c) };
     Object.defineProperty(el, "className", { set(v) { el.classes = new Set(String(v).split(/\s+/).filter(Boolean)); }, get() { return [...el.classes].join(" "); } });
-    Object.defineProperty(el, "innerHTML", { set(v) { el._html = v; el.children = [mkEl("svg"), mkEl("span")]; }, get() { return el._html; } });
+    Object.defineProperty(el, "innerHTML", { set(v) { el._html = v; el.children = [mkEl("svg"), mkEl("span")]; el.children.forEach((c) => { c.parentNode = el; }); }, get() { return el._html; } });
     Object.defineProperty(el, "lastChild", { get() { return el.children[el.children.length - 1]; } });
+    Object.defineProperty(el, "firstChild", { get() { return el.children[0] || null; } });
     el.click = () => (el.listeners.click || []).slice().forEach((f) => f({ type: "click" }));
     return el;
   };
-  const head = mkEl("head");
   const win = { MALL_LOCALE: "es", addEventListener() {}, removeEventListener() {} };
   win.window = win;
-  const doc = { head, getElementById: () => null, createElement: mkEl };
-  vm.runInContext(accSrc, vm.createContext({ window: win, document: doc, console, setTimeout, clearTimeout }), { filename: "mapvx-accessible-route.js" });
-  const ACC = win.MapVxAccessibleRoute;
-  check("accessible-route module loads and exposes attach()", !!ACC && typeof ACC.attach === "function");
-  if (ACC) {
+  const doc = { head: mkEl("head"), getElementById: () => null, createElement: mkEl };
+  vm.runInContext(pickerSrc, vm.createContext({ window: win, document: doc, console, setTimeout, clearTimeout, Promise }), { filename: "route-mode-picker.js" });
+  const RMP = win.RouteModePicker;
+  check("route-mode-picker loads and exposes create()", !!RMP && typeof RMP.create === "function");
+  if (RMP) {
     const keys = (p) => Object.keys(p).sort().join(",");
-    check("es/en/pt strings carry the same keys, all non-empty", keys(ACC.PACK.es) === keys(ACC.PACK.en) && keys(ACC.PACK.en) === keys(ACC.PACK.pt) && ["es", "en", "pt"].every((l) => Object.values(ACC.PACK[l]).every((v) => typeof v === "string" && v.trim())));
-
+    check("es/en/pt strings carry the same keys, all non-empty", keys(RMP.PACK.es) === keys(RMP.PACK.en) && keys(RMP.PACK.en) === keys(RMP.PACK.pt) && ["es", "en", "pt"].every((l) => Object.values(RMP.PACK[l]).every((v) => typeof v === "string" && v.trim())));
+    check("both Figma icons are inlined with currentColor (so the active state can invert them) and no hard-coded purple", /currentColor/.test(RMP.ICONS.walk) && /currentColor/.test(RMP.ICONS.accessible) && !/#584E80/i.test(RMP.ICONS.walk + RMP.ICONS.accessible));
+    const tick = () => new Promise((r) => setTimeout(r, 5));
+    const fireR = async (t, d) => { host.route.fire(t, d); await tick(); };
     const mkRoute = () => {
       const r = mkEl("route-view-totems");
-      r.isConnected = true;
-      r.calls = [];
-      r.next = { success: true };
+      r.isConnected = true; r.calls = []; r.next = { success: true };
       r.updateComponent = (p) => { r.calls.push(p); return Promise.resolve(r.next); };
       r.fire = (type, detail) => (r.listeners[type] || []).slice().forEach((f) => f({ type, detail }));
       return r;
     };
-    const tick = () => new Promise((r) => setImmediate(r));
-    const route = mkRoute(); const stage = mkEl("div"); const logs = [];
-    const ctl = ACC.attach(route, { container: stage, log: (s) => logs.push(s) });
-    const wrap = stage.children[0]; const btn = wrap.children[0]; const toast = wrap.children[1];
-    const label = () => btn.lastChild.textContent;
-    check("starts hidden: no button until the first route is drawn (and it starts as a walking route)", wrap.classList.contains("mvx-acc-hidden") && !ctl.isOn() && route.calls.length === 0);
+    const body = mkEl("div"); const panel = { querySelector: () => body };
+    const host = { starts: [], clears: 0, route: null, inPlace: true, avail: true, failNext: null, bindIt: true, legacyWalk: false };
+    const picker = RMP.create({
+      dock: { panel, body: ".store-detail-body" },
+      start: (mode, ctx) => { host.starts.push(mode); if (host.failNext) { const e = host.failNext; host.failNext = null; return Promise.reject(e); } if (host.bindIt && !(host.legacyWalk && mode === "walk")) { host.route = mkRoute(); ctx.bind(host.route); } return Promise.resolve(); },
+      clear: () => { host.clears += 1; host.route = null; return Promise.resolve(); },
+      canSwitchInPlace: () => host.inPlace,
+      isAvailable: (m) => m !== "accessible" || host.avail,
+      onStartFailed: () => { host.startFailed = (host.startFailed || 0) + 1; },
+      log: () => {},
+    });
+    const group = picker.element; const walk = group.children[0]; const acc = group.children[1]; const note = group.children[2];
+    const lbl = (b) => b.lastChild.textContent;
+    const pressed = (b) => b.attrs["aria-pressed"] === "true";
 
-    route.fire("startRouteAnimation");
-    check("first route drawn → button appears, not pressed, es label", !wrap.classList.contains("mvx-acc-hidden") && btn.attrs["aria-pressed"] === "false" && label() === ACC.PACK.es.label && !btn.disabled);
+    check("docked: the group is the FIRST child of the card body (the text wraps around it, nothing is covered)", body.firstChild === group);
+    body.children = []; body.appendChild(mkEl("h2")); picker.dockInto(body);
+    check("re-docks first after the card is re-rendered", body.firstChild === group && body.children.length === 2);
+    check("starts with nothing pressed, es labels 'Ver ruta' / 'Ruta accesible'", !pressed(walk) && !pressed(acc) && lbl(walk) === RMP.PACK.es.walk && lbl(acc) === RMP.PACK.es.accessible && picker.getMode() === null);
+    picker.setVisible(false);
+    check("setVisible(false) hides the pair (no totem origin → nothing to route from)", group.hidden === true);
+    picker.setVisible(true);
 
-    btn.click();
-    check("tap → asks the component for the accessible route (updateComponent({accessibleRoute:true})) and disables while calculating", route.calls.length === 1 && route.calls[0].accessibleRoute === true && Object.keys(route.calls[0]).length === 1 && btn.disabled && label() === ACC.PACK.es.pending);
-    btn.click();
-    check("taps while calculating are ignored", route.calls.length === 1);
-    await tick(); route.fire("startRouteAnimation");
-    check("route redrawn → button is pressed (on) and enabled", ctl.isOn() && btn.attrs["aria-pressed"] === "true" && !btn.disabled && label() === ACC.PACK.es.labelOn);
+    acc.click();
+    check("choosing 'Ruta accesible' BEFORE any route starts the accessible route directly", host.starts.join() === "accessible" && lbl(acc) === RMP.PACK.es.pending && walk.disabled && acc.disabled);
+    acc.click();
+    check("taps while calculating are ignored", host.starts.length === 1);
+    await tick(); await fireR("startRouteAnimation");
+    check("route drawn → 'Ruta accesible' is the active (pressed) one, both enabled", picker.getMode() === "accessible" && pressed(acc) && !pressed(walk) && !acc.disabled && !walk.disabled && lbl(acc) === RMP.PACK.es.accessible);
 
-    win.MALL_LOCALE = "en"; btn.click(); await tick();
-    check("tap again → back to the walking route (accessibleRoute:false); strings follow the locale", route.calls.length === 2 && route.calls[1].accessibleRoute === false && label() === ACC.PACK.en.pending);
-    route.fire("mvxLoadingChange", { loading: false });
-    check("a 'loading:false' with no 'loading:true' first is NOT taken as done (stale event)", ctl.isPending());
-    route.fire("mvxLoadingChange", { loading: true }); route.fire("mvxLoadingChange", { loading: false });
-    check("loading true→false settles the request: walking route again, button off", !ctl.isPending() && !ctl.isOn() && label() === ACC.PACK.en.label);
+    walk.click(); await tick();
+    check("tapping the other one switches IN PLACE (updateComponent), the target shows 'Calculando…'", host.route.calls.length === 1 && host.route.calls[0].accessibleRoute === false && Object.keys(host.route.calls[0]).length === 1 && lbl(walk) === RMP.PACK.es.pending);
+    await fireR("mvxLoadingChange", { loading: false });
+    check("a 'loading:false' with no 'loading:true' before it is a stale event, not 'done'", picker.getMode() === "accessible");
+    await fireR("mvxLoadingChange", { loading: true }); await fireR("mvxLoadingChange", { loading: false });
+    check("loading true→false settles the switch: 'Ver ruta' (walking) is now active", picker.getMode() === "walk" && pressed(walk) && !pressed(acc));
 
-    // failure: no accessible route exists → keep walking, tell the visitor, and put the component back
-    win.MALL_LOCALE = "pt"; btn.click(); await tick();
-    route.fire("mvxError", { code: "ROUTE_NOT_FOUND", message: "x" });
-    check("no accessible route (ROUTE_NOT_FOUND) → stays off, shows the 'unavailable' notice in the locale", !ctl.isOn() && toast.textContent === ACC.PACK.pt.unavailable);
-    check("…and re-requests the walking route so the component's mode matches what is on screen (else the next tap is a no-op)", route.calls.length === 4 && route.calls[3].accessibleRoute === false && btn.disabled && label() === ACC.PACK.pt.label);
-    route.fire("startRouteAnimation");
-    btn.click(); await tick();
-    check("after a failure the next tap really re-requests the accessible route", btn.disabled && route.calls.length === 5 && route.calls[4].accessibleRoute === true);
-    route.fire("startRouteAnimation");
-    btn.click(); await tick(); route.fire("startRouteAnimation"); // back to walking so the next request is "turn on"
+    win.MALL_LOCALE = "en";
+    acc.click(); await tick();
+    await fireR("mvxError", { code: "ROUTE_NOT_FOUND", message: "x" });
+    check("no accessible route (ROUTE_NOT_FOUND): stays on the walking route, says so in the locale", picker.getMode() === "walk" && note.textContent === RMP.PACK.en.unavailable && pressed(walk));
+    check("…and re-requests the walking mode so the component matches the screen (else the next tap is a no-op)", host.route.calls.length === 3 && host.route.calls[2].accessibleRoute === false && lbl(acc) === RMP.PACK.en.accessible);
+    await fireR("startRouteAnimation");
+    acc.click(); await tick();
+    check("after a failure the next tap really re-requests the accessible route", host.route.calls.length === 4 && host.route.calls[3].accessibleRoute === true);
+    await fireR("startRouteAnimation");
+    check("…and it works this time", picker.getMode() === "accessible");
 
-    route.next = { success: false, error: "boom" };
-    btn.click(); await tick();
-    check("updateComponent reporting success:false is a failure too (button not left on, visitor told)", !ctl.isOn() && /request failed/.test(logs.join(" ")) && toast.textContent === ACC.PACK.pt.failed);
-    route.fire("startRouteAnimation");
-    route.next = { success: true }; btn.click(); await tick(); route.fire("startRouteAnimation"); // on again
-    route.next = { success: false, error: "boom" }; btn.click(); await tick(); // fail while going BACK to walking
-    check("failing to go back to the walking route keeps it on and says so — never 'no accessible route'", ctl.isOn() && toast.textContent === ACC.PACK.pt.failedWalking && toast.textContent !== ACC.PACK.pt.unavailable);
-    route.fire("startRouteAnimation");
+    host.route.next = { success: false, error: "boom" };
+    walk.click(); await tick();
+    check("updateComponent reporting success:false while going BACK to walking keeps the accessible route and says 'could not change' (never 'no accessible route')", picker.getMode() === "accessible" && note.textContent === RMP.PACK.en.failedBack);
+    await fireR("startRouteAnimation"); host.route.next = { success: true };
 
-    ctl.destroy();
-    check("destroy() removes the button and the listeners (later events are harmless)", stage.children.length === 0 && (route.listeners.startRouteAnimation || []).length === 0 && (() => { try { route.fire("startRouteAnimation"); route.fire("mvxError", {}); return true; } catch (e) { return false; } })());
-    const ctl2 = ACC.attach(route, { container: stage }); const ctl3 = ACC.attach(route, { container: stage });
-    check("attaching twice to the same route element leaves a single button", stage.children.length === 1);
-    ctl3.destroy(); ctl2.destroy();
+    acc.click(); await tick();
+    check("tapping the ACTIVE button removes the route (clear) and nothing stays pressed", host.clears === 1 && picker.getMode() === null && !pressed(acc) && !pressed(walk));
+
+    // start failures
+    host.failNext = Object.assign(new Error("x"), { code: "ROUTE_NOT_FOUND" });
+    acc.click(); await tick();
+    check("accessible route that cannot be drawn: nothing active, 'unavailable' notice", picker.getMode() === null && note.textContent === RMP.PACK.en.unavailable && !acc.disabled);
+    check("…and the page is told (onStartFailed) so it can drop the half-drawn 'Cargando ruta…' view", host.startFailed === 1);
+    host.failNext = new Error("boom");
+    walk.click(); await tick();
+    check("walking route that cannot be drawn: nothing active, plain 'could not calculate'", picker.getMode() === null && note.textContent === RMP.PACK.en.failedWalk);
+
+    // cross-engine (a store in mobility: 'Ver ruta' = legacy, no route element; 'Ruta accesible' = Web Component)
+    host.legacyWalk = true; host.inPlace = false; host.starts = []; host.clears = 0;
+    walk.click(); await tick();
+    check("legacy walking route (no route element): active as soon as start() resolves", picker.getMode() === "walk" && host.starts.join() === "walk");
+    acc.click(); await tick(); await fireR("startRouteAnimation"); await tick();
+    check("walking → accessible across engines = clear the old route, then draw the new one", host.clears === 1 && host.starts.join() === "walk,accessible" && picker.getMode() === "accessible");
+    host.failNext = null;
+    host.starts = []; host.clears = 0;
+    walk.click(); await tick();
+    check("accessible → walking across engines = clear, then the legacy route again", host.clears === 1 && host.starts.join() === "walk" && picker.getMode() === "walk");
+    host.failNext = new Error("boom"); host.starts = []; host.clears = 0;
+    acc.click(); await tick();
+    check("if the new route fails, the visitor is put back on the one they had (walking) and told", host.clears === 1 && host.starts.join() === "accessible,walk" && picker.getMode() === "walk" && note.textContent === RMP.PACK.en.failed);
+    host.failNext = null; host.inPlace = true; host.legacyWalk = false;
+
+    // availability
+    host.avail = false; picker.refresh(); host.starts = [];
+    acc.click(); await tick();
+    check("where an accessible route is not possible (e.g. a legacy-only place): button dimmed, tap explains, nothing starts", acc.classes.has("rmp-unavailable") && acc.attrs["aria-disabled"] === "true" && host.starts.length === 0 && note.textContent === RMP.PACK.en.unsupported);
+    host.avail = true; picker.refresh();
+
+    // a route the PAGE started (native payload, ?route=1, auto-route)
+    picker.reset(true);
+    const nativeRoute = mkRoute(); picker.adopt("walk", nativeRoute);
+    check("adopt(): a route started by the page is followed — pending until it draws, then 'Ver ruta' is active", picker.getPending() === "walk" && lbl(walk) === RMP.PACK.en.pending);
+    picker.reset();
+    check("a soft reset() is ignored while a route is being drawn (the page's map resets land mid-draw)", picker.getPending() === "walk");
+    await (async () => { nativeRoute.fire("startRouteAnimation"); await tick(); })();
+    check("…and the route then settles as active", picker.getMode() === "walk" && !picker.isBusy());
+    picker.reset();
+    check("reset() when the route is gone clears the pair", picker.getMode() === null && !pressed(walk));
+    check("labels follow the locale", (win.MALL_LOCALE = "pt", picker.refresh(), lbl(walk) === RMP.PACK.pt.walk && lbl(acc) === RMP.PACK.pt.accessible));
+
+    picker.destroy();
+    check("destroy() removes the group from the card", group.parentNode === null && !body.children.includes(group));
   }
 }
 
@@ -663,7 +723,7 @@ check("the label module is part of the OTA payload (listed in the runtime manife
   const rt = read("shared/mapvx-wc-runtime.js").replace(/\r\n/g, "\n");
   const mobFloors = mobilityLf;
   check("runtime: showRoute sets destination-floor-id BEFORE the ids, and showPlace re-applies the floor via sdkController.setFloor", /setAttribute\("destination-floor-id", destFloorId\)/.test(rt) && rt.indexOf('setAttribute("destination-floor-id"') < rt.indexOf("applyRouteCredentials(routeEl, cfg, origin, dest);") && /sdkController/.test(rt) && /ctl\.setFloor\(floorId\)/.test(rt));
-  check("mobility: all three service call sites pass the floor (showPlace floorId, two showRoute destinationFloorId)", (mobFloors.match(/destinationFloorId: mapvxFloorIdForServiceEntry\(/g) || []).length === 2 && /floorId: mapvxFloorIdForServiceEntry\(entry\)/.test(mobFloors));
+  check("mobility: every service route passes the floor (walk, accessible and the auto-route showRoute, plus showPlace floorId)", (mobFloors.match(/destinationFloorId: mapvxFloorIdForServiceEntry\(/g) || []).length === 3 && /floorId: mapvxFloorIdForServiceEntry\(entry\)/.test(mobFloors));
 }
 
 // ---- Location references of bathrooms / changing tables / nursing room (corrected 2026-10-20 against the real MapVX data)
@@ -696,7 +756,7 @@ check("the label module is part of the OTA payload (listed in the runtime manife
 }
 
 // external scripts the map pages depend on must parse too (a syntax slip silently disables the whole map code)
-for (const f of ["shared/mapvx-wc-runtime.js", "shared/mapvx-label-tuning.js", "shared/mapvx-accessible-route.js", "shared/services-catalog.js"]) {
+for (const f of ["shared/mapvx-wc-runtime.js", "shared/mapvx-label-tuning.js", "shared/route-mode-picker.js", "shared/services-catalog.js"]) {
   let err = "";
   try { new vm.Script(read(f), { filename: f }); } catch (e) { err = e.message; }
   check(`${f} parses`, !err, err);

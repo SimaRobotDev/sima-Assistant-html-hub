@@ -958,33 +958,7 @@
     });
   }
 
-  // "Ruta accesible" button (shared/mapvx-accessible-route.js): on request only,
-  // one per route element, drawn over the route view. MAPVX_CONFIG.accessibleRouteButton
-  // = false turns it off without an OTA.
-  function destroyAccessibleButton() {
-    if (state.accessibleCtl) {
-      try { state.accessibleCtl.destroy(); } catch (e) { /* noop */ }
-      state.accessibleCtl = null;
-    }
-  }
-
-  function attachAccessibleButton(routeEl, cfg) {
-    destroyAccessibleButton();
-    if (!global.MapVxAccessibleRoute || !state.routeView) return;
-    var flag = cfg && cfg.accessibleRouteButton;
-    if (flag === false || flag === "false" || flag === 0 || flag === "0") return;
-    try {
-      state.accessibleCtl = global.MapVxAccessibleRoute.attach(routeEl, {
-        container: state.routeView,
-        log: log,
-      });
-    } catch (e) {
-      log("accessible-route button failed: " + (e && e.message ? e.message : e));
-    }
-  }
-
   function closeRoute() {
-    destroyAccessibleButton();
     clearRouteTimeout();
     clearStallWatchdog();
     // Drop the route popup's observer, but keep state.genericLabel and re-apply
@@ -1060,7 +1034,6 @@
         // (closeRoute would fight the view switch below).
         clearRouteTimeout();
         clearStallWatchdog();
-        destroyAccessibleButton();
         state.routeActive = false;
         state.routeMount.innerHTML = "";
         state.lastPlaceId = dest;
@@ -1082,6 +1055,14 @@
         // taken from the catalog's verified floor table.
         var destFloorId = text(options.destinationFloorId);
         if (destFloorId) routeEl.setAttribute("destination-floor-id", destFloorId);
+        // Route type the visitor picked ("Ver ruta" vs "Ruta accesible", shared/route-mode-picker.js).
+        // Accessible routes are only ever on request: the default is the walking route.
+        routeEl.setAttribute("accessible-route", options.accessible ? "true" : "false");
+        // Hand the element to the caller right away, so it can listen for
+        // startRouteAnimation / mvxError from the very first moment.
+        if (typeof options.onElement === "function") {
+          try { options.onElement(routeEl); } catch (eEl) { /* noop */ }
+        }
         routeEl.setAttribute(
           "style",
           "--mvx-primary-color:#5B2D8E; --mvx-surface-color:#ffffff; --mvx-on-surface-color:#3D1D5C;"
@@ -1121,7 +1102,6 @@
           stopGenerate();
           clearRouteTimeout();
           clearStallWatchdog();
-          destroyAccessibleButton();
           state.routeActive = false;
           setActiveView("place");
           var err = reason instanceof Error ? reason : new Error(String(reason || "wc showRoute failed"));
@@ -1259,7 +1239,6 @@
         });
 
         state.routeMount.appendChild(routeEl);
-        attachAccessibleButton(routeEl, cfg);
         hideVendorLoadingOverlay(routeEl);
         // Sync credentials immediately after append — same as store-map-web.
         applyRouteCredentials(routeEl, cfg, origin, dest);
