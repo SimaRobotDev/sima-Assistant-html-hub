@@ -854,6 +854,13 @@ function pickNameFromPayload(source) {
   return "";
 }
 
+// Tipo de ruta que pide quien abre la pantalla (la app, por payload o por ?routeMode=): "accessible" arranca la ruta accesible; todo lo demás, a pie.
+// Sin esto la ruta salía siempre a pie ("?route=1") y el botón "Ruta accesible" de la burbuja del chat abría la ruta por escaleras.
+function pickRouteMode(source) {
+  const raw = source && (source.routeMode || source.route_mode);
+  return String(raw || "").toLowerCase() === "accessible" ? "accessible" : "walk";
+}
+
 function openStoreMapFromPayload(source, meta) {
   // Clear any detail card left over from the PREVIOUS store before this
   // one's own applyStoreDetail (if any) arrives — otherwise a visitor
@@ -914,7 +921,7 @@ function openStoreMapFromPayload(source, meta) {
       log((meta.source) + ": route requested but no totemPlaceId configured");
       return;
     }
-    showRouteView(cfg, placeId);
+    showRouteView(cfg, placeId, undefined, { mode: pickRouteMode(source) });
     return;
   }
   if (isStoreChange) {
@@ -1952,7 +1959,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (placeId) scheduleFallbackRouteQr(placeId);
   if (placeId && /^(1|true|yes)$/i.test(queryParams().route || "")) {
     if (cfg.totemPlaceId) {
-      showRouteView(cfg, placeId, pickNameFromPayload(queryParams()));
+      showRouteView(cfg, placeId, pickNameFromPayload(queryParams()), { mode: pickRouteMode(queryParams()) });
     } else {
       log("?route=1 requested but no totemPlaceId configured yet");
     }
