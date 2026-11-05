@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.09.02-55",
+  "version": "2026.11.05-56",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-10-22T16:22:26.465Z",
+  "generatedAt": "2026-11-05T14:28:07.711Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -211,7 +211,7 @@
     {
       "path": "mobility/index.html",
       "size": 299330,
-      "sha256": "e83f544f24bd829266b7061ff260dfa96fcc7233534a7247178c098c2cbdf94f"
+      "sha256": "0980e9a1c9a84c37a181fa6294b957cf0732c8094df60e313d97582cb8dd2cdb"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -257,6 +257,11 @@
       "path": "shared/app.css",
       "size": 5329,
       "sha256": "202c7b995387137c50ae606408b3443b96e43b9be353653c5387b6c5aa6a273f"
+    },
+    {
+      "path": "shared/brand/auto-city-logo.png",
+      "size": 47049,
+      "sha256": "5e3dc884d036915c7ff3d813c6f1de98576a24dc43b2306f884ab7f8785aedfd"
     },
     {
       "path": "shared/brand/cenco-malls-logo.svg",
@@ -615,8 +620,8 @@
     },
     {
       "path": "shared/store-detail.js",
-      "size": 11593,
-      "sha256": "80bf7dfd5cabf3a35776ab7e655d2a6ff6122964ea23e14fb3700bddd3d8d842"
+      "size": 12816,
+      "sha256": "e969a314593338266ac5d01af88793240b25991e5bf4a67afd03d00ce0c2f420"
     },
     {
       "path": "shared/store-logos/casa-ideas.png",
@@ -681,12 +686,12 @@
     {
       "path": "store-map-web/index.html",
       "size": 84521,
-      "sha256": "e3fc99dc0117b9d399c93dbcf5653da1d9d5c833d47407d1bf0b56e45fdf1186"
+      "sha256": "78915726779f5101da80cc6706eec5f2e940c25e540e1add6d55e7d555c92444"
     },
     {
       "path": "store-map/index.html",
       "size": 44773,
-      "sha256": "5e5e24e82822e206cc3e2ece94465bb913c202f4269f8096d020d7425ab06cfb"
+      "sha256": "0c553e3ddc57b9995c753e70c451e32e5ce61da2ddc43494f9d2939bb0bb5240"
     },
     {
       "path": "taxi/index.html",
