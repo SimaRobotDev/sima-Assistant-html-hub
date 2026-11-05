@@ -63,10 +63,42 @@
     return photos.length ? mediaUrl(photos[0]) : "";
   }
 
+  // Logos que el catálogo de Cenco no trae (5-nov, pedido de Juan): Auto City es una zona, no una marca con ficha de logo, y la tarjeta mostraba "AC".
+  // El archivo vive en este repo (shared/brand/) y se resuelve desde donde se cargó ESTE script, no desde el sitio de Cenco (siteOrigin apunta a
+  // cencomalls.cl): así funciona igual desde el caché OTA del tótem (file://) que desde Vercel.
+  var SCRIPT_URL = (function () {
+    try {
+      var current = global.document && global.document.currentScript;
+      return current && current.src ? current.src : "";
+    } catch (error) {
+      return "";
+    }
+  })();
+  var LOCAL_BRAND_LOGOS = [
+    { name: /^auto[\s-]?city$/i, file: "brand/auto-city-logo.png" }
+  ];
+
+  function localBrandLogo(store) {
+    var name = text(store && (
+      store.name || store.brand || store.brand_name || store.market_name
+    ));
+    if (!name || !SCRIPT_URL) return "";
+    for (var i = 0; i < LOCAL_BRAND_LOGOS.length; i += 1) {
+      if (LOCAL_BRAND_LOGOS[i].name.test(name)) {
+        try {
+          return new URL(LOCAL_BRAND_LOGOS[i].file, SCRIPT_URL).href;
+        } catch (error) {
+          return "";
+        }
+      }
+    }
+    return "";
+  }
+
   function logoUrl(store) {
     return mediaUrl(store && (
       store.logoUrl || store.LogoUrl || store.logo || store.brand_logo
-    ));
+    )) || localBrandLogo(store);
   }
 
   function initials(name) {
