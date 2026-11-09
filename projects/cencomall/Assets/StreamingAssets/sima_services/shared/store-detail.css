@@ -121,7 +121,24 @@
   -webkit-line-clamp: 4;
 }
 
+/* Opt-in (class fit-media, set on the panel by store-map-web): the header is exactly as
+   tall as the photo. The text column is clipped to that height; StoreDetail.render
+   trims the description / schedule line clamps so nothing is cut mid-line (see fitToMedia). */
+.store-detail-panel.fit-media .store-detail-header {
+  height: 117px;
+}
+
+.store-detail-panel.fit-media .store-detail-body {
+  height: 117px;
+  overflow: hidden;
+}
+
 @media (max-width: 520px) {
+  .store-detail-panel.fit-media .store-detail-header,
+  .store-detail-panel.fit-media .store-detail-body {
+    height: 84px;
+  }
+
   .store-detail-media {
     width: 112px;
     height: 84px;

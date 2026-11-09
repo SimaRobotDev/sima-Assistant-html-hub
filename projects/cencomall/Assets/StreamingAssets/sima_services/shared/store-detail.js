@@ -356,6 +356,60 @@
         "</div>" +
       "</div>";
     container.classList.remove("hidden");
+    fitToMedia(container);
+  }
+
+  // Only for panels with class "fit-media": the header is as tall as the photo, so the
+  // description (4 lines max) and then the schedule (2 lines max) are cut down to whole
+  // lines until the text column fits; the description is dropped when not even one line
+  // fits. Re-run when fonts finish loading or the viewport changes, since both move the
+  // line breaks.
+  function fitToMedia(container) {
+    if (!container || !container.classList || !container.classList.contains("fit-media")) return;
+    var run = function () {
+      var body = container.querySelector(".store-detail-body");
+      var media = container.querySelector(".store-detail-media");
+      var desc = container.querySelector(".store-detail-description");
+      var sched = container.querySelector(".store-detail-schedule");
+      if (!body || !media || container.classList.contains("hidden")) return;
+      var limit = body.clientHeight || media.offsetHeight;
+      if (!limit) return;
+      // Measure only the text blocks: the docked route picker floats at the right and
+      // is sized separately, so it must not count as overflow.
+      var fits = function () {
+        var top = body.getBoundingClientRect().top;
+        var bottom = 0;
+        Array.prototype.forEach.call(body.children, function (el) {
+          if (el.classList.contains("rmp-group") || el.style.display === "none") return;
+          var r = el.getBoundingClientRect();
+          if (r.height > 0) bottom = Math.max(bottom, r.bottom - top);
+        });
+        return bottom <= limit + 1;
+      };
+      if (desc) { desc.style.display = ""; desc.style.webkitLineClamp = "4"; }
+      if (sched) sched.style.webkitLineClamp = "";
+      if (fits()) return;
+      if (desc) {
+        for (var n = 3; n >= 1; n--) {
+          desc.style.webkitLineClamp = String(n);
+          if (fits()) return;
+        }
+        desc.style.display = "none";
+        if (fits()) return;
+      }
+      if (sched) {
+        sched.style.display = "-webkit-box";
+        sched.style.overflow = "hidden";
+        sched.style.webkitBoxOrient = "vertical";
+        sched.style.webkitLineClamp = "1";
+      }
+    };
+    run();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(run);
+    if (!container.__fitBound) {
+      container.__fitBound = true;
+      window.addEventListener("resize", run);
+    }
   }
 
   async function enrich(store) {
