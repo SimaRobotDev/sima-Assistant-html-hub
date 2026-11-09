@@ -408,8 +408,26 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(run);
     if (!container.__fitBound) {
       container.__fitBound = true;
-      window.addEventListener("resize", run);
+      // Latest fit function (each render creates a new one over the same container).
+      var again = function () { if (container.__fitRun) container.__fitRun(); };
+      window.addEventListener("resize", again);
+      // The route-mode picker docks into the text column AFTER render and floats right,
+      // which narrows the text and can add lines: measure again whenever the panel's
+      // markup changes. Only childList changes are watched; the line clamps we set are
+      // style changes, so this cannot loop.
+      if (typeof MutationObserver === "function") {
+        var queued = false;
+        new MutationObserver(function () {
+          if (queued) return;
+          queued = true;
+          (window.requestAnimationFrame || setTimeout)(function () { queued = false; again(); });
+        }).observe(container, { childList: true, subtree: true });
+      }
+      if (typeof ResizeObserver === "function") {
+        new ResizeObserver(function () { again(); }).observe(container);
+      }
     }
+    container.__fitRun = run;
   }
 
   async function enrich(store) {

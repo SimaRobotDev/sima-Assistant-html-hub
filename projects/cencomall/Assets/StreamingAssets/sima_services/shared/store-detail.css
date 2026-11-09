@@ -122,18 +122,40 @@
 }
 
 /* Opt-in (class fit-media, set on the panel by store-map-web): the header is exactly as
-   tall as the photo. The text column is clipped to that height; StoreDetail.render
-   trims the description / schedule line clamps so nothing is cut mid-line (see fitToMedia). */
+   tall as the photo, and everything in it (photo, text, route buttons) scales with the
+   available width instead of using fixed pixel sizes. The photo keeps 4:3 (156x117 at
+   its widest); the docked route picker (shared/route-mode-picker.js) stays BESIDE the
+   text at any width, its two buttons splitting the photo's height. The text column is
+   clipped to that height and StoreDetail.render trims the description / schedule line
+   clamps so nothing is cut mid-line (see fitToMedia). */
+.store-detail-panel.fit-media {
+  --sd-media-w: clamp(100px, 17vw, 156px);
+  --sd-media-h: calc(var(--sd-media-w) * 0.75);
+  --sd-gap: clamp(8px, 1.3vw, 12px);
+  padding: clamp(10px, 1.7vw, 16px);
+}
+
 .store-detail-panel.fit-media .store-detail-header {
-  height: 117px;
+  height: var(--sd-media-h);
+  gap: var(--sd-gap);
+}
+
+.store-detail-panel.fit-media .store-detail-media {
+  width: var(--sd-media-w);
+  height: var(--sd-media-h);
+  flex: 0 0 var(--sd-media-w);
 }
 
 .store-detail-panel.fit-media .store-detail-body {
-  height: 117px;
+  height: var(--sd-media-h);
   overflow: hidden;
 }
 
-/* Tighter spacing so a description still fits next to the 117px photo. */
+.store-detail-panel.fit-media .store-detail-name {
+  font-size: clamp(15px, 2.1vw, 20px);
+}
+
+/* Tighter spacing so a description still fits next to the photo. */
 .store-detail-panel.fit-media .store-detail-meta {
   margin-top: 4px;
 }
@@ -141,16 +163,36 @@
 .store-detail-panel.fit-media .store-detail-schedule,
 .store-detail-panel.fit-media .store-detail-description {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: clamp(11px, 1.5vw, 12px);
   line-height: 1.35;
 }
 
-@media (max-width: 520px) {
-  .store-detail-panel.fit-media .store-detail-header,
-  .store-detail-panel.fit-media .store-detail-body {
-    height: 84px;
-  }
+/* Route picker: overrides its own sizes (and its under-520px "full-width row" layout)
+   so the two buttons always fit the photo's height next to the text. */
+.store-detail-panel.fit-media .rmp-group {
+  float: right;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
+  width: clamp(150px, 31vw, 232px);
+  margin: 0 0 0 var(--sd-gap);
+}
 
+.store-detail-panel.fit-media .rmp-btn {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: calc((var(--sd-media-h) - 8px) / 2);
+  padding: 2px clamp(10px, 1.7vw, 18px) 2px clamp(8px, 1.3vw, 14px);
+  gap: clamp(6px, 1vw, 10px);
+  font-size: clamp(12px, 1.7vw, 16px);
+}
+
+.store-detail-panel.fit-media .rmp-btn svg {
+  width: clamp(18px, 2.5vw, 28px);
+  height: clamp(18px, 2.5vw, 28px);
+}
+
+@media (max-width: 520px) {
   .store-detail-media {
     width: 112px;
     height: 84px;
