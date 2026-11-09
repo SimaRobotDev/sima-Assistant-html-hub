@@ -1256,12 +1256,14 @@ function requestGenerateRoute(routeEl) {
   const retryEveryMs = 1000;
   routeEl.__awaitingRoute = true;
   routeEl.__routeStarted = false;
+  routeEl.__routeT0 = Date.now();
   const fire = function () {
     if (routeEl.__routeStarted) {
       stopGenerateRouteRetries(routeEl);
       return;
     }
     attempts += 1;
+    log("ruta: pedido " + attempts + " de " + maxAttempts + " (+" + (Date.now() - routeEl.__routeT0) + " ms)");
     routeEl.dispatchEvent(new CustomEvent("generateRoute", {
       detail: {accessible: false},
       bubbles: true,
@@ -1339,12 +1341,16 @@ function wireRouteElement(routeEl) {
     if (routeEl.__awaitingRoute && d && d.loading && d.phase === "route") {
       routeEl.__routeStarted = true;
       stopGenerateRouteRetries(routeEl);
+      log("ruta: el componente empezó a calcular (+" + (Date.now() - (routeEl.__routeT0 || Date.now())) + " ms), reintentos detenidos");
     }
   });
   // La cámara ya quedó encuadrada en la ruta: se aleja un poco y se gira (ver
   // ROUTE_ZOOM_OUT y ROUTE_BEARING). 0.13.0 emite startRouteAnimation; las versiones
   // anteriores, routeAnimationStart.
-  routeEl.addEventListener("startRouteAnimation", function () { applyRouteCamera(routeEl); });
+  routeEl.addEventListener("startRouteAnimation", function () {
+    log("ruta: lista y animando (+" + (Date.now() - (routeEl.__routeT0 || Date.now())) + " ms)");
+    applyRouteCamera(routeEl);
+  });
   routeEl.addEventListener("routeAnimationStart", function () { applyRouteCamera(routeEl); });
   routeEl.addEventListener("routeAnimationStart", function () {
     stopGenerateRouteRetries(routeEl);
@@ -1579,7 +1585,9 @@ function applyRoutePitch(libreMap) {
 // guardián lo restituye si un movimiento automático posterior (cambio de piso) lo pierde.
 // Al girar, el rectángulo que abarca la ruta crece hasta cos+sen ≈ 1,38 veces; el alejado
 // de ROUTE_ZOOM_OUT (≈1,49 veces) deja margen para que la ruta siga a la vista.
-const ROUTE_BEARING = 32;
+// DESACTIVADO (9-nov-2026): probado en un tótem real, el giro de 32° se veía raro. Para
+// volver a probarlo, poner 32.
+const ROUTE_BEARING = null;
 function keepRouteBearing(libreMap) {
   if (ROUTE_BEARING == null || libreMap.__bearingGuard) return;
   libreMap.__bearingGuard = true;
