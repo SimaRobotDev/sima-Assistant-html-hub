@@ -32,6 +32,18 @@
 
   var LABEL_LAYER_ID = "indoor-poi";
 
+  // MapVX web components 0.13.0 dropped the `indoor-poi` text layer: store names
+  // stopped being drawn anywhere (checked 2026-11-09 on Costanera: `indoor-name` only
+  // labels areas, `indoor-poi-rank1` is icons and skips shops). The names are still in
+  // the vector tiles (indoorequal source, source-layer `poi`, Point features with
+  // `name` / `name:es`), so when `indoor-poi` is missing we draw our own layer.
+  var OWN_LAYER_ID = "cm-store-names";
+  // Same floor/sub-place filter MapVX keeps on its own `indoor-name` layer; copied on
+  // every call because MapVX re-filters it on floor changes.
+  var FILTER_SOURCE_LAYER_ID = "indoor-name";
+  // Classes that are not stores: parking and restrooms have their own icons.
+  var NOT_A_STORE = ["parking", "toilets"];
+
   var CONFIG = {
     // First zoom at which store names show. Keep equal to the pages' ZOOM_MIN
     // (17.3): zooming out is limited to that, so names are visible at EVERY zoom.
@@ -60,7 +72,7 @@
   function apply(map, log) {
     if (!map || typeof map.getLayer !== "function") return false;
     var layer = map.getLayer(LABEL_LAYER_ID);
-    if (!layer) return false;
+    if (!layer) return applyOwnLayer(map, log);
     var changed = [];
 
     // Visible: hideGenericPoiIcons hides every symbol layer of source-layer "poi",
@@ -98,6 +110,47 @@
     return true;
   }
 
+  // Fallback for styles without `indoor-poi`: adds / re-syncs our own store-name layer.
+  // Idempotent (a no-op unless the floor filter changed), safe to call on every
+  // styledata event.
+  function applyOwnLayer(map, log) {
+    var base = map.getLayer(FILTER_SOURCE_LAYER_ID);
+    if (!base || !map.getSource("indoorequal")) return false;
+    var floorFilter = map.getFilter(FILTER_SOURCE_LAYER_ID);
+    var filter = ["all",
+      ["has", "name"],
+      ["!", ["in", ["get", "class"], ["literal", NOT_A_STORE]]]];
+    if (floorFilter) filter = ["all", filter, floorFilter];
+    if (map.getLayer(OWN_LAYER_ID)) {
+      if (!same(map.getFilter(OWN_LAYER_ID), filter)) map.setFilter(OWN_LAYER_ID, filter);
+      return true;
+    }
+    map.addLayer({
+      id: OWN_LAYER_ID,
+      type: "symbol",
+      source: "indoorequal",
+      "source-layer": "poi",
+      minzoom: CONFIG.minZoom,
+      filter: filter,
+      layout: {
+        "text-field": ["case", ["has", "name:es"], ["get", "name:es"], ["get", "name"]],
+        "text-font": ["Nunito Regular"],
+        "text-size": interpolate(CONFIG.sizeStops),
+        "text-max-width": interpolate(CONFIG.maxWidthStops),
+        "text-padding": CONFIG.padding,
+        "text-allow-overlap": false,
+        "text-optional": true
+      },
+      paint: {
+        "text-color": "#4a4a4a",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.2
+      }
+    });
+    if (typeof log === "function") log("MapVxLabels: added " + OWN_LAYER_ID + " (indoor-poi missing)");
+    return true;
+  }
+
   // Tunes the map and keeps it tuned: the SDK can rebuild or re-filter layers on
   // floor changes, and the hide helpers may run after us, so a style-change
   // listener re-applies (a no-op unless something was reset).
@@ -124,5 +177,5 @@
     }
   }
 
-  root.MapVxLabels = { tune: tune, apply: apply, CONFIG: CONFIG, LAYER_ID: LABEL_LAYER_ID };
+  root.MapVxLabels = { tune: tune, apply: apply, CONFIG: CONFIG, LAYER_ID: LABEL_LAYER_ID, OWN_LAYER_ID: OWN_LAYER_ID };
 })(typeof window !== "undefined" ? window : this);
