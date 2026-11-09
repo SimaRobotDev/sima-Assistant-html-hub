@@ -1239,10 +1239,28 @@ function stopGenerateRouteRetries(routeEl) {
   }
 }
 
+// Los reintentos son solo para la carrera de arriba (generateRoute sin efecto porque
+// origen/destino aún no se resolvieron). En cuanto el componente avisa que empezó a
+// calcular la ruta (mvxLoadingChange, fase "route", ver wireRouteElement) se paran:
+// MapVX atiende los pedidos de ruta EN FILA (~2,2 s cada uno), así que cada reintento
+// sobrante alargaba "Generando ruta…" hasta que terminaba el último (~13 s con 6
+// pedidos, ~3 s con uno; medido el 9-nov-2026). La parada anterior esperaba
+// routeAnimationStart, que llega tras la primera respuesta (>2 s), cuando los 6
+// disparos (0-2,5 s) ya habían salido.
 function requestGenerateRoute(routeEl) {
   let attempts = 0;
-  const maxAttempts = 6; // ~3s of retries, well inside the 15s timeout net
+  // 3 intentos separados 1 s (ventana de ~2 s para la carrera; las consultas de lugar de
+  // MapVX tardan 0,7-1,1 s). Con la parada por mvxLoadingChange casi nunca salen los
+  // reintentos; si esa señal fallara, el peor caso son 3 pedidos en fila, no 6.
+  const maxAttempts = 3;
+  const retryEveryMs = 1000;
+  routeEl.__awaitingRoute = true;
+  routeEl.__routeStarted = false;
   const fire = function () {
+    if (routeEl.__routeStarted) {
+      stopGenerateRouteRetries(routeEl);
+      return;
+    }
     attempts += 1;
     routeEl.dispatchEvent(new CustomEvent("generateRoute", {
       detail: {accessible: false},
@@ -1254,7 +1272,7 @@ function requestGenerateRoute(routeEl) {
     }
   };
   fire();
-  const timerId = setInterval(fire, 500);
+  const timerId = setInterval(fire, retryEveryMs);
   generateRouteRetryTimers.set(routeEl, timerId);
 }
 
@@ -1301,7 +1319,10 @@ function wireRouteElement(routeEl) {
     setStatus(false);
     hideGenericPoiIcons(routeEl);
     const libreMap = getLiveMap(routeEl);
-    if (libreMap) flattenBuildings(libreMap);
+    if (libreMap) {
+      flattenBuildings(libreMap);
+      applyRoutePitch(libreMap);
+    }
     notifyNative("store_map_opened", {
       placeId: routeEl.getAttribute("destinationId"),
       originId: routeEl.getAttribute("originId"),
@@ -1312,6 +1333,19 @@ function wireRouteElement(routeEl) {
     requestGenerateRoute(routeEl);
   });
   routeEl.addEventListener("back", closeRouteView);
+  // El componente avisa que empezó a calcular la ruta: ya no hace falta reintentar.
+  routeEl.addEventListener("mvxLoadingChange", function (ev) {
+    const d = ev && ev.detail;
+    if (routeEl.__awaitingRoute && d && d.loading && d.phase === "route") {
+      routeEl.__routeStarted = true;
+      stopGenerateRouteRetries(routeEl);
+    }
+  });
+  // La cámara ya quedó encuadrada en la ruta: se aleja un poco y se gira (ver
+  // ROUTE_ZOOM_OUT y ROUTE_BEARING). 0.13.0 emite startRouteAnimation; las versiones
+  // anteriores, routeAnimationStart.
+  routeEl.addEventListener("startRouteAnimation", function () { applyRouteCamera(routeEl); });
+  routeEl.addEventListener("routeAnimationStart", function () { applyRouteCamera(routeEl); });
   routeEl.addEventListener("routeAnimationStart", function () {
     stopGenerateRouteRetries(routeEl);
     log("route-view-totems: routeAnimationStart");
@@ -1519,6 +1553,75 @@ const FLAT_LAYER_IDS = [
   "indoor-polygon-area-indoor",
   "indoor-hover",
 ];
+
+// Vista de la ruta desde arriba, no de lado: <route-view-totems> abre la cámara a 60° de
+// inclinación. Fijar el máximo en 0 hace que MapLibre recorte cualquier pitch posterior
+// (también los del encuadre de la ruta) sin handlers que peleen con la cámara. Con la
+// vista plana el encuadre queda más lejos (~1 de zoom) que con 60°.
+const ROUTE_PITCH = 0;
+function applyRoutePitch(libreMap) {
+  if (!libreMap || typeof libreMap.setMaxPitch !== "function") return;
+  try {
+    libreMap.setMaxPitch(ROUTE_PITCH);
+    libreMap.setPitch(ROUTE_PITCH);
+    log("applyRoutePitch: pitch " + ROUTE_PITCH);
+  } catch (err) {
+    log("applyRoutePitch failed: " + (err && err.message || err));
+  }
+}
+
+// Giro del mapa de la ruta: el edificio de Costanera está a ~31° del norte (eje dominante
+// de sus paredes, pasillos y locales medido en el propio mapa); con el norte arriba queda
+// "descuadrado". 32° es el valor elegido por Hugo a ojo (9-nov-2026) y alinea el edificio
+// con los bordes de la pantalla. Es propio de este mall. null lo desactiva.
+// El componente no tiene opción de giro y devuelve el mapa a 0° en cada encuadre, así que
+// se aplica después del primer encuadre (junto con el zoom, ver applyRouteCamera) y un
+// guardián lo restituye si un movimiento automático posterior (cambio de piso) lo pierde.
+// Al girar, el rectángulo que abarca la ruta crece hasta cos+sen ≈ 1,38 veces; el alejado
+// de ROUTE_ZOOM_OUT (≈1,49 veces) deja margen para que la ruta siga a la vista.
+const ROUTE_BEARING = 32;
+function keepRouteBearing(libreMap) {
+  if (ROUTE_BEARING == null || libreMap.__bearingGuard) return;
+  libreMap.__bearingGuard = true;
+  libreMap.on("moveend", function (ev) {
+    if (ev && ev.originalEvent) return; // gesto del visitante: no se pelea con él
+    if (Math.abs(libreMap.getBearing() - ROUTE_BEARING) < 0.5) return;
+    // Diferido: no se mueve la cámara desde dentro de su propio handler (ver el BUG
+    // anotado en applyCameraConstraints).
+    setTimeout(function () {
+      if (Math.abs(libreMap.getBearing() - ROUTE_BEARING) >= 0.5) {
+        libreMap.rotateTo(ROUTE_BEARING, {duration: 300});
+      }
+    }, 0);
+  });
+}
+
+// Distancia de la vista de la ruta: el encuadre automático de <route-view-totems> deja
+// la ruta muy justa. Se aleja ROUTE_ZOOM_OUT niveles de zoom (0,575 ≈ 1,5 veces la
+// distancia; elegido a ojo por Hugo el 9-nov-2026 con el mapa a pantalla casi completa:
+// zoom 17,51 contra 18,09 del encuadre plano de la ruta a Nike Rise). Es relativo al
+// encuadre y solo aleja, así que la ruta nunca queda cortada. Se aplica una vez por
+// ruta, cuando el componente arranca la animación (la cámara ya quedó encuadrada), en el
+// mismo movimiento que el giro (ROUTE_BEARING). 0 lo desactiva.
+const ROUTE_ZOOM_OUT = 0.575;
+function applyRouteCamera(routeEl) {
+  if (routeEl.__cameraApplied || (!ROUTE_ZOOM_OUT && ROUTE_BEARING == null)) return;
+  routeEl.__cameraApplied = true;
+  setTimeout(function () {
+    const libreMap = getLiveMap(routeEl);
+    if (!libreMap || typeof libreMap.easeTo !== "function") return;
+    try {
+      const target = {duration: 400};
+      if (ROUTE_ZOOM_OUT) target.zoom = libreMap.getZoom() - ROUTE_ZOOM_OUT;
+      if (ROUTE_BEARING != null) target.bearing = ROUTE_BEARING;
+      libreMap.easeTo(target);
+      keepRouteBearing(libreMap);
+      log("applyRouteCamera: zoom -" + ROUTE_ZOOM_OUT + ", bearing " + ROUTE_BEARING);
+    } catch (err) {
+      log("applyRouteCamera failed: " + (err && err.message || err));
+    }
+  }, 150);
+}
 
 function flattenBuildings(libreMap) {
   if (libreMap.__mvxFlattened) return;
