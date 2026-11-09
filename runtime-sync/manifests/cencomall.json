@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.11.09-60",
+  "version": "2026.11.09-61",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-11-09T21:31:42.380Z",
+  "generatedAt": "2026-11-09T21:42:09.898Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -615,13 +615,13 @@
     },
     {
       "path": "shared/store-detail.css",
-      "size": 2536,
-      "sha256": "a1d73b7ccf7c678e5bf8c7ca8d92b604a2bae7095683f103381f4b3925700c9d"
+      "size": 3099,
+      "sha256": "c4e04f96866ccf4143c2f3f1cab57f5548cf373aa50a88aac60ddaae99dae059"
     },
     {
       "path": "shared/store-detail.js",
-      "size": 12816,
-      "sha256": "e969a314593338266ac5d01af88793240b25991e5bf4a67afd03d00ce0c2f420"
+      "size": 15203,
+      "sha256": "570dc84fa343254b753f90011120b2fa449b0f5918c28cbec207daf99bfaa0d3"
     },
     {
       "path": "shared/store-logos/casa-ideas.png",
@@ -685,8 +685,8 @@
     },
     {
       "path": "store-map-web/index.html",
-      "size": 93683,
-      "sha256": "5c672a7c136b9844a2085407261bbbf1576e36dfd11341961e9b6bbf572448c3"
+      "size": 93693,
+      "sha256": "cfbb05ed106fc1af413719196170117e11921b75969b0fb4db8f7e8d89b4bbe9"
     },
     {
       "path": "store-map/index.html",
