@@ -4,9 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, minimum-scale=1, user-scalable=no" />
   <title>Mapa de tienda — Cenco Malls</title>
+  <link rel="preconnect" href="https://tiles.mapvx.com" crossorigin />
+  <link rel="preconnect" href="https://public-api.mapvx.com" crossorigin />
+  <link rel="preconnect" href="https://api.mapvx.com" crossorigin />
+  <link rel="preconnect" href="https://indoorequals.mapvx.com" crossorigin />
+  <link rel="preconnect" href="https://api.maptiler.com" crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <link rel="stylesheet" href="../shared/cencobricks-tokens.css" />
   <link rel="stylesheet" href="../shared/cencobricks-shell.css" />
   <link rel="stylesheet" href="../shared/app.css" />
@@ -19,11 +24,10 @@
   <script src="../shared/market-search.js"></script>
   <script src="../shared/market-i18n.js"></script>
   <script src="../shared/store-detail.js?v=20261105-1"></script>
-  <script src="../shared/mapvx/index.js"></script>
-  <script src="../shared/mapvx-bridge.js"></script>
   <script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
-  <!-- Preload route WC: Unity WebViews often block dynamically injected scripts. -->
-  <script src="../shared/mapvx-wc/route-view-totems.js" data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
+  <!-- Deferred so the place map starts before this 6MB parse. Static tag:
+       Unity WebViews often drop scripts injected after load. -->
+  <script src="../shared/mapvx-wc/route-view-totems.js" defer data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
   <script src="../shared/mapvx-label-tuning.js?v=20261005-1"></script>
   <script src="../shared/mapvx-wc-runtime.js?v=20261021-1"></script>
   <style>
@@ -743,10 +747,7 @@ function renderFloorBadge(floorId) {
 }
 
 function preferredMapEngine() {
-  if (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.readMapEngine) {
-    return MapVxWcRuntime.readMapEngine();
-  }
-  return "legacy";
+  return "wc";
 }
 
 function setMapShell(engine) {
@@ -831,10 +832,10 @@ async function resolveRoutablePlaceId(request) {
 function renderRouteButton() {
   const btn = document.getElementById("store-map-route");
   if (!btn) return;
-  // Hybrid routes use MapVxBridge.drawRouteToTarget — enable whenever the totem origin exists.
-  const canRoute = typeof MapVxBridge !== "undefined"
-    && MapVxBridge.hasRouteOrigin
-    && MapVxBridge.hasRouteOrigin();
+  const cfg = (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.readConfig)
+    ? MapVxWcRuntime.readConfig()
+    : (window.MAPVX_CONFIG || {});
+  const canRoute = !!(cfg && cfg.apiKey && cfg.totemPlaceId);
   if (!canRoute) {
     btn.classList.add("hidden");
     return;
@@ -864,14 +865,24 @@ function silentWarmLegacyMap() {
 
 async function showHybridRoute() {
   if (!lastRequest) throw new Error("missing store request");
-  logDebug("hybrid route show", {
-    engine: activeMapEngine,
-    local: lastRequest.local || "",
-    name: lastRequest.name || "",
+  const placeId = await resolveRoutablePlaceId(lastRequest);
+  const cfg = (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.readConfig)
+    ? MapVxWcRuntime.readConfig()
+    : (window.MAPVX_CONFIG || {});
+  if (!placeId || !cfg.totemPlaceId) throw new Error("route: no destination or no totem origin");
+  if (typeof MapVxWcRuntime === "undefined" || !MapVxWcRuntime.showRoute) {
+    throw new Error("route: web component unavailable");
+  }
+  initWcRuntime();
+  setMapShell("wc");
+  logDebug("wc route show", { placeId: placeId });
+  await MapVxWcRuntime.showRoute(placeId, {
+    originId: cfg.totemPlaceId,
+    timeoutMs: 60000,
+    accessible: false,
   });
-  // Production path: WC place stays for browsing; Ver ruta always draws on legacy.
-  await openStoreMapLegacy(lastRequest, { source: "hybrid-route", route: true }, "hybrid_route");
   routeActive = true;
+  activeMapEngine = "wc";
 }
 
 async function hideHybridRoute() {
@@ -997,10 +1008,9 @@ async function openStoreMapViaWc(request, meta, placeId) {
   }
   renderRouteButton();
   setStatus("ready");
-  silentWarmLegacyMap();
 
   if (wantsRoute) {
-    logDebug("wc opened with route flag — switching to legacy hybrid draw");
+    logDebug("wc opened with route flag — drawing route");
     try {
       await showHybridRoute();
     } catch (error) {
@@ -1116,7 +1126,7 @@ async function openStoreMap(request, meta) {
     return null;
   }
 
-  if (!configured && enginePref === "legacy") {
+  if (!configured) {
     const missing = missingConfigFields();
     logDebug("config incomplete", { missing: missing });
     setStatus("error", {
@@ -1128,41 +1138,18 @@ async function openStoreMap(request, meta) {
     return null;
   }
 
-  if (!configured) {
-    // WC already failed or was skipped; still need legacy credentials.
-    const missing = missingConfigFields();
-    if (missing.length) {
-      logDebug("config incomplete after wc miss", { missing: missing });
-      setStatus("error", {
-        title: t("configMissing"),
-        copy: t("configMissingCopy") + (isNativeHost() ? "" : " " + t("configMissingHint")),
-        detail: "missing: " + missing.join(", "),
-        retry: true,
-      });
-      return null;
-    }
-  }
-
-  try {
-    return await openStoreMapLegacy(
-      request,
-      meta,
-      lastFallbackReason || (canTryWc ? "wc_error" : (enginePref === "legacy" ? "" : "wc_unavailable"))
-    );
-  } catch (error) {
-    if (seq !== requestSeq) return null;
-    const message = String(error && (error.message || error));
-    const notFound = /no se encontr|not found|otro local/i.test(message);
-    logDebug("open failed", { error: message, engine: "legacy" });
-    setStatus("error", {
-      title: notFound ? t("notFound") : t("genericError"),
-      copy: notFound ? t("notFoundCopy") : message,
-      detail: describeRequest(request),
-      retry: true,
-    });
-    notifyNative("store_map_error", { request: request, error: message, engine: "legacy" });
-    return null;
-  }
+  setStatus("error", {
+    title: t("genericError"),
+    copy: placeId ? "No se pudo abrir el mapa" : "Falta local MapVX routable",
+    detail: describeRequest(request),
+    retry: true,
+  });
+  notifyNative("store_map_error", {
+    request: request,
+    error: lastFallbackReason || "wc_unavailable",
+    engine: "wc",
+  });
+  return null;
 }
 
 function notifyNative(type, payload) {

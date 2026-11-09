@@ -4,9 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, minimum-scale=1, user-scalable=no" />
 <title>Mapa de tienda — Cenco Malls</title>
+<link rel="preconnect" href="https://tiles.mapvx.com" crossorigin />
+<link rel="preconnect" href="https://public-api.mapvx.com" crossorigin />
+<link rel="preconnect" href="https://api.mapvx.com" crossorigin />
+<link rel="preconnect" href="https://indoorequals.mapvx.com" crossorigin />
+<link rel="preconnect" href="https://api.maptiler.com" crossorigin />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
 <link rel="stylesheet" href="../shared/cencobricks-tokens.css" />
 <link rel="stylesheet" href="../shared/cencobricks-shell.css" />
 <link rel="stylesheet" href="../shared/app.css" />
@@ -28,7 +33,9 @@
   defines its custom element as a side effect on load.
 -->
 <script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
-<script src="../shared/mapvx-wc/route-view-totems.js" onerror="window.__mvxBundleFailed = true"></script>
+<!-- Deferred: the place map starts from the inline boot before this 6MB parse.
+     Kept as a static tag because Unity WebViews often drop injected scripts. -->
+<script src="../shared/mapvx-wc/route-view-totems.js" defer data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
 
 <style>
   /* Chrome ported 1:1 from ../store-map/index.html so both store-map screens
@@ -1363,6 +1370,22 @@ function getRoutePicker() {
 
 function showRouteView(cfg, placeId, destLabel, routeOpts) {
   if (!placeId || !cfg.totemPlaceId) return;
+  if (typeof customElements === "undefined" || !customElements.get("route-view-totems")) {
+    setStatusFromKeys(true, "loadingRoute", "tracingRoute", true);
+    const ready = (typeof customElements !== "undefined" && customElements.whenDefined)
+      ? customElements.whenDefined("route-view-totems")
+      : Promise.reject(new Error("custom elements unavailable"));
+    const timeout = new Promise(function (_, reject) {
+      setTimeout(function () { reject(new Error("route bundle timeout")); }, 20000);
+    });
+    Promise.race([ready, timeout]).then(function () {
+      showRouteView(cfg, placeId, destLabel, routeOpts);
+    }).catch(function (err) {
+      log("route bundle not ready: " + (err && err.message || err));
+      setStatusFromKeys(true, "mapError", "mapErrorCopy", false);
+    });
+    return;
+  }
   const mode = routeOpts && routeOpts.mode === "accessible" ? "accessible" : "walk";
   const mount = document.getElementById("route-view-mount");
   mount.innerHTML = ""; // drop the previous instance entirely, don't reuse it
@@ -1926,7 +1949,7 @@ function handleBack() {
   closeWebview();
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+function bootStoreMapWeb() {
   if (window.SimaLocale && SimaLocale.bindPageLocale) {
     SimaLocale.bindPageLocale(applyLocale);
   }
@@ -1966,7 +1989,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   if (window.SimaBridge && SimaBridge.ready) { try { SimaBridge.ready("mapvx-embed-store-map"); } catch (e) {} }
-});
+}
+
+// DOM is already parsed (this script sits at the end of body). Run before the
+// deferred route bundle so the place map's network starts during that parse.
+bootStoreMapWeb();
 </script>
 </body>
 </html>

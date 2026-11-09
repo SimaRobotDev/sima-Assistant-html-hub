@@ -92,9 +92,14 @@ function resetToLanding() {
 }
 </script>
 <!-- mobility-ui-v26-market-search -->
+<link rel="preconnect" href="https://tiles.mapvx.com" crossorigin />
+<link rel="preconnect" href="https://public-api.mapvx.com" crossorigin />
+<link rel="preconnect" href="https://api.mapvx.com" crossorigin />
+<link rel="preconnect" href="https://indoorequals.mapvx.com" crossorigin />
+<link rel="preconnect" href="https://api.maptiler.com" crossorigin />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
 <link rel="stylesheet" href="../shared/cencobricks-tokens.css" />
 <link rel="stylesheet" href="../shared/cencobricks-shell.css" />
 <link rel="stylesheet" href="../shared/app.css" />
@@ -109,11 +114,10 @@ function resetToLanding() {
 <script src="../shared/market-search.js"></script>
 <script src="../shared/services-catalog.js"></script>
 <script src="../shared/qrcode-generator.js"></script>
-<script src="../shared/mapvx/index.js"></script>
-<script src="../shared/mapvx-bridge.js"></script>
 <script src="../shared/mapvx-wc/map-view-with-modal.js" onerror="window.__mvxBundleFailed = true"></script>
-<!-- Preload route WC: Unity WebViews often block dynamically injected scripts. -->
-<script src="../shared/mapvx-wc/route-view-totems.js" data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
+<!-- Route bundle is deferred so the place map can start before this 6MB parse.
+     Static tag (not injected): Unity WebViews often drop scripts added later. -->
+<script src="../shared/mapvx-wc/route-view-totems.js" defer data-mvx-route-bundle="1" onerror="window.__mvxRouteBundleFailed = true"></script>
 <script src="../shared/mapvx-label-tuning.js?v=20261005-1"></script>
 <script src="../shared/route-mode-picker.js?v=20261021-1"></script>
 <script src="../shared/mapvx-wc-runtime.js?v=20261021-1"></script>
@@ -4639,9 +4643,6 @@ document.addEventListener("DOMContentLoaded", () => {
     " host=" + (SimaBridge.isReactNativeHost && SimaBridge.isReactNativeHost() ? "react-native" : "legacy")
   );
   logMapVxConfig("DOMContentLoaded");
-  warmupMapVxInBackground().then(function () {
-    if (isMapVxConfigured()) preloadMapVxBaseMap();
-  });
   warmupMapVxWcInBackground();
   document.getElementById("btnSpeak").onclick = startVoiceInput;
   document.getElementById("btnSpeakMini").onclick = startVoiceInput;
@@ -6410,10 +6411,7 @@ function renderServicesResults(payload) {
       </div>
       <div class="service-list">${cards}</div>
     </div>`;
-  if (results.length) {
-    preloadMapVxBaseMap();
-    warmupMapVxWcInBackground();
-  }
+  if (results.length) warmupMapVxWcInBackground();
 }
 
 function toggleServiceCard(idx) {
@@ -6574,7 +6572,7 @@ function renderMarketResults(payload) {
       </div>
       <div class="store-grid">${cardsHtml}</div>
     </div>`;
-  preloadMapVxBaseMap();
+  warmupMapVxWcInBackground();
   if (payload.source !== "unity" && payload.resultType !== "az") {
     speakMarketResultsFound(payload);
   }
@@ -6649,68 +6647,11 @@ function isMapVxConfigured() {
 }
 
 async function warmupMapVxInBackground() {
-  if (mapVxWarmupPromise || !isMapVxConfigured()) return mapVxWarmupPromise;
-
-  const cfg = applyMapVxDefaultsFromMapPage();
-  if (!cfg.apiKey || !cfg.parentPlace || !cfg.institutionId) return null;
-
-  mapVxWarmupPromise = MapVxBridge.ensureReady(cfg)
-    .then(function () {
-      if (typeof MapVxBridge.prefetchMapCatalog === "function") {
-        return MapVxBridge.prefetchMapCatalog(cfg).catch(function () { return false; });
-      }
-      return true;
-    })
-    .then(() => {
-      SimaBridge.log("mobility map warmup completed");
-      return true;
-    })
-    .catch((e) => {
-      console.warn("MapVx warmup failed", e);
-      SimaBridge.log("mobility map warmup failed");
-      return false;
-    });
-
-  return mapVxWarmupPromise;
+  return null;
 }
 
 async function preloadMapVxBaseMap() {
-  if (mapVxPreloadPromise) return mapVxPreloadPromise;
-  if (!isMapVxConfigured()) return null;
-  if (typeof MapVxBridge !== "undefined" && MapVxBridge.hasLiveMap && MapVxBridge.hasLiveMap()) {
-    mapVxPreloadPromise = Promise.resolve(true);
-    return mapVxPreloadPromise;
-  }
-
-  const cfg = applyMapVxDefaultsFromMapPage();
-  if (!cfg.apiKey || !cfg.parentPlace || !cfg.institutionId) return null;
-
-  const mapView = document.getElementById("map-view");
-  const container = document.getElementById("mapvx-container");
-  if (!mapView || !container || !mapView.classList.contains("hidden")) return null;
-
-  const releaseLayout = holdMapViewLayout();
-  container.classList.remove("hidden");
-
-  mapVxPreloadPromise = MapVxBridge.ensureMap(container, cfg)
-    .then(() => {
-      SimaBridge.log("mobility map base preload completed");
-      return true;
-    })
-    .catch((e) => {
-      console.warn("MapVx base preload failed", e);
-      SimaBridge.log("mobility map base preload failed: " + (e.message || e));
-      mapVxPreloadPromise = null;
-      return false;
-    })
-    .finally(() => {
-      releaseLayout();
-      if (mapView.classList.contains("hidden")) {
-        container.classList.add("hidden");
-      }
-    });
-
-  return mapVxPreloadPromise;
+  return null;
 }
 
 let mapVxWcWarmupPromise = null;
@@ -6995,10 +6936,7 @@ async function onMapRouteToggle() {
 
 // ---- "Ver ruta" / "Ruta accesible" picker (shared/route-mode-picker.js) ---------------------
 // Two buttons docked in the detail card replace the old header button (#map-route-btn, now
-// hidden). Services run on the Web Component in BOTH modes (switching is in place). A STORE's
-// "Ver ruta" still uses the legacy hybrid draw on purpose (see openPoiMapViaMapVxWc); its
-// "Ruta accesible" runs on the Web Component, which is where accessible routing lives, so
-// switching between the two for a store swaps the engine (clear, then draw).
+// hidden). Walking and accessible routes both run on the Web Component.
 var mobilityRoutePicker = null; // var: hoisted, updateMapRouteButton() runs early
 
 function mobilityRouteElementHook(ctx, mode) {
@@ -7091,8 +7029,7 @@ function getMobilityRoutePicker() {
     mobilityRoutePicker = RouteModePicker.create({
       dock: { panel: panel, body: ".store-detail-head-text" },
       isAvailable: mobilityRouteModeAvailable,
-      // Same engine for both modes only for a service that is on the Web Component.
-      canSwitchInPlace: function () { return !!lastServiceWcEntry && mobilityActiveMapEngine === "wc"; },
+      canSwitchInPlace: function () { return mobilityActiveMapEngine === "wc"; },
       start: mobilityPickerStart,
       clear: mobilityPickerClear,
       log: function (line) { logMap("info", String(line)); },
@@ -7111,56 +7048,30 @@ async function showMobilityHybridRoute(ctx) {
       ? MapVxWcRuntime.getLastPlaceId()
       : "")
     || "";
-  if (!placeId && !opts.name) throw new Error("missing destination");
-  logMap("info", "hybrid route show", { placeId: placeId, fromEngine: mobilityActiveMapEngine });
-
-  // WC service currently on screen → route natively through the Web Component
-  // (route-view-totems). On any problem — no origin, showRoute throws — drop
-  // to the legacy hybrid draw below.
-  if (lastServiceWcEntry && mobilityActiveMapEngine === "wc"
-    && typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.showRoute) {
-    const cfg = MapVxWcRuntime.readConfig ? MapVxWcRuntime.readConfig() : (window.MAPVX_CONFIG || {});
-    const dest = (lastServiceWcEntry.mapvx && lastServiceWcEntry.mapvx.placeId) || placeId;
-    if (dest && cfg.totemPlaceId) {
-      try {
-        hideServiceArrivalCard();
-        setRouteTracingState(true);
-        // Generous budget on purpose: route-view-totems cold-boots its own map
-        // on totem hardware. A tight timeout here doesn't fail fast, it demotes
-        // every route to the legacy renderer (the totem symptom after the
-        // mapEngine="auto" rollout).
-        await MapVxWcRuntime.showRoute(dest, {
-          originId: cfg.totemPlaceId,
-          timeoutMs: 60000,
-          destinationFloorId: mapvxFloorIdForServiceEntry(lastServiceWcEntry),
-          accessible: false,
-          onElement: mobilityRouteElementHook(ctx, "walk"),
-        });
-        setRouteTracingState(false);
-        mobilityMapRouteActive = true;
-        mobilityActiveMapEngine = "wc";
-        return;
-      } catch (wcRouteErr) {
-        setRouteTracingState(false);
-        logMap("warn", "wc route button failed — legacy hybrid fallback",
-          { message: String(wcRouteErr && (wcRouteErr.message || wcRouteErr)) });
-      }
-    } else {
-      logMap("warn", "wc route button: no totemPlaceId — legacy hybrid fallback");
-    }
-    // Legacy takes over — clear the WC state so it doesn't fight the redraw.
-    lastServiceWcEntry = null;
-    hideServiceArrivalCard();
-    try { if (MapVxWcRuntime.setGenericLabel) MapVxWcRuntime.setGenericLabel(null); } catch (e) { /* noop */ }
-    try { if (MapVxWcRuntime.hide) MapVxWcRuntime.hide(); } catch (e) { /* noop */ }
+  const cfg = (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.readConfig)
+    ? MapVxWcRuntime.readConfig()
+    : (window.MAPVX_CONFIG || {});
+  const dest = (lastServiceWcEntry && lastServiceWcEntry.mapvx && lastServiceWcEntry.mapvx.placeId) || placeId;
+  if (!dest || !cfg.totemPlaceId) throw new Error("route: no destination or no totem origin");
+  if (typeof MapVxWcRuntime === "undefined" || !MapVxWcRuntime.showRoute) {
+    throw new Error("route: web component unavailable");
   }
-
-  await openPoiMapViaMapVx(Object.assign({}, opts, {
-    mode: "navigation",
-    local: placeId || opts.local,
-  }));
-  mobilityMapRouteActive = true;
-  mobilityActiveMapEngine = "legacy";
+  logMap("info", "wc route show", { placeId: dest, fromEngine: mobilityActiveMapEngine });
+  hideServiceArrivalCard();
+  setRouteTracingState(true);
+  try {
+    await MapVxWcRuntime.showRoute(dest, {
+      originId: cfg.totemPlaceId,
+      timeoutMs: 60000,
+      destinationFloorId: mapvxFloorIdForServiceEntry(lastServiceWcEntry),
+      accessible: false,
+      onElement: mobilityRouteElementHook(ctx, "walk"),
+    });
+    mobilityMapRouteActive = true;
+    mobilityActiveMapEngine = "wc";
+  } finally {
+    setRouteTracingState(false);
+  }
 }
 
 // Drop every trace of the WC service view so the legacy renderer can take the
@@ -7177,28 +7088,15 @@ function teardownWcServiceState() {
   mobilityActiveMapEngine = "legacy";
 }
 
-// Called when the WC reported its map ready but never drew the route. Redraws
-// the same destination with the legacy engine, route included.
+// The route map came up but never started drawing. There is no second engine:
+// leave the place map and say so.
 async function fallBackToLegacyRoute() {
-  const opts = window.__mobilityLastMapOpts || {};
-  const placeId = window.__mobilityLastWcPlaceId || opts.local || "";
   setRouteTracingState(false);
-  teardownWcServiceState();
-  try {
-    await openPoiMapViaMapVx(Object.assign({}, opts, {
-      mode: "navigation",
-      local: placeId || opts.local,
-    }));
-    mobilityMapRouteActive = true;
-    updateMapRouteButton({ routeActive: true });
-    setMapStatus("");
-  } catch (error) {
-    mobilityMapRouteActive = false;
-    updateMapRouteButton({ routeActive: false });
-    logMap("error", "legacy route fallback failed",
-      { message: String(error && (error.message || error)) });
-    setMapStatus(t("routeError") || "");
-  }
+  mobilityMapRouteActive = false;
+  logMap("warn", "wc route stalled");
+  try { if (MapVxWcRuntime.closeRoute) MapVxWcRuntime.closeRoute(); } catch (e) { /* noop */ }
+  updateMapRouteButton({ routeActive: false });
+  setMapStatus(t("routeError") || "");
 }
 
 async function hideMobilityHybridRoute() {
@@ -7220,8 +7118,7 @@ async function hideMobilityHybridRoute() {
 
   const opts = window.__mobilityLastMapOpts || {};
   const placeId = window.__mobilityLastWcPlaceId || opts.local || "";
-  if (preferredMobilityMapEngine() !== "legacy"
-    && placeId
+  if (placeId
     && typeof MapVxWcRuntime !== "undefined"
     && MapVxWcRuntime.isAvailable
     && MapVxWcRuntime.isAvailable()) {
@@ -7229,10 +7126,6 @@ async function hideMobilityHybridRoute() {
       mode: "place",
       local: placeId,
     }));
-    return;
-  }
-  if (opts.local || opts.name) {
-    await openPoiMapViaMapVx(Object.assign({}, opts, { mode: "place" }));
   }
 }
 
@@ -7251,164 +7144,18 @@ function setupMapControls(result) {
 }
 
 async function openPoiMapViaMapVx(opts) {
-  const {
-    poiType, id, floor, mall, name, local, mode,
-    anchorLocal, poiRef, mapvxId, lat, lng, preferChangingTable, serviceId, serviceType,
-    routeApproachQuery, routeApproachLocal, routeApproachWeight, routeApproachMaxMeters, routeApproachPullFrom,
-    searchQueries,
-  } = opts || {};
-  const container = document.getElementById("mapvx-container");
-  const iframe = document.getElementById("map-iframe");
-  const wcStage = document.getElementById("mapvx-wc-stage");
-
-  logMap("info", "openPoiMapViaMapVx start", opts);
-  logMapVxConfig("openPoiMapViaMapVx");
-  warmupMapVxInBackground();
-  // Legacy path owns its own destination popup (showServiceDestinationMarker).
-  lastServiceWcEntry = null;
-  hideServiceArrivalCard();
-  if (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.setGenericLabel) {
-    try { MapVxWcRuntime.setGenericLabel(null); } catch (e) { /* noop */ }
+  logMap("info", "legacy map engine removed — web component", opts);
+  if (opts && (opts.poiType === "service" || opts.serviceId)) {
+    return openServiceMapViaWc(opts);
   }
-
-  applyMapVxDefaultsFromMapPage();
-
-  // Soft-hide WC (keep warm). Do not destroy — next store open should reuse it.
-  if (typeof MapVxWcRuntime !== "undefined") {
-    try {
-      if (MapVxWcRuntime.hide) MapVxWcRuntime.hide();
-      else if (MapVxWcRuntime.teardown) MapVxWcRuntime.teardown();
-    } catch (e) { /* noop */ }
-  }
-  if (wcStage) {
-    wcStage.classList.add("hidden");
-    wcStage.classList.remove("preload-mount");
-  }
-
-  iframe.classList.add("hidden");
-  iframe.src = "";
-  setMapLoadingState(true);
-  container.classList.remove("hidden");
-  mobilityActiveMapEngine = "legacy";
-
-  const mapAlreadyLive = typeof MapVxBridge.hasLiveMap === "function" && MapVxBridge.hasLiveMap();
-  if (mapAlreadyLive && typeof MapVxBridge.notifyMapContainerShown === "function") {
-    MapVxBridge.notifyMapContainerShown(container);
-  }
-
-  const preloadPromise = mapVxPreloadPromise;
-  const mapReused = mapAlreadyLive || (preloadPromise ? await preloadPromise : false);
-  if (!mapReused && typeof MapVxBridge !== "undefined" && MapVxBridge.destroyMap) {
-    MapVxBridge.destroyMap();
-    container.innerHTML = "";
-  }
-  resetMapControls();
-
-  try {
-    const isService = poiType === "service";
-    let showFn;
-    if (isService) {
-      showFn = (mode === "navigation" && MapVxBridge.showServiceRouteTo)
-        ? MapVxBridge.showServiceRouteTo
-        : MapVxBridge.showServicePlace;
-    } else {
-      showFn = (mode === "navigation" && MapVxBridge.showRouteTo)
-        ? MapVxBridge.showRouteTo
-        : MapVxBridge.showPlace;
-    }
-
-    const bridgeOptions = isService
-      ? {
-          poiType: "service",
-          serviceType: serviceType || "bathroom",
-          serviceId: serviceId || id,
-          id: serviceId || id,
-          name,
-          floor,
-          mall,
-          anchorLocal: anchorLocal || local,
-          routeApproachQuery,
-          routeApproachLocal,
-          routeApproachWeight,
-          routeApproachMaxMeters,
-          routeApproachPullFrom,
-          poiRef,
-          mapvxId,
-          lat,
-          lng,
-          searchQueries,
-          preferChangingTable: !!preferChangingTable,
-        }
-      : {
-          id,
-          name,
-          floor,
-          local,
-          mall,
-          strictLocal: opts.strictLocal,
-          poiType,
-        };
-
-    logMap("info", "calling MapVxBridge", { fn: showFn.name || "showPlace", isService });
-    const result = await showFn(container, bridgeOptions);
-    mobilityMapRouteActive = !!(result && (result.routeActive || result.routeStarted));
-    window.__mobilityLastMapOpts = Object.assign({}, opts || {}, {
-      local: (result && result.clientId) || local || (opts && opts.local) || "",
-      name: (result && result.title) || name || (opts && opts.name) || "",
-    });
-    if (result && result.clientId) {
-      window.__mobilityLastWcPlaceId = String(result.clientId);
-    }
-    setMapStatus("");
-    setupMapControls(result);
-    setMapLoadingState(false);
-    startMapZoomMeter();
-    attachMapZoomLabelSwitcher(result);
-    logMap("info", "openPoiMapViaMapVx success", Object.assign({ engine: "legacy" }, result));
-    window.__mapVxLastLog = { ts: Date.now(), phase: "success", engine: "legacy", result: result };
-    clearAutoMapLaunchUi();
-    try { pushMobilityView('map'); } catch (e) {}
-  } catch (e) {
-    logMap("error", "openPoiMapViaMapVx failed", {
-      message: e.message || String(e),
-      attempts: e.attempts || null
-    });
-    window.__mapVxLastLog = {
-      ts: Date.now(),
-      phase: "error",
-      message: e.message || String(e),
-      attempts: e.attempts || null
-    };
-    clearAutoMapLaunchUi();
-    container.classList.add("hidden");
-    MapVxBridge.destroyMap();
-    mapVxPreloadPromise = null;
-    if (container) container.innerHTML = "";
-    setMapLoadingState(false);
-    stopMapZoomMeter();
-    const placeholder = document.getElementById("map-placeholder");
-    const attemptsHtml = e.attempts && e.attempts.length
-      ? `<br><small>${escapeHtml(JSON.stringify(e.attempts))}</small>`
-      : "";
-    placeholder.innerHTML =
-      `<div><strong>${escapeHtml(t("mapError") || "No se pudo cargar el mapa")}</strong><br><br>` +
-      `${escapeHtml(name || "")}<br>` +
-      `${escapeHtml(String(e.message || e))}` +
-      attemptsHtml +
-      `</div>`;
-    placeholder.classList.remove("hidden");
-    setMapStatus("");
-  }
+  return openPoiMapViaMapVxWc(opts);
 }
 
 let mobilityActiveMapEngine = "none";
 let mobilityWcReady = false;
 
 function preferredMobilityMapEngine() {
-  if (typeof MapVxWcRuntime !== "undefined" && MapVxWcRuntime.readMapEngine) {
-    return MapVxWcRuntime.readMapEngine();
-  }
-  return "legacy";
+  return "wc";
 }
 
 function initMobilityWcRuntime() {
@@ -7496,10 +7243,7 @@ async function openPoiMapViaMapVxWc(opts) {
     && !!cfg.apiKey;
 
   if (!canTryWc) {
-    if (enginePref === "wc") {
-      throw new Error(placeId ? "MapVX Web Components no disponibles" : "Falta local MapVX routable");
-    }
-    return openPoiMapViaMapVx(opts);
+    throw new Error(placeId ? "MapVX Web Components no disponibles" : "Falta local MapVX routable");
   }
 
   const container = document.getElementById("mapvx-container");
@@ -7533,16 +7277,9 @@ async function openPoiMapViaMapVxWc(opts) {
     window.__mobilityLastWcPlaceId = placeId;
     window.__mobilityLastMapOpts = Object.assign({}, opts, { local: placeId });
 
-    let cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
-    if (!cached) {
-      const wp = warmupMapVxWcInBackground();
-      if (wp && typeof wp.then === "function") {
-        try { await Promise.race([wp, new Promise(function (r) { setTimeout(r, 10000); })]); } catch (e) {}
-      }
-      cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
-    }
-    // Place on WC only. Navigation / Ver ruta always uses legacy hybrid draw.
-    await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 3000 : 12000 });
+    const cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
+    // Place on the Web Component. Ver ruta uses the same engine.
+    await MapVxWcRuntime.showPlace(placeId, { timeoutMs: cached ? 12000 : 20000 });
     mobilityMapRouteActive = false;
     mobilityActiveMapEngine = "wc";
     setMapStatus("");
@@ -7554,8 +7291,6 @@ async function openPoiMapViaMapVxWc(opts) {
     window.__mapVxLastLog = { ts: Date.now(), phase: "success", engine: "wc", placeId: placeId, cached: cached };
     clearAutoMapLaunchUi();
     try { pushMobilityView("map"); } catch (e) {}
-    // Soft-warm legacy under WC for faster Ver ruta.
-    try { warmupMapVxInBackground(); } catch (eWarm) { /* noop */ }
     if (wantsRoute) {
       logMap("info", "wc opened with navigation — switching to legacy hybrid draw");
       await showMobilityHybridRoute();
@@ -7575,13 +7310,6 @@ async function openPoiMapViaMapVxWc(opts) {
       setMapStatus("");
       return;
     }
-    if (typeof MapVxWcRuntime !== "undefined") {
-      try {
-        if (MapVxWcRuntime.hide) MapVxWcRuntime.hide();
-        else if (MapVxWcRuntime.teardown) MapVxWcRuntime.teardown();
-      } catch (e) { /* noop */ }
-    }
-    await openPoiMapViaMapVx(opts);
   }
 }
 
@@ -7708,19 +7436,25 @@ async function openServiceMapViaWc(opts) {
     ? MapVxWcRuntime.readConfig()
     : (window.MAPVX_CONFIG || {});
 
-  const canTryWc = enginePref !== "legacy"
-    && !!placeId
-    && !underReview
+  const canTryWc = !!placeId
     && !!cfg.apiKey
     && typeof MapVxWcRuntime !== "undefined"
     && MapVxWcRuntime.isAvailable && MapVxWcRuntime.isAvailable();
 
   if (!canTryWc) {
-    logMap("info", "openServiceMapViaWc → legacy", {
-      serviceKey, enginePref, hasPlaceId: !!placeId, underReview,
+    logMap("warn", "openServiceMapViaWc unavailable", {
+      serviceKey, hasPlaceId: !!placeId, underReview,
     });
-    if (useMapVxSdk()) return openPoiMapViaMapVx(opts);
-    return openPoiMapViaIframe(opts);
+    setMapLoadingState(false);
+    const placeholder = document.getElementById("map-placeholder");
+    if (placeholder) {
+      placeholder.innerHTML =
+        `<div><strong>${escapeHtml(t("mapError") || "No se pudo cargar el mapa")}</strong><br><br>` +
+        `${escapeHtml((opts && opts.name) || serviceKey)}<br>` +
+        `${escapeHtml(placeId ? "MapVX Web Components no disponibles" : "Falta placeId MapVX")}</div>`;
+      placeholder.classList.remove("hidden");
+    }
+    return;
   }
 
   const wantsRoute = opts && opts.mode === "navigation";
@@ -7752,22 +7486,9 @@ async function openServiceMapViaWc(opts) {
     window.__mobilityLastWcPlaceId = placeId;
     window.__mobilityLastMapOpts = Object.assign({}, opts, { local: placeId });
 
-    // First open on a totem: the WC map is cold and takes longer than a few
-    // seconds to fire mapReady. Wait for the background warmup (capped) so we
-    // don't time out into legacy and only get the WC on reopen.
-    let cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
-    if (!cached) {
-      const wp = warmupMapVxWcInBackground();
-      if (wp && typeof wp.then === "function") {
-        try {
-          await Promise.race([wp, new Promise(function (r) { setTimeout(r, 10000); })]);
-        } catch (e) { /* warmup soft-fails; showPlace still tries */ }
-      }
-      cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
-    }
-
+    const cached = typeof MapVxWcRuntime.hasLiveMap === "function" && MapVxWcRuntime.hasLiveMap();
     await MapVxWcRuntime.showPlace(placeId, {
-      timeoutMs: cached ? 3000 : 12000,
+      timeoutMs: cached ? 12000 : 20000,
       floorId: mapvxFloorIdForServiceEntry(entry),
     });
     mobilityActiveMapEngine = "wc";
@@ -7794,22 +7515,17 @@ async function openServiceMapViaWc(opts) {
           // Arrival popup fires from the runtime's onArrival (routeAnimationFinish).
         } catch (routeErr) {
           setRouteTracingState(false);
-          logMap("warn", "wc service route failed — legacy route fallback",
+          logMap("warn", "wc service route failed",
             { message: String(routeErr && (routeErr.message || routeErr)) });
         }
       } else {
-        logMap("warn", "wc service: no totemPlaceId — legacy route fallback");
+        logMap("warn", "wc service: no totemPlaceId");
       }
       if (!routed) {
-        // WC couldn't draw the route → hand the whole thing (place + route) to
-        // legacy rather than leaving the visitor on a place with no route.
-        lastServiceWcEntry = null;
-        hideServiceArrivalCard();
-        try { if (MapVxWcRuntime.setGenericLabel) MapVxWcRuntime.setGenericLabel(null); } catch (e) { /* noop */ }
-        try { if (MapVxWcRuntime.hide) MapVxWcRuntime.hide(); } catch (e) { /* noop */ }
-        if (wcStage) wcStage.classList.add("hidden");
-        mobilityActiveMapEngine = "legacy";
-        return openPoiMapViaMapVx(opts);
+        mobilityMapRouteActive = false;
+        updateMapRouteButton({ routeActive: false });
+        setMapStatus(t("routeError") || "");
+        showServiceArrivalCard(entry);
       }
     } else {
       mobilityMapRouteActive = false;
@@ -7839,7 +7555,6 @@ async function openServiceMapViaWc(opts) {
       setMapStatus("");
       return;
     }
-    await openPoiMapViaMapVx(opts);
   }
 }
 
@@ -8137,19 +7852,19 @@ window.pushNavigationFromUnity = function(data) {
 
 function waitForMapVxReady(fn, attempt) {
   attempt = attempt || 0;
-  try {
-    if (typeof MapVxBridge !== "undefined" && MapVxBridge.isConfigured && MapVxBridge.isConfigured()) {
-      fn();
-      return;
+  const wcReady = typeof customElements !== "undefined" && !!customElements.get("map-view-with-modal");
+  const hasKey = !!(window.MAPVX_CONFIG && window.MAPVX_CONFIG.apiKey);
+  if (wcReady && (hasKey || attempt > 20)) {
+    try { fn(); } catch (e) {
+      logMap("error", "waitForMapVxReady failed", { message: e.message || String(e) });
     }
-  } catch (e) { /* retry */ }
-  if (attempt > 150) {
-    logMap("error", "waitForMapVxReady timeout", {
-      MapVxBridge: typeof MapVxBridge,
-      MapVX: typeof MapVX,
-      hasCfg: !!(window.MAPVX_CONFIG && window.MAPVX_CONFIG.apiKey)
-    });
-    try { fn(); } catch (e2) { logMap("error", "waitForMapVxReady fallback failed", { message: e2.message }); }
+    return;
+  }
+  if (attempt > 30) {
+    logMap("error", "waitForMapVxReady timeout", { wcReady: wcReady, hasKey: hasKey });
+    try { fn(); } catch (e2) {
+      logMap("error", "waitForMapVxReady fallback failed", { message: e2.message || String(e2) });
+    }
     return;
   }
   setTimeout(function () { waitForMapVxReady(fn, attempt + 1); }, 100);
@@ -8550,6 +8265,8 @@ function startVoiceInput() {
     });
   } catch (e) {}
 })();
+// Start the place map before the deferred route bundle parses.
+try { warmupMapVxWcInBackground(); } catch (e) {}
 </script>
 </body>
 </html>

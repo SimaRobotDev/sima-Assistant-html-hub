@@ -544,7 +544,7 @@ check("the label module is part of the OTA payload (listed in the runtime manife
   check("ON REQUEST only: the only place that asks for accessible:true is the picker's own accessible action (mobility); smw/runtime never do", (mobilityLf.match(/accessible: true/g) || []).length === 1 && !/accessible: true/.test(smwHtml + runtimeSrc));
   const accFn = (mobilityLf.match(/async function showMobilityAccessibleRoute\(ctx\) \{[\s\S]*?\n\}\n/) || [""])[0];
   check("mobility: an accessible route never silently falls back to a walking (legacy) one", accFn.length > 200 && !/openPoiMapViaMapVx|fallBackToLegacyRoute/.test(accFn));
-  check("mobility: a store's 'Ver ruta' stays on the legacy hybrid draw (the accessible one is the only new Web Component path)", /await openPoiMapViaMapVx\(Object\.assign\(\{\}, opts, \{\s*mode: "navigation"/.test(mobilityLf));
+  check("mobility: store and service routes both draw on the web component", /MapVxWcRuntime\.showRoute\(/.test(mobilityLf) && !/mapvx\/index\.js/.test(mobilityLf) && !/mapvx-bridge\.js/.test(mobilityLf));
   for (const [n, src] of [["runtime route element", runtimeSrc], ["store-map-web route element", smwHtml], ["mapvx-embed route element", read("mapvx-embed/store-map.html")]]) {
     check(`${n} pins enable-3d=false and marker-variant=full (0.13.0 flipped both defaults)`, /setAttribute\("enable-3d", "false"\)/.test(src) && /setAttribute\("marker-variant", "full"\)/.test(src));
   }

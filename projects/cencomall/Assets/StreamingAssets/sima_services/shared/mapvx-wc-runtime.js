@@ -145,7 +145,8 @@
 
   function normalizeMapEngine(raw) {
     raw = text(raw).toLowerCase();
-    return (raw === "legacy" || raw === "wc" || raw === "auto") ? raw : "";
+    if (raw === "legacy" || raw === "auto" || raw === "wc") return "wc";
+    return "";
   }
 
   function readMapEngine(search) {
@@ -162,13 +163,9 @@
       var fromCfg = normalizeMapEngine(global.MAPVX_CONFIG && global.MAPVX_CONFIG.mapEngine);
       if (fromCfg) return fromCfg;
     } catch (e2) { /* noop */ }
-    // Default: "auto" — try the Web Component, fall back to legacy on any
-    // failure (bad tiles, unresolved id, missing origin, bundle down). The
-    // bathroom / SAC / cowork WC path is validated; elevators + unverified ids
-    // carry a placeIdNote and stay on legacy regardless. Pin a totem back to
-    // the old renderer with ?mapEngine=legacy or MAPVX_CONFIG.mapEngine="legacy"
-    // — no OTA needed.
-    return "auto";
+    // The legacy SDK (mapvx/index.js + mapvx-bridge.js) is no longer loaded.
+    // "legacy" and "auto" both mean the Web Component.
+    return "wc";
   }
 
   function isAvailable() {
