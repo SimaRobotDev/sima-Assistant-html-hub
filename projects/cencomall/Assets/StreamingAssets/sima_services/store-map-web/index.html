@@ -1331,6 +1331,8 @@ function wireRouteElement(routeEl) {
       route: true,
     });
     log("route-view-totems: mapReady");
+    // El popup del destino aparece cuando llega la ruta (~3 s): se espera hasta ~15 s.
+    restyleStorePopup(routeEl, 0, 50);
     watchRouteInstructions(routeEl);
     requestGenerateRoute(routeEl);
   });
@@ -1786,9 +1788,37 @@ const POPUP_CSS = [
   ".popup-content:not(:has(.popup-logo)) .popup-name { font-size: 15px !important;",
   "  line-height: 18px !important; font-weight: 700 !important; }",
   ".popup-category { display: none !important; }",
+  /* Escala con el zoom (ver bindPopupScale): `scale` no pisa el transform con que
+     MapVX ancla la tarjeta. El origen es la punta de la flecha, que sobresale 10px bajo
+     la caja, para que la tarjeta se achique hacia la tienda y no se despegue de ella. */
+  ".popup { scale: var(--cm-popup-scale, 1) !important;",
+  "  transform-origin: 50% calc(100% + 10px) !important; }",
 ].join(" ");
 
-function restyleStorePopup(hostEl, attempt) {
+// Tamaño de la tarjeta según el zoom: [zoom, escala]. Interpolación lineal, fuera del
+// rango se queda en el extremo. 0.6 alejado (17,3 = ZOOM_MIN) y 0.9 en el zoom más cercano.
+const POPUP_SCALE_STOPS = [[17.3, 0.6], [19, 0.9]];
+function popupScaleForZoom(z) {
+  const a = POPUP_SCALE_STOPS[0], b = POPUP_SCALE_STOPS[POPUP_SCALE_STOPS.length - 1];
+  const t = Math.min(1, Math.max(0, (z - a[0]) / (b[0] - a[0])));
+  return +(a[1] + t * (b[1] - a[1])).toFixed(3);
+}
+// Una vez por mapa: escribe --cm-popup-scale en el <custom-map> (el shadow host que
+// contiene el popup, la variable se hereda hacia adentro) cada vez que cambia el zoom.
+function bindPopupScale(hostEl) {
+  const libreMap = getLiveMap(hostEl);
+  const customMap = hostEl.shadowRoot && hostEl.shadowRoot.querySelector("custom-map");
+  if (!libreMap || !customMap || typeof libreMap.on !== "function") return;
+  const update = function () {
+    customMap.style.setProperty("--cm-popup-scale", String(popupScaleForZoom(libreMap.getZoom())));
+  };
+  update();
+  if (libreMap.__popupScaleBound) return;
+  libreMap.__popupScaleBound = true;
+  libreMap.on("zoom", update);
+}
+
+function restyleStorePopup(hostEl, attempt, maxAttempts) {
   attempt = attempt || 0;
   const nameEl = findDeepShadow(hostEl, ".popup-name", 0);
   const root = nameEl && nameEl.getRootNode && nameEl.getRootNode();
@@ -1800,10 +1830,11 @@ function restyleStorePopup(hostEl, attempt) {
       root.appendChild(style);
       log("restyleStorePopup: popup style injected");
     }
+    bindPopupScale(hostEl);
     return;
   }
-  if (attempt < 10) {
-    setTimeout(function () { restyleStorePopup(hostEl, attempt + 1); }, 300);
+  if (attempt < (maxAttempts || 10)) {
+    setTimeout(function () { restyleStorePopup(hostEl, attempt + 1, maxAttempts); }, 300);
   } else {
     log("restyleStorePopup: popup not found (vendor markup may have changed)");
   }
