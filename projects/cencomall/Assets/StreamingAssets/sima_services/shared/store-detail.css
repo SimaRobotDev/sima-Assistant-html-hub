@@ -133,6 +133,18 @@
   overflow: hidden;
 }
 
+/* Tighter spacing so a description still fits next to the 117px photo. */
+.store-detail-panel.fit-media .store-detail-meta {
+  margin-top: 4px;
+}
+
+.store-detail-panel.fit-media .store-detail-schedule,
+.store-detail-panel.fit-media .store-detail-description {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 @media (max-width: 520px) {
   .store-detail-panel.fit-media .store-detail-header,
   .store-detail-panel.fit-media .store-detail-body {
