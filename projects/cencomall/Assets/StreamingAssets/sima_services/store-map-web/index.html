@@ -1542,7 +1542,8 @@ function closeRouteView() {
 // Medido en 0.13.0 (11-nov-2026): sobre una instancia calentada el primer destino y también un
 // segundo cambio de destino resolvieron en ~3,4-4 s; el cuelgue del comentario de arriba (0.5.0)
 // no se reprodujo. Aun así se usa una sola vez por instancia: al cerrar se monta otra.
-// Gasta un segundo mapa en memoria: se apaga solo en equipos de ≤2 GB o con
+// Gasta un segundo mapa en memoria: se apaga solo si el equipo declara menos de 1,5 GB
+// (navigator.deviceMemory viene redondeado: 0.25, 0.5, 1, 2, 4, 8; una tablet de 1,7 GB declara 2) o con
 // MAPVX_CONFIG.routeStandby=false / ?routeStandby=0.
 function routeStandbyEnabled(cfg) {
   try {
@@ -1551,7 +1552,7 @@ function routeStandbyEnabled(cfg) {
     if (q === "1" || q === "true") return true;
   } catch (e) { /* sin URLSearchParams */ }
   if (cfg && typeof cfg.routeStandby === "boolean") return cfg.routeStandby;
-  return !(navigator.deviceMemory && navigator.deviceMemory <= 2);
+  return !(navigator.deviceMemory && navigator.deviceMemory < 1.5);
 }
 
 function prepareStandbyRoute(cfg) {
