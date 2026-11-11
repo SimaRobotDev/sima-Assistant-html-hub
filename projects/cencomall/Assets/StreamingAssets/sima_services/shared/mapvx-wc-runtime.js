@@ -192,7 +192,8 @@
           layer.type === "symbol" &&
           layer.source === "indoorequal" &&
           HIDDEN_ICON_SOURCE_LAYERS.indexOf(layer["source-layer"]) !== -1 &&
-          layer.id !== "indoor-poi-tree"
+          layer.id !== "indoor-poi-tree" &&
+          layer.id !== "cm-store-names"
         );
       });
       layers.forEach(function (layer) {

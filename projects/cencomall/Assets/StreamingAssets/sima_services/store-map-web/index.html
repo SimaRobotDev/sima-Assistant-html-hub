@@ -22,7 +22,7 @@
 <script src="../shared/market-search.js"></script>
 <script src="../shared/market-i18n.js"></script>
 <script src="../shared/store-detail.js?v=20261109-2"></script>
-<script src="../shared/mapvx-label-tuning.js?v=20261109-1"></script>
+<script src="../shared/mapvx-label-tuning.js?v=20261111-1"></script>
 <script src="../shared/route-mode-picker.js"></script>
 <script src="../shared/qrcode-generator.js"></script>
 
@@ -1519,7 +1519,8 @@ function hideGenericPoiIcons(hostEl) {
     const layers = (libreMap.getStyle().layers || []).filter(function (l) {
       return l.type === "symbol" && l.source === "indoorequal" &&
         HIDDEN_ICON_SOURCE_LAYERS.indexOf(l["source-layer"]) !== -1 &&
-        l.id !== "indoor-poi-tree";
+        l.id !== "indoor-poi-tree" &&
+        l.id !== "cm-store-names"; // nuestra capa de nombres de tienda (mapvx-label-tuning.js), también es de la capa "poi"
     });
     layers.forEach(function (l) { libreMap.setLayoutProperty(l.id, "visibility", "none"); });
     if (layers.length) log("hideGenericPoiIcons: hid " + layers.map(function (l) { return l.id; }).join(", "));

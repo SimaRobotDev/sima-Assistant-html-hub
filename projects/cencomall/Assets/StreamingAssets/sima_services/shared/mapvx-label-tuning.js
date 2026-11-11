@@ -123,6 +123,11 @@
     if (floorFilter) filter = ["all", filter, floorFilter];
     if (map.getLayer(OWN_LAYER_ID)) {
       if (!same(map.getFilter(OWN_LAYER_ID), filter)) map.setFilter(OWN_LAYER_ID, filter);
+      // hideGenericPoiIcons hides every symbol layer of source-layer "poi", which also
+      // caught this one on floor changes (seen in the tablet log 2026-11-11): show it again.
+      if (map.getLayoutProperty(OWN_LAYER_ID, "visibility") === "none") {
+        map.setLayoutProperty(OWN_LAYER_ID, "visibility", "visible");
+      }
       return true;
     }
     map.addLayer({
