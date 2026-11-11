@@ -1620,7 +1620,7 @@ const HIDDEN_ICON_SOURCE_LAYERS = ["poi", "transportation"];
 // Los alrededores del mall (calles, edificios y POIs de afuera) vienen de otra fuente vectorial,
 // "openmaptiles" (MapTiler): 50 capas y tiles propios, y en la vista de la ruta solo dibujan ~30
 // elementos. Quitar capas Y fuente evita dibujarlos y también bajar esos tiles. Se apaga con
-// MAPVX_CONFIG.hideSurroundings=true o ?surroundings=0 (por defecto se muestran).
+// Por defecto se quitan; para mostrarlos: MAPVX_CONFIG.hideSurroundings=false o ?surroundings=1.
 // Nada de MapVX ni de nuestras capas usa esa fuente (medido 11-nov-2026 con 0.13.0).
 function surroundingsHidden() {
   try {
@@ -1628,7 +1628,9 @@ function surroundingsHidden() {
     if (q === "0" || q === "false") return true;
     if (q === "1" || q === "true") return false;
   } catch (e) { /* sin URLSearchParams */ }
-  return !!(window.MAPVX_CONFIG && window.MAPVX_CONFIG.hideSurroundings);
+  const cfg = window.MAPVX_CONFIG;
+  if (cfg && typeof cfg.hideSurroundings === "boolean") return cfg.hideSurroundings;
+  return true;
 }
 
 function dropSurroundings(libreMap) {
