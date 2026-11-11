@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "project": "cencomall",
-  "version": "2026.11.09-61",
+  "version": "2026.11.11-62",
   "baseUrl": "https://sima-assistant-html-hub-rho.vercel.app/cencomall",
-  "generatedAt": "2026-11-09T21:47:59.947Z",
+  "generatedAt": "2026-11-11T15:28:52.407Z",
   "hashAlgorithm": "sha256",
   "rollbackTo": null,
   "entryPoints": [
@@ -211,7 +211,7 @@
     {
       "path": "mobility/index.html",
       "size": 288747,
-      "sha256": "bfea621d7cd2f43a969b736b3f60fba64dc2df64b47a5f9eef6dab735d9974ad"
+      "sha256": "7c19fed7023800705a065a8aef8fa0c186985b49a9d588c1d1b9c8aabc65058c"
     },
     {
       "path": "mobility/indexMobility.html",
@@ -530,13 +530,13 @@
     },
     {
       "path": "shared/mapvx-label-tuning.js",
-      "size": 8035,
-      "sha256": "c58d6295298b556ebc7ec5864b6f096940afe22232307b582b62f3571aa17e70"
+      "size": 8369,
+      "sha256": "abc1adaa5e85f2dfea9fab6880aeef19ef313acd9dab6a70e49b959824657d18"
     },
     {
       "path": "shared/mapvx-wc-runtime.js",
-      "size": 50899,
-      "sha256": "c6cea816d2649d7b992bb572922d6be256a6b132adcb88afa6577e5c4d41a350"
+      "size": 50942,
+      "sha256": "351ed9fdfa826bdd88d945c8c473364392f6f7be7c0c5383ee95c4e53a7f55a0"
     },
     {
       "path": "shared/mapvx-wc/map-view-with-modal.js",
@@ -685,13 +685,13 @@
     },
     {
       "path": "store-map-web/index.html",
-      "size": 93693,
-      "sha256": "eb090de38dd3278c9bd415f70623ede74e133909925509eaa6413d853d62730d"
+      "size": 93821,
+      "sha256": "cd573e9c7a0d3d4b803bba700352714b3b94bea856bee5db910af13df5b48b4c"
     },
     {
       "path": "store-map/index.html",
       "size": 44374,
-      "sha256": "32bc17a261101f81ed9d5be89740a93d8b792589bfad1224edeebcc9422bf1c3"
+      "sha256": "603f92a0a0fd22dcc9db80d6752088119d1a0f59fd56727f780900d38e0f782c"
     },
     {
       "path": "taxi/index.html",
