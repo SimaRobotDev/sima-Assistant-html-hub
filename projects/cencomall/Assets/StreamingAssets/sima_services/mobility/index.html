@@ -5443,7 +5443,8 @@ function formatNivel(floor) {
   const f = String(floor).trim();
   if (f.toUpperCase() === "ALL") return t("allLevels");
   if (/^pb$/i.test(f) || /planta baja/i.test(f)) return t("gf");
-  const m = f.match(/(\d+)/);
+  // «-1» es el Nivel -1 (estacionamiento), no el nivel 1.
+  const m = f.match(/(-?\d+)/);
   if (m) return t("level") + " " + m[1];
   return f;
 }

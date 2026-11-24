@@ -710,6 +710,9 @@ window.ServicesCatalog = (function () {
   function normalizeFloorKey(value) {
     var raw = String(value == null ? "" : value).trim();
     if (!raw) return "";
+    // Niveles bajo la planta baja («-1», «Nivel -1»): normalizeText quita el signo y «-1» pasaba a ser el nivel 1.
+    var below = raw.match(/^(?:(?:nivel|piso|floor|level|n)\s*)?-\s*(\d+)$/i);
+    if (below) return "-" + below[1];
     var n = normalizeText(raw);
     if (!n) return "";
     if (n === "pb" || n === "planta baja" || n === "ground" || n === "0") return "PB";

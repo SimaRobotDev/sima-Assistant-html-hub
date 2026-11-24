@@ -42,7 +42,7 @@ function check(label, ok, detail = "") {
 
 // ---------------------------------------------------------------- 1. data integrity
 const services = servicesData.services;
-const FLOORS = new Set(["PB", "1", "2", "3", "4", "5"]);
+const FLOORS = new Set(["-1", "PB", "1", "2", "3", "4", "5"]);
 const KNOWN_TYPES = new Set([
   "bathroom", "elevator", "customer_service", "cowork", "nursing", "changing_table", "atm",
   "bike", "stage", "civil_registry", "central_plaza", "playground", "mall_exit", "parking_exit",
@@ -61,10 +61,10 @@ const MAPVX_ID = /^(-[A-Za-z0-9_-]{19}|node:\d+|CC_(PB|N\d+)_\d+)$/;
 const needsPlaceId = services.filter((s) => NEW_TYPES.includes(s.type) || s.type === "atm" || s.type === "nursing" || s.type === "changing_table");
 check("WC-only types have a well-formed placeId", needsPlaceId.every((s) => MAPVX_ID.test(String(s.mapvx?.placeId || ""))), needsPlaceId.filter((s) => !MAPVX_ID.test(String(s.mapvx?.placeId || ""))).map((s) => s.id).join(","));
 check("WC-only new types have no placeIdNote (would force the legacy engine)", services.filter((s) => NEW_TYPES.includes(s.type)).every((s) => !s.mapvx?.placeIdNote));
-// Two entries may share a placeId only when intended (a bathroom block and its changing table).
+// Two entries may share a placeId only when intended (a bathroom block and its changing table, or a provisional entry that borrows the point of another one: provisionalOf).
 const byPlace = new Map();
 services.forEach((s) => { const p = s.mapvx?.placeId; if (p) (byPlace.get(p) || byPlace.set(p, []).get(p)).push(s); });
-const dupPlace = [...byPlace.entries()].filter(([, list]) => list.length > 1 && !(list.length === 2 && list.some((s) => s.type === "bathroom") && list.some((s) => s.type === "changing_table")));
+const dupPlace = [...byPlace.entries()].filter(([, list]) => list.length > 1 && !(list.length === 2 && list.some((s) => s.type === "bathroom") && list.some((s) => s.type === "changing_table")) && !(list.length === 2 && list.some((s) => s.provisional === true && list.some((o) => o.id === s.provisionalOf))));
 check("no accidental duplicate placeIds across entries", dupPlace.length === 0, dupPlace.map(([p, l]) => `${p}:${l.map((s) => s.id).join("+")}`).join(" | "));
 check("a new-type placeId never collides with an older type", services.filter((s) => NEW_TYPES.includes(s.type) && s.type !== "store_service").every((s) => byPlace.get(s.mapvx.placeId).length === 1));
 
