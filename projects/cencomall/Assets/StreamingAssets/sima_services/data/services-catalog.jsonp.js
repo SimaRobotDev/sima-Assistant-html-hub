@@ -1223,9 +1223,10 @@ window.__SERVICES_CATALOG__ = {
     {
       "id": "ascensor-ripley",
       "type": "elevator",
-      "sector": "ripley",
-      "name": "Ascensores · Ripley",
+      "sector": "andres-bello",
+      "name": "Ascensores · Andrés Bello",
       "floors": [
+        "-1",
         "PB",
         "1",
         "2",
@@ -1321,9 +1322,9 @@ window.__SERVICES_CATALOG__ = {
         }
       ],
       "descriptions": {
-        "short": "Eje Ripley / ancla, de PB a N4.",
-        "medium": "Zona Ripley: Easy (PB), Jumbo (N1), Nike/Ripley (N2), Bold (N3), Sparta (N4).",
-        "long": "Torre del sector Ripley (Torre Andrés Bello). En cada piso la referencia es la tienda ancla de ese nivel (Easy, Jumbo, Ripley, Bold o Sparta)."
+        "short": "Torre de ascensores Andrés Bello (zona Ripley), del Nivel -1 al 4.",
+        "medium": "Torre Andrés Bello, zona Ripley: Nivel -1 (estacionamiento, junto al Servicio al Cliente de Parking), Easy (PB), Jumbo (N1), Nike/Ripley (N2), Bold (N3), Sparta (N4).",
+        "long": "Torre de ascensores Andrés Bello, en la zona de Ripley. En el Nivel -1 (estacionamiento) quedan junto al Servicio al Cliente de Parking; en cada piso la referencia es la tienda ancla de ese nivel (Easy, Jumbo, Ripley, Bold o Sparta)."
       },
       "keywords": [
         "ascensor",
@@ -1338,7 +1339,11 @@ window.__SERVICES_CATALOG__ = {
         "nike rise",
         "bold",
         "sparta",
-        "ancla"
+        "ancla",
+        "andres bello",
+        "andrés bello",
+        "torre andres bello",
+        "torre andrés bello"
       ],
       "mapvx": {
         "placeId": "-N1e2dagzGnuGIFpinw0",
@@ -1349,29 +1354,31 @@ window.__SERVICES_CATALOG__ = {
         "validatedAt": "2026-07-21",
         "placeIdSource": "mapvx-directory",
         "inFloors": [
+          "-1",
           "PB",
           "1",
           "2",
           "3",
           "4"
         ],
-        "inFloorsVerifiedAt": "2026-10-20"
+        "inFloorsVerifiedAt": "2026-11-24",
+        "nameSource": "directorio público de MapVX (24-nov): «Ascensores Torre Andrés Bello», Nivel -1, PB, 1, 2, 3 y 4; antes se llamaba «Ripley» por el sector"
       },
       "i18n": {
         "en": {
-          "name": "Elevators · Ripley",
+          "name": "Elevators · Andrés Bello",
           "descriptions": {
-            "short": "Ripley / anchor-store axis, GF to L4.",
-            "medium": "Ripley area: Easy (GF), Jumbo (L1), Nike/Ripley (L2), Bold (L3), Sparta (L4).",
-            "long": "Tower in the Ripley area (Andrés Bello Tower). On each floor the landmark is that level's anchor store (Easy, Jumbo, Ripley, Bold or Sparta)."
+            "short": "Andrés Bello elevator tower (Ripley area), from Level -1 to L4.",
+            "medium": "Andrés Bello tower, Ripley area: Level -1 (parking, next to the Parking Customer Service), Easy (GF), Jumbo (L1), Nike/Ripley (L2), Bold (L3), Sparta (L4).",
+            "long": "Andrés Bello elevator tower, in the Ripley area. On Level -1 (parking) it is next to the Parking Customer Service; on each floor the landmark is that level's anchor store (Easy, Jumbo, Ripley, Bold or Sparta)."
           }
         },
         "pt": {
-          "name": "Elevadores · Ripley",
+          "name": "Elevadores · Andrés Bello",
           "descriptions": {
-            "short": "Eixo Ripley / loja âncora, de T a P4.",
-            "medium": "Zona Ripley: Easy (T), Jumbo (P1), Nike/Ripley (P2), Bold (P3), Sparta (P4).",
-            "long": "Torre do setor Ripley (Torre Andrés Bello). Em cada piso a referência é a loja âncora daquele nível (Easy, Jumbo, Ripley, Bold ou Sparta)."
+            "short": "Torre de elevadores Andrés Bello (zona Ripley), do Nível -1 ao P4.",
+            "medium": "Torre Andrés Bello, zona Ripley: Nível -1 (estacionamento, ao lado do Atendimento ao Cliente do Parking), Easy (T), Jumbo (P1), Nike/Ripley (P2), Bold (P3), Sparta (P4).",
+            "long": "Torre de elevadores Andrés Bello, na zona da Ripley. No Nível -1 (estacionamento) fica ao lado do Atendimento ao Cliente do Parking; em cada piso a referência é a loja âncora daquele nível (Easy, Jumbo, Ripley, Bold ou Sparta)."
           }
         }
       }
@@ -1897,6 +1904,76 @@ window.__SERVICES_CATALOG__ = {
             "short": "Balcão de atendimento ao cliente no Piso 1.",
             "medium": "Entre a Dbs Beauty, a Sony e a MacOnline, no corredor central do Piso 1.",
             "long": "No Piso 1, o balcão de atendimento ao cliente fica no corredor entre a Dbs Beauty Store, a Sony e a MacOnline."
+          }
+        }
+      }
+    },
+    {
+      "id": "servicio-cliente-parking-n-1",
+      "type": "customer_service",
+      "scope": "parking",
+      "provisional": true,
+      "provisionalOf": "ascensor-ripley",
+      "sector": "andres-bello",
+      "name": "Servicio al Cliente de Parking (Nivel -1)",
+      "floors": [
+        "-1"
+      ],
+      "features": {},
+      "landmark": "junto a los ascensores Andrés Bello",
+      "layout": "junto_a_ascensores",
+      "anchorStores": [],
+      "descriptions": {
+        "short": "Servicio al Cliente de Parking, en el Nivel -1.",
+        "medium": "Módulo de Servicio al Cliente del estacionamiento, en el Nivel -1, junto a los ascensores Andrés Bello.",
+        "long": "Servicio al Cliente de Parking: está en el Nivel -1 (estacionamiento), junto a los ascensores Andrés Bello. Ahí se resuelven los problemas con el ticket, el pago y otros trámites del estacionamiento."
+      },
+      "keywords": [
+        "servicio al cliente parking",
+        "servicio al cliente de parking",
+        "servicio al cliente del parking",
+        "atencion al cliente parking",
+        "atención al cliente parking",
+        "servicio al cliente estacionamiento",
+        "servicio al cliente del estacionamiento",
+        "atencion al cliente estacionamiento",
+        "atención al cliente estacionamiento",
+        "sac parking",
+        "sac estacionamiento",
+        "oficina parking",
+        "oficina de parking",
+        "modulo parking",
+        "módulo parking",
+        "modulo de parking",
+        "módulo de parking",
+        "ascensores andres bello",
+        "ascensores andrés bello",
+        "nivel -1"
+      ],
+      "mapvx": {
+        "placeId": "-N1e2dagzGnuGIFpinw0",
+        "poiRef": "-N1e2dagzGnuGIFpinw0",
+        "mapvxId": "-N1e2dagzGnuGIFpinw0",
+        "lat": -33.41780349399868,
+        "lng": -70.6073646247387,
+        "placeIdSource": "provisional: ascensores Torre Andrés Bello (Nivel -1), junto a los cuales queda el módulo; MapVX aún no publica el lugar propio",
+        "validatedAt": "2026-11-24"
+      },
+      "i18n": {
+        "en": {
+          "name": "Parking Customer Service (Level -1)",
+          "descriptions": {
+            "short": "Parking Customer Service, on Level -1.",
+            "medium": "Customer Service desk of the car park, on Level -1, next to the Andrés Bello elevators.",
+            "long": "Parking Customer Service: it is on Level -1 (car park), next to the Andrés Bello elevators. Ticket, payment and other parking issues are handled there."
+          }
+        },
+        "pt": {
+          "name": "Atendimento ao Cliente do Parking (Nível -1)",
+          "descriptions": {
+            "short": "Atendimento ao Cliente do Parking, no Nível -1.",
+            "medium": "Balcão de Atendimento ao Cliente do estacionamento, no Nível -1, ao lado dos elevadores Andrés Bello.",
+            "long": "Atendimento ao Cliente do Parking: fica no Nível -1 (estacionamento), ao lado dos elevadores Andrés Bello. Ali se resolvem os problemas de ticket, pagamento e outros trâmites do estacionamento."
           }
         }
       }
